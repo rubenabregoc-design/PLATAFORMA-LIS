@@ -1,0 +1,6 @@
+{
+  "name": "LIS-Core & Middleware (AbregoTech)",
+  "description": "Sistema de Información de Laboratorio (LIS) Multi-Tenant + Middleware de Integración de Analizadores Clínicos (ASTM/HL7) para Panamá.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
