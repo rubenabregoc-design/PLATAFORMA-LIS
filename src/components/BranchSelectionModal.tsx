@@ -46,7 +46,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 sm:p-8 shadow-2xl relative space-y-4 sm:space-y-6">
         
         {/* Glow backdrop decoration */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-teal-500/10 rounded-full blur-[100px] pointer-events-none"></div>
@@ -70,12 +70,12 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
             )}
           </div>
 
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center space-x-2">
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center space-x-2">
             <Building2 className="w-7 h-7 text-teal-400 shrink-0" />
             <span>Seleccione su Sede de Trabajo</span>
           </h2>
 
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">
             Hola <strong className="text-white">{currentUser.name}</strong>, tu cuenta tiene acceso a múltiples centros clínicos en <strong className="text-teal-300">{currentTenant.name}</strong>. Por favor confirma la sede en la que operarás durante esta sesión.
           </p>
         </div>

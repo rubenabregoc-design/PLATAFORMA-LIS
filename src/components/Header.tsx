@@ -1,11 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import {
-  Shield, Building2, Activity, Sparkles, Database,
-  Receipt, Cpu, AlertTriangle, FileCheck2,
-  BrainCircuit, ShieldCheck, Truck, Globe, Server, Award,
-  ChevronDown, LayoutDashboard, SlidersHorizontal, LogOut, UserCheck,
-  Package, Filter, CheckCircle2, RefreshCw, MapPin, Lock
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -37,190 +33,176 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
 };
 
 export const NAVIGATION_TABS = [
-  { id: 'dashboard', label: 'Dashboard de Rol', icon: LayoutDashboard },
-  { id: 'homologation', label: 'Homologación Analizadores', icon: SlidersHorizontal },
-  { id: 'billing', label: 'Facturación POS & DGI', icon: Receipt },
-  { id: 'inventory', label: 'Inventario Reactivos', icon: Package },
-  { id: 'qc', label: 'QC Westgard', icon: Activity },
-  { id: 'middleware', label: 'Middleware ASTM/HL7', icon: Sparkles },
-  { id: 'drivers', label: 'Drivers ASTM', icon: Cpu },
-  { id: 'delta', label: 'Alertas Pánico', icon: AlertTriangle },
-  { id: 'minsa', label: 'EPI MINSA', icon: FileCheck2 },
-  { id: 'executive', label: 'BI Ejecutiva AI', icon: BrainCircuit },
-  { id: 'audit', label: 'Auditoría Ley 81', icon: ShieldCheck },
-  { id: 'routing', label: 'Ruteo Inter-Sedes', icon: Truck },
-  { id: 'fhir', label: 'FHIR API', icon: Globe },
-  { id: 'ha_dr', label: 'HA & Cluster', icon: Server },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'patient_results', label: 'Expedientes', icon: FileText },
+  { id: 'validation', label: 'Resultados', icon: Microscope },
+  { id: 'homologation', label: 'Analizadores', icon: SlidersHorizontal },
+  { id: 'billing', label: 'Facturación', icon: Receipt },
+  { id: 'inventory', label: 'Inventario', icon: Package },
+  { id: 'qc', label: 'Calidad', icon: Activity },
+  { id: 'middleware', label: 'Middleware', icon: Sparkles },
+  { id: 'drivers', label: 'Drivers', icon: Cpu },
+  { id: 'delta', label: 'Alertas', icon: AlertTriangle },
+  { id: 'minsa', label: 'MINSA', icon: FileCheck2 },
+  { id: 'executive', label: 'Analítica', icon: BrainCircuit },
+  { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
+  { id: 'routing', label: 'Ruteo', icon: Truck },
+  { id: 'fhir', label: 'FHIR', icon: Globe },
+  { id: 'ha_dr', label: 'HA/Cluster', icon: Server },
   { id: 'accreditation', label: 'ISO 15189', icon: Award },
-  { id: 'schema', label: 'Modelo DB PostgreSQL', icon: Database },
+  { id: 'schema', label: 'Base de Datos', icon: Database },
 ];
 
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
-  owner: ['dashboard', 'executive', 'billing', 'inventory', 'schema', 'routing', 'audit', 'ha_dr'],
-  lab_chief: ['dashboard', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
-  tech_med: ['dashboard', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
-  lab_tech: ['dashboard', 'inventory'],
-  receptionist: ['dashboard', 'billing', 'inventory'],
+  owner: ['dashboard', 'patient_results', 'validation', 'executive', 'billing', 'inventory', 'schema', 'routing', 'audit', 'ha_dr'],
+  lab_chief: ['dashboard', 'patient_results', 'validation', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
+  tech_med: ['dashboard', 'patient_results', 'validation', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
+  lab_tech: ['dashboard', 'patient_results', 'inventory'],
+  receptionist: ['dashboard', 'patient_results', 'billing', 'inventory'],
   ext_doctor: ['dashboard'],
   patient: ['dashboard'],
-  abregotech_admin: ['dashboard', 'homologation', 'billing', 'inventory', 'qc', 'middleware', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing', 'fhir', 'ha_dr', 'accreditation', 'schema']
+  abregotech_admin: ['dashboard', 'patient_results', 'validation', 'homologation', 'billing', 'inventory', 'qc', 'middleware', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing', 'fhir', 'ha_dr', 'accreditation', 'schema']
 };
 
 export const Header: React.FC<HeaderProps> = ({
   currentRole,
   currentUser,
-  onRoleChange,
-  currentTenant,
   currentBranch,
-  onTenantChange,
-  onBranchChange,
-  onOpenBranchModal,
   activeTab,
   setActiveTab,
   onLogout,
-  onLockSession,
   showAllModules,
-  setShowAllModules
 }) => {
-  // Calculate allowed tabs
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+
   const allowedTabIds = showAllModules
     ? NAVIGATION_TABS.map((t) => t.id)
     : ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
 
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
+  // High-priority tabs to show directly
+  const mainTabs = visibleTabs.slice(0, 3);
+  const secondaryTabs = visibleTabs.slice(3);
+
   return (
-    <header className="bg-slate-950 text-white border-b border-slate-800/80 sticky top-0 z-40 shadow-xl">
-      {/* Top Banner */}
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/60 text-xs">
-        {/* Brand & Location Info */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Brand Logo */}
-          <div className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black px-3 py-1.5 rounded-xl shadow-sm">
-            <Activity className="w-4 h-4 text-slate-950" />
-            <span className="tracking-tight text-sm">AbregoTech LIS</span>
-            <span className="text-[10px] bg-slate-950/20 text-slate-950 px-1.5 py-0.5 rounded-md uppercase font-black">
-              v2.4
-            </span>
-          </div>
+    <header className="bg-[#020617]/60 backdrop-blur-2xl text-white border-b border-white/5 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
 
-          {/* Tenant Indicator */}
-          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5">
-            <Building2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-            <span className="font-bold text-white text-xs">{currentTenant.name}</span>
+        {/* Brand Logo - More minimal */}
+        <div className="flex items-center space-x-3 shrink-0">
+          <div className="w-10 h-10 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
+            <Activity className="w-6 h-6 text-slate-950 -rotate-3" />
           </div>
-
-          {/* Active Branch / Sede Selector */}
-          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5">
-            <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">Sede:</span>
-            <select
-              value={currentBranch.id}
-              onChange={(e) => onBranchChange(e.target.value)}
-              className="bg-transparent text-emerald-300 font-bold text-xs focus:outline-none cursor-pointer"
-            >
-              {currentTenant.branches.map((b) => (
-                <option key={b.id} value={b.id} className="bg-slate-900 text-white">
-                  {b.name} ({b.code})
-                </option>
-              ))}
-            </select>
-            {onOpenBranchModal && (
-              <button
-                type="button"
-                onClick={onOpenBranchModal}
-                title="Cambiar Sede en Modal"
-                className="ml-1 text-slate-400 hover:text-emerald-300 transition cursor-pointer p-0.5 rounded flex items-center justify-center"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-slate-400 hover:text-teal-300" />
-              </button>
-            )}
-          </div>
+          <span className="font-black tracking-tighter text-xl">LIS<span className="text-teal-400">CORE</span></span>
         </div>
 
-        {/* User Account / Logout Button */}
-        <div className="flex items-center space-x-3">
-          {/* User Profile Badge */}
-          <div className="flex items-center space-x-2.5 bg-slate-900 border border-slate-800/90 p-1.5 pl-3 rounded-2xl">
-            <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300 font-black flex items-center justify-center text-xs shadow-sm">
-                {currentUser.name.charAt(0)}
-              </div>
-              <div className="hidden sm:block">
-                <div className="font-bold text-white text-xs leading-tight">{currentUser.name}</div>
-                <div className="text-[10px] text-teal-400 font-semibold flex items-center space-x-1">
-                  <span>{ROLE_LABELS[currentRole].title}</span>
-                  {currentUser.licenseNumber && (
-                    <span className="text-[9px] text-slate-400 font-mono">({currentUser.licenseNumber})</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Lock & Logout Actions */}
-            <div className="flex items-center space-x-1.5">
-              {onLockSession && (
-                <button
-                  onClick={onLockSession}
-                  className="bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 font-bold px-2.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1 shadow-sm cursor-pointer"
-                  title="Bloquear pantalla por inactividad / seguridad"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">Bloquear</span>
-                </button>
-              )}
-
-              <button
-                onClick={onLogout}
-                className="bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 font-bold px-3 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
-                title="Cerrar sesión e ir a Login de Sede"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Cerrar Sesión</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Role-Filtered Navigation Tabs Bar */}
-      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs overflow-hidden">
-        {/* Active Tabs */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-1">
-          {visibleTabs.map((tab) => {
+        {/* Professional Navigation */}
+        <nav className="hidden lg:flex items-center space-x-1 flex-1">
+          {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all duration-300 ${
                   isActive
-                    ? 'bg-teal-500 text-slate-950 shadow-md ring-1 ring-teal-400 font-black'
-                    : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                    ? 'bg-white/5 text-teal-400 shadow-xl border border-white/5'
+                    : 'text-slate-500 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
+                <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
+                <span className="uppercase tracking-widest">{tab.label}</span>
               </button>
             );
           })}
-        </div>
 
-        {/* Toggle to view all modules */}
-        <div className="shrink-0 hidden md:flex items-center space-x-2 border-l border-slate-800/80 pl-3">
+          {secondaryTabs.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all ${
+                  secondaryTabs.some(t => t.id === activeTab)
+                    ? 'bg-white/5 text-teal-400 border border-white/5'
+                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                <span className="uppercase tracking-widest">Módulos</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isMoreOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-3 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="grid grid-cols-1 gap-1">
+                      {secondaryTabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
+                            className={`flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                              isActive
+                                ? 'bg-teal-500 text-slate-950'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span>{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </nav>
+
+        {/* Right Section: Profile & Logout */}
+        <div className="flex items-center space-x-6">
+          <div className="hidden sm:flex items-center space-x-4">
+            <div className="flex flex-col text-right">
+              <span className="text-[13px] font-black text-white leading-tight uppercase tracking-tight">{currentUser.name}</span>
+              <span className="text-[10px] text-teal-400 font-black uppercase tracking-[0.2em]">{currentBranch.name}</span>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center text-teal-400 font-black text-sm shadow-xl">
+              {currentUser.name.charAt(0)}
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-white/5 hidden md:block"></div>
+
           <button
-            onClick={() => setShowAllModules(!showAllModules)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 cursor-pointer ${
-              showAllModules
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-            }`}
+            onClick={onLogout}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all duration-300 cursor-pointer group shadow-2xl"
           >
-            <Filter className="w-3 h-3" />
-            <span>{showAllModules ? 'Ver Todo (Admin)' : 'Filtrado por Rol'}</span>
+            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
         </div>
+      </div>
+
+      {/* Mobile Horizontal Scroller - More elegant */}
+      <div className="lg:hidden border-t border-white/5 px-4 py-3 bg-[#020617]/80 overflow-x-auto flex items-center space-x-3">
+        {visibleTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                isActive ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20' : 'bg-white/5 text-slate-500 border border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
     </header>
   );

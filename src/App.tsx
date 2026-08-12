@@ -21,6 +21,7 @@ import { DatabaseSchemaViewer } from './components/DatabaseSchemaViewer';
 import { MiddlewareSimulator } from './components/MiddlewareSimulator';
 import { WestgardQC } from './components/WestgardQC';
 import { PdfReportPreview } from './components/PdfReportPreview';
+import { PatientResultsPortal } from './components/PatientResultsPortal';
 import { AstmDriverStudio } from './components/AstmDriverStudio';
 import { BillingPOS } from './components/BillingPOS';
 import { AnalyzerHomologation } from './components/AnalyzerHomologation';
@@ -37,6 +38,8 @@ import { Iso15189AccreditationPortal } from './components/Phase5Suite/Iso15189Ac
 import { OwnerDashboard } from './components/RoleDashboards/OwnerDashboard';
 import { LabChiefDashboard } from './components/RoleDashboards/LabChiefDashboard';
 import { TechMedDashboard } from './components/RoleDashboards/TechMedDashboard';
+import { TechValidationTray } from './components/RoleDashboards/TechValidationTray';
+import { ResultEntryWorkspace } from './components/RoleDashboards/ResultEntryWorkspace';
 import { LabTechDashboard } from './components/RoleDashboards/LabTechDashboard';
 import { ReceptionDashboard } from './components/RoleDashboards/ReceptionDashboard';
 import { DoctorPortal } from './components/RoleDashboards/DoctorPortal';
@@ -193,6 +196,12 @@ export default function App() {
     );
   };
 
+  const handleUpdateInterpretation = (resultId: string, interpretation: string) => {
+    setResults((prev) =>
+      prev.map((r) => (r.id === resultId ? { ...r, interpretation } : r))
+    );
+  };
+
   const handleValidateTechnical = (resultId: string) => {
     setResults((prev) =>
       prev.map((r) =>
@@ -240,8 +249,11 @@ export default function App() {
     );
   };
 
-  const handleCreateOrder = (newOrder: Order) => {
-    setOrders([newOrder, ...orders]);
+  const handleCreateOrder = (newOrder: Order, newPatient?: Patient) => {
+    if (newPatient) {
+      setPatients((prev) => [newPatient, ...prev]);
+    }
+    setOrders((prev) => [newOrder, ...prev]);
   };
 
   const handleProvisionTenant = (name: string, ruc: string, dv: string, plan: Tenant['plan']) => {
@@ -284,7 +296,14 @@ export default function App() {
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans antialiased flex flex-col relative">
+    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] bg-blue-500/5 rounded-full blur-[100px]"></div>
+        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] bg-emerald-500/5 rounded-full blur-[110px]"></div>
+      </div>
+
       {/* Top Navbar */}
       <Header
         currentRole={currentRole}
@@ -304,44 +323,26 @@ export default function App() {
       />
 
       {/* Main Body */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-16 relative z-10">
         {isLoading ? (
           <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <SkeletonLoader />
           </div>
         ) : !isTabAuthorized ? (
           /* 403 RBAC Access Denied Security Screen */
-          <div className="max-w-3xl mx-auto my-12 p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl space-y-6 text-center">
+          <div className="max-w-3xl mx-auto my-12 p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl space-y-6 text-center mx-4 sm:mx-auto">
             <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-3xl border border-rose-500/40 flex items-center justify-center mx-auto">
               <ShieldAlert className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="text-[10px] sm:text-xs bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 403 Acceso Denegado • Ley 81 / RBAC
               </span>
-              <h2 className="text-2xl font-black text-white">Módulo Restringido por Política de Seguridad</h2>
-              <p className="text-xs text-slate-400 max-w-lg mx-auto">
-                Tu perfil actual (<strong className="text-teal-400">{ROLE_LABELS[currentRole].title}</strong>) no tiene permisos asignados para acceder a la pestaña <span className="font-mono text-amber-300 uppercase font-bold">{activeTab}</span>.
+              <h2 className="text-xl sm:text-2xl font-black text-white">Módulo Restringido</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
+                Tu perfil actual (<strong className="text-teal-400">{ROLE_LABELS[currentRole].title}</strong>) no tiene permisos para <span className="font-mono text-amber-300 uppercase font-bold">{activeTab}</span>.
               </p>
-            </div>
-
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs space-y-3 max-w-md mx-auto text-left">
-              <div className="font-bold text-slate-200 flex items-center space-x-2">
-                <KeyRound className="w-4 h-4 text-amber-400" />
-                <span>¿Requiere Acceso de Excepción Admin?</span>
-              </div>
-              <p className="text-slate-400 text-[11px]">
-                Activa el modo de depuración o utiliza el botón <strong>"Ver Todo (Admin)"</strong> en la barra superior usando el PIN Súper-Admin <code className="text-amber-300 font-mono">9999</code>.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAllModules(true)}
-                  className="w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Habilitar Vista Admin Global
-                </button>
-              </div>
             </div>
 
             <div>
@@ -349,215 +350,75 @@ export default function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 cursor-pointer"
               >
-                Volver a mi Dashboard de Rol
+                Volver a mi Dashboard
               </button>
             </div>
           </div>
         ) : (
-          <>
-            {activeTab === 'schema' && <DatabaseSchemaViewer />}
-
-            {activeTab === 'homologation' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <AnalyzerHomologation
-                  currentUser={currentUser}
-                  currentRole={currentRole}
-                  analyzers={MOCK_ANALYZERS}
-                  testCatalog={MOCK_TEST_CATALOG}
-                  mappings={analyzerMappings}
-                  onAddMapping={handleAddAnalyzerMapping}
-                  onUpdateMapping={handleUpdateAnalyzerMapping}
-                  onDeleteMapping={handleDeleteAnalyzerMapping}
-                />
-              </div>
-            )}
-
-            {activeTab === 'middleware' && (
-              <MiddlewareSimulator
-                analyzers={MOCK_ANALYZERS}
-                logs={middlewareLogs}
-                orders={orders}
-                onNewResultSimulated={handleNewResultSimulated}
-              />
-            )}
-
-            {activeTab === 'qc' && <WestgardQC controls={MOCK_WESTGARD_QC} />}
-
-            {activeTab === 'drivers' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} />
-              </div>
-            )}
-
-            {activeTab === 'billing' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <BillingPOS
-                  orders={orders}
-                  patients={patients}
-                  testCatalog={MOCK_TEST_CATALOG}
-                  tenant={currentTenant}
-                  branch={currentBranch}
-                  onOrderPaid={handleOrderPaid}
-                />
-              </div>
-            )}
-
-            {activeTab === 'delta' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <DeltaPanicAlerts orders={orders} results={results} patients={patients} />
-              </div>
-            )}
-
-            {activeTab === 'minsa' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <MinsaEpidemiology orders={orders} results={results} patients={patients} />
-              </div>
-            )}
-
-            {activeTab === 'inventory' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <ReagentInventoryModule tenant={currentTenant} branch={currentBranch} />
-              </div>
-            )}
-
-            {activeTab === 'executive' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <ExecutiveAnalyticsAI
-                  tenant={currentTenant}
-                  branches={currentTenant.branches}
-                  orders={orders}
-                  results={results}
-                />
-              </div>
-            )}
-
-            {activeTab === 'audit' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <Ley81AuditVault tenant={currentTenant} branch={currentBranch} />
-              </div>
-            )}
-
-            {activeTab === 'routing' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches} />
-              </div>
-            )}
-
-            {activeTab === 'fhir' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <FhirInteroperabilityStudio
-                  tenant={currentTenant}
-                  branch={currentBranch}
-                  orders={orders}
-                  results={results}
-                  patients={patients}
-                />
-              </div>
-            )}
-
-            {activeTab === 'ha_dr' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <HighAvailabilityDisasterRecovery tenant={currentTenant} branch={currentBranch} />
-              </div>
-            )}
-
-            {activeTab === 'accreditation' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                <Iso15189AccreditationPortal tenant={currentTenant} branch={currentBranch} />
-              </div>
-            )}
-
+          <div className="max-w-7xl mx-auto p-4 sm:p-8">
             {activeTab === 'dashboard' && (
-              <div className="max-w-7xl mx-auto p-4 sm:p-6">
-                {/* Role Switcher Context Note */}
-                <div className="mb-6 bg-slate-900 text-slate-200 p-4 rounded-2xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>
-                      Sesión activa de <strong className="text-white">{currentUser.name}</strong> (<span className="font-bold text-teal-400">{ROLE_LABELS[currentRole].title}</span>) en <strong className="text-white">{currentTenant.name}</strong> — <span className="text-emerald-300 font-bold">{currentBranch.name} ({currentBranch.code})</span>.
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="text-teal-400 hover:text-teal-300 font-bold underline cursor-pointer"
-                  >
-                    Cambiar de Sede / Cerrar Sesión
-                  </button>
-                </div>
-
-                {/* Shared Recent Activity Widget (Filtered by Role) */}
-                <RecentActivityWidget
-                  currentRole={currentRole}
-                  currentUserRoleTitle={ROLE_LABELS[currentRole].title}
-                  currentBranch={currentBranch}
-                  orders={orders}
-                  results={results}
-                  logs={middlewareLogs}
-                  patients={patients}
-                />
-
-                {/* Render Role-Based View */}
-                {currentRole === 'owner' && (
-                  <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />
-                )}
-
-                {currentRole === 'lab_chief' && (
-                  <LabChiefDashboard
-                    orders={orders}
-                    results={results}
-                    patients={patients}
-                    onValidateMedical={handleValidateMedical}
-                    onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
-                  />
-                )}
-
-                {currentRole === 'tech_med' && (
-                  <TechMedDashboard
-                    results={results}
-                    orders={orders}
-                    analyzers={MOCK_ANALYZERS}
-                    onUpdateResultValue={handleUpdateResultValue}
-                    onValidateTechnical={handleValidateTechnical}
-                  />
-                )}
-
-                {currentRole === 'lab_tech' && (
-                  <LabTechDashboard orders={orders} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} />
-                )}
-
+              <>
+                {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
+                {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
+                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} />}
+                {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} />}
                 {currentRole === 'receptionist' && (
                   <ReceptionDashboard
                     patients={patients}
                     testCatalog={MOCK_TEST_CATALOG}
                     orders={orders}
                     onCreateOrder={handleCreateOrder}
+                    onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
                   />
                 )}
-
-                {currentRole === 'ext_doctor' && (
-                  <DoctorPortal orders={orders} results={results} onOpenPdf={(ordId) => setPreviewOrderId(ordId)} />
-                )}
-
-                {currentRole === 'patient' && (
-                  <PatientPortal patient={patients[0]} orders={orders} onOpenPdf={(ordId) => setPreviewOrderId(ordId)} />
-                )}
-
-                {currentRole === 'abregotech_admin' && (
-                  <SuperAdminDashboard
-                    tenants={tenants}
-                    analyzers={MOCK_ANALYZERS}
-                    logs={middlewareLogs}
-                    onProvisionTenant={handleProvisionTenant}
-                  />
-                )}
-              </div>
+                {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
+              </>
             )}
-          </>
+
+            {activeTab === 'patient_results' && (
+              <PatientResultsPortal
+                patients={patients}
+                orders={orders}
+                results={results}
+                onOpenPdf={setPreviewOrderId}
+              />
+            )}
+
+            {activeTab === 'validation' && (
+              <ResultEntryWorkspace
+                order={orders[0]}
+                patient={patients[0]}
+                results={results}
+                analyzers={MOCK_ANALYZERS}
+                onUpdateResultValue={handleUpdateResultValue}
+                onUpdateInterpretation={handleUpdateInterpretation}
+                onValidateTechnical={handleValidateTechnical}
+                onOpenPdf={setPreviewOrderId}
+              />
+            )}
+
+            {/* Other modules */}
+            {activeTab === 'schema' && <DatabaseSchemaViewer />}
+            {activeTab === 'homologation' && <AnalyzerHomologation currentUser={currentUser} currentRole={currentRole} analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} mappings={analyzerMappings} onAddMapping={handleAddAnalyzerMapping} onUpdateMapping={handleUpdateAnalyzerMapping} onDeleteMapping={handleDeleteAnalyzerMapping} />}
+            {activeTab === 'middleware' && <MiddlewareSimulator analyzers={MOCK_ANALYZERS} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
+            {activeTab === 'qc' && <WestgardQC controls={MOCK_WESTGARD_QC} />}
+            {activeTab === 'drivers' && <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} />}
+            {activeTab === 'billing' && <BillingPOS orders={orders} patients={patients} testCatalog={MOCK_TEST_CATALOG} tenant={currentTenant} branch={currentBranch} onOrderPaid={handleOrderPaid} />}
+            {activeTab === 'delta' && <DeltaPanicAlerts orders={orders} results={results} patients={patients} />}
+            {activeTab === 'minsa' && <MinsaEpidemiology orders={orders} results={results} patients={patients} />}
+            {activeTab === 'inventory' && <ReagentInventoryModule tenant={currentTenant} branch={currentBranch} />}
+            {activeTab === 'executive' && <ExecutiveAnalyticsAI tenant={currentTenant} branches={currentTenant.branches} orders={orders} results={results} />}
+            {activeTab === 'audit' && <Ley81AuditVault tenant={currentTenant} branch={currentBranch} />}
+            {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches} />}
+            {activeTab === 'fhir' && <FhirInteroperabilityStudio tenant={currentTenant} branch={currentBranch} orders={orders} results={results} patients={patients} />}
+            {activeTab === 'ha_dr' && <HighAvailabilityDisasterRecovery tenant={currentTenant} branch={currentBranch} />}
+            {activeTab === 'accreditation' && <Iso15189AccreditationPortal tenant={currentTenant} branch={currentBranch} />}
+          </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800/80 py-6 text-xs text-center">
+      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800/80 py-6 text-xs text-center relative z-10">
         <div className="max-w-7xl mx-auto px-4 space-y-1">
           <div className="font-bold text-slate-200">AbregoTech Solutions S.A. — LIS-Core + Middleware Engine</div>
           <div>Diseñado para Laboratorios Clínicos e Integración ASTM/HL7 en Panamá y Centroamérica</div>
@@ -567,16 +428,15 @@ export default function App() {
       {/* PDF Modal Preview */}
       {previewOrderId && (
         <PdfReportPreview
-          order={pdfOrder}
-          patient={pdfPatient}
-          results={pdfResults}
+          order={orders.find(o => o.id === previewOrderId) || orders[0]}
+          patient={patients.find(p => p.id === (orders.find(o => o.id === previewOrderId)?.patientId)) || patients[0]}
+          results={results.filter(r => r.orderId === previewOrderId)}
           tenant={currentTenant}
           branch={currentBranch}
           onClose={() => setPreviewOrderId(null)}
         />
       )}
 
-      {/* Branch Selection Modal */}
       <BranchSelectionModal
         isOpen={isBranchModalOpen}
         currentUser={currentUser}
@@ -591,7 +451,7 @@ export default function App() {
       />
       {/* Lock Screen Overlay */}
       {isSessionLocked && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 shadow-2xl animate-fade-in">
             <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-3xl border border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
               <Lock className="w-8 h-8" />
