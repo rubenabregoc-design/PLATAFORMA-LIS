@@ -1,8 +1,10 @@
 import React from 'react';
 import { Patient } from '../../../types';
 import {
-  Search, User, Smartphone, MapPin, Fingerprint, UserSearch
+  Search, User, Smartphone, MapPin, Fingerprint, UserSearch, Camera, ShieldCheck, PenTool
 } from 'lucide-react';
+import { MOCK_DOCTORS } from '../../../data/mockData';
+import { useToast } from '../../Toast';
 
 interface PatientSearchAndProfileProps {
   patients: Patient[];
@@ -22,6 +24,7 @@ interface PatientSearchAndProfileProps {
   calculateAge: (dob: string) => string;
   filteredPatientsList: Patient[];
   handleSelectFoundPatient: (p: Patient) => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const PatientSearchAndProfile: React.FC<PatientSearchAndProfileProps> = ({
@@ -41,8 +44,12 @@ export const PatientSearchAndProfile: React.FC<PatientSearchAndProfileProps> = (
   formatCedula,
   calculateAge,
   filteredPatientsList,
-  handleSelectFoundPatient
+  handleSelectFoundPatient,
+  inputRef
 }) => {
+  const { toast } = useToast();
+  const [showSignaturePad, setShowSignaturePad] = React.useState(false);
+  const [isSigned, setIsSigned] = React.useState(false);
   return (
     <div className="w-full lg:w-[300px] xl:w-[340px] flex flex-col shrink-0 min-h-0">
       <div className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 p-6 rounded-[2.5rem] shadow-2xl flex flex-col">
@@ -63,19 +70,45 @@ export const PatientSearchAndProfile: React.FC<PatientSearchAndProfileProps> = (
             </button>
           </div>
 
-          <div className="relative">
-            <Search className="w-4 h-4 text-teal-500 absolute left-4 top-3" />
-            <input
-              type="text"
-              placeholder="Buscar por cédula o nombre..."
-              value={patientSearchTerm}
-              onChange={(e) => {
-                setPatientSearchTerm(e.target.value);
-                setIsSearchDropdownOpen(true);
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-teal-500 absolute left-4 top-3" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Buscar por cédula o nombre..."
+                value={patientSearchTerm}
+                onChange={(e) => {
+                  setPatientSearchTerm(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl pl-11 pr-4 py-2.5 text-[10px] text-white focus:border-teal-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                toast('Escaneando QR de Pre-Registro...', 'info', 1500);
+                setTimeout(() => {
+                   handleSelectFoundPatient(patients[0]);
+                   toast('Paciente Pre-Registrado Cargado', 'success');
+                }, 1600);
               }}
-              onFocus={() => setIsSearchDropdownOpen(true)}
-              className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl pl-11 pr-4 py-2.5 text-[10px] text-white focus:border-teal-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
-            />
+              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-teal-400 rounded-2xl border border-white/5 transition-all active:scale-95"
+              title="Escaneo QR"
+            >
+              <QrCode className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                toast('Iniciando OCR de Cédula Nativo...', 'info');
+              }}
+              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-teal-400 rounded-2xl border border-white/5 transition-all active:scale-95"
+              title="Escanear Cédula"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
 
             {isSearchDropdownOpen && filteredPatientsList.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
@@ -168,6 +201,48 @@ export const PatientSearchAndProfile: React.FC<PatientSearchAndProfileProps> = (
                </div>
                <textarea placeholder="Dirección..." value={newPatientData.address} onChange={e => setNewPatientData({...newPatientData, address: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-[10px] text-white h-16 resize-none outline-none focus:border-teal-500/50 transition-all" />
                <textarea placeholder="Ayuno / Méd..." value={newPatientData.clinicalNotes} onChange={e => setNewPatientData({...newPatientData, clinicalNotes: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-[10px] text-white h-16 resize-none outline-none focus:border-teal-500/50 transition-all" />
+
+               {/* Paperless Consent Section */}
+               <div className="pt-2">
+                 <button
+                  onClick={() => setShowSignaturePad(true)}
+                  className={`w-full p-3 rounded-2xl border-2 flex items-center justify-between transition-all ${isSigned ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-white/5 text-slate-500 hover:border-teal-500/30'}`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     {isSigned ? <ShieldCheck className="w-4 h-4" /> : <PenTool className="w-4 h-4" />}
+                     <span className="text-[9px] font-black uppercase tracking-widest">{isSigned ? 'Consentimiento Firmado' : 'Firma Consentimiento Ley 81'}</span>
+                   </div>
+                   {!isSigned && <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>}
+                 </button>
+               </div>
+
+               {/* Simulated Signature Pad Modal */}
+               {showSignaturePad && (
+                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+                    <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-8 max-w-sm w-full space-y-6 shadow-2xl">
+                       <div className="text-center space-y-2">
+                          <h4 className="text-white font-black uppercase tracking-widest text-sm">Firma del Paciente</h4>
+                          <p className="text-[9px] text-slate-500 leading-relaxed uppercase font-bold">Autorizo el tratamiento de mis datos personales según Ley 81 de Panamá.</p>
+                       </div>
+                       <div className="bg-slate-950 border-2 border-slate-800 rounded-2xl h-48 flex items-center justify-center relative overflow-hidden group cursor-crosshair">
+                          <div className="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none">
+                             <PenTool className="w-12 h-12 text-white" />
+                          </div>
+                          <div className="w-full h-full p-4 flex items-center justify-center" onClick={() => setIsSigned(true)}>
+                             {isSigned ? (
+                               <div className="text-teal-400 font-mono text-sm italic border-b-2 border-teal-400/50 pb-1">Rubén Abrego ✓</div>
+                             ) : (
+                               <p className="text-slate-700 text-[8px] uppercase font-black">Toque para firmar (Simulado)</p>
+                             )}
+                          </div>
+                       </div>
+                       <div className="grid grid-cols-2 gap-3">
+                          <button onClick={() => { setIsSigned(false); setShowSignaturePad(false); }} className="py-3 bg-white/5 hover:bg-white/10 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Cancelar</button>
+                          <button onClick={() => { if(isSigned) setShowSignaturePad(false); else toast('Debe firmar para continuar', 'warning'); }} className="py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Confirmar</button>
+                       </div>
+                    </div>
+                 </div>
+               )}
             </div>
           ) : foundPatient ? (
             <div className="space-y-6 animate-in fade-in flex flex-col">

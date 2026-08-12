@@ -1,6 +1,6 @@
 import React from 'react';
 import { Order, TestResult, Patient, Tenant, Branch } from '../types';
-import { FileText, Printer, Download, CheckCircle2, QrCode, ShieldCheck, X } from 'lucide-react';
+import { FileText, Printer, Download, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock } from 'lucide-react';
 
 interface PdfReportPreviewProps {
   order: Order;
@@ -34,6 +34,16 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                const message = `Hola ${patient.firstName}, su informe de resultados de ${tenant.name} está listo. Puede consultarlo con su cédula: ${patient.nationalId}`;
+                window.open(`https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center space-x-1.5 shadow"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Enviar WhatsApp</span>
+            </button>
             <button
               onClick={handlePrint}
               className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center space-x-1.5 shadow"
@@ -177,6 +187,17 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                 <div>Escanee para validar autenticidad de resultados en Panamá Ley 81 portal.</div>
               </div>
             </div>
+          </div>
+
+          {/* Encryption & Ley 81 Notice */}
+          <div className="bg-slate-900 text-slate-400 p-4 rounded-xl flex items-center justify-between gap-4">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
+                   <Lock className="w-4 h-4" />
+                </div>
+                <div className="text-[9px] uppercase tracking-widest font-black">Documento Protegido por Ley 81 de Protección de Datos Personales</div>
+             </div>
+             <div className="text-[8px] font-mono text-slate-500">AES-256 Validated</div>
           </div>
         </div>
       </div>

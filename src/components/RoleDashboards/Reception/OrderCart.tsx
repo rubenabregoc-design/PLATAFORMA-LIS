@@ -1,8 +1,10 @@
 import React from 'react';
 import { TestCatalogItem } from '../../../types';
 import {
-  X, Zap, Clock, CheckCircle2
+  X, Zap, Clock, CheckCircle2, UserPlus, Stethoscope, Search
 } from 'lucide-react';
+import { MOCK_DOCTORS } from '../../../data/mockData';
+import { useToast } from '../../Toast';
 
 interface OrderCartProps {
   selectedTests: TestCatalogItem[];
@@ -29,6 +31,11 @@ export const OrderCart: React.FC<OrderCartProps> = ({
   foundPatient,
   isRegistering
 }) => {
+  const { toast } = useToast();
+  const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>('doc-001');
+  const [isDoctorSearchOpen, setIsDoctorSearchOpen] = React.useState(false);
+
+  const selectedDoctor = MOCK_DOCTORS.find(d => d.id === selectedDoctorId) || MOCK_DOCTORS[0];
   return (
     <div className="w-full lg:w-[280px] xl:w-[320px] flex flex-col shrink-0 min-h-0">
       <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-white/5 rounded-[2.5rem] p-6 shadow-2xl flex flex-col relative group">
@@ -52,6 +59,40 @@ export const OrderCart: React.FC<OrderCartProps> = ({
                     </div>
                  )}
               </div>
+            </div>
+
+            {/* Doctor Selector Section */}
+            <div className="space-y-3">
+               <div className="flex items-center justify-between px-1">
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center"><Stethoscope className="w-3 h-3 mr-1.5 text-blue-400" /> Procedencia</span>
+               </div>
+               <div className="relative">
+                  <button
+                    onClick={() => setIsDoctorSearchOpen(!isDoctorSearchOpen)}
+                    className="w-full bg-slate-950 border border-white/5 p-3 rounded-2xl text-left transition-all hover:border-blue-500/30"
+                  >
+                    <div className="text-[10px] font-black text-white uppercase truncate">{selectedDoctor.name}</div>
+                    <div className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter mt-0.5">{selectedDoctor.specialty} • {selectedDoctor.licenseNumber}</div>
+                  </button>
+
+                  {isDoctorSearchOpen && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-bottom-2">
+                       {MOCK_DOCTORS.map(doc => (
+                         <button
+                           key={doc.id}
+                           onClick={() => { setSelectedDoctorId(doc.id); setIsDoctorSearchOpen(false); }}
+                           className="w-full p-3 text-left hover:bg-blue-500 group border-b border-white/5 last:border-0 transition-all"
+                         >
+                            <div className="text-[10px] font-black text-white group-hover:text-slate-950 uppercase">{doc.name}</div>
+                            <div className="text-[8px] text-slate-500 group-hover:text-slate-900 font-bold">{doc.specialty}</div>
+                         </button>
+                       ))}
+                       <button className="w-full p-3 text-left hover:bg-slate-800 transition-all border-t border-white/5">
+                          <div className="text-[10px] font-black text-blue-400 uppercase">+ Médico Particular</div>
+                       </button>
+                    </div>
+                  )}
+               </div>
             </div>
 
             <div className="space-y-3 pt-2">

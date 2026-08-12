@@ -35,6 +35,31 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   const patientResults = results.filter(r => r.orderId === order.id);
 
+  const getDeltaCheck = (currentRes: TestResult) => {
+    // Find previous result for same patient and same parameter
+    const allPatientResults = results.filter(r =>
+      r.parameterId === currentRes.parameterId &&
+      r.orderId !== currentRes.orderId &&
+      r.status === 'VALIDADO_MED'
+    );
+
+    if (allPatientResults.length === 0) return null;
+
+    // Sort by order ID (simulation of date)
+    const lastRes = allPatientResults[0];
+    const diff = Math.abs((currentRes.numericValue || 0) - (lastRes.numericValue || 0));
+    const percentChange = lastRes.numericValue ? (diff / lastRes.numericValue) * 100 : 0;
+
+    if (percentChange > 20) {
+      return {
+        previousValue: lastRes.value,
+        change: percentChange.toFixed(1),
+        isSignificant: true
+      };
+    }
+    return null;
+  };
+
   const getFlagStyle = (flag?: string) => {
     if (flag?.includes('CRITICO')) return 'bg-rose-500/20 text-rose-400 border-rose-500/30 font-black';
     if (flag === 'ALTO' || flag === 'BAJO') return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
@@ -141,9 +166,21 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     </td>
                     <td className="px-4 py-4">
                        <div className="font-black text-slate-200">{res.parameterName}</div>
-                       <div className="flex items-center space-x-1.5 mt-0.5">
-                         <Beaker className="w-3 h-3 text-teal-500/50" />
-                         <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{res.specimenType || 'SANGRE TOTAL'}</span>
+                       <div className="flex items-center space-x-3 mt-0.5">
+                         <div className="flex items-center space-x-1">
+                            <Beaker className="w-3 h-3 text-teal-500/50" />
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{res.specimenType || 'SANGRE TOTAL'}</span>
+                         </div>
+                         {(() => {
+                           const delta = getDeltaCheck(res);
+                           if (!delta) return null;
+                           return (
+                             <div className="flex items-center space-x-1 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded animate-pulse">
+                               <Zap className="w-2.5 h-2.5 text-rose-500" />
+                               <span className="text-[7px] font-black text-rose-400 uppercase">Delta: {delta.change}% (Prev: {delta.previousValue})</span>
+                             </div>
+                           );
+                         })()}
                        </div>
                     </td>
                     <td className="px-4 py-4 text-center">

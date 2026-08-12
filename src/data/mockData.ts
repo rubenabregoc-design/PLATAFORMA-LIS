@@ -342,10 +342,29 @@ export const MOCK_ORDERS: Order[] = [
     paymentStatus: 'PAGADO',
     specimens: [],
     testIds: ['test-hemograma', 'test-lipidico']
+  },
+  {
+    id: 'ord-1002',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00050',
+    patientId: 'pat-001',
+    patientName: 'Gabriela Pinzón Varela',
+    patientNationalId: '8-812-4432',
+    patientGender: 'F',
+    patientAge: 33,
+    priority: 'RUTINA',
+    status: 'COMPLETADA',
+    createdAt: '2026-07-10T07:30:00Z',
+    totalAmount: 18.50,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma']
   }
 ];
 
 export const MOCK_RESULTS: TestResult[] = [
+  { id: 'res-old-1', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-hemograma', parameterId: 'p-wbc', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '14.5', numericValue: 14.5, flag: 'ALTO', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
   { id: 'res-1', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-wbc', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.2', numericValue: 7.2, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total', interpretation: 'Valores dentro de la normalidad clínica.' },
   { id: 'res-2', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-hgb', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '13.8', numericValue: 13.8, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
   { id: 'res-3', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-col', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '235', numericValue: 235, flag: 'ALTO', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.' }
@@ -356,7 +375,77 @@ export const MOCK_ANALYZERS: Analyzer[] = [
   { id: 'an-vitros-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Ortho Vitros 4600', model: 'Vitros 4600', protocol: 'ASTM_E1381', connectionType: 'TCP_IP', ipAddress: '192.168.10.45', port: 5100, status: 'ONLINE', lastPing: '2026-08-10T10:27:10Z', driverId: 'ortho-vitros' }
 ];
 
+export const MOCK_DOCTORS: Doctor[] = [
+  {
+    id: 'doc-001',
+    tenantId: 'lab-san-jose',
+    name: 'Dr. Roberto Arango',
+    specialty: 'Medicina General',
+    licenseNumber: '7821-PA',
+    clinic: 'Clínica San Fernando',
+    email: 'r.arango@clinica.com'
+  },
+  {
+    id: 'doc-002',
+    tenantId: 'lab-san-jose',
+    name: 'Dra. Liseth Moreno',
+    specialty: 'Ginecología',
+    licenseNumber: '4490-PA',
+    clinic: 'Centro Médico Paitilla',
+    email: 'l.moreno@paitilla.com'
+  },
+  {
+    id: 'doc-003',
+    tenantId: 'lab-san-jose',
+    name: 'Dr. Jaime Solís',
+    specialty: 'Endocrinología',
+    licenseNumber: '1102-PA',
+    clinic: 'Hospital Punta Pacífica',
+    email: 'j.solis@hospitals.com'
+  }
+];
+
 export const MOCK_MIDDLEWARE_LOGS: MiddlewareMessageLog[] = [];
-export const MOCK_WESTGARD_QC: WestgardQCControl[] = [];
-export const MOCK_REAGENTS: ReagentInventory[] = [];
+export const MOCK_WESTGARD_QC: WestgardQCControl[] = [
+  {
+    id: 'qc-gluc-1',
+    tenantId: 'lab-san-jose',
+    analyzerId: 'an-vitros-01',
+    testName: 'Glucosa HK (Suero)',
+    lotNumber: 'L-GLU2026-X',
+    targetMean: 95.0,
+    standardDeviation: 2.5,
+    runs: [
+      { id: 'r1', date: '01/08', value: 94.2, status: 'PASS' },
+      { id: 'r2', date: '02/08', value: 96.8, status: 'PASS' },
+      { id: 'r3', date: '03/08', value: 93.5, status: 'PASS' },
+      { id: 'r4', date: '04/08', value: 101.5, violation: '1-2s', status: 'WARN' },
+      { id: 'r5', date: '05/08', value: 94.8, status: 'PASS' },
+      { id: 'r6', date: '06/08', value: 87.2, violation: '1-3s', status: 'FAIL' },
+      { id: 'r7', date: '07/08', value: 95.2, status: 'PASS' },
+      { id: 'r8', date: '08/08', value: 94.1, status: 'PASS' },
+    ]
+  },
+  {
+    id: 'qc-hem-1',
+    tenantId: 'lab-san-jose',
+    analyzerId: 'an-sysmex-01',
+    testName: 'Hemoglobina (Level 2)',
+    lotNumber: 'L-HGB88-B',
+    targetMean: 13.5,
+    standardDeviation: 0.3,
+    runs: [
+      { id: 'h1', date: '05/08', value: 13.4, status: 'PASS' },
+      { id: 'h2', date: '06/08', value: 13.6, status: 'PASS' },
+      { id: 'h3', date: '07/08', value: 13.8, violation: '1-2s', status: 'WARN' },
+      { id: 'h4', date: '08/08', value: 13.5, status: 'PASS' },
+    ]
+  }
+];
+
+export const MOCK_REAGENTS: ReagentInventory[] = [
+  { id: 're-1', tenantId: 'lab-san-jose', name: 'Glucosa HK Vitros', code: 'GLU-HK', lotNumber: 'LT992', expirationDate: '2026-12-01', quantityRemaining: 450, unit: 'Tests', testsPerUnit: 1, minAlertThreshold: 50, associatedTest: 'Glucosa en Ayunas' },
+  { id: 're-2', tenantId: 'lab-san-jose', name: 'Diluente Sysmex', code: 'DIL-SYS', lotNumber: 'LT112', expirationDate: '2027-05-15', quantityRemaining: 15, unit: 'Litros', testsPerUnit: 50, minAlertThreshold: 20, associatedTest: 'Hemograma Completo' },
+];
+
 export const MOCK_ANALYZER_MAPPINGS: AnalyzerTestMapping[] = [];

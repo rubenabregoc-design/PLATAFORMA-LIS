@@ -31,6 +31,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, orders }
               <div className="text-3xl font-black text-white tracking-tight">{stat.value}</div>
               <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">{stat.label}</div>
             </div>
+            {/* Simple sparkline simulation */}
+            <div className="w-full h-8 flex items-end gap-1 mt-2">
+               {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                 <div key={i} className={`flex-1 rounded-t-sm transition-all duration-1000 ${stat.shadow.includes('emerald') ? 'bg-emerald-500/20' : stat.shadow.includes('teal') ? 'bg-teal-500/20' : stat.shadow.includes('amber') ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} style={{ height: `${h}%` }}></div>
+               ))}
+            </div>
             <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
             </div>
@@ -110,7 +116,56 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, orders }
              </div>
           </div>
         </div>
+      </div>
 
+      {/* New Statistics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Distribución de Pruebas (Mensual)</h3>
+            <div className="flex items-center justify-between gap-4 h-48">
+               {[
+                 { label: 'HEM', val: 85, color: 'bg-teal-500' },
+                 { label: 'QUI', val: 65, color: 'bg-emerald-500' },
+                 { label: 'INM', val: 45, color: 'bg-blue-500' },
+                 { label: 'COA', val: 30, color: 'bg-rose-500' },
+                 { label: 'URA', val: 20, color: 'bg-amber-500' }
+               ].map((bar, i) => (
+                 <div key={i} className="flex-1 flex flex-col items-center gap-3">
+                    <div className="flex-1 w-full flex items-end justify-center px-1 sm:px-2">
+                       <div className={`${bar.color} w-full rounded-xl shadow-lg transition-all duration-1000 animate-in slide-in-from-bottom-full`} style={{ height: `${bar.val}%` }}></div>
+                    </div>
+                    <span className="text-[9px] font-black text-slate-500">{bar.label}</span>
+                 </div>
+               ))}
+            </div>
+         </div>
+
+         <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl flex flex-col justify-between">
+            <div className="space-y-6">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Eficiencia Operativa</h3>
+              <div className="space-y-5">
+                 {[
+                   { label: 'Ocupación de Equipos', val: 78, color: 'from-blue-400 to-indigo-500' },
+                   { label: 'Validación Técnica Automática', val: 92, color: 'from-teal-400 to-emerald-500' },
+                   { label: 'Repetición de Pruebas', val: 4, color: 'from-rose-400 to-red-500' }
+                 ].map((metric, i) => (
+                   <div key={i} className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                         <span className="text-slate-400">{metric.label}</span>
+                         <span className="text-white">{metric.val}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5 p-0.5">
+                         <div className={`h-full rounded-full bg-gradient-to-r ${metric.color} transition-all duration-1000`} style={{ width: `${metric.val}%` }}></div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+            </div>
+            <div className="mt-8 p-4 bg-teal-500/5 border border-teal-500/20 rounded-2xl flex items-center justify-between">
+               <div className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Puntualidad en TAT</div>
+               <div className="text-xl font-black text-teal-400">98.2%</div>
+            </div>
+         </div>
       </div>
     </div>
   );

@@ -9,9 +9,11 @@ import {
   Fingerprint, Info, Smartphone, Globe, BriefcaseMedical, Microscope, Beaker, Droplets, Timer
 } from 'lucide-react';
 import { useToast } from '../Toast';
+import { KeyboardShortcuts } from '../KeyboardShortcuts';
 import { PatientSearchAndProfile } from './Reception/PatientSearchAndProfile';
 import { TestCatalogGrid } from './Reception/TestCatalogGrid';
 import { OrderCart } from './Reception/OrderCart';
+import { SampleTimeline, TimelineStep } from '../SampleTimeline';
 
 interface ReceptionDashboardProps {
   patients: Patient[];
@@ -29,6 +31,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   onOpenPdf
 }) => {
   const { toast } = useToast();
+  const patientInputRef = React.useRef<HTMLInputElement>(null);
 
   const formatCedula = (val: string) => {
     const clean = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -196,6 +199,11 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500 pb-10 relative z-10 overflow-x-hidden min-h-screen flex flex-col">
+      <KeyboardShortcuts
+        onSearchPatient={() => { setActiveSubTab('ADMISSION'); patientInputRef.current?.focus(); }}
+        onConfirmOrder={handleCreateOrderSubmit}
+        onSwitchTab={(tab) => setActiveSubTab(tab as any)}
+      />
 
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/40 backdrop-blur-xl border border-white/5 p-4 rounded-[2rem] shadow-xl shrink-0">
@@ -248,6 +256,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             calculateAge={calculateAge}
             filteredPatientsList={filteredPatientsList}
             handleSelectFoundPatient={handleSelectFoundPatient}
+            inputRef={patientInputRef}
           />
 
           <TestCatalogGrid
@@ -280,41 +289,66 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             <Search className="w-6 h-6 text-teal-400 shrink-0" />
             <input type="text" placeholder="Rastrear por UID, Nombre o Cédula..." value={managementSearchTerm} onChange={(e) => setManagementSearchTerm(e.target.value)} className="bg-transparent border-none focus:ring-0 w-full ml-6 text-xl text-white placeholder-slate-700 font-black tracking-tighter" />
           </div>
-          <div className="grid grid-cols-1 gap-4">
-             {filteredOrdersManagement.map(order => (
-               <div key={order.id} className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 p-6 rounded-[2.5rem] flex flex-wrap items-center justify-between gap-6 hover:bg-slate-800/80 hover:border-teal-500/20 transition-all shadow-xl group relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                 <div className="flex items-center space-x-6 relative z-10">
-                   <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-white/5 flex flex-col items-center justify-center text-teal-400 group-hover:scale-110 transition-all shadow-inner">
-                     <Barcode className="w-6 h-6 mb-0.5" />
-                     <span className="text-[7px] font-black uppercase text-slate-600">Barcode</span>
+          <div className="grid grid-cols-1 gap-6">
+             {filteredOrdersManagement.map(order => {
+               const timelineSteps: TimelineStep[] = [
+                 { id: '1', label: 'Registro', time: '08:10 AM', status: 'completed', icon: UserPlus },
+                 { id: '2', label: 'Toma', time: '08:25 AM', status: order.status !== 'REGISTRADA' ? 'completed' : 'current', icon: Droplets },
+                 { id: '3', label: 'Proceso', time: '09:00 AM', status: (order.status === 'EN_PROCESO' || order.status.includes('VALIDADA')) ? 'completed' : 'pending', icon: Beaker },
+                 { id: '4', label: 'Validado', time: '10:15 AM', status: order.status.includes('VALIDADA') ? 'completed' : 'pending', icon: ShieldCheck }
+               ];
+
+               return (
+                 <div key={order.id} className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 p-6 rounded-[2.5rem] flex flex-col gap-8 hover:bg-slate-800/80 hover:border-teal-500/20 transition-all shadow-xl group relative overflow-hidden">
+                   <div className="flex flex-wrap items-center justify-between gap-6 relative z-10">
+                     <div className="flex items-center space-x-6">
+                       <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-white/5 flex flex-col items-center justify-center text-teal-400 group-hover:scale-110 transition-all shadow-inner">
+                         <Barcode className="w-6 h-6 mb-0.5" />
+                         <span className="text-[7px] font-black uppercase text-slate-600">Barcode</span>
+                       </div>
+                       <div>
+                         <div className="flex items-center space-x-3 mb-1">
+                            <div className="text-xl font-black text-white uppercase tracking-tighter leading-tight">{order.patientName}</div>
+                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black border ${order.priority === 'STAT' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
+                              {order.priority}
+                            </span>
+                         </div>
+                         <div className="flex items-center space-x-4">
+                            <div className="text-[10px] text-teal-400 font-mono font-black uppercase tracking-widest">{order.orderNumber}</div>
+                            <div className="h-1 w-1 rounded-full bg-slate-700"></div>
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cédula: <span className="text-slate-300 font-mono">{order.patientNationalId}</span></div>
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="flex items-center space-x-3">
+                       <button
+                         onClick={() => {
+                           const patient = patients.find(p => p.id === order.patientId);
+                           const message = `Hola ${patient?.firstName}, su orden ${order.orderNumber} está en fase de ${order.status.replace('_', ' ')}.`;
+                           window.open(`https://wa.me/${patient?.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                         }}
+                         className="flex items-center space-x-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                       >
+                         <Smartphone className="w-4 h-4" />
+                         <span>Notificar WA</span>
+                       </button>
+                       <button onClick={() => alert('Generando barras...')} className="flex items-center space-x-2 bg-slate-950 hover:bg-white/10 text-white border border-white/10 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:border-teal-500/30">
+                         <Barcode className="w-4 h-4 text-teal-400" />
+                         <span>Etiquetas</span>
+                       </button>
+                       <button onClick={() => onOpenPdf(order.id)} className="w-10 h-10 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                         <ArrowRight className="w-5 h-5 stroke-[3]" />
+                       </button>
+                     </div>
                    </div>
-                   <div>
-                     <div className="flex items-center space-x-3 mb-1">
-                        <div className="text-xl font-black text-white uppercase tracking-tighter leading-tight">{order.patientName}</div>
-                        <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black border ${order.priority === 'STAT' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
-                          {order.priority}
-                        </span>
-                     </div>
-                     <div className="flex items-center space-x-4">
-                        <div className="text-[10px] text-teal-400 font-mono font-black uppercase tracking-widest">{order.orderNumber}</div>
-                        <div className="h-1 w-1 rounded-full bg-slate-700"></div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cédula: <span className="text-slate-300 font-mono">{order.patientNationalId}</span></div>
-                        <div className="h-1 w-1 rounded-full bg-slate-700"></div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.testIds.length} Análisis</div>
-                     </div>
+
+                   <div className="pt-4 pb-6 border-t border-white/5">
+                      <SampleTimeline steps={timelineSteps} />
                    </div>
                  </div>
-                 <div className="flex items-center space-x-4 relative z-10">
-                   <div className="text-right mr-4 hidden sm:block">
-                      <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Registro</div>
-                      <div className="text-[10px] font-bold text-slate-400">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                   </div>
-                   <button onClick={() => toast('Generando códigos de barras...', 'info')} className="flex items-center space-x-3 bg-slate-950 hover:bg-white/10 text-white border border-white/10 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:border-teal-500/30"><Barcode className="w-4 h-4 text-teal-400" /><span>Etiquetas</span></button>
-                   <button onClick={() => onOpenPdf(order.id)} className="w-12 h-12 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"><ArrowRight className="w-6 h-6 stroke-[3]" /></button>
-                 </div>
-               </div>
-             ))}
+               );
+             })}
           </div>
         </div>
       ) : (

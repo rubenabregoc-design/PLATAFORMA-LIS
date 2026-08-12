@@ -12,8 +12,12 @@ import {
   FileCheck2,
   DollarSign,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  FileDown,
+  ExternalLink,
+  ShieldAlert
 } from 'lucide-react';
+import { useToast } from './Toast';
 
 interface BillingPOSProps {
   orders: Order[];
@@ -50,6 +54,7 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
   branch,
   onOrderPaid
 }) => {
+  const { toast } = useToast();
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || '');
   const [isJubiladoLey6, setIsJubiladoLey6] = useState<boolean>(true);
   const [paymentMethod, setPaymentMethod] = useState<'EFECTIVO' | 'PUNTO_VENTA_POS' | 'ASEGURADORA' | 'ACH_TRANSFERENCIA'>('PUNTO_VENTA_POS');
@@ -82,31 +87,36 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
   }
 
   const handleIssueInvoice = () => {
-    const randomCufe = `FE-01-2026-${tenant.ruc}-${tenant.dv}-${Math.floor(100000000 + Math.random() * 900000000)}`;
-    const randomInvNum = `FAC-001-${Math.floor(10000 + Math.random() * 90000)}`;
+    toast('Comunicando con PAC DGI...', 'info', 1500);
 
-    const newInvoice: InvoiceRecord = {
-      invoiceNumber: randomInvNum,
-      cufe: randomCufe,
-      orderNumber: selectedOrder.orderNumber,
-      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
-      patientNationalId: selectedPatient.nationalId,
-      subtotal: baseSubtotal,
-      discountLey6: ley6DiscountAmount,
-      discountPercent: isJubiladoLey6 ? 20 : 0,
-      itbmsTax,
-      total: patientPayAmount,
-      paymentMethod,
-      posProvider: paymentMethod === 'PUNTO_VENTA_POS' ? posProvider : undefined,
-      insuranceName: paymentMethod === 'ASEGURADORA' ? insuranceName : undefined,
-      authorizationCode: paymentMethod === 'ASEGURADORA' ? authCode : undefined,
-      createdAt: new Date().toISOString()
-    };
+    setTimeout(() => {
+      const randomCufe = `FE-01-2026-${tenant.ruc}-${tenant.dv}-${Math.floor(100000000 + Math.random() * 900000000)}`;
+      const randomInvNum = `FAC-001-${Math.floor(10000 + Math.random() * 90000)}`;
 
-    setIssuedInvoice(newInvoice);
-    if (onOrderPaid) {
-      onOrderPaid(selectedOrder.id, newInvoice);
-    }
+      const newInvoice: InvoiceRecord = {
+        invoiceNumber: randomInvNum,
+        cufe: randomCufe,
+        orderNumber: selectedOrder.orderNumber,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        patientNationalId: selectedPatient.nationalId,
+        subtotal: baseSubtotal,
+        discountLey6: ley6DiscountAmount,
+        discountPercent: isJubiladoLey6 ? 20 : 0,
+        itbmsTax,
+        total: patientPayAmount,
+        paymentMethod,
+        posProvider: paymentMethod === 'PUNTO_VENTA_POS' ? posProvider : undefined,
+        insuranceName: paymentMethod === 'ASEGURADORA' ? insuranceName : undefined,
+        authorizationCode: paymentMethod === 'ASEGURADORA' ? authCode : undefined,
+        createdAt: new Date().toISOString()
+      };
+
+      setIssuedInvoice(newInvoice);
+      if (onOrderPaid) {
+        onOrderPaid(selectedOrder.id, newInvoice);
+      }
+      toast('Factura Electrónica Emitida & Autorizada por DGI', 'success');
+    }, 1600);
   };
 
   return (
