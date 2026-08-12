@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -34,8 +34,19 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
 
 export const NAVIGATION_TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'test_catalog', label: 'Catálogo LIS', icon: BookOpen },
   { id: 'patient_results', label: 'Expedientes', icon: FileText },
   { id: 'validation', label: 'Resultados', icon: Microscope },
+  { id: 'tm_workbench', label: 'Estación TM', icon: Microscope },
+  { id: 'productivity', label: 'Productividad LIS', icon: BarChart3 },
+  { id: 'label_studio', label: 'Impresora Etiquetas', icon: Printer },
+  { id: 'shifts', label: 'Turnos', icon: Calendar },
+  { id: 'eqa', label: 'PEEC / EQA', icon: Target },
+  { id: 'cmms', label: 'CMMS Equipos', icon: Wrench },
+  { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck },
+  { id: 'pathology', label: 'Patología', icon: Microscope },
+  { id: 'whatsapp', label: 'WhatsApp LIS', icon: MessageSquare },
+  { id: 'bloodbank', label: 'Banco Sangre', icon: Droplets },
   { id: 'homologation', label: 'Analizadores', icon: SlidersHorizontal },
   { id: 'billing', label: 'Facturación', icon: Receipt },
   { id: 'inventory', label: 'Inventario', icon: Package },
@@ -54,14 +65,14 @@ export const NAVIGATION_TABS = [
 ];
 
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
-  owner: ['dashboard', 'patient_results', 'validation', 'executive', 'billing', 'inventory', 'schema', 'routing', 'audit', 'ha_dr'],
-  lab_chief: ['dashboard', 'patient_results', 'validation', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
-  tech_med: ['dashboard', 'patient_results', 'validation', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
-  lab_tech: ['dashboard', 'patient_results', 'inventory'],
-  receptionist: ['dashboard', 'patient_results', 'billing', 'inventory'],
+  owner: ['dashboard', 'test_catalog', 'patient_results', 'validation', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'executive', 'billing', 'inventory', 'schema', 'routing', 'audit', 'ha_dr'],
+  lab_chief: ['dashboard', 'test_catalog', 'patient_results', 'validation', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
+  tech_med: ['dashboard', 'test_catalog', 'patient_results', 'validation', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
+  lab_tech: ['dashboard', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'phlebotomy', 'inventory'],
+  receptionist: ['dashboard', 'test_catalog', 'patient_results', 'productivity', 'label_studio', 'shifts', 'phlebotomy', 'whatsapp', 'billing', 'inventory'],
   ext_doctor: ['dashboard'],
   patient: ['dashboard'],
-  abregotech_admin: ['dashboard', 'patient_results', 'validation', 'homologation', 'billing', 'inventory', 'qc', 'middleware', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing', 'fhir', 'ha_dr', 'accreditation', 'schema']
+  abregotech_admin: ['dashboard', 'test_catalog', 'patient_results', 'validation', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'homologation', 'billing', 'inventory', 'qc', 'middleware', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing', 'fhir', 'ha_dr', 'accreditation', 'schema']
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -178,11 +189,22 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-8 w-px bg-white/5 hidden md:block"></div>
 
+          {onLockSession && (
+            <button
+              onClick={onLockSession}
+              title="Bloquear Estación Manualmente (Auto-lock en 5 min inactividad)"
+              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all duration-300 cursor-pointer group shadow-2xl"
+            >
+              <Lock className="w-4.5 h-4.5 text-slate-400 group-hover:text-amber-400 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
+
           <button
             onClick={onLogout}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all duration-300 cursor-pointer group shadow-2xl"
+            title="Cerrar Sesión"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all duration-300 cursor-pointer group shadow-2xl"
           >
-            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <LogOut className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Role, Tenant, Branch, Order, TestResult, Patient, MiddlewareMessageLog, Specimen, User, AnalyzerTestMapping } from './types';
 import {
   MOCK_TENANTS,
@@ -34,6 +34,19 @@ import { MultiBranchRouting } from './components/Phase4Suite/MultiBranchRouting'
 import { FhirInteroperabilityStudio } from './components/Phase5Suite/FhirInteroperabilityStudio';
 import { HighAvailabilityDisasterRecovery } from './components/Phase5Suite/HighAvailabilityDisasterRecovery';
 import { Iso15189AccreditationPortal } from './components/Phase5Suite/Iso15189AccreditationPortal';
+import { ShiftManagementModule } from './components/ShiftManagementModule';
+
+import { EqaPeecModule } from './components/Phase6Suite/EqaPeecModule';
+import { EquipmentMaintenanceCmms } from './components/Phase6Suite/EquipmentMaintenanceCmms';
+import { HomePhlebotomyRouting } from './components/Phase6Suite/HomePhlebotomyRouting';
+import { AnatomicalPathologyModule } from './components/Phase6Suite/AnatomicalPathologyModule';
+import { WhatsAppNotificationEngine } from './components/Phase6Suite/WhatsAppNotificationEngine';
+import { BloodBankModule } from './components/Phase6Suite/BloodBankModule';
+import { LabelPrinterStudio } from './components/Phase6Suite/LabelPrinterStudio';
+import { LabProductivityDashboard } from './components/Phase6Suite/LabProductivityDashboard';
+import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWorkbench';
+import { SecureInternalMessagingWidget } from './components/SecureInternalMessagingWidget';
+import { MasterTestCatalogManager } from './components/MasterTestCatalogManager';
 
 import { OwnerDashboard } from './components/RoleDashboards/OwnerDashboard';
 import { LabChiefDashboard } from './components/RoleDashboards/LabChiefDashboard';
@@ -67,13 +80,47 @@ export default function App() {
   const [showAllModules, setShowAllModules] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Session Lock & Security Guard State
+  // Session Lock & Security Guard State (5 Min Inactivity Auto-Lock / Auto-Logout)
   const [isSessionLocked, setIsSessionLocked] = useState<boolean>(false);
+  const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
+  const lastActivityRef = useRef<number>(Date.now());
+  const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos = 300,000 ms
+
+  // Reset activity timestamp on user interaction or login
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    lastActivityRef.current = Date.now();
+
+    const handleUserActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach((evt) => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    const inactivityChecker = setInterval(() => {
+      if (!isSessionLocked && isAuthenticated) {
+        const elapsed = Date.now() - lastActivityRef.current;
+        if (elapsed >= INACTIVITY_TIMEOUT_MS) {
+          setIsSessionLocked(true);
+          setAutoLockReason('inactivity');
+        }
+      }
+    }, 1000);
+
+    return () => {
+      activityEvents.forEach((evt) => window.removeEventListener(evt, handleUserActivity));
+      clearInterval(inactivityChecker);
+    };
+  }, [isAuthenticated, isSessionLocked]);
+
   const handleLockSession = () => {
     setIsSessionLocked(true);
+    setAutoLockReason('manual');
     setUnlockPinInput('');
     setUnlockError(null);
   };
@@ -83,10 +130,11 @@ export default function App() {
     const expectedPin = currentUser.pinCode || '1234';
     if (unlockPinInput.trim() === expectedPin || unlockPinInput.trim() === '9999' || unlockPinInput.trim() === '1234') {
       setIsSessionLocked(false);
+      setAutoLockReason(null);
       setUnlockPinInput('');
       setUnlockError(null);
     } else {
-      setUnlockError('❌ PIN de Desbloqueo incorrecto. Ingrese el PIN de usuario.');
+      setUnlockError('❌ PIN de Desbloqueo incorrecto. Ingrese el PIN de usuario (Demo: 1234).');
     }
   };
 
@@ -207,6 +255,21 @@ export default function App() {
     setResults((prev) =>
       prev.map((r) =>
         r.id === resultId
+          ? {
+              ...r,
+              status: 'VALIDADO_TEC',
+              technicalValidatedBy: currentUser.name,
+              technicalValidatedAt: new Date().toISOString()
+            }
+          : r
+      )
+    );
+  };
+
+  const handleValidateTechnicalBulk = (resultIds: string[]) => {
+    setResults((prev) =>
+      prev.map((r) =>
+        resultIds.includes(r.id)
           ? {
               ...r,
               status: 'VALIDADO_TEC',
@@ -362,8 +425,8 @@ export default function App() {
               <>
                 {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
                 {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
-                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} />}
-                {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} />}
+                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} patients={patients} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} />}
+                {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} results={results} patients={patients} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} onOpenPdf={setPreviewOrderId} />}
                 {currentRole === 'receptionist' && (
                   <ReceptionDashboard
                     patients={patients}
@@ -400,6 +463,17 @@ export default function App() {
             )}
 
             {/* Other modules */}
+            {activeTab === 'test_catalog' && <MasterTestCatalogManager />}
+            {activeTab === 'shifts' && <ShiftManagementModule />}
+            {activeTab === 'tm_workbench' && <TechnologistWorkbench />}
+            {activeTab === 'productivity' && <LabProductivityDashboard />}
+            {activeTab === 'label_studio' && <LabelPrinterStudio />}
+            {activeTab === 'eqa' && <EqaPeecModule />}
+            {activeTab === 'cmms' && <EquipmentMaintenanceCmms />}
+            {activeTab === 'phlebotomy' && <HomePhlebotomyRouting />}
+            {activeTab === 'pathology' && <AnatomicalPathologyModule />}
+            {activeTab === 'whatsapp' && <WhatsAppNotificationEngine />}
+            {activeTab === 'bloodbank' && <BloodBankModule />}
             {activeTab === 'schema' && <DatabaseSchemaViewer />}
             {activeTab === 'homologation' && <AnalyzerHomologation currentUser={currentUser} currentRole={currentRole} analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} mappings={analyzerMappings} onAddMapping={handleAddAnalyzerMapping} onUpdateMapping={handleUpdateAnalyzerMapping} onDeleteMapping={handleDeleteAnalyzerMapping} />}
             {activeTab === 'middleware' && <MiddlewareSimulator analyzers={MOCK_ANALYZERS} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
@@ -461,11 +535,19 @@ export default function App() {
 
             <div className="space-y-1">
               <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Seguridad ISO 15189 • Sesión Bloqueada
+                {autoLockReason === 'inactivity' ? '🔒 Bloqueo Automático por Inactividad (5 Min)' : 'Seguridad ISO 15189 • Sesión Bloqueada'}
               </span>
-              <h2 className="text-2xl font-black text-white mt-1">Pantalla Bloqueada</h2>
+              <h2 className="text-2xl font-black text-white mt-1">Estación Protegida</h2>
               <p className="text-xs text-slate-400">
-                La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser.name}</strong> para reanudar la sesión.
+                {autoLockReason === 'inactivity' ? (
+                  <>
+                    Se detectaron <strong className="text-amber-400">5 minutos de inactividad desatendida</strong>. Por protección de datos del paciente (ISO 15189 / Ley 81), la sesión se bloqueó automáticamente.
+                  </>
+                ) : (
+                  <>
+                    La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser.name}</strong> para reanudar la sesión.
+                  </>
+                )}
               </p>
             </div>
 
@@ -511,6 +593,11 @@ export default function App() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Floating Inter-Branch Secure Messaging Widget (WebSockets) */}
+      {isAuthenticated && !isSessionLocked && (
+        <SecureInternalMessagingWidget />
       )}
     </div>
     </ToastProvider>
