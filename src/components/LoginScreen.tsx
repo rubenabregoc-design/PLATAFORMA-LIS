@@ -78,6 +78,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     return matchesTenant && matchesCategory && matchesRole && matchesSearch;
   });
 
+  // Auto-select first user in filtered list when filters change
+  React.useEffect(() => {
+    if (filteredUsers.length > 0) {
+      const isStillInList = filteredUsers.some(u => u.id === selectedUser?.id);
+      if (!isStillInList) {
+        setSelectedUser(filteredUsers[0]);
+      }
+    } else {
+      setSelectedUser(null);
+    }
+  }, [selectedRoleFilter, portalCategory, searchTerm, selectedTenantId]);
+
   const handleCategoryChange = (category: 'all' | 'lab' | 'doctor' | 'admin') => {
     setPortalCategory(category);
     setSelectedRoleFilter('all');
@@ -148,13 +160,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0b1329] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0b1329] text-slate-100 flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 relative overflow-y-auto font-sans">
       {/* Soft Background Glow Effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none"></div>
 
       {/* Main Login Box */}
-      <div className="w-full max-w-lg bg-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-5">
+      <div className="w-full max-w-lg bg-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-5 my-auto">
         
         {/* Header */}
         <div className="text-center space-y-1 border-b border-slate-800/80 pb-4">
@@ -484,7 +496,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       {/* Patient Result Search Modal */}
       {isPatientModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 shadow-2xl space-y-5 relative">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center">

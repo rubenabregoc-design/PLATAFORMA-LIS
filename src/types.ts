@@ -52,6 +52,11 @@ export interface Patient {
   phone: string;
   email: string;
   address: string;
+  nationality?: string;
+  insuranceProvider?: string;
+  weight?: string;
+  height?: string;
+  bloodType?: string;
   dataConsentLey81: boolean; // Consentimiento Ley 81 de Panamá
   consentDate?: string;
 }
@@ -74,7 +79,7 @@ export interface TestCatalogItem {
   tenantId: string;
   code: string;
   name: string;
-  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URANALISIS' | 'MICROBIOLOGIA' | 'COAGULACION';
+  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION';
   tubeType: 'EDTA_MORADO' | 'SUERO_ROJO' | 'CITRATO_AZUL' | 'ORINA' | 'HEPARINA_VERDE';
   price: number;
   specimenType: string;
@@ -148,7 +153,9 @@ export interface TestResult {
   technicalValidatedAt?: string;
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
-  status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED';
+  status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DESVALIDADO';
+  interpretation?: string; // Comentario clínico o interpretación
+  specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
 }
 
 export interface Analyzer {
@@ -210,6 +217,8 @@ export interface ReagentInventory {
   testsPerUnit: number;
   minAlertThreshold: number;
   associatedTest: string;
+  manufacturer?: string;
+  storageTemp?: string;
 }
 
 export interface ReferenceRange {

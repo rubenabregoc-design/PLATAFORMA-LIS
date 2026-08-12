@@ -174,7 +174,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
         </div>
 
         {/* Filter Chips */}
-        <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center space-x-1 overflow-x-auto py-1">
           {['ALL', 'VALIDATION', 'RESULT', 'BILLING', 'ORDER', 'QC'].map((cat) => (
             <button
               key={cat}

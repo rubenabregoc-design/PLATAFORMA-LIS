@@ -51,41 +51,41 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
         </div>
 
         {/* Official PDF Document Layout */}
-        <div className="p-8 sm:p-10 space-y-8 text-slate-900 font-sans leading-relaxed" id="printable-report">
+        <div className="p-4 sm:p-8 md:p-10 space-y-6 sm:space-y-8 text-slate-900 font-sans leading-relaxed" id="printable-report">
           {/* Header Letterhead */}
-          <div className="border-b-2 border-teal-600 pb-6 flex flex-wrap items-start justify-between gap-4">
+          <div className="border-b-2 border-teal-600 pb-4 sm:pb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-xl font-extrabold text-teal-800 tracking-tight">{tenant.name}</div>
-              <div className="text-xs text-slate-600 font-medium mt-1">{branch.name} — {branch.address}</div>
-              <div className="text-xs text-slate-500">Teléfono: {branch.phone} | RUC: {tenant.ruc} DV: {tenant.dv}</div>
-              <div className="text-xs text-emerald-700 font-bold mt-1">● Laboratorio Clínico Autorizado — República de Panamá</div>
+              <div className="text-lg sm:text-xl font-extrabold text-teal-800 tracking-tight">{tenant.name}</div>
+              <div className="text-[10px] sm:text-xs text-slate-600 font-medium mt-1">{branch.name} — {branch.address}</div>
+              <div className="text-[10px] sm:text-xs text-slate-500">Tel: {branch.phone} | RUC: {tenant.ruc} DV: {tenant.dv}</div>
+              <div className="text-[10px] sm:text-xs text-emerald-700 font-bold mt-1">● Laboratorio Clínico Autorizado</div>
             </div>
 
-            <div className="text-right">
-              <div className="bg-teal-50 border border-teal-200 text-teal-900 font-mono font-bold px-3 py-1.5 rounded-lg text-sm">
+            <div className="text-left sm:text-right">
+              <div className="bg-teal-50 border border-teal-200 text-teal-900 font-mono font-bold px-2 py-1 rounded-lg text-[11px] sm:text-sm">
                 N° Orden: {order.orderNumber}
               </div>
-              <div className="text-xs text-slate-500 mt-1">Fecha Emisión: {new Date().toLocaleDateString('es-PA')}</div>
+              <div className="text-[10px] sm:text-xs text-slate-500 mt-1">Emitido: {new Date().toLocaleDateString('es-PA')}</div>
             </div>
           </div>
 
           {/* Patient Demographic Information Block */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-[10px] sm:text-xs">
             <div>
               <span className="text-slate-500 block">Paciente:</span>
-              <strong className="text-slate-900 text-sm">{patient.firstName} {patient.lastName}</strong>
+              <strong className="text-slate-900 text-[11px] sm:text-sm">{patient.firstName} {patient.lastName}</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Cédula / Pasaporte:</span>
-              <strong className="text-slate-900">{patient.nationalId} ({patient.idType})</strong>
+              <strong className="text-slate-900">{patient.nationalId}</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Edad / Sexo:</span>
-              <strong className="text-slate-900">{order.patientAge} Años / {patient.gender === 'F' ? 'Femenino' : 'Masculino'}</strong>
+              <strong className="text-slate-900">{order.patientAge}A / {patient.gender}</strong>
             </div>
             <div>
-              <span className="text-slate-500 block">Médico Solicitante:</span>
-              <strong className="text-slate-900">{order.doctorName || 'Médico General / Particular'}</strong>
+              <span className="text-slate-500 block">Médico:</span>
+              <strong className="text-slate-900 truncate block">{order.doctorName || 'Particular'}</strong>
             </div>
           </div>
 
@@ -112,32 +112,41 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                     const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
 
                     return (
-                      <tr key={res.id} className={isCritical ? 'bg-rose-50/80 font-bold' : ''}>
-                        <td className="p-3">
-                          <div className="font-bold text-slate-900">{res.parameterName}</div>
-                          <div className="text-[10px] text-slate-500">Método: {res.source} ({res.analyzerName || 'Manual'})</div>
-                        </td>
-                        <td className="p-3 font-mono text-sm">
-                          <span className={isCritical ? 'text-rose-700 font-extrabold' : isHighLow ? 'text-amber-700 font-bold' : 'text-slate-900'}>
-                            {res.value}
-                          </span>
-                        </td>
-                        <td className="p-3 text-slate-600 font-mono">{res.unit}</td>
-                        <td className="p-3 text-slate-600">{res.refRangeText}</td>
-                        <td className="p-3 text-center">
-                          {res.flag && res.flag !== 'NORMAL' ? (
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                              isCritical ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
-                            }`}>
-                              {res.flag}
+                      <React.Fragment key={res.id}>
+                        <tr className={isCritical ? 'bg-rose-50/80 font-bold' : ''}>
+                          <td className="p-3">
+                            <div className="font-bold text-slate-900">{res.parameterName}</div>
+                            <div className="text-[9px] text-slate-500 font-bold uppercase">Muestra: {res.specimenType || 'SANGRE TOTAL'}</div>
+                          </td>
+                          <td className="p-3 font-mono text-sm">
+                            <span className={isCritical ? 'text-rose-700 font-extrabold' : isHighLow ? 'text-amber-700 font-bold' : 'text-slate-900'}>
+                              {res.value}
                             </span>
-                          ) : (
-                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
-                              NORMAL
-                            </span>
-                          )}
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="p-3 text-slate-600 font-mono">{res.unit}</td>
+                          <td className="p-3 text-slate-600">{res.refRangeText}</td>
+                          <td className="p-3 text-center">
+                            {res.flag && res.flag !== 'NORMAL' ? (
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                isCritical ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
+                              }`}>
+                                {res.flag}
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
+                                NORMAL
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                        {res.interpretation && (
+                          <tr className="bg-slate-50/50">
+                            <td colSpan={5} className="p-3 pt-0 text-[10px] text-slate-600 italic">
+                              <strong>Interpretación:</strong> {res.interpretation}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

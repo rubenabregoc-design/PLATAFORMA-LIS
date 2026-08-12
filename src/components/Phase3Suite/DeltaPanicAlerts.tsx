@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Order, TestResult, Patient } from '../../types';
+import { CriticalValueRegistry } from './CriticalValueRegistry';
 import {
   AlertTriangle,
   Bell,
@@ -12,7 +13,9 @@ import {
   Send,
   MessageSquare,
   Activity,
-  User
+  User,
+  FileCheck2,
+  Award
 } from 'lucide-react';
 
 interface DeltaPanicAlertsProps {
@@ -46,7 +49,7 @@ export const DeltaPanicAlerts: React.FC<DeltaPanicAlertsProps> = ({
   results,
   patients
 }) => {
-  const [activeTab, setActiveTab] = useState<'panic' | 'delta'>('panic');
+  const [activeTab, setActiveTab] = useState<'alerts' | 'registry'>('alerts');
 
   // Simulated Panic & Delta Alert list
   const [alerts, setAlerts] = useState<PanicAlertRecord[]>([
@@ -124,169 +127,213 @@ export const DeltaPanicAlerts: React.FC<DeltaPanicAlertsProps> = ({
           : a
       )
     );
-    alert('¡Llamada y notificación registradas en el registro de auditoría LIS Ley 81!');
+    alert('¡Llamada y notificación registradas en el registro de auditoría LIS Ley 81 / ISO 15189!');
   };
+
+  const pendingCount = alerts.filter((a) => a.status === 'PENDIENTE_NOTIFICACION').length;
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-red-950 via-rose-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-red-800/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="text-red-300 text-xs font-bold uppercase tracking-wider mb-1 flex items-center space-x-2">
-            <ShieldAlert className="w-4 h-4 text-red-400" />
-            <span>Fase 3 — Algoritmos Delta-Check & Alertas de Pánico Clínico</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black">
-            Valores Críticos & Protocolo Read-Back ISO 15189
-          </h1>
-          <p className="text-red-100 text-sm mt-1 max-w-xl">
-            Detección automática de desviaciones drásticas frente a históricos (Delta Check) y disparo de alertas prioritarias para el cuerpo médico.
-          </p>
-        </div>
+      {/* Top Navigation Tabs for Delta & Panic Module */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-5 py-2.5 rounded-2xl font-extrabold text-xs transition flex items-center space-x-2 cursor-pointer ${
+            activeTab === 'alerts'
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Bandeja de Alertas de Pánico</span>
+          {pendingCount > 0 && (
+            <span className="bg-white text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse ml-1">
+              {pendingCount}
+            </span>
+          )}
+        </button>
 
-        <div className="bg-slate-950/80 border border-red-500/40 p-4 rounded-xl text-xs space-y-1">
-          <div className="text-red-300 font-bold flex items-center space-x-1">
-            <Bell className="w-4 h-4 text-red-400 animate-pulse" />
-            <span>Alertas de Pánico Pendientes: {alerts.filter((a) => a.status === 'PENDIENTE_NOTIFICACION').length}</span>
-          </div>
-          <div className="text-slate-300">Norma MINSA Res. 1282 / Ley 81</div>
-        </div>
+        <button
+          onClick={() => setActiveTab('registry')}
+          className={`px-5 py-2.5 rounded-2xl font-extrabold text-xs transition flex items-center space-x-2 cursor-pointer ${
+            activeTab === 'registry'
+              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Award className="w-4 h-4 text-amber-400" />
+          <span>Bitácora Auditable ISO 15189 (Critical Value Registry)</span>
+          <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full ml-1">
+            ISO 7.4.1.5
+          </span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Alerts List */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <span>Bandeja de Valores de Pánico & Delta Checks Fallidos</span>
-              </h3>
-              <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                Tiempo Máximo Notificación: 15 mins
-              </span>
+      {activeTab === 'registry' ? (
+        <CriticalValueRegistry />
+      ) : (
+        <>
+          {/* Top Banner */}
+          <div className="bg-gradient-to-r from-red-950 via-rose-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-red-800/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="text-red-300 text-xs font-bold uppercase tracking-wider mb-1 flex items-center space-x-2">
+                <ShieldAlert className="w-4 h-4 text-red-400" />
+                <span>Fase 3 — Algoritmos Delta-Check & Alertas de Pánico Clínico</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black">
+                Valores Críticos & Protocolo Read-Back ISO 15189
+              </h1>
+              <p className="text-red-100 text-sm mt-1 max-w-xl">
+                Detección automática de desviaciones drásticas frente a históricos (Delta Check) y disparo de alertas prioritarias para el cuerpo médico.
+              </p>
             </div>
 
-            <div className="space-y-3">
-              {alerts.map((alt) => {
-                const isSelected = selectedAlert?.id === alt.id;
-                return (
-                  <div
-                    key={alt.id}
-                    onClick={() => setSelectedAlert(alt)}
-                    className={`p-4 rounded-xl border transition cursor-pointer space-y-2 ${
-                      isSelected
-                        ? 'bg-red-50/80 border-red-500 ring-2 ring-red-500/20'
-                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 text-sm">{alt.patientName}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        alt.status === 'PENDIENTE_NOTIFICACION'
-                          ? 'bg-red-600 text-white animate-pulse'
-                          : alt.status === 'NOTIFICADO_MÉDICO'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {alt.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-slate-700 flex items-center justify-between">
-                      <div>
-                        <strong>{alt.testName}:</strong> <span className="text-red-700 font-mono font-black">{alt.currentValue} {alt.unit}</span> (Ref: {alt.referenceRange})
-                      </div>
-                      {alt.deltaPercentage && (
-                        <span className="text-xs font-mono font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded">
-                          Δ {alt.deltaPercentage > 0 ? `+${alt.deltaPercentage}%` : `${alt.deltaPercentage}%`}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="text-[11px] text-slate-500 flex justify-between">
-                      <span>Médico: {alt.doctorName} ({alt.doctorPhone})</span>
-                      <span>Orden: {alt.orderNumber}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="bg-slate-950/80 border border-red-500/40 p-4 rounded-xl text-xs space-y-1">
+              <div className="text-red-300 font-bold flex items-center space-x-1">
+                <Bell className="w-4 h-4 text-red-400 animate-pulse" />
+                <span>Alertas de Pánico Pendientes: {pendingCount}</span>
+              </div>
+              <div className="text-slate-300">Norma MINSA Res. 1282 / Ley 81 / ISO 15189</div>
             </div>
           </div>
-        </div>
 
-        {/* Right Column: Notification Panel & Protocol Action */}
-        <div className="lg:col-span-5 space-y-4">
-          {selectedAlert && (
-            <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl space-y-5">
-              <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center space-x-1.5">
-                  <PhoneCall className="w-4 h-4" />
-                  <span>Protocolo de Comunicación Médica Urgentísima</span>
-                </span>
-                <span className="text-xs font-mono text-slate-400">{selectedAlert.orderNumber}</span>
-              </div>
-
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
-                <div>Paciente: <strong className="text-white">{selectedAlert.patientName}</strong> ({selectedAlert.patientNationalId})</div>
-                <div>Examen Crítico: <strong className="text-red-400">{selectedAlert.testName}</strong></div>
-                <div className="text-base font-black font-mono text-amber-300">
-                  Resultado Actual: {selectedAlert.currentValue} {selectedAlert.unit}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Alerts List */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <span>Bandeja de Valores de Pánico & Delta Checks Fallidos</span>
+                  </h3>
+                  <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    Tiempo Máximo Notificación: 15 mins
+                  </span>
                 </div>
-                {selectedAlert.previousValue && (
-                  <div className="text-slate-400 text-[11px]">
-                    Histórico Previo: {selectedAlert.previousValue} {selectedAlert.unit} (Variación Significativa Delta)
-                  </div>
-                )}
-                <div>Médico Responsable: <strong className="text-teal-300">{selectedAlert.doctorName}</strong></div>
-                <div>Teléfono Contacto: <span className="font-mono text-emerald-400">{selectedAlert.doctorPhone}</span></div>
-              </div>
 
-              {/* Protocol Read-Back Action Form */}
-              <div className="space-y-3 text-xs">
-                <label className="font-bold text-slate-300 block">
-                  Bitácora de Notificación & Confirmación Verbal (Read-Back):
-                </label>
-                <textarea
-                  value={callNotes}
-                  onChange={(e) => setCallNotes(e.target.value)}
-                  rows={3}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 font-sans text-xs focus:ring-2 focus:ring-red-500"
-                />
+                <div className="space-y-3">
+                  {alerts.map((alt) => {
+                    const isSelected = selectedAlert?.id === alt.id;
+                    return (
+                      <div
+                        key={alt.id}
+                        onClick={() => setSelectedAlert(alt)}
+                        className={`p-4 rounded-xl border transition cursor-pointer space-y-2 ${
+                          isSelected
+                            ? 'bg-red-50/80 border-red-500 ring-2 ring-red-500/20'
+                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 text-sm">{alt.patientName}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            alt.status === 'PENDIENTE_NOTIFICACION'
+                              ? 'bg-red-600 text-white animate-pulse'
+                              : alt.status === 'NOTIFICADO_MÉDICO'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {alt.status.replace('_', ' ')}
+                          </span>
+                        </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleNotifyDoctor(selectedAlert.id)}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-xs transition shadow flex items-center justify-center space-x-2"
-                  >
-                    <PhoneCall className="w-4 h-4" />
-                    <span>Registrar Llamada Médica</span>
-                  </button>
+                        <div className="text-xs text-slate-700 flex items-center justify-between">
+                          <div>
+                            <strong>{alt.testName}:</strong> <span className="text-red-700 font-mono font-black">{alt.currentValue} {alt.unit}</span> (Ref: {alt.referenceRange})
+                          </div>
+                          {alt.deltaPercentage && (
+                            <span className="text-xs font-mono font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded">
+                              Δ {alt.deltaPercentage > 0 ? `+${alt.deltaPercentage}%` : `${alt.deltaPercentage}%`}
+                            </span>
+                          )}
+                        </div>
 
-                  <button
-                    onClick={() => alert(`Mensaje WhatsApp expedido a ${selectedAlert.doctorPhone} con resumen de alerta!`)}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition shadow flex items-center justify-center space-x-1.5"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>WhatsApp</span>
-                  </button>
+                        <div className="text-[11px] text-slate-500 flex justify-between">
+                          <span>Médico: {alt.doctorName} ({alt.doctorPhone})</span>
+                          <span>Orden: {alt.orderNumber}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
-              {selectedAlert.notifiedAt && (
-                <div className="bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-xl text-[11px] text-emerald-300 space-y-1">
-                  <div className="font-bold flex items-center space-x-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Notificación Completada</span>
+            {/* Right Column: Notification Panel & Protocol Action */}
+            <div className="lg:col-span-5 space-y-4">
+              {selectedAlert && (
+                <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl space-y-5">
+                  <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center space-x-1.5">
+                      <PhoneCall className="w-4 h-4" />
+                      <span>Protocolo de Comunicación Médica Urgentísima</span>
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">{selectedAlert.orderNumber}</span>
                   </div>
-                  <div>Fecha/Hora: {selectedAlert.notifiedAt}</div>
-                  <div>Registrado por: {selectedAlert.notifiedBy}</div>
+
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+                    <div>Paciente: <strong className="text-white">{selectedAlert.patientName}</strong> ({selectedAlert.patientNationalId})</div>
+                    <div>Examen Crítico: <strong className="text-red-400">{selectedAlert.testName}</strong></div>
+                    <div className="text-base font-black font-mono text-amber-300">
+                      Resultado Actual: {selectedAlert.currentValue} {selectedAlert.unit}
+                    </div>
+                    {selectedAlert.previousValue && (
+                      <div className="text-slate-400 text-[11px]">
+                        Histórico Previo: {selectedAlert.previousValue} {selectedAlert.unit} (Variación Significativa Delta)
+                      </div>
+                    )}
+                    <div>Médico Responsable: <strong className="text-teal-300">{selectedAlert.doctorName}</strong></div>
+                    <div>Teléfono Contacto: <span className="font-mono text-emerald-400">{selectedAlert.doctorPhone}</span></div>
+                  </div>
+
+                  {/* Protocol Read-Back Action Form */}
+                  <div className="space-y-3 text-xs">
+                    <label className="font-bold text-slate-300 block">
+                      Bitácora de Notificación & Confirmación Verbal (Read-Back):
+                    </label>
+                    <textarea
+                      value={callNotes}
+                      onChange={(e) => setCallNotes(e.target.value)}
+                      rows={3}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 font-sans text-xs focus:ring-2 focus:ring-red-500"
+                    />
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleNotifyDoctor(selectedAlert.id)}
+                        className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-xs transition shadow flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <PhoneCall className="w-4 h-4" />
+                        <span>Registrar Llamada Médica</span>
+                      </button>
+
+                      <button
+                        onClick={() => alert(`Mensaje WhatsApp expedido a ${selectedAlert.doctorPhone} con resumen de alerta!`)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition shadow flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedAlert.notifiedAt && (
+                    <div className="bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-xl text-[11px] text-emerald-300 space-y-1">
+                      <div className="font-bold flex items-center space-x-1">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Notificación Completada</span>
+                      </div>
+                      <div>Fecha/Hora: {selectedAlert.notifiedAt}</div>
+                      <div>Registrado por: {selectedAlert.notifiedBy}</div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
+
