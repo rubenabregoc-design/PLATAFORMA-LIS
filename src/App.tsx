@@ -47,6 +47,7 @@ import { PatientPortal } from './components/RoleDashboards/PatientPortal';
 import { SuperAdminDashboard } from './components/RoleDashboards/SuperAdminDashboard';
 import { SkeletonLoader } from './components/SkeletonLoader';
 import { RecentActivityWidget } from './components/RecentActivityWidget';
+import { ToastProvider } from './components/Toast';
 
 export default function App() {
   // Authentication State
@@ -296,7 +297,8 @@ export default function App() {
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
+    <ToastProvider>
+      <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
       {/* Dynamic Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse"></div>
@@ -511,5 +513,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </ToastProvider>
   );
 }
