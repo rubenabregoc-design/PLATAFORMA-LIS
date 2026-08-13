@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TestResult, Order, Patient } from '../../types';
-import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Lock, Key, Award, Sparkles, User, Activity } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Lock, Key, Award, Sparkles, User, Activity, Thermometer } from 'lucide-react';
+import { IotColdChainMonitor } from '../IotColdChainMonitor';
 
 interface LabChiefDashboardProps {
   orders: Order[];
@@ -203,6 +204,11 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* IoT Quality Control Section */}
+      <div className="mt-8">
+        <IotColdChainMonitor />
       </div>
     </div>
   );

@@ -1,6 +1,11 @@
 import React from 'react';
 import { TestResult, Order, Analyzer } from '../../types';
-import { Cpu, CheckCircle2, Clock, Zap, Microscope, FileText, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Cpu, CheckCircle2, Clock, Zap, Microscope, FileText, TrendingUp, AlertTriangle, Keyboard, Timer, Settings2, Wrench, AlertOctagon, ChevronRight } from 'lucide-react';
+import { HematologyDifferentialCounter } from '../HematologyDifferentialCounter';
+import { ReagentHealthMonitor } from '../ReagentHealthMonitor';
+import { ReflexRulesManager } from '../ReflexRulesManager';
+import { EquipmentMaintenanceLog } from '../EquipmentMaintenanceLog';
+import { AnalyzerErrorSearch } from '../AnalyzerErrorSearch';
 
 interface TechMedDashboardProps {
   results: TestResult[];
@@ -9,9 +14,16 @@ interface TechMedDashboardProps {
 }
 
 export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, orders, analyzers }) => {
+  const [showCounter, setShowCounter] = React.useState(false);
+  const [showReflex, setShowReflex] = React.useState(false);
+  const [showMaintenance, setShowMaintenance] = React.useState(false);
+  const [showErrorSearch, setShowErrorSearch] = React.useState(false);
+
   const pendingValidation = results.filter(r => r.status === 'PENDIENTE').length;
   const criticalResults = results.filter(r => r.flag?.includes('CRITICO')).length;
   const activeAnalyzers = analyzers.filter(a => a.status === 'En línea').length;
+
+  const statOrders = orders.filter(o => o.priority === 'STAT' && o.status !== 'COMPLETADA');
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -97,9 +109,95 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, ord
               </div>
             ))}
           </div>
-        </div>
 
+          {/* Quick Access Tools */}
+          <div className="pt-6 space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 px-2 mb-2">Mesa de Trabajo</h3>
+
+            <button
+              onClick={() => setShowCounter(true)}
+              className="w-full bg-blue-500 hover:bg-blue-400 text-slate-950 p-5 rounded-2xl flex items-center justify-between group transition-all"
+            >
+              <div className="flex items-center space-x-4">
+                 <Keyboard className="w-5 h-5" />
+                 <span className="font-black uppercase tracking-tighter text-xs">Diferencial WBC</span>
+              </div>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setShowReflex(true)}
+              className="w-full bg-slate-900 border border-white/5 hover:border-teal-500/30 text-white p-5 rounded-2xl flex items-center justify-between group transition-all"
+            >
+              <div className="flex items-center space-x-4">
+                 <Settings2 className="w-5 h-5 text-teal-400" />
+                 <span className="font-black uppercase tracking-tighter text-xs">Reglas Reflex</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-600" />
+            </button>
+
+            <button
+              onClick={() => setShowMaintenance(true)}
+              className="w-full bg-slate-900 border border-white/5 hover:border-amber-500/30 text-white p-5 rounded-2xl flex items-center justify-between group transition-all"
+            >
+              <div className="flex items-center space-x-4">
+                 <Wrench className="w-5 h-5 text-amber-400" />
+                 <span className="font-black uppercase tracking-tighter text-xs">Bitácora ISO</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-600" />
+            </button>
+
+            <button
+              onClick={() => setShowErrorSearch(true)}
+              className="w-full bg-slate-900 border border-white/5 hover:border-rose-500/30 text-white p-5 rounded-2xl flex items-center justify-between group transition-all"
+            >
+              <div className="flex items-center space-x-4">
+                 <AlertOctagon className="w-5 h-5 text-rose-400" />
+                 <span className="font-black uppercase tracking-tighter text-xs">Manual de Errores</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-600" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* 4. Urgent Samples Timer (TAT) */}
+      <div className="bg-slate-950/50 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
+         <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-rose-400 flex items-center">
+               <Timer className="w-4 h-4 mr-2" /> Monitor de Urgencias (STAT)
+            </h3>
+            <span className="text-[9px] font-bold text-slate-500 uppercase">{statOrders.length} Prioritarias</span>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {statOrders.map((o, i) => (
+              <div key={o.id} className="bg-slate-900 border border-rose-500/20 p-5 rounded-2xl flex items-center justify-between group hover:border-rose-500/50 transition-all">
+                 <div className="space-y-1">
+                    <div className="text-[10px] font-black text-white uppercase truncate max-w-[120px]">{o.patientName}</div>
+                    <div className="text-[8px] font-mono text-rose-400">{o.orderNumber}</div>
+                 </div>
+                 <div className="text-right">
+                    <div className={`text-xl font-black tabular-nums ${i === 0 ? 'text-rose-500 animate-pulse' : 'text-white'}`}>
+                       00:{15 - i * 5}:20
+                    </div>
+                    <div className="text-[7px] font-black text-slate-500 uppercase">Restante TAT</div>
+                 </div>
+              </div>
+            ))}
+         </div>
+      </div>
+
+      {/* Live Reagent Monitor Section */}
+      <div className="grid grid-cols-1 gap-8">
+         <ReagentHealthMonitor />
+      </div>
+
+      {/* Modals */}
+      {showCounter && <HematologyDifferentialCounter onClose={() => setShowCounter(false)} />}
+      {showReflex && <ReflexRulesManager onClose={() => setShowReflex(false)} />}
+      {showMaintenance && <EquipmentMaintenanceLog onClose={() => setShowMaintenance(false)} />}
+      {showErrorSearch && <AnalyzerErrorSearch onClose={() => setShowErrorSearch(false)} />}
     </div>
   );
 };

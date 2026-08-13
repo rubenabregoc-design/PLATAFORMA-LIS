@@ -48,6 +48,12 @@ export const SampleTimeline: React.FC<SampleTimelineProps> = ({ steps }) => {
           </div>
         );
       })}
+
+      {/* Stability Warning Float */}
+      <div className="absolute -top-12 right-4 flex items-center space-x-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-full shadow-2xl">
+         <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></div>
+         <span className="text-[8px] font-black uppercase text-slate-400 tracking-tighter">Estabilidad Crítica detectada en Glucosa</span>
+      </div>
     </div>
   );
 };

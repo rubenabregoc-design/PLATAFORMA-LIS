@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Patient, Order, TestCatalogItem } from '../../types';
+import { Patient, Order, TestCatalogItem, TestPackage, Specimen } from '../../types';
 import {
   UserPlus, Search, ShieldCheck, FileText, Plus, CheckCircle2,
   DollarSign, AlertCircle, QrCode, Printer, User, Heart,
@@ -14,10 +14,12 @@ import { PatientSearchAndProfile } from './Reception/PatientSearchAndProfile';
 import { TestCatalogGrid } from './Reception/TestCatalogGrid';
 import { OrderCart } from './Reception/OrderCart';
 import { SampleTimeline, TimelineStep } from '../SampleTimeline';
+import { TubeLabelPreview } from './Reception/TubeLabelPreview';
 
 interface ReceptionDashboardProps {
   patients: Patient[];
   testCatalog: TestCatalogItem[];
+  testPackages: TestPackage[];
   orders: Order[];
   onCreateOrder: (newOrder: Order, newPatient?: Patient) => void;
   onOpenPdf: (orderId: string) => void;
@@ -26,6 +28,7 @@ interface ReceptionDashboardProps {
 export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   patients,
   testCatalog,
+  testPackages,
   orders,
   onCreateOrder,
   onOpenPdf
@@ -71,6 +74,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   });
 
   const [selectedTestIds, setSelectedTestIds] = useState<string[]>(['test-hemograma']);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const [isStat, setIsStat] = useState<boolean>(false);
   const [isFasting, setIsFasting] = useState<boolean>(true);
   const [printSearchTerm, setPrintSearchTerm] = useState('');
@@ -83,10 +87,16 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     [selectedTestIds, testCatalog]
   );
 
-  const totalAmount = useMemo(() =>
-    selectedTests.reduce((sum, t) => sum + t.price, 0),
-    [selectedTests]
+  const selectedPackages = useMemo(() =>
+    testPackages.filter(p => selectedPackageIds.includes(p.id)),
+    [selectedPackageIds, testPackages]
   );
+
+  const totalAmount = useMemo(() => {
+    const testsSum = selectedTests.reduce((sum, t) => sum + t.price, 0);
+    const packagesSum = selectedPackages.reduce((sum, p) => sum + p.price, 0);
+    return testsSum + packagesSum;
+  }, [selectedTests, selectedPackages]);
 
   const filteredPatientsList = useMemo(() => {
     if (patientSearchTerm.length < 2) return [];
@@ -163,6 +173,51 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
     const calculatedAgeValue = new Date().getFullYear() - new Date(patientToUse.dob).getFullYear();
 
+    const allTestIds = Array.from(new Set([
+      ...selectedTestIds,
+      ...selectedPackages.flatMap(p => p.testIds)
+    ]));
+
+    const allTests = testCatalog.filter(t => allTestIds.includes(t.id));
+    const uniqueTubeTypes = Array.from(new Set(allTests.map(t => t.tubeType))) as string[];
+
+    // SMART BARCODE GENERATOR LOGIC
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = (now.getTime() - start.getTime()) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24)).toString().padStart(3, '0');
+    const dailySeq = (orders.length + 1).toString().padStart(3, '0');
+
+    const calculateChecksum = (code: string) => {
+      let sum = 0;
+      for (let i = 0; i < code.length; i++) {
+        const digit = parseInt(code[i]);
+        sum += (i % 2 === 0) ? digit * 3 : digit;
+      }
+      return (10 - (sum % 10)) % 10;
+    };
+
+    const generatedSpecimens: Specimen[] = uniqueTubeTypes.map((tube, idx) => {
+      const testsForThisTube = allTests
+        .filter(t => t.tubeType === tube)
+        .map(t => t.id);
+
+      const tubeSuffix = (idx + 1).toString().padStart(2, '0');
+      const baseBarcode = `${year}${dayOfYear}${dailySeq}${tubeSuffix}`;
+      const checksum = calculateChecksum(baseBarcode);
+      const smartBarcode = `${baseBarcode}${checksum}`;
+
+      return {
+        id: `sp-${Date.now()}-${idx}`,
+        orderId: `ord-${Date.now()}`,
+        barcode: smartBarcode,
+        tubeType: tube,
+        testIds: testsForThisTube,
+        status: 'PENDIENTE'
+      };
+    });
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       tenantId: 'lab-san-jose',
@@ -178,8 +233,8 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       createdAt: new Date().toISOString(),
       totalAmount,
       paymentStatus: 'PAGADO',
-      specimens: [],
-      testIds: selectedTestIds
+      specimens: generatedSpecimens,
+      testIds: allTestIds
     };
 
     onCreateOrder(newOrder, foundPatient ? undefined : (patientToUse as Patient));
@@ -266,12 +321,17 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             setActiveCategory={setActiveCategory}
             selectedTestIds={selectedTestIds}
             setSelectedTestIds={setSelectedTestIds}
+            selectedPackageIds={selectedPackageIds}
+            setSelectedPackageIds={setSelectedPackageIds}
             filteredTests={filteredTestsBySearchAndCategory}
+            packages={testPackages}
           />
 
           <OrderCart
             selectedTests={selectedTests}
             setSelectedTestIds={setSelectedTestIds}
+            selectedPackages={selectedPackages}
+            setSelectedPackageIds={setSelectedPackageIds}
             isStat={isStat}
             setIsStat={setIsStat}
             isFasting={isFasting}
@@ -317,6 +377,11 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                             <div className="text-[10px] text-teal-400 font-mono font-black uppercase tracking-widest">{order.orderNumber}</div>
                             <div className="h-1 w-1 rounded-full bg-slate-700"></div>
                             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cédula: <span className="text-slate-300 font-mono">{order.patientNationalId}</span></div>
+                            <div className="h-1 w-1 rounded-full bg-slate-700"></div>
+                            <div className="flex items-center space-x-1.5 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                               <Timer className="w-3 h-3 text-amber-500" />
+                               <span className="text-[8px] font-black text-amber-400 uppercase">Estabilidad: 01h 45m</span>
+                            </div>
                          </div>
                        </div>
                      </div>
@@ -397,21 +462,79 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       )}
 
       {/* Success Modal */}
-      {showSuccessDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/98 backdrop-blur-3xl animate-in fade-in duration-500">
-          <div className="bg-slate-900 border border-white/10 rounded-[4rem] p-10 max-w-lg w-full text-center space-y-10 shadow-[0_0_150px_rgba(20,184,166,0.2)]">
-             <div className="w-24 h-20 bg-teal-500/20 rounded-[2.25rem] flex items-center justify-center mx-auto border border-teal-500/30">
-                <CheckCircle2 className="w-12 h-12 text-teal-400 stroke-[3]" />
-             </div>
-             <div><h2 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Ingreso Exitoso</h2><p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.4em] mt-6">Sincronizado con Núcleo LISCORE</p></div>
-             <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => toast('Generando códigos de barras...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl"><Barcode className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" /><span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Generar Barras</span></button>
-                <button onClick={() => toast('Imprimiendo ticket de muestra...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl"><Receipt className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" /><span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Ticket Muestra</span></button>
-             </div>
-             <button onClick={() => { setShowSuccessDialog(null); setSelectedTestIds([]); setPatientSearchTerm(''); setFoundPatient(null); }} className="w-full py-6 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all transform active:scale-95 shadow-2xl">Siguiente Registro</button>
+      {showSuccessDialog && (() => {
+        const order = orders.find(o => o.id === showSuccessDialog);
+        if (!order) return null;
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/98 backdrop-blur-3xl animate-in fade-in duration-500 overflow-y-auto">
+            <div className="bg-slate-900 border border-white/10 rounded-[4rem] p-10 max-w-4xl w-full text-center space-y-10 shadow-[0_0_150px_rgba(20,184,166,0.2)] my-auto">
+               <div className="flex flex-col md:flex-row gap-10 items-start">
+                  <div className="flex-1 space-y-8">
+                     <div className="w-24 h-20 bg-teal-500/20 rounded-[2.25rem] flex items-center justify-center mx-auto border border-teal-500/30">
+                        <CheckCircle2 className="w-12 h-12 text-teal-400 stroke-[3]" />
+                     </div>
+                     <div>
+                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Ingreso Exitoso</h2>
+                        <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.4em] mt-6">Sincronizado con Núcleo LISCORE</p>
+                     </div>
+
+                     <div className="space-y-4">
+                        <div className="text-left bg-slate-950/50 p-6 rounded-[2.5rem] border border-white/5 space-y-4">
+                           <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">Resumen de Toma de Muestra</div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                 <div className="text-[8px] font-black text-teal-500 uppercase tracking-tighter">Total Tubos</div>
+                                 <div className="text-2xl font-black text-white">{order.specimens.length}</div>
+                              </div>
+                              <div className="space-y-1">
+                                 <div className="text-[8px] font-black text-amber-500 uppercase tracking-tighter">Ayuno</div>
+                                 <div className="text-2xl font-black text-white">{isFasting ? 'SI' : 'NO'}</div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => toast('Imprimiendo etiquetas...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl">
+                           <Barcode className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" />
+                           <span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Imprimir Todo</span>
+                        </button>
+                        <button onClick={() => toast('Imprimiendo ticket de caja...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl">
+                           <Receipt className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" />
+                           <span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Ticket Caja</span>
+                        </button>
+                     </div>
+                  </div>
+
+                  <div className="flex-1 space-y-6">
+                     <div className="text-left px-4">
+                        <h3 className="text-xs font-black text-white uppercase tracking-[0.3em]">Identificación de Tubos</h3>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter mt-1">Coloque las etiquetas según el color del tapón</p>
+                     </div>
+                     <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto px-4 pb-4 custom-scrollbar">
+                        {order.specimens.map(specimen => (
+                           <TubeLabelPreview
+                              key={specimen.id}
+                              specimen={specimen}
+                              order={order}
+                              testsInTube={testCatalog.filter(t => order.testIds.includes(t.id) && t.tubeType === specimen.tubeType)}
+                           />
+                        ))}
+                     </div>
+                  </div>
+               </div>
+
+               <button
+                  onClick={() => { setShowSuccessDialog(null); setSelectedTestIds([]); setSelectedPackageIds([]); setPatientSearchTerm(''); setFoundPatient(null); }}
+                  className="w-full py-6 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all transform active:scale-95 shadow-2xl"
+               >
+                  Siguiente Registro
+               </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

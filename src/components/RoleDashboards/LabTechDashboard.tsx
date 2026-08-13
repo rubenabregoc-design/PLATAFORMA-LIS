@@ -79,10 +79,21 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
     const found = allSpecimens.find((s) => s.barcode.toLowerCase() === scannedBarcode.toLowerCase());
 
     if (found) {
+      // LINK LOGIC: Find the order and the tests associated with this barcode
+      const associatedOrder = orders.find(o => o.id === found.orderId);
+      const testsInThisTube = found.testIds || []; // The link established during admission
+
       onUpdateSpecimenStatus(found.id, 'EN_ANALIZADOR');
       setLastScanned({ ...found, status: 'EN_ANALIZADOR' });
       setScannedBarcode('');
-      showToast(`✓ Tubo ${found.barcode} cargado exitosamente a la gradilla del analizador.`);
+
+      showToast(`✓ Tubo ${found.barcode} de ${associatedOrder?.patientName} vinculado con ${testsInThisTube.length} análisis.`);
+
+      // Auto-expand and highlight the order for the tech
+      if (associatedOrder) {
+        setExpandedOrders(prev => ({ ...prev, [associatedOrder.id]: true }));
+        setSearchQuery(associatedOrder.orderNumber); // Focus UI on this order
+      }
     } else {
       alert(`Código de tubo "${scannedBarcode}" no encontrado en el sistema LIS.`);
     }

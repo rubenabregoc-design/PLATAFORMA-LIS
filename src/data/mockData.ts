@@ -1,4 +1,4 @@
-import { Tenant, User, Patient, Doctor, TestCatalogItem, Order, TestResult, Analyzer, MiddlewareMessageLog, WestgardQCControl, ReagentInventory, AnalyzerTestMapping } from '../types';
+import { Tenant, User, Patient, Doctor, TestCatalogItem, Order, TestResult, Analyzer, MiddlewareMessageLog, WestgardQCControl, ReagentInventory, AnalyzerTestMapping, TestPackage } from '../types';
 
 export const MOCK_TENANTS: Tenant[] = [
   {
@@ -321,6 +321,39 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     specimenType: 'Plasma Citratado',
     tatHours: 2,
     parameters: []
+  }
+];
+
+export const MOCK_TEST_PACKAGES: TestPackage[] = [
+  {
+    id: 'pkg-prenatal-01',
+    tenantId: 'lab-san-jose',
+    code: 'PKG-PRE-01',
+    name: 'Perfil Prenatal Básico',
+    description: 'Control inicial de embarazo: Hemograma, Glucosa, VDRL, HIV, Grupo y Factor.',
+    testIds: ['test-hemograma', 'test-glucosa', 'test-vdrl', 'test-hiv', 'test-grupo'],
+    price: 85.00,
+    category: 'PRENATAL'
+  },
+  {
+    id: 'pkg-lipidos-01',
+    tenantId: 'lab-san-jose',
+    code: 'PERF-LIP',
+    name: 'Perfil de Lípidos',
+    description: 'Colesterol Total, HDL, LDL, VLDL y Triglicéridos.',
+    testIds: ['test-lipidico'],
+    price: 35.00,
+    category: 'PERFIL'
+  },
+  {
+    id: 'pkg-ejecutivo-01',
+    tenantId: 'lab-san-jose',
+    code: 'PKG-EXE-01',
+    name: 'Chequeo Ejecutivo Hombre',
+    description: 'Hemograma, Perfil Lipídico, Hepático, Creatinina, Ácido Úrico, Glucosa.',
+    testIds: ['test-hemograma', 'test-lipidico', 'test-hepatico', 'test-creatinina', 'test-acido-urico', 'test-glucosa'],
+    price: 120.00,
+    category: 'CHECKUP'
   }
 ];
 

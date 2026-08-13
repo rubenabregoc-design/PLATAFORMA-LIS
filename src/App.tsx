@@ -10,7 +10,8 @@ import {
   MOCK_ANALYZERS,
   MOCK_MIDDLEWARE_LOGS,
   MOCK_WESTGARD_QC,
-  MOCK_ANALYZER_MAPPINGS
+  MOCK_ANALYZER_MAPPINGS,
+  MOCK_TEST_PACKAGES
 } from './data/mockData';
 
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE } from './components/Header';
@@ -34,6 +35,7 @@ import { MultiBranchRouting } from './components/Phase4Suite/MultiBranchRouting'
 import { FhirInteroperabilityStudio } from './components/Phase5Suite/FhirInteroperabilityStudio';
 import { HighAvailabilityDisasterRecovery } from './components/Phase5Suite/HighAvailabilityDisasterRecovery';
 import { Iso15189AccreditationPortal } from './components/Phase5Suite/Iso15189AccreditationPortal';
+import { CriticalValueRegistry } from './components/Phase3Suite/CriticalValueRegistry';
 import { ShiftManagementModule } from './components/ShiftManagementModule';
 
 import { EqaPeecModule } from './components/Phase6Suite/EqaPeecModule';
@@ -431,6 +433,7 @@ export default function App() {
                   <ReceptionDashboard
                     patients={patients}
                     testCatalog={MOCK_TEST_CATALOG}
+                    testPackages={MOCK_TEST_PACKAGES}
                     orders={orders}
                     onCreateOrder={handleCreateOrder}
                     onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
@@ -481,6 +484,7 @@ export default function App() {
             {activeTab === 'drivers' && <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} />}
             {activeTab === 'billing' && <BillingPOS orders={orders} patients={patients} testCatalog={MOCK_TEST_CATALOG} tenant={currentTenant} branch={currentBranch} onOrderPaid={handleOrderPaid} />}
             {activeTab === 'delta' && <DeltaPanicAlerts orders={orders} results={results} patients={patients} />}
+            {activeTab === 'panic_registry' && <CriticalValueRegistry />}
             {activeTab === 'minsa' && <MinsaEpidemiology orders={orders} results={results} patients={patients} />}
             {activeTab === 'inventory' && <ReagentInventoryModule tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'executive' && <ExecutiveAnalyticsAI tenant={currentTenant} branches={currentTenant.branches} orders={orders} results={results} />}

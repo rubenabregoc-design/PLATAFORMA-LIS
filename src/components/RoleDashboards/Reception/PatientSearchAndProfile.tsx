@@ -1,7 +1,7 @@
 import React from 'react';
 import { Patient } from '../../../types';
 import {
-  Search, User, Smartphone, MapPin, Fingerprint, UserSearch, Camera, ShieldCheck, PenTool
+  Search, User, Smartphone, MapPin, Fingerprint, UserSearch, Camera, ShieldCheck, PenTool, QrCode
 } from 'lucide-react';
 import { MOCK_DOCTORS } from '../../../data/mockData';
 import { useToast } from '../../Toast';

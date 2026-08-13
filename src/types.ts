@@ -103,6 +103,17 @@ export interface TestParameter {
   criticalMax?: number;
 }
 
+export interface TestPackage {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  description: string;
+  testIds: string[];
+  price: number;
+  category: 'CHECKUP' | 'PRENATAL' | 'DEPORTIVO' | 'EMPRESARIAL' | 'PERFIL';
+}
+
 export interface Order {
   id: string;
   tenantId: string;
@@ -132,6 +143,7 @@ export interface Specimen {
   tubeType: string;
   collectedAt?: string;
   collectedBy?: string;
+  testIds?: string[]; // IDs de pruebas vinculadas a este tubo específico
   status: 'PENDIENTE' | 'RECEPTADA' | 'EN_ANALIZADOR' | 'DESECHADA';
 }
 
@@ -217,6 +229,8 @@ export interface ReagentInventory {
   testsPerUnit: number;
   minAlertThreshold: number;
   associatedTest: string;
+  manufacturer?: string;
+  storageTemp?: string;
 }
 
 export interface ReferenceRange {

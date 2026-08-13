@@ -1,7 +1,7 @@
 import React from 'react';
-import { TestCatalogItem } from '../../../types';
+import { TestCatalogItem, TestPackage } from '../../../types';
 import {
-  Search, Activity, Beaker, Timer, Clock
+  Search, Activity, Beaker, Timer, Clock, Package, Sparkles
 } from 'lucide-react';
 
 interface TestCatalogGridProps {
@@ -11,7 +11,10 @@ interface TestCatalogGridProps {
   setActiveCategory: (cat: string) => void;
   selectedTestIds: string[];
   setSelectedTestIds: React.Dispatch<React.SetStateAction<string[]>>;
+  selectedPackageIds: string[];
+  setSelectedPackageIds: React.Dispatch<React.SetStateAction<string[]>>;
   filteredTests: TestCatalogItem[];
+  packages: TestPackage[];
 }
 
 export const TestCatalogGrid: React.FC<TestCatalogGridProps> = ({
@@ -21,7 +24,10 @@ export const TestCatalogGrid: React.FC<TestCatalogGridProps> = ({
   setActiveCategory,
   selectedTestIds,
   setSelectedTestIds,
-  filteredTests
+  selectedPackageIds,
+  setSelectedPackageIds,
+  filteredTests,
+  packages
 }) => {
   return (
     <div className="flex-1 flex flex-col shrink-0 min-h-0 min-w-0">
@@ -38,13 +44,13 @@ export const TestCatalogGrid: React.FC<TestCatalogGridProps> = ({
             />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {['HEMATOLOGIA', 'QUIMICA', 'INMUNOLOGIA', 'URINALISIS', 'COAGULACION'].map(category => (
+            {['HEMATOLOGIA', 'QUIMICA', 'INMUNOLOGIA', 'URINALISIS', 'COAGULACION', 'PAQUETES'].map(category => (
               <button
                 key={category}
                 onClick={() => { setActiveCategory(category); setTestSearchTerm(''); }}
                 className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeCategory === category ? 'bg-teal-500 border-teal-400 text-slate-950 shadow-lg scale-105' : 'bg-slate-900 border-white/5 text-slate-500 hover:text-white'}`}
               >
-                {category}
+                {category === 'PAQUETES' ? <div className="flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> PAQUETES / PERFILES</div> : category}
               </button>
             ))}
           </div>
@@ -52,7 +58,35 @@ export const TestCatalogGrid: React.FC<TestCatalogGridProps> = ({
 
         <div className="flex-1 overflow-y-auto px-4 pb-20 -mx-4">
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 py-4">
-            {filteredTests.length === 0 ? (
+            {activeCategory === 'PAQUETES' ? (
+              packages.map(pkg => {
+                const isSelected = selectedPackageIds.includes(pkg.id);
+                return (
+                  <button
+                    key={pkg.id}
+                    onClick={() => setSelectedPackageIds(prev => isSelected ? prev.filter(id => id !== pkg.id) : [...prev, pkg.id])}
+                    className={`flex items-center pl-4 pr-6 py-5 rounded-[2rem] border-2 transition-all duration-500 relative group overflow-hidden ${isSelected ? 'bg-amber-500/10 border-amber-500/60 shadow-xl scale-[1.04] z-10 ring-1 ring-inset ring-amber-500/30' : 'bg-slate-950/40 border-white/5 hover:border-amber-500/20'}`}
+                  >
+                    <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center mr-4 transition-all ${isSelected ? 'bg-amber-500 text-slate-950 shadow-lg' : 'bg-slate-900 text-amber-500 shadow-inner'}`}>
+                      <Package className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left pr-2">
+                      <div className={`text-[12px] font-black uppercase leading-tight tracking-normal mb-1 truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>{pkg.name}</div>
+                      <div className="text-[8px] text-slate-500 font-bold uppercase line-clamp-1 mb-2 tracking-tighter">{pkg.description}</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[7px] font-black bg-white/5 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-tighter">
+                          {pkg.testIds.length} Análisis
+                        </span>
+                        <span className="text-[7px] font-black bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-tighter">
+                           {pkg.category}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`text-[12px] font-black font-mono flex-shrink-0 ml-3 ${isSelected ? 'text-amber-400' : 'text-slate-500'}`}>${pkg.price.toFixed(2)}</div>
+                  </button>
+                )
+              })
+            ) : filteredTests.length === 0 ? (
               <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in duration-500">
                 <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center border border-white/5 shadow-inner">
                   <Search className="w-8 h-8 text-slate-700" />

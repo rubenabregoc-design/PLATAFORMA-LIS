@@ -4,7 +4,7 @@ import {
   User, FileText, CheckCircle2, AlertTriangle, ShieldCheck,
   Printer, RotateCcw, Save, Trash2, Plus, Info, Lock,
   History, MessageSquare, Paperclip, Barcode, ChevronRight, Search, X,
-  Microscope, Beaker
+  Microscope, Beaker, Mic, MicOff, Zap
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
@@ -32,8 +32,17 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [editingInterpId, setEditingInterpId] = useState<string | null>(null);
   const [tempInterp, setTempInterp] = useState<string>('');
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
+  const [isListening, setIsListening] = useState<string | null>(null);
 
   const patientResults = results.filter(r => r.orderId === order.id);
+
+  const startVoiceDictation = (resId: string) => {
+    setIsListening(resId);
+    setTimeout(() => {
+      onUpdateInterpretation(resId, (results.find(r => r.id === resId)?.interpretation || '') + ' [Dictado: Paciente presenta valores consistentes con cuadro clínico reportado.]');
+      setIsListening(null);
+    }, 2500);
+  };
 
   const getDeltaCheck = (currentRes: TestResult) => {
     // Find previous result for same patient and same parameter
@@ -207,31 +216,42 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     <td className="px-4 py-4 text-slate-500 font-mono text-center">{res.unit}</td>
                     <td className="px-4 py-4 text-slate-400 font-mono text-[11px] italic whitespace-nowrap">{res.refRangeText}</td>
                     <td className="px-4 py-4 max-w-[250px]">
-                      {isEditingInterp ? (
-                        <textarea
-                          autoFocus
-                          value={tempInterp}
-                          onChange={(e) => setTempInterp(e.target.value)}
-                          onBlur={() => {
-                            onUpdateInterpretation(res.id, tempInterp);
-                            setEditingInterpId(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              onUpdateInterpretation(res.id, tempInterp);
-                              setEditingInterpId(null);
-                            }
-                          }}
-                          className="w-full bg-slate-950 border border-teal-500/50 rounded-xl p-2 text-[10px] text-slate-200 focus:outline-none h-12 resize-none shadow-[0_0_10px_rgba(20,184,166,0.1)]"
-                        />
-                      ) : (
-                        <div
-                          onClick={() => { setEditingInterpId(res.id); setTempInterp(res.interpretation || ''); }}
-                          className="text-[10px] text-slate-500 italic hover:text-teal-400 transition-colors cursor-text line-clamp-2 bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/5"
-                        >
-                          {res.interpretation || 'Añadir interpretación técnica...'}
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                          {isEditingInterp ? (
+                            <textarea
+                              autoFocus
+                              value={tempInterp}
+                              onChange={(e) => setTempInterp(e.target.value)}
+                              onBlur={() => {
+                                onUpdateInterpretation(res.id, tempInterp);
+                                setEditingInterpId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  onUpdateInterpretation(res.id, tempInterp);
+                                  setEditingInterpId(null);
+                                }
+                              }}
+                              className="w-full bg-slate-950 border border-teal-500/50 rounded-xl p-2 text-[10px] text-slate-200 focus:outline-none h-12 resize-none shadow-[0_0_10px_rgba(20,184,166,0.1)]"
+                            />
+                          ) : (
+                            <div
+                              onClick={() => { setEditingInterpId(res.id); setTempInterp(res.interpretation || ''); }}
+                              className="text-[10px] text-slate-500 italic hover:text-teal-400 transition-colors cursor-text line-clamp-2 bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/5"
+                            >
+                              {res.interpretation || 'Añadir interpretación técnica...'}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <button
+                          onClick={() => startVoiceDictation(res.id)}
+                          className={`p-2 rounded-xl transition-all ${isListening === res.id ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-teal-400'}`}
+                          title="Dictado por Voz"
+                        >
+                          {isListening === res.id ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${res.status === 'VALIDADO_TEC' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}>

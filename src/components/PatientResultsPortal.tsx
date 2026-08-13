@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Patient, Order, TestResult } from '../types';
 import {
   User, FileText, Calendar, ChevronRight, Search,
-  Download, Clock, CheckCircle2, Shield, Heart, MapPin, Phone
+  Download, Clock, CheckCircle2, Shield, Heart, MapPin, Phone, TrendingUp
 } from 'lucide-react';
+import { PatientTrendAnalytics } from './PatientTrendAnalytics';
 
 interface PatientResultsPortalProps {
   patients: Patient[];
@@ -19,6 +20,7 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
   onOpenPdf
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [trendPatientId, setTrendPatientId] = useState<string | null>(null);
 
   const calculateAge = (dob: string) => {
     if (!dob) return '---';
@@ -179,6 +181,16 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                     );
                   })}
 
+                  {patientOrders.length >= 2 && (
+                    <button
+                      onClick={() => setTrendPatientId(patient.id)}
+                      className="w-full py-2.5 bg-teal-500/10 border border-teal-500/20 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-teal-400 hover:bg-teal-500 hover:text-slate-950 transition-all flex items-center justify-center space-x-2"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>Ver Tendencias Clínicas</span>
+                    </button>
+                  )}
+
                   {patientOrders.length > 2 && (
                     <button className="w-full py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-teal-400 transition-colors">
                       Ver historial completo (+{patientOrders.length - 2} más)
@@ -190,6 +202,16 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
           );
         })}
       </div>
+
+      {/* Trend Modal */}
+      {trendPatientId && (
+        <PatientTrendAnalytics
+          patient={patients.find(p => p.id === trendPatientId)!}
+          orders={orders}
+          results={results}
+          onClose={() => setTrendPatientId(null)}
+        />
+      )}
     </div>
   );
 };

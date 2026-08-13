@@ -229,8 +229,9 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
               {[
                 { id: 'PUNTO_VENTA_POS', label: 'Tarjeta / POS', desc: 'BAC / Banistmo' },
                 { id: 'EFECTIVO', label: 'Efectivo', desc: 'Caja Recaudadora' },
+                { id: 'YAPPY_QR', label: 'Yappy QR', desc: 'Banco General' },
                 { id: 'ASEGURADORA', label: 'Aseguradora', desc: 'ASSA / PALIG' },
-                { id: 'ACH_TRANSFERENCIA', label: 'ACH Directo', desc: 'Banco General' }
+                { id: 'ACH_TRANSFERENCIA', label: 'ACH Directo', desc: 'Validación Transacción' }
               ].map((m) => (
                 <button
                   key={m.id}
@@ -250,19 +251,44 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
             </div>
 
             {/* Sub-options based on payment method */}
-            {paymentMethod === 'PUNTO_VENTA_POS' && (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
-                <label className="font-bold text-slate-700 block">Terminal POS Seleccionada:</label>
-                <select
-                  value={posProvider}
-                  onChange={(e) => setPosProvider(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2 font-semibold text-xs"
-                >
-                  <option value="BAC Credomatic (POS-01)">BAC Credomatic — Terminal Vía España #01</option>
-                  <option value="St. Georges Bank (POS-02)">St. Georges Bank — Terminal Vía España #02</option>
-                  <option value="Banistmo (POS-03)">Banistmo — Terminal Vía España #03</option>
-                  <option value="Punto Pago POS">Punto Pago POS Integrado</option>
-                </select>
+            {paymentMethod === 'YAPPY_QR' && (
+              <div className="bg-blue-600 p-6 rounded-2xl border border-blue-500 flex flex-col items-center text-center space-y-4 shadow-xl animate-in zoom-in-95">
+                 <div className="bg-white p-3 rounded-2xl shadow-inner">
+                    <QrCode className="w-32 h-32 text-blue-900" />
+                 </div>
+                 <div>
+                    <div className="text-white font-black uppercase tracking-widest text-xs">Escanee para pagar con Yappy</div>
+                    <div className="text-blue-100 text-[10px] mt-1 italic">Monto a Transferir: ${patientPayAmount.toFixed(2)}</div>
+                 </div>
+                 <button
+                  onClick={() => toast('Validando transacción Yappy...', 'info')}
+                  className="w-full py-2 bg-white text-blue-600 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-colors"
+                 >
+                   Verificar Pago en Tiempo Real
+                 </button>
+              </div>
+            )}
+
+            {paymentMethod === 'ACH_TRANSFERENCIA' && (
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número de Referencia ACH / Comprobante</label>
+                 <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ej: 00923812"
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-teal-500 outline-none font-mono"
+                    />
+                    <button
+                      onClick={() => toast('Buscando registro en banco...', 'info')}
+                      className="px-4 py-2 bg-teal-500 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-widest"
+                    >
+                      Validar
+                    </button>
+                 </div>
+                 <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase">Seguridad Bancaria Activa</span>
+                 </div>
               </div>
             )}
 
