@@ -234,7 +234,15 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       totalAmount,
       paymentStatus: 'PAGADO',
       specimens: generatedSpecimens,
-      testIds: allTestIds
+      testIds: selectedTestIds, // Pruebas individuales manuales
+      packageIds: selectedPackages.map(p => p.id), // IDs de paquetes originales
+      expandedTestIds: allTestIds, // SNAPSHOT INMUTABLE DE PRUEBAS EXPANDIDAS
+      testSnapshots: allTestIds.map(tId => ({
+        testId: tId,
+        requestedBy: 'receptionist',
+        addedAt: new Date().toISOString(),
+        fromPackageId: selectedPackages.find(pkg => pkg.testIds.includes(tId))?.id
+      }))
     };
 
     onCreateOrder(newOrder, foundPatient ? undefined : (patientToUse as Patient));
@@ -292,55 +300,61 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       </div>
 
       {activeSubTab === 'ADMISSION' ? (
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-          <PatientSearchAndProfile
-            patients={patients}
-            patientSearchTerm={patientSearchTerm}
-            setPatientSearchTerm={setPatientSearchTerm}
-            foundPatient={foundPatient}
-            setFoundPatient={setFoundPatient}
-            isSearchDropdownOpen={isSearchDropdownOpen}
-            setIsSearchDropdownOpen={setIsSearchDropdownOpen}
-            isRegistering={isRegistering}
-            setIsRegistering={setIsRegistering}
-            newPatientData={newPatientData}
-            setNewPatientData={setNewPatientData}
-            formErrors={formErrors}
-            setFormErrors={setFormErrors}
-            formatCedula={formatCedula}
-            calculateAge={calculateAge}
-            filteredPatientsList={filteredPatientsList}
-            handleSelectFoundPatient={handleSelectFoundPatient}
-            inputRef={patientInputRef}
-          />
+        <div className="flex-1 flex flex-col xl:flex-row gap-4 min-h-0">
+          <div className="w-full xl:w-[320px] shrink-0">
+            <PatientSearchAndProfile
+              patients={patients}
+              patientSearchTerm={patientSearchTerm}
+              setPatientSearchTerm={setPatientSearchTerm}
+              foundPatient={foundPatient}
+              setFoundPatient={setFoundPatient}
+              isSearchDropdownOpen={isSearchDropdownOpen}
+              setIsSearchDropdownOpen={setIsSearchDropdownOpen}
+              isRegistering={isRegistering}
+              setIsRegistering={setIsRegistering}
+              newPatientData={newPatientData}
+              setNewPatientData={setNewPatientData}
+              formErrors={formErrors}
+              setFormErrors={setFormErrors}
+              formatCedula={formatCedula}
+              calculateAge={calculateAge}
+              filteredPatientsList={filteredPatientsList}
+              handleSelectFoundPatient={handleSelectFoundPatient}
+              inputRef={patientInputRef}
+            />
+          </div>
 
-          <TestCatalogGrid
-            testSearchTerm={testSearchTerm}
-            setTestSearchTerm={setTestSearchTerm}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            selectedTestIds={selectedTestIds}
-            setSelectedTestIds={setSelectedTestIds}
-            selectedPackageIds={selectedPackageIds}
-            setSelectedPackageIds={setSelectedPackageIds}
-            filteredTests={filteredTestsBySearchAndCategory}
-            packages={testPackages}
-          />
+          <div className="flex-1 min-w-0">
+            <TestCatalogGrid
+              testSearchTerm={testSearchTerm}
+              setTestSearchTerm={setTestSearchTerm}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              selectedTestIds={selectedTestIds}
+              setSelectedTestIds={setSelectedTestIds}
+              selectedPackageIds={selectedPackageIds}
+              setSelectedPackageIds={setSelectedPackageIds}
+              filteredTests={filteredTestsBySearchAndCategory}
+              packages={testPackages}
+            />
+          </div>
 
-          <OrderCart
-            selectedTests={selectedTests}
-            setSelectedTestIds={setSelectedTestIds}
-            selectedPackages={selectedPackages}
-            setSelectedPackageIds={setSelectedPackageIds}
-            isStat={isStat}
-            setIsStat={setIsStat}
-            isFasting={isFasting}
-            setIsFasting={setIsFasting}
-            totalAmount={totalAmount}
-            handleCreateOrderSubmit={handleCreateOrderSubmit}
-            foundPatient={foundPatient}
-            isRegistering={isRegistering}
-          />
+          <div className="w-full xl:w-[320px] shrink-0">
+            <OrderCart
+              selectedTests={selectedTests}
+              setSelectedTestIds={setSelectedTestIds}
+              selectedPackages={selectedPackages}
+              setSelectedPackageIds={setSelectedPackageIds}
+              isStat={isStat}
+              setIsStat={setIsStat}
+              isFasting={isFasting}
+              setIsFasting={setIsFasting}
+              totalAmount={totalAmount}
+              handleCreateOrderSubmit={handleCreateOrderSubmit}
+              foundPatient={foundPatient}
+              isRegistering={isRegistering}
+            />
+          </div>
         </div>
       ) : activeSubTab === 'MANAGEMENT' ? (
         /* MANAGEMENT WORKSPACE */
@@ -480,28 +494,28 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                      </div>
 
                      <div className="space-y-4">
-                        <div className="text-left bg-slate-950/50 p-6 rounded-[2.5rem] border border-white/5 space-y-4">
+                        <div className="text-left bg-slate-950/50 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 space-y-4">
                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">Resumen de Toma de Muestra</div>
                            <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-1">
                                  <div className="text-[8px] font-black text-teal-500 uppercase tracking-tighter">Total Tubos</div>
-                                 <div className="text-2xl font-black text-white">{order.specimens.length}</div>
+                                 <div className="text-xl sm:text-2xl font-black text-white">{order.specimens.length}</div>
                               </div>
                               <div className="space-y-1">
                                  <div className="text-[8px] font-black text-amber-500 uppercase tracking-tighter">Ayuno</div>
-                                 <div className="text-2xl font-black text-white">{isFasting ? 'SI' : 'NO'}</div>
+                                 <div className="text-xl sm:text-2xl font-black text-white">{isFasting ? 'SI' : 'NO'}</div>
                               </div>
                            </div>
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => toast('Imprimiendo etiquetas...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl">
-                           <Barcode className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" />
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onClick={() => toast('Imprimiendo etiquetas...', 'info')} className="p-4 sm:p-6 bg-slate-950 border border-white/5 rounded-[1.5rem] sm:rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-row sm:flex-col items-center justify-center sm:justify-start group relative overflow-hidden shadow-2xl">
+                           <Barcode className="w-6 h-6 sm:w-8 sm:h-8 mb-0 sm:mb-4 mr-3 sm:mr-0 text-teal-400 group-hover:text-slate-950 relative z-10" />
                            <span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Imprimir Todo</span>
                         </button>
-                        <button onClick={() => toast('Imprimiendo ticket de caja...', 'info')} className="p-6 bg-slate-950 border border-white/5 rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-col items-center group relative overflow-hidden shadow-2xl">
-                           <Receipt className="w-8 h-8 mb-4 text-teal-400 group-hover:text-slate-950 relative z-10" />
+                        <button onClick={() => toast('Imprimiendo ticket de caja...', 'info')} className="p-4 sm:p-6 bg-slate-950 border border-white/5 rounded-[1.5rem] sm:rounded-[2rem] hover:bg-teal-500 hover:text-slate-950 transition-all flex flex-row sm:flex-col items-center justify-center sm:justify-start group relative overflow-hidden shadow-2xl">
+                           <Receipt className="w-6 h-6 sm:w-8 sm:h-8 mb-0 sm:mb-4 mr-3 sm:mr-0 text-teal-400 group-hover:text-slate-950 relative z-10" />
                            <span className="text-[9px] font-black uppercase tracking-[0.3em] relative z-10">Ticket Caja</span>
                         </button>
                      </div>

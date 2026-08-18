@@ -631,7 +631,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
             <div className="space-y-3 mt-4 text-xs">
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 block">Ingresar o Escanear Código Barcode:</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-col sm:flex-row">
                   <input
                     type="text"
                     placeholder="Ej. BC-882001"
@@ -641,7 +641,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                   />
                   <button
                     onClick={handleScanBarcode}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm shrink-0 flex items-center space-x-1 cursor-pointer"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition shadow-sm shrink-0 flex items-center justify-center space-x-1 cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5" />
                     <span>Disparo</span>

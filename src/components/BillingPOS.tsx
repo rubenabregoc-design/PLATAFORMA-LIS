@@ -146,9 +146,9 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Order Selection & Payment Setup */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-6 flex flex-col min-h-0">
           {/* Order Selection */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">

@@ -18,17 +18,37 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
   const [selectedAnalyzerId, setSelectedAnalyzerId] = useState<string>(analyzers[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'live_terminal' | 'adapters' | 'hl7_his'>('live_terminal');
   const [isSimulating, setIsSimulating] = useState(false);
-  const [simType, setSimType] = useState<'critical_glucose' | 'normal_cbc' | 'hl7_oru'>('critical_glucose');
+  const [simType, setSimType] = useState<'critical_glucose' | 'normal_cbc' | 'hl7_oru' | 'instrumental_finding'>('critical_glucose');
+
+  const [protocolLogs, setProtocolLogs] = useState<string[]>([]);
 
   const handleSimulateFrame = () => {
     setIsSimulating(true);
+    setProtocolLogs([]);
+
+    // Simulación del Handshake ASTM E1381 (Handshake de Socket)
+    const handshakeSteps = [
+      `[SOCKET] 🟢 Conexión entrante desde Analizador (${analyzers.find(a => a.id === selectedAnalyzerId)?.name || 'Equipo'})`,
+      `[ASTM] 🟢 <ENQ> (0x05) - Analizador solicita transmitir`,
+      `[HOST] 🔵 <ACK> (0x06) - LIS Core listo para recibir`,
+      `[ASTM] 🟢 Transmitiendo Trama RAW por Socket TCP...`,
+      `[HOST] 🔵 <ACK> (0x06) - Bloque recibido correctamente`,
+      `[ASTM] 🟢 <EOT> (0x04) - Fin de sesión de transmisión`
+    ];
+
+    handshakeSteps.forEach((step, idx) => {
+      setTimeout(() => {
+        setProtocolLogs(prev => [...prev, step]);
+      }, idx * 150);
+    });
 
     setTimeout(() => {
       const selectedAn = analyzers.find((a) => a.id === selectedAnalyzerId) || analyzers[0];
       const timestamp = new Date().toISOString();
 
       if (simType === 'critical_glucose') {
-        const rawAstm = `H|\\^&|||VITROS^4600|||||||P|1|${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nP|1||||Arosemena^Ricardo\nO|1|BC-882004||^^^GLU_101|R||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nR|1|^^^GLU|340|mg/dL|70-99|HH||F||||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nL|1|N`;
+        // Trama ASTM E1394 Real para Glucosa
+        const rawAstm = `H|\\^&|||VITROS^4600|||||||P|1\nP|1|||Arosemena^Ricardo\nO|1|BC-882004||^^^4531|R||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nR|1|^^^4531|340|mg/dL|70-99|HH||F||||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nL|1|N`;
 
         const newLog: MiddlewareMessageLog = {
           id: `msg-${Date.now()}`,
@@ -41,7 +61,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           parsedData: {
             sampleBarcode: 'BC-882004',
             orderMatched: 'ORD-2026-00102',
-            testCode: 'GLU',
+            testCode: '4531', // Usando tu nuevo código de Glucosa
             value: 340,
             unit: 'mg/dL',
             flag: 'CRITICO_ALTO'
@@ -56,12 +76,57 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           orderId: 'ord-1002',
           testId: 'test-glucosa',
           parameterId: 'p-glu',
-          parameterName: 'Glucosa Basal',
+          parameterCode: '4531',
+          parameterName: 'Glucosa en Ayunas',
           unit: 'mg/dL',
           value: '340',
           numericValue: 340,
           flag: 'CRITICO_ALTO',
           refRangeText: '70 - 99',
+          source: 'MIDDLEWARE_ASTM',
+          analyzerName: selectedAn.name,
+          status: 'INGRESADO'
+        };
+
+        onNewResultSimulated(newLog, newResult);
+      } else if (simType === 'instrumental_finding') {
+        // CASO: Hallazgo Instrumental (Prueba no solicitada)
+        // Simulamos un perfil lipídico que envía VLDL (4660) pero NO estaba en la orden original
+        const rawAstm = `H|\\^&|||VITROS^4600|||||||P|1\nP|1|||Pinzon^Gabriela\nO|1|BC-882001||^^^4660|R||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nR|1|^^^4660|45|mg/dL|5-40|H||F||||${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}\nL|1|N`;
+
+        const newLog: MiddlewareMessageLog = {
+          id: `msg-${Date.now()}`,
+          tenantId: 'lab-san-jose',
+          analyzerId: selectedAn.id,
+          analyzerName: selectedAn.name,
+          protocol: 'ASTM E1381 / E1394',
+          direction: 'INBOUND',
+          rawPayload: rawAstm,
+          parsedData: {
+            sampleBarcode: 'BC-882001',
+            orderMatched: 'ORD-2026-00101',
+            testCode: '4660', // Triglicéridos (Hallazgo extra)
+            value: 45,
+            unit: 'mg/dL',
+            flag: 'ALTO'
+          },
+          status: 'PROCESADO',
+          timestamp
+        };
+
+        const newResult: TestResult = {
+          id: `res-${Date.now()}`,
+          tenantId: 'lab-san-jose',
+          orderId: 'ord-1001',
+          testId: 'test-lipidico', // Pertenece a este examen pero no estaba en la orden expandida
+          parameterId: 'p-tri',
+          parameterCode: '4660',
+          parameterName: 'Triglicéridos (Hallazgo Extra)',
+          unit: 'mg/dL',
+          value: '45',
+          numericValue: 45,
+          flag: 'ALTO',
+          refRangeText: '5 - 40',
           source: 'MIDDLEWARE_ASTM',
           analyzerName: selectedAn.name,
           status: 'INGRESADO'
@@ -222,6 +287,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
               className="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 font-medium focus:ring-2 focus:ring-teal-500"
             >
               <option value="critical_glucose">Vitros 4600 — Glucosa 340 mg/dL (¡ALERTA CRÍTICA!)</option>
+              <option value="instrumental_finding">Vitros 4600 — Triglicéridos (¡HALLAZGO EXTRA!)</option>
               <option value="normal_cbc">Sysmex XN-1000 — Hemograma Completo Normal</option>
               <option value="hl7_oru">Mindray BC-5000 — HL7 ORU^R01 (Plaquetas 240k)</option>
             </select>
@@ -276,6 +342,16 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
 
         {activeTab === 'live_terminal' && (
           <div className="p-5 font-mono text-xs space-y-4 max-h-[450px] overflow-y-auto">
+            {/* Protocol Handshake Simulation (Visible while simulating) */}
+            {isSimulating && (
+              <div className="bg-slate-900 border border-teal-500/30 rounded-xl p-4 space-y-1 animate-pulse">
+                <div className="text-[10px] text-teal-400 font-bold mb-2 uppercase">Simulación de Handshake de Socket en Curso...</div>
+                {protocolLogs.map((log, i) => (
+                  <div key={i} className={log.includes('HOST') ? 'text-teal-300' : 'text-emerald-400'}>{log}</div>
+                ))}
+              </div>
+            )}
+
             {logs.map((log) => (
               <div key={log.id} className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] border-b border-slate-800/80 pb-2">

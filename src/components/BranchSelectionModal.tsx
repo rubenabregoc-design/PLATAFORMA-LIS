@@ -179,12 +179,12 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
         )}
 
         {/* Action Controls */}
-        <div className="pt-2 flex items-center justify-end space-x-3 border-t border-slate-800 relative z-10">
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-800 relative z-10">
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
             >
               Cancelar
             </button>
@@ -193,7 +193,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
           <button
             type="button"
             onClick={handleConfirmAction}
-            className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 flex items-center space-x-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 flex items-center justify-center space-x-2 cursor-pointer"
           >
             <span>Confirmar e Iniciar en esta Sede</span>
             <ArrowRight className="w-4 h-4 stroke-[3]" />

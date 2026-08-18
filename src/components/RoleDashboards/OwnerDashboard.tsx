@@ -16,7 +16,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, orders }
   const avgTatHours = 1.4;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700">
 
       {/* View Selector */}
       <div className="flex items-center space-x-2 bg-slate-950/50 p-1 rounded-2xl border border-white/5 w-fit">
@@ -146,9 +146,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, orders }
                         <span className="text-[8px] font-black text-slate-600 uppercase">Pico: 09:00 AM</span>
                       </div>
                   </div>
-                  <div className="grid grid-cols-12 md:grid-cols-24 gap-1.5 h-32 items-end">
+                  <div className="grid grid-cols-12 md:grid-cols-24 gap-1 sm:gap-1.5 h-32 items-end">
                       {[20, 15, 10, 5, 8, 35, 75, 95, 85, 60, 45, 30, 25, 40, 55, 65, 50, 40, 30, 20, 15, 10, 5, 5].map((val, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 group relative">
+                        <div key={i} className={`flex flex-col items-center gap-2 group relative ${i >= 12 ? 'hidden md:flex' : 'flex'}`}>
                           <div
                             className={`w-full rounded-md transition-all duration-700 ${val > 70 ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]' : val > 40 ? 'bg-amber-500' : 'bg-teal-500/40'}`}
                             style={{ height: `${val}%` }}
@@ -157,7 +157,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, orders }
                                 {val} Pacientes
                               </div>
                           </div>
-                          {i % 4 === 0 && <span className="text-[7px] font-black text-slate-600 font-mono">{i}:00</span>}
+                          {(i % 4 === 0 || i === 23) && <span className="text-[6px] sm:text-[7px] font-black text-slate-600 font-mono">{i}:00</span>}
                         </div>
                       ))}
                   </div>

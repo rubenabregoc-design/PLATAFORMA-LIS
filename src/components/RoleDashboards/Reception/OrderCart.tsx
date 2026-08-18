@@ -41,7 +41,7 @@ export const OrderCart: React.FC<OrderCartProps> = ({
 
   const selectedDoctor = MOCK_DOCTORS.find(d => d.id === selectedDoctorId) || MOCK_DOCTORS[0];
   return (
-    <div className="w-full lg:w-[280px] xl:w-[320px] flex flex-col shrink-0 min-h-0">
+    <div className="w-full flex flex-col shrink-0 min-h-0">
       <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-white/5 rounded-[2.5rem] p-6 shadow-2xl flex flex-col relative group">
          <div className="absolute -top-20 -right-20 w-48 h-48 bg-teal-500/5 rounded-full blur-[100px]"></div>
          <div className="flex-1 space-y-6 relative z-10 overflow-y-auto">

@@ -58,7 +58,7 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
       </div>
 
       {/* Patients Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {filteredPatients.map(patient => {
           const patientOrders = orders.filter(o => o.patientId === patient.id);
 
@@ -97,7 +97,7 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
               </div>
 
               {/* Patient Demographics Mini-Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <div className="bg-slate-950/50 rounded-2xl p-4 border border-white/[0.03]">
                   <div className="flex items-center space-x-2 text-slate-500 mb-1">
                     <Phone className="w-3 h-3" />

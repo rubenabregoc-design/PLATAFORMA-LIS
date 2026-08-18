@@ -51,7 +51,7 @@ export const PatientSearchAndProfile: React.FC<PatientSearchAndProfileProps> = (
   const [showSignaturePad, setShowSignaturePad] = React.useState(false);
   const [isSigned, setIsSigned] = React.useState(false);
   return (
-    <div className="w-full lg:w-[300px] xl:w-[340px] flex flex-col shrink-0 min-h-0">
+    <div className="w-full flex flex-col shrink-0 min-h-0">
       <div className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 p-6 rounded-[2.5rem] shadow-2xl flex flex-col">
         <div className="mb-6 relative z-30">
           <div className="flex items-center justify-between mb-4">

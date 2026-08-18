@@ -110,7 +110,7 @@ export const TestCatalogGrid: React.FC<TestCatalogGridProps> = ({
                     <Activity className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0 text-left pr-2">
-                    <div className={`text-[11px] xl:text-[12px] font-black uppercase leading-tight tracking-normal mb-1 truncate ${isSelected ? 'text-white' : 'text-slate-400'}`}>{test.name}</div>
+                    <div className={`text-[11px] xl:text-[12px] font-black uppercase leading-[1.1] tracking-tight mb-2 whitespace-normal break-words ${isSelected ? 'text-white' : 'text-slate-200'}`}>{test.name}</div>
 
                     <div className="flex items-center space-x-3 mb-1.5">
                       <div className="text-[8px] text-slate-600 font-black uppercase tracking-widest opacity-60">Ref: {test.code}</div>

@@ -79,6 +79,7 @@ export default function App() {
   
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeOrderId, setActiveOrderId] = useState<string>(MOCK_ORDERS[0].id);
   const [showAllModules, setShowAllModules] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -144,8 +145,17 @@ export default function App() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      window.scrollTo(0, 0); // Force scroll to top after loading content
     }, 350);
   };
+
+  // PROFESSIONAL UX REPAIR: Ensure the page always starts at the top when changing roles or views
+  // This prevents the "focused on the middle" issue described by the user.
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.scrollTo(0, 0);
+    }
+  }, [isAuthenticated, currentRole, activeTab]);
 
   // Domain data state
   const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
@@ -153,6 +163,20 @@ export default function App() {
   const [results, setResults] = useState<TestResult[]>(MOCK_RESULTS);
   const [middlewareLogs, setMiddlewareLogs] = useState<MiddlewareMessageLog[]>(MOCK_MIDDLEWARE_LOGS);
   const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(MOCK_ANALYZER_MAPPINGS);
+
+  // Chat Context State
+  const [activeChatContext, setActiveChatContext] = useState<any>(null);
+
+  const handleOpenChatWithContext = (order: Order, patient: Patient, testName: string) => {
+    setActiveChatContext({
+      barcode: order.specimens[0]?.barcode || 'S/N',
+      orderNumber: order.orderNumber,
+      patientName: `${patient.firstName} ${patient.lastName}`,
+      testName: testName,
+      status: 'CONSULTA'
+    });
+    // Si estuviéramos usando un ref o evento para abrir el chat, lo haríamos aquí
+  };
 
   const handleAddAnalyzerMapping = (newMapping: AnalyzerTestMapping) => {
     setAnalyzerMappings((prev) => [newMapping, ...prev]);
@@ -241,10 +265,44 @@ export default function App() {
     });
   };
 
-  const handleUpdateResultValue = (resultId: string, newValue: string) => {
-    setResults((prev) =>
-      prev.map((r) => (r.id === resultId ? { ...r, value: newValue, numericValue: parseFloat(newValue) || undefined } : r))
-    );
+  const handleUpdateResultValue = (resultId: string, newValue: string, resultData?: TestResult) => {
+    setResults((prev) => {
+      // Professional Overwrite Logic: Look for existing result by ID or by (OrderId + ParameterId)
+      const targetOrderId = resultData?.orderId;
+      const targetParamId = resultData?.parameterId;
+
+      const existingIdx = prev.findIndex(r =>
+        r.id === resultId ||
+        (targetOrderId && targetParamId && r.orderId === targetOrderId && r.parameterId === targetParamId)
+      );
+
+      if (existingIdx >= 0) {
+        // Overwrite existing record
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...(resultData || {}),
+          value: newValue,
+          numericValue: parseFloat(newValue) || undefined,
+          source: 'MANUAL',
+          status: 'INGRESADO'
+        };
+        return updated;
+      } else if (resultData) {
+        // Create new from placeholder
+        const newResult: TestResult = {
+          ...resultData,
+          id: `res-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          value: newValue,
+          numericValue: parseFloat(newValue) || undefined,
+          source: 'MANUAL',
+          status: 'INGRESADO',
+          createdAt: new Date().toISOString()
+        };
+        return [newResult, ...prev];
+      }
+      return prev;
+    });
   };
 
   const handleUpdateInterpretation = (resultId: string, interpretation: string) => {
@@ -253,19 +311,23 @@ export default function App() {
     );
   };
 
-  const handleValidateTechnical = (resultId: string) => {
+  const handleUpdateResultStatus = (resultId: string, status: TestResult['status']) => {
     setResults((prev) =>
       prev.map((r) =>
         r.id === resultId
           ? {
               ...r,
-              status: 'VALIDADO_TEC',
-              technicalValidatedBy: currentUser.name,
-              technicalValidatedAt: new Date().toISOString()
+              status: status,
+              technicalValidatedBy: status === 'VALIDADO_TEC' || status === 'PRELIMINAR' ? currentUser.name : undefined,
+              technicalValidatedAt: status === 'VALIDADO_TEC' || status === 'PRELIMINAR' ? new Date().toISOString() : undefined
             }
           : r
       )
     );
+  };
+
+  const handleValidateTechnical = (resultId: string) => {
+    handleUpdateResultStatus(resultId, 'VALIDADO_TEC');
   };
 
   const handleValidateTechnicalBulk = (resultIds: string[]) => {
@@ -349,6 +411,16 @@ export default function App() {
     );
   };
 
+  const handleUpdateOrderTests = (orderId: string, testIds: string[]) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      testIds,
+      // IMPORTANTE: También actualizamos el snapshot expandido para que el Tecnólogo
+      // vea los cambios inmediatamente en su mesa de trabajo.
+      expandedTestIds: testIds
+    } : o));
+  };
+
   const pdfOrder = orders.find((o) => o.id === previewOrderId) || orders[0];
   const pdfPatient = patients.find((p) => p.id === pdfOrder.patientId) || patients[0];
   const pdfResults = results.filter((r) => r.orderId === pdfOrder.id);
@@ -360,6 +432,19 @@ export default function App() {
 
   const allowedTabsForRole = ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
+
+  const pendingOrdersCount = orders.filter(o => o.status !== 'VALIDADA_MED' && o.status !== 'COMPLETADA').length;
+
+  // ADMIN NOTIFICATIONS: Offline Analyzers + Middleware Errors
+  const offlineAnalyzers = MOCK_ANALYZERS.filter(a => a.status !== 'ONLINE');
+  const middlewareErrors = middlewareLogs.filter(l => l.status === 'ERROR_PARSER' || l.status === 'ORDEN_NO_ENCONTRADA');
+
+  const systemAlertsDetails = [
+    ...offlineAnalyzers.map(a => ({ type: 'DEVICE', message: `Analizador Offline: ${a.name}`, id: a.id })),
+    ...middlewareErrors.map(e => ({ type: 'MIDDLEWARE', message: `Error Middleware: ${e.status}`, id: e.id }))
+  ];
+
+  const adminSystemAlerts = systemAlertsDetails.length;
 
   return (
     <ToastProvider>
@@ -387,6 +472,8 @@ export default function App() {
         onLockSession={handleLockSession}
         showAllModules={showAllModules}
         setShowAllModules={setShowAllModules}
+        notificationCount={currentRole === 'abregotech_admin' ? adminSystemAlerts : pendingOrdersCount}
+        systemAlerts={currentRole === 'abregotech_admin' ? systemAlertsDetails : undefined}
       />
 
       {/* Main Body */}
@@ -454,14 +541,18 @@ export default function App() {
 
             {activeTab === 'validation' && (
               <ResultEntryWorkspace
-                order={orders[0]}
-                patient={patients[0]}
+                order={orders.find(o => o.id === activeOrderId) || orders[0]}
+                patient={patients.find(p => p.id === (orders.find(o => o.id === activeOrderId) || orders[0]).patientId) || patients[0]}
                 results={results}
                 analyzers={MOCK_ANALYZERS}
                 onUpdateResultValue={handleUpdateResultValue}
                 onUpdateInterpretation={handleUpdateInterpretation}
-                onValidateTechnical={handleValidateTechnical}
+                onUpdateResultStatus={handleUpdateResultStatus}
                 onOpenPdf={setPreviewOrderId}
+                onConsultInterBranch={handleOpenChatWithContext}
+                onUpdateOrderTests={handleUpdateOrderTests}
+                allOrders={orders}
+                allPatients={patients}
               />
             )}
 
@@ -600,8 +691,10 @@ export default function App() {
       )}
 
       {/* Floating Inter-Branch Secure Messaging Widget (WebSockets) */}
-      {isAuthenticated && !isSessionLocked && (
-        <SecureInternalMessagingWidget />
+      {isAuthenticated && !isSessionLocked && !isBranchModalOpen && (
+        <SecureInternalMessagingWidget
+          activeSampleContext={activeChatContext}
+        />
       )}
     </div>
     </ToastProvider>

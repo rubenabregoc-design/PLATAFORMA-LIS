@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, ShieldAlert
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, ShieldAlert, X, Terminal
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -19,6 +19,8 @@ interface HeaderProps {
   onLockSession?: () => void;
   showAllModules: boolean;
   setShowAllModules: (show: boolean) => void;
+  notificationCount?: number;
+  systemAlerts?: { type: string; message: string; id: string }[];
 }
 
 export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: string }> = {
@@ -80,13 +82,17 @@ export const Header: React.FC<HeaderProps> = ({
   currentRole,
   currentUser,
   currentBranch,
+  onOpenBranchModal,
   activeTab,
   setActiveTab,
   onLogout,
   onLockSession,
   showAllModules,
+  notificationCount = 0,
+  systemAlerts = []
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
 
   const allowedTabIds = showAllModules
     ? NAVIGATION_TABS.map((t) => t.id)
@@ -94,24 +100,24 @@ export const Header: React.FC<HeaderProps> = ({
 
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
-  // High-priority tabs to show directly
-  const mainTabs = visibleTabs.slice(0, 3);
-  const secondaryTabs = visibleTabs.slice(3);
+  // High-priority tabs to show directly - REDUCED TO 2 FOR BETTER SPACING
+  const mainTabs = visibleTabs.slice(0, 2);
+  const secondaryTabs = visibleTabs.slice(2);
 
   return (
-    <header className="bg-[#020617]/60 backdrop-blur-2xl text-white border-b border-white/5 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+    <header className="bg-[#020617]/80 backdrop-blur-2xl text-white border-b border-white/5 sticky top-0 z-40">
+      <div className="max-w-[1600px] mx-auto px-6 h-20 flex items-center justify-between gap-8">
 
-        {/* Brand Logo - More minimal */}
+        {/* Brand Logo - Compact area */}
         <div className="flex items-center space-x-3 shrink-0">
-          <div className="w-10 h-10 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
-            <Activity className="w-6 h-6 text-slate-950 -rotate-3" />
+          <div className="w-9 h-9 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
+            <Activity className="w-5 h-5 text-slate-950 -rotate-3" />
           </div>
-          <span className="font-black tracking-tighter text-xl">LIS<span className="text-teal-400">CORE</span></span>
+          <span className="font-black tracking-tighter text-lg hidden xl:inline uppercase">LIS<span className="text-teal-400 font-black italic">CORE</span></span>
         </div>
 
-        {/* Professional Navigation */}
-        <nav className="hidden lg:flex items-center space-x-1 flex-1">
+        {/* Professional Navigation - Flex space without overlapping */}
+        <nav className="hidden lg:flex items-center space-x-2 min-w-0">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -119,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all duration-300 ${
+                className={`flex items-center space-x-2 px-3 py-2 rounded-2xl text-[12px] font-black transition-all duration-300 shrink-0 ${
                   isActive
                     ? 'bg-white/5 text-teal-400 shadow-xl border border-white/5'
                     : 'text-slate-500 hover:text-white hover:bg-white/5'
@@ -132,10 +138,10 @@ export const Header: React.FC<HeaderProps> = ({
           })}
 
           {secondaryTabs.length > 0 && (
-            <div className="relative">
+            <div className="relative shrink-0 ml-1">
               <button
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
-                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all ${
+                className={`flex items-center space-x-2 px-3 py-2 rounded-2xl text-[12px] font-black transition-all ${
                   secondaryTabs.some(t => t.id === activeTab)
                     ? 'bg-white/5 text-teal-400 border border-white/5'
                     : 'text-slate-500 hover:text-white hover:bg-white/5'
@@ -143,14 +149,14 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <MoreHorizontal className="w-4 h-4" />
                 <span className="uppercase tracking-widest">Módulos</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-3 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="grid grid-cols-1 gap-1">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="grid grid-cols-1 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
                       {secondaryTabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -178,48 +184,124 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Right Section: Profile & Logout */}
-        <div className="flex items-center space-x-6">
-          <div className="hidden sm:flex items-center space-x-4">
-            <div className="flex flex-col text-right">
-              <span className="text-[13px] font-black text-white leading-tight uppercase tracking-tight">{currentUser.name}</span>
-              <span className="text-[10px] text-teal-400 font-black uppercase tracking-[0.2em]">{currentBranch.name}</span>
+        <div className="flex items-center justify-end space-x-6 shrink-0">
+          <div className="hidden lg:flex items-center gap-3">
+            {/* Branch Indicator - Professional & Separate */}
+            <div
+              onClick={onOpenBranchModal}
+              className="flex items-center bg-white/5 border border-white/5 rounded-2xl px-4 py-2 gap-3 shadow-inner group/branch transition-all hover:bg-white/10 cursor-pointer shrink-0"
+            >
+               <MapPin className="w-4 h-4 text-teal-400 group-hover/branch:scale-110 transition-transform" />
+               <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Sucursal</span>
+                  <span className="text-[10px] text-white font-black uppercase tracking-tighter whitespace-nowrap">{currentBranch.code}</span>
+               </div>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center text-teal-400 font-black text-sm shadow-xl">
-              {currentUser.name.charAt(0)}
+
+            {/* User Profile - Elite Styling */}
+            <div className="flex items-center bg-teal-500/5 border border-white/5 rounded-2xl px-5 py-2 gap-6 group/user transition-all hover:bg-white/5 cursor-default">
+              <div className="flex flex-col text-right">
+                <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none whitespace-nowrap">{currentUser.name}</span>
+                <span className="text-[9px] text-teal-500/70 font-black uppercase tracking-widest mt-1 opacity-80">{ROLE_LABELS[currentRole].title}</span>
+              </div>
+
+              {/* Professional Avatar with Integrated Badges - Fixed Collision */}
+              <div className="relative shrink-0 ml-2">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 border border-teal-500/20 flex items-center justify-center text-teal-400 font-black text-base shadow-2xl group-hover/user:scale-105 transition-all duration-500">
+                  {currentUser.name.charAt(0)}
+                </div>
+
+                {/* Notification Badge - Dinámico: Conteo de Carga de Trabajo o Alertas de Sistema */}
+                {notificationCount > 0 && (
+                  <div
+                    onClick={(e) => {
+                      if (currentRole === 'abregotech_admin') {
+                        e.stopPropagation();
+                        setIsAlertsOpen(!isAlertsOpen);
+                      }
+                    }}
+                    title={currentRole === 'abregotech_admin'
+                      ? `Haga clic para ver ${notificationCount} alertas de sistema`
+                      : `Tienes ${notificationCount} órdenes pendientes por procesar`
+                    }
+                    className={`absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full border-2 border-[#020617] flex items-center justify-center z-10 animate-in zoom-in duration-500 cursor-pointer hover:scale-110 transition-transform ${
+                      currentRole === 'abregotech_admin'
+                        ? 'bg-amber-600 shadow-[0_0_15px_rgba(217,119,6,0.4)]'
+                        : 'bg-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.4)]'
+                    }`}
+                  >
+                    <span className="leading-none">{notificationCount}</span>
+                  </div>
+                )}
+
+                {/* Dropdown de Alertas para Admin */}
+                {isAlertsOpen && systemAlerts.length > 0 && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setIsAlertsOpen(false)}></div>
+                    <div className="absolute top-full right-0 mt-4 w-72 bg-slate-900 border border-white/10 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-30 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Alertas de Infraestructura</span>
+                         <button onClick={() => setIsAlertsOpen(false)} className="text-slate-500 hover:text-white"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                      <div className="space-y-2">
+                        {systemAlerts.map((alert) => (
+                          <div key={alert.id} className="flex items-start space-x-3 p-3 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                            {alert.type === 'DEVICE' ? <Cpu className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" /> : <Terminal className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />}
+                            <span className="text-[11px] font-bold text-slate-200 leading-tight">{alert.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => { setActiveTab('middleware'); setIsAlertsOpen(false); }}
+                        className="w-full mt-4 py-2.5 bg-amber-600/20 text-amber-400 text-[9px] font-black uppercase tracking-[0.2em] rounded-xl border border-amber-500/30 hover:bg-amber-600 hover:text-slate-950 transition-all"
+                      >
+                        Ver Consola Middleware
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Online Status Dot - Positioned Bottom-Right with Clear Separation */}
+                <div className="absolute -bottom-1 -right-1 w-4.5 h-4.5 bg-[#020617] rounded-full flex items-center justify-center shadow-xl">
+                   <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="h-8 w-px bg-white/5 hidden md:block"></div>
+          <div className="h-8 w-px bg-white/5 hidden lg:block mx-1"></div>
 
-          {onLockSession && (
+          <div className="flex items-center gap-1.5">
+            {onLockSession && (
+              <button
+                onClick={onLockSession}
+                title="Bloquear"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:bg-amber-500/20 hover:text-amber-400 transition-all shadow-xl group"
+              >
+                <Lock className="w-4 h-4 text-slate-400 group-hover:scale-110" />
+              </button>
+            )}
+
             <button
-              onClick={onLockSession}
-              title="Bloquear Estación Manualmente (Auto-lock en 5 min inactividad)"
-              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all duration-300 cursor-pointer group shadow-2xl"
+              onClick={onLogout}
+              title="Cerrar Sesión"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:text-rose-400 transition-all shadow-xl group"
             >
-              <Lock className="w-4.5 h-4.5 text-slate-400 group-hover:text-amber-400 group-hover:scale-110 transition-transform" />
+              <LogOut className="w-4 h-4 text-slate-400 group-hover:scale-110" />
             </button>
-          )}
-
-          <button
-            onClick={onLogout}
-            title="Cerrar Sesión"
-            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all duration-300 cursor-pointer group shadow-2xl"
-          >
-            <LogOut className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Horizontal Scroller - More elegant */}
-      <div className="lg:hidden border-t border-white/5 px-4 py-3 bg-[#020617]/80 overflow-x-auto flex items-center space-x-3">
+      <div className="lg:hidden border-t border-white/5 px-4 py-3 bg-[#020617]/80 overflow-x-auto flex items-center space-x-3 no-scrollbar shrink-0">
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+              className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all flex-shrink-0 ${
                 isActive ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20' : 'bg-white/5 text-slate-500 border border-transparent'
               }`}
             >

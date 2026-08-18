@@ -92,6 +92,7 @@ export interface TestCatalogItem {
 export interface TestParameter {
   id: string;
   testId: string;
+  code?: string;         // Código individual (ej. WBC, RBC, GLU)
   name: string;
   unit: string;
   astmParamCode: string; // e.g., "WBC", "RBC", "GLU"
@@ -133,7 +134,29 @@ export interface Order {
   paymentStatus: 'PAGADO' | 'PENDIENTE' | 'ASEGURADORA';
   insuranceName?: string;
   specimens: Specimen[];
-  testIds: string[];
+
+  // ESTRUCTURA PROFESIONAL DE SNAPSHOT
+  testIds: string[];      // Pruebas individuales solicitadas manualmente en Recepción
+  packageIds?: string[];  // Perfiles/Paquetes solicitados en Recepción
+
+  /**
+   * SNAPSHOT TÉCNICO: Lista completa de pruebas resultantes de la expansión de perfiles
+   * y adiciones manuales en el momento de la creación o edición técnica.
+   * Esto garantiza que si un perfil cambia en el catálogo, las órdenes previas
+   * mantengan su estructura original (Inmutabilidad Histórica).
+   */
+  expandedTestIds: string[];
+
+  /**
+   * Registro de auditoría de qué pruebas fueron añadidas por quién.
+   * Permite desacoplar la facturación de la ejecución clínica.
+   */
+  testSnapshots?: {
+    testId: string;
+    requestedBy: Role;
+    addedAt: string;
+    fromPackageId?: string;
+  }[];
 }
 
 export interface Specimen {
@@ -153,6 +176,7 @@ export interface TestResult {
   orderId: string;
   testId: string;
   parameterId: string;
+  parameterCode?: string; // Código LIS / Analizador
   parameterName: string;
   unit: string;
   value: string;
@@ -165,9 +189,10 @@ export interface TestResult {
   technicalValidatedAt?: string;
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
-  status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED';
+  status: 'PENDIENTE' | 'INGRESADO' | 'PRELIMINAR' | 'VALIDADO_TEC' | 'VALIDADO_MED';
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
+  dilutionFactor?: number; // Factor de dilución aplicado (ej. 2, 5, 10)
 }
 
 export interface Analyzer {

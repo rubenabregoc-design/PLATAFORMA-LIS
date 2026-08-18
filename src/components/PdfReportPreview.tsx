@@ -23,9 +23,15 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     window.print();
   };
 
+  const hasInstrumentalFindings = results.some(res =>
+    !order.expandedTestIds.includes(res.testId) &&
+    res.source !== 'MANUAL' &&
+    (res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED')
+  );
+
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[95vh] overflow-y-auto flex flex-col">
         {/* Top Control Bar */}
         <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center space-x-2">
@@ -117,15 +123,32 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {results.map((res) => {
-                    const isCritical = res.flag?.includes('CRITICO');
-                    const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
+                  {results
+                    .filter(res => {
+                      // REGLA PROFESIONAL: Los hallazgos instrumentales solo aparecen si han sido validados
+                      const isInstrumentalFinding = !order.expandedTestIds.includes(res.testId) && res.source !== 'MANUAL';
+                      if (isInstrumentalFinding) {
+                        return res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+                      }
+                      return true;
+                    })
+                    .map((res) => {
+                      const isCritical = res.flag?.includes('CRITICO');
+                      const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
+                      const isInstrumentalFinding = !order.expandedTestIds.includes(res.testId) && res.source !== 'MANUAL';
 
                     return (
                       <React.Fragment key={res.id}>
                         <tr className={isCritical ? 'bg-rose-50/80 font-bold' : ''}>
                           <td className="p-3">
-                            <div className="font-bold text-slate-900">{res.parameterName}</div>
+                            <div className="flex items-center space-x-2">
+                              <div className="font-bold text-slate-900">{res.parameterName}</div>
+                              {isInstrumentalFinding && (
+                                <span className="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded border border-purple-200">
+                                  HALLAZGO
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[9px] text-slate-500 font-bold uppercase">Muestra: {res.specimenType || 'SANGRE TOTAL'}</div>
                           </td>
                           <td className="p-3 font-mono text-sm">
@@ -163,6 +186,18 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
               </table>
             </div>
           </div>
+
+          {/* Conditional Footnote for Instrumental Findings */}
+          {hasInstrumentalFindings && (
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-start space-x-3">
+              <div className="bg-amber-500 text-white p-1 rounded-md shrink-0">
+                <FileText className="w-3 h-3" />
+              </div>
+              <p className="text-[10px] text-amber-800 leading-tight">
+                <strong>NOTA TÉCNICA:</strong> Los resultados marcados como <strong>[HALLAZGO]</strong> han sido detectados automáticamente por los sistemas analíticos del laboratorio debido a su relevancia clínica potencial. Aunque no formaban parte de la solicitud inicial, se incluyen en este informe tras validación profesional para ofrecer una visión diagnóstica más completa.
+              </p>
+            </div>
+          )}
 
           {/* Validation & Digital Signature Footer */}
           <div className="border-t-2 border-slate-200 pt-6 flex flex-wrap items-end justify-between gap-6">

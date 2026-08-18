@@ -26,7 +26,7 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, ord
   const statOrders = orders.filter(o => o.priority === 'STAT' && o.status !== 'COMPLETADA');
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-12 animate-in fade-in duration-700">
       {/* 3D Glass Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
