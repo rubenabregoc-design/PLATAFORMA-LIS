@@ -150,7 +150,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
     const p2Delta = ((roundVal(h2Val) - roundVal(h3Val)) / roundVal(h3Val)) * 100;
     const p2: HistoricalPoint = {
       id: 'hist-2',
-      orderNumber: 'ORD-2026-0110',
+      orderNumber: '20260710073000',
       date: '10/01/2026',
       time: '09:30',
       value: roundVal(h2Val),
@@ -165,7 +165,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
     const p1Delta = ((roundVal(h1Val) - roundVal(h2Val)) / roundVal(h2Val)) * 100;
     const p1: HistoricalPoint = {
       id: 'hist-1',
-      orderNumber: 'ORD-2026-0518',
+      orderNumber: '20260810073000',
       date: '18/05/2026',
       time: '07:45',
       value: roundVal(h1Val),

@@ -222,7 +222,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       id: `ord-${Date.now()}`,
       tenantId: 'lab-san-jose',
       branchId: 'branch-via-espana',
-      orderNumber: `ORD-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+      orderNumber: new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14),
       patientId: patientToUse.id,
       patientName: `${patientToUse.firstName} ${patientToUse.lastName}`,
       patientNationalId: patientToUse.nationalId,

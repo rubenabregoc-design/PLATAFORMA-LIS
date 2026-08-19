@@ -49,7 +49,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
       actorName: 'Dra. María Elena Abrego',
       actorRole: 'Jefe de Lab',
       allowedRoles: ['owner', 'lab_chief', 'tech_med', 'ext_doctor', 'patient', 'abregotech_admin'],
-      orderId: 'ORD-2026-8902',
+      orderId: '20260812074522',
       patientName: 'Carlos Mendoza'
     },
     {
@@ -63,7 +63,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
       actorName: 'Mindray BS-480 Auto',
       actorRole: 'Middleware',
       allowedRoles: ['owner', 'lab_chief', 'tech_med', 'abregotech_admin'],
-      orderId: 'ORD-2026-8905',
+      orderId: '20260812081510',
       patientName: 'Ana Lucía Gómez'
     },
     {
@@ -77,7 +77,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
       actorName: 'Yaritza Ríos',
       actorRole: 'Recepción',
       allowedRoles: ['owner', 'receptionist', 'abregotech_admin'],
-      orderId: 'ORD-2026-8905',
+      orderId: '20260812081510',
       patientName: 'Ana Lucía Gómez'
     },
     {
@@ -91,7 +91,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
       actorName: 'José Pérez',
       actorRole: 'Técnico Lab',
       allowedRoles: ['owner', 'lab_chief', 'tech_med', 'lab_tech', 'receptionist', 'abregotech_admin'],
-      orderId: 'ORD-2026-8906',
+      orderId: '20260812090005',
       patientName: 'Roberto Icaza'
     },
     {
@@ -117,7 +117,7 @@ export const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
       actorName: 'LIS Auto-EPI',
       actorRole: 'FHIR Service',
       allowedRoles: ['owner', 'lab_chief', 'abregotech_admin'],
-      orderId: 'ORD-2026-8899',
+      orderId: '20260812101230',
     }
   ];
 

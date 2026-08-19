@@ -55,7 +55,7 @@ export const DeltaPanicAlerts: React.FC<DeltaPanicAlertsProps> = ({
   const [alerts, setAlerts] = useState<PanicAlertRecord[]>([
     {
       id: 'alt-1',
-      orderNumber: 'ORD-2026-0892',
+      orderNumber: '20260812074522',
       patientName: 'Juan Carlos Pérez',
       patientNationalId: '8-765-4321',
       testName: 'Química — Potasio en Suero (K+)',
@@ -72,7 +72,7 @@ export const DeltaPanicAlerts: React.FC<DeltaPanicAlertsProps> = ({
     },
     {
       id: 'alt-2',
-      orderNumber: 'ORD-2026-0895',
+      orderNumber: '20260812081510',
       patientName: 'María Elena González',
       patientNationalId: '8-812-4432',
       testName: 'Hemograma — Plaquetas',
@@ -91,7 +91,7 @@ export const DeltaPanicAlerts: React.FC<DeltaPanicAlertsProps> = ({
     },
     {
       id: 'alt-3',
-      orderNumber: 'ORD-2026-0890',
+      orderNumber: '20260812090005',
       patientName: 'Carlos Alberto Rodríguez',
       patientNationalId: '4-721-9981',
       testName: 'Química — Glucosa en Ayunas',

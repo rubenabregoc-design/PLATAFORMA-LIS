@@ -23,11 +23,16 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     window.print();
   };
 
-  const hasInstrumentalFindings = results.some(res =>
-    !order.expandedTestIds.includes(res.testId) &&
-    res.source !== 'MANUAL' &&
-    (res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED')
-  );
+  const validatedResults = results.filter(res => {
+    // REGLA PROFESIONAL: Los hallazgos instrumentales (EXTRA) solo aparecen si han sido validados
+    if (res.isExtra) {
+      return res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+    }
+    // Resultados normales o pre-registrados aparecen siempre (aunque sea con placeholder si se imprime preliminar)
+    return true;
+  });
+
+  const hasInstrumentalFindings = validatedResults.some(res => res.isExtra);
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
@@ -123,19 +128,9 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {results
-                    .filter(res => {
-                      // REGLA PROFESIONAL: Los hallazgos instrumentales solo aparecen si han sido validados
-                      const isInstrumentalFinding = !order.expandedTestIds.includes(res.testId) && res.source !== 'MANUAL';
-                      if (isInstrumentalFinding) {
-                        return res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
-                      }
-                      return true;
-                    })
-                    .map((res) => {
+                  {validatedResults.map((res) => {
                       const isCritical = res.flag?.includes('CRITICO');
                       const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
-                      const isInstrumentalFinding = !order.expandedTestIds.includes(res.testId) && res.source !== 'MANUAL';
 
                     return (
                       <React.Fragment key={res.id}>
@@ -143,9 +138,9 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                           <td className="p-3">
                             <div className="flex items-center space-x-2">
                               <div className="font-bold text-slate-900">{res.parameterName}</div>
-                              {isInstrumentalFinding && (
-                                <span className="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded border border-purple-200">
-                                  HALLAZGO
+                              {res.isExtra && (
+                                <span className="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded border border-purple-200 uppercase">
+                                  Hallazgo Extra
                                 </span>
                               )}
                             </div>

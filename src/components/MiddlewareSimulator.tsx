@@ -60,7 +60,8 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           rawPayload: rawAstm,
           parsedData: {
             sampleBarcode: 'BC-882004',
-            orderMatched: 'ORD-2026-00102',
+            orderMatched: '20260813083045',
+            orderDate: '2026-08-12', // Agregando la fecha explícita
             testCode: '4531', // Usando tu nuevo código de Glucosa
             value: 340,
             unit: 'mg/dL',
@@ -104,7 +105,8 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           rawPayload: rawAstm,
           parsedData: {
             sampleBarcode: 'BC-882001',
-            orderMatched: 'ORD-2026-00101',
+            orderMatched: '20260810073000',
+            orderDate: '2026-08-10', // Agregando la fecha explícita
             testCode: '4660', // Triglicéridos (Hallazgo extra)
             value: 45,
             unit: 'mg/dL',
@@ -146,7 +148,8 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           rawPayload: rawAstm,
           parsedData: {
             sampleBarcode: 'BC-882001',
-            orderMatched: 'ORD-2026-00101',
+            orderMatched: '20260810073000',
+            orderDate: '2026-08-10', // Agregando la fecha explícita
             wbc: 7.4,
             hgb: 14.0
           },
@@ -174,7 +177,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
         onNewResultSimulated(newLog, newResult);
       } else {
         // HL7 ORU
-        const rawHl7 = `MSH|^~\\&|MINDRAY_BC5000|LAB_SAN_JOSE|LIS_CORE|ABREGOTECH|20260810103000||ORU^R01|MSG00982|P|2.3.1\nPID|1||8-812-4432||Pinzon^Gabriela||19920514|F\nOBR|1|ORD-2026-00101|BC-882001|HEM01^Hemograma|||20260810102800\nOBX|1|NM|PLT^Plaquetas||240|x10^3/uL|150-450|N|||F`;
+        const rawHl7 = `MSH|^~\\&|MINDRAY_BC5000|LAB_SAN_JOSE|LIS_CORE|ABREGOTECH|20260810103000||ORU^R01|MSG00982|P|2.3.1\nPID|1||8-812-4432||Pinzon^Gabriela||19920514|F\nOBR|1|20260810073000|BC-882001|HEM01^Hemograma|||20260810102800\nOBX|1|NM|PLT^Plaquetas||240|x10^3/uL|150-450|N|||F`;
 
         const newLog: MiddlewareMessageLog = {
           id: `msg-${Date.now()}`,
@@ -245,30 +248,49 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
 
       {/* Analyzer Status & Controls Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {analyzers.map((an) => (
-          <div
-            key={an.id}
-            onClick={() => setSelectedAnalyzerId(an.id)}
-            className={`p-4 rounded-xl border transition cursor-pointer ${
-              selectedAnalyzerId === an.id
-                ? 'bg-slate-900 border-teal-500 text-white ring-2 ring-teal-500/20'
-                : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-sm">{an.name}</span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                {an.status}
-              </span>
-            </div>
+        {analyzers.map((an) => {
+          const isSelected = selectedAnalyzerId === an.id;
+          const isOffline = an.status === 'OFFLINE';
 
-            <div className="text-xs space-y-1 text-slate-400">
-              <div>Protocolo: <strong className="text-slate-200">{an.protocol}</strong></div>
-              <div>Conexión: <strong className="text-slate-200">{an.connectionType === 'TCP_IP' ? `${an.ipAddress}:${an.port}` : an.comPort}</strong></div>
-              <div>Driver Dialecto: <code className="bg-slate-800 px-1 py-0.5 rounded text-teal-300 text-[11px]">{an.driverId}</code></div>
+          return (
+            <div
+              key={an.id}
+              onClick={() => setSelectedAnalyzerId(an.id)}
+              className={`p-4 rounded-xl border transition cursor-pointer relative overflow-hidden ${
+                isSelected
+                  ? isOffline
+                    ? 'bg-slate-900 border-rose-500 text-white ring-2 ring-rose-500/20'
+                    : 'bg-slate-900 border-teal-500 text-white ring-2 ring-teal-500/20'
+                  : isOffline
+                    ? 'bg-rose-50 border-rose-200 hover:border-rose-300 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 shadow-sm'
+              }`}
+            >
+              {isOffline && !isSelected && (
+                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+              )}
+
+              <div className="flex items-center justify-between mb-2 relative z-10">
+                <span className="font-bold text-sm">{an.name}</span>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${
+                  an.status === 'ONLINE'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                    : isOffline
+                      ? 'bg-rose-500/20 text-rose-600 border-rose-500/40 animate-pulse'
+                      : 'bg-teal-500/10 text-teal-600 border-teal-500/20'
+                }`}>
+                  {an.status}
+                </span>
+              </div>
+
+              <div className={`text-xs space-y-1 relative z-10 ${isSelected ? 'text-slate-400' : 'text-slate-500'}`}>
+                <div>Protocolo: <strong className={isSelected ? 'text-slate-200' : 'text-slate-700'}>{an.protocol}</strong></div>
+                <div>Conexión: <strong className={isSelected ? 'text-slate-200' : 'text-slate-700'}>{an.connectionType === 'TCP_IP' ? `${an.ipAddress}:${an.port}` : an.comPort}</strong></div>
+                <div>Driver Dialecto: <code className={`px-1 py-0.5 rounded text-[11px] ${isSelected ? 'bg-slate-800 text-teal-300' : 'bg-slate-100 text-teal-700 font-bold'}`}>{an.driverId}</code></div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Simulator Action Controls */}
@@ -280,16 +302,16 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           </div>
 
           <div className="flex items-center space-x-2 text-xs">
-            <label className="text-slate-600 font-medium">Tipo de Lectura:</label>
+            <label className="text-slate-500 font-black uppercase tracking-tighter">Tipo de Lectura:</label>
             <select
               value={simType}
               onChange={(e) => setSimType(e.target.value as any)}
-              className="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 font-medium focus:ring-2 focus:ring-teal-500"
+              className="bg-slate-900 border border-slate-700 text-teal-400 font-bold rounded-xl px-4 py-2 focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-inner min-w-[300px]"
             >
-              <option value="critical_glucose">Vitros 4600 — Glucosa 340 mg/dL (¡ALERTA CRÍTICA!)</option>
-              <option value="instrumental_finding">Vitros 4600 — Triglicéridos (¡HALLAZGO EXTRA!)</option>
-              <option value="normal_cbc">Sysmex XN-1000 — Hemograma Completo Normal</option>
-              <option value="hl7_oru">Mindray BC-5000 — HL7 ORU^R01 (Plaquetas 240k)</option>
+              <option value="critical_glucose" className="bg-slate-900 text-white">Vitros 4600 — Glucosa 340 mg/dL (¡ALERTA CRÍTICA!)</option>
+              <option value="instrumental_finding" className="bg-slate-900 text-white">Vitros 4600 — Triglicéridos (¡HALLAZGO EXTRA!)</option>
+              <option value="normal_cbc" className="bg-slate-900 text-white">Sysmex XN-1000 — Hemograma Completo Normal</option>
+              <option value="hl7_oru" className="bg-slate-900 text-white">Mindray BC-5000 — HL7 ORU^R01 (Plaquetas 240k)</option>
             </select>
 
             <button
@@ -421,7 +443,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
               <pre className="text-emerald-400 text-[11px] whitespace-pre-wrap">
 {`MSH|^~\\&|LIS_ABREGOTECH|LAB_SAN_JOSE|HOSPITAL_HIS|PANAMA_HEALTH|20260810103500||ORU^R01|MSG-99201|P|2.3
 PID|1||8-812-4432||Pinzon^Gabriela||19920514|F
-OBR|1|ORD-2026-00101|BC-882001|HEM01^Hemograma Completo|||20260810073000
+OBR|1|20260810073000|BC-882001|HEM01^Hemograma Completo|||20260810073000
 OBX|1|NM|WBC^Leucocitos||7.2|10^3/uL|4.5-11.0|N|||F|||20260810084500|TM-3109-PA`}
               </pre>
             </div>

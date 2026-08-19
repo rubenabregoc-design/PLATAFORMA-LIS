@@ -99,7 +99,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-hemograma',
     tenantId: 'lab-san-jose',
-    code: 'HEM-01',
+    code: '1001',
     name: 'Hemograma Completo',
     category: 'HEMATOLOGIA',
     tubeType: 'EDTA_MORADO',
@@ -161,7 +161,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-glucosa',
     tenantId: 'lab-san-jose',
-    code: 'QUI-01',
+    code: '4531',
     name: 'Glucosa en Ayunas',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -175,7 +175,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-creatinina',
     tenantId: 'lab-san-jose',
-    code: 'QUI-02',
+    code: '4612',
     name: 'Creatinina Sérica',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -183,13 +183,26 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     specimenType: 'Suero',
     tatHours: 1,
     parameters: [
-      { id: 'p-crea', testId: 'test-creatinina', code: '4612', name: 'Creatinina Sérica', unit: 'mg/dL', astmParamCode: 'CREA' }
+      {
+        id: 'p-crea',
+        testId: 'test-creatinina',
+        code: '4612',
+        name: 'Creatinina Sérica',
+        unit: 'mg/dL',
+        astmParamCode: 'CREA',
+        interpretationRules: [
+          { min: 0.1, max: 0.69, label: 'BAJO', flag: 'BAJO' },
+          { min: 0.7, max: 1.3, label: 'NORMAL', flag: 'NORMAL' },
+          { min: 1.31, max: 5.0, label: 'ELEVADO', flag: 'ALTO' },
+          { min: 5.01, max: 99.9, label: 'FALLA RENAL', flag: 'CRITICO_ALTO' }
+        ]
+      }
     ]
   },
   {
     id: 'test-lipidico',
     tenantId: 'lab-san-jose',
-    code: 'QUI-03',
+    code: '4650',
     name: 'Perfil Lipídico Completo',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -346,7 +359,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-pt',
     tenantId: 'lab-san-jose',
-    code: 'COA-01',
+    code: '1101',
     name: 'Tiempo de Protrombina (PT)',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
@@ -358,7 +371,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-ptt',
     tenantId: 'lab-san-jose',
-    code: 'COA-02',
+    code: '1103',
     name: 'Tiempo de Tromboplastina (PTT)',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
@@ -370,7 +383,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-fibrinogeno',
     tenantId: 'lab-san-jose',
-    code: 'COA-03',
+    code: '1104',
     name: 'Fibrinógeno',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
@@ -419,7 +432,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1001',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00101',
+    orderNumber: '20260810073000',
     patientId: 'pat-001',
     patientName: 'Gabriela Pinzón Varela',
     patientNationalId: '8-812-4432',
@@ -431,14 +444,14 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 53.50,
     paymentStatus: 'PAGADO',
     specimens: [],
-    testIds: ['test-hemograma', 'test-lipidico'],
-    expandedTestIds: ['test-hemograma', 'test-lipidico']
+    testIds: ['test-hemograma', 'test-lipidico', 'test-creatinina'],
+    expandedTestIds: ['test-hemograma', 'test-lipidico', 'test-creatinina']
   },
   {
     id: 'ord-1003',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00105',
+    orderNumber: '20260813083045',
     patientId: 'pat-002',
     patientName: 'Ríos, Gonzalo A.',
     patientNationalId: '4-772-1102',
@@ -457,7 +470,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1004',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00108',
+    orderNumber: '20260813083210',
     patientId: 'pat-003',
     patientName: 'Vega, Lucía',
     patientNationalId: 'PE-102-990',
@@ -476,7 +489,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1002',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00050',
+    orderNumber: '20260710073000',
     patientId: 'pat-001',
     patientName: 'Gabriela Pinzón Varela',
     patientNationalId: '8-812-4432',
@@ -488,24 +501,30 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 18.50,
     paymentStatus: 'PAGADO',
     specimens: [],
-    testIds: ['test-hemograma'],
-    expandedTestIds: ['test-hemograma']
+    testIds: ['test-hemograma', 'test-creatinina'],
+    expandedTestIds: ['test-hemograma', 'test-creatinina']
   }
 ];
 
 export const MOCK_RESULTS: TestResult[] = [
-  { id: 'res-old-1', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: 'HEM-01', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '14.5', numericValue: 14.5, flag: 'ALTO', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
-  { id: 'res-4', tenantId: 'lab-san-jose', orderId: 'ord-1003', testId: 'test-glucosa', parameterId: 'p-glu', parameterCode: 'QUI-01', parameterName: 'Glucosa en Ayunas', unit: 'mg/dL', value: '112', numericValue: 112, flag: 'ALTO', refRangeText: '70 - 100', source: 'MIDDLEWARE_ASTM', status: 'INGRESADO', specimenType: 'Suero' },
-  { id: 'res-5', tenantId: 'lab-san-jose', orderId: 'ord-1004', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: 'HEM-01', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '12.8', numericValue: 12.8, flag: 'ALTO', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'PRELIMINAR', specimenType: 'Sangre Total' },
-  { id: 'res-1', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: 'HEM-01', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.2', numericValue: 7.2, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total', interpretation: 'Valores dentro de la normalidad clínica.' },
-  { id: 'res-2', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-hgb', parameterCode: 'HEM-01', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '13.8', numericValue: 13.8, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
-  { id: 'res-3', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-col', parameterCode: 'QUI-03', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '235', numericValue: 235, flag: 'ALTO', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.' }
+  { id: 'res-old-1', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: '1001', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '14.5', numericValue: 14.5, flag: 'ALTO', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', medicalValidatedBy: 'Dr. Roberto Arango', medicalValidatedAt: '2026-07-10T14:30:00Z', specimenType: 'Sangre Total' },
+  { id: 'res-old-crea', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-creatinina', parameterId: 'p-crea', parameterCode: '4612', parameterName: 'Creatinina Sérica', unit: 'mg/dL', value: '0.85', numericValue: 0.85, flag: 'NORMAL', refRangeText: '0.70 - 1.30', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', medicalValidatedBy: 'Dr. Roberto Arango', medicalValidatedAt: '2026-07-10T14:30:00Z', specimenType: 'Suero' },
+  { id: 'res-4', tenantId: 'lab-san-jose', orderId: 'ord-1003', testId: 'test-glucosa', parameterId: 'p-glu', parameterCode: '4531', parameterName: 'Glucosa en Ayunas', unit: 'mg/dL', value: '112', numericValue: 112, flag: 'ALTO', refRangeText: '70 - 100', source: 'MIDDLEWARE_ASTM', status: 'INGRESADO', specimenType: 'Suero' },
+  { id: 'res-5', tenantId: 'lab-san-jose', orderId: 'ord-1004', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: 'HEM-01', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '12.8', numericValue: 12.8, flag: 'ALTO', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'PRELIMINAR', technicalValidatedBy: 'Lic. Sofía Guardia', specimenType: 'Sangre Total' },
+  { id: 'res-1', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-wbc', parameterCode: '1001', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.2', numericValue: 7.2, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', medicalValidatedBy: 'Dr. Roberto Arango', medicalValidatedAt: '2026-08-10T14:00:00Z', specimenType: 'Sangre Total', interpretation: 'Valores dentro de la normalidad clínica.' },
+  { id: 'res-crea-new', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-creatinina', parameterId: 'p-crea', parameterCode: '4612', parameterName: 'Creatinina Sérica', unit: 'mg/dL', value: '1.45', numericValue: 1.45, flag: 'ALTO', refRangeText: '0.70 - 1.30', source: 'MIDDLEWARE_ASTM', status: 'INGRESADO', specimenType: 'Suero' },
+  { id: 'res-2', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-hgb', parameterCode: '1001', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '13.8', numericValue: 13.8, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', medicalValidatedBy: 'Dr. Roberto Arango', medicalValidatedAt: '2026-08-10T14:00:00Z', specimenType: 'Sangre Total' },
+  { id: 'res-3', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-col', parameterCode: 'QUI-03', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '235', numericValue: 235, flag: 'ALTO', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', medicalValidatedBy: 'Dr. Roberto Arango', medicalValidatedAt: '2026-08-10T14:00:00Z', specimenType: 'Suero', interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.' }
 ];
 
 export const MOCK_ANALYZERS: Analyzer[] = [
-  { id: 'an-sysmex-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Sysmex XN-1000', model: 'XN-1000', protocol: 'ASTM_E1381', connectionType: 'RS232_SERIAL', status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'sysmex-xn' },
-  { id: 'an-vitros-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Ortho Vitros 4600', model: 'Vitros 4600', protocol: 'ASTM_E1381', connectionType: 'TCP_IP', ipAddress: '192.168.10.45', port: 5100, status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'ortho-vitros' },
-  { id: 'an-mindray-01', tenantId: 'lab-san-jose', branchId: 'branch-david', name: 'Mindray BC-5000', model: 'BC-5000', protocol: 'HL7_V2', connectionType: 'TCP_IP', ipAddress: '192.168.11.22', port: 6000, status: 'OFFLINE', lastPing: '2026-08-10T22:00:00Z', driverId: 'mindray-bc5k' }
+  { id: 'an-sysmex-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Sysmex XN-1000', model: 'XN-1000', protocol: 'ASTM_E1381', connectionType: 'TCP_IP', ipAddress: '192.168.10.12', port: 5000, status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'sysmex-xn', area: 'HEMATOLOGIA' },
+  { id: 'an-vitros-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Ortho Vitros 4600', model: 'Vitros 4600', protocol: 'ASTM_E1381', connectionType: 'TCP_IP', ipAddress: '192.168.10.45', port: 5100, status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'ortho-vitros', area: 'QUIMICA' },
+  { id: 'an-mindray-01', tenantId: 'lab-san-jose', branchId: 'branch-david', name: 'Mindray BC-5000', model: 'BC-5000', protocol: 'HL7_V2', connectionType: 'TCP_IP', ipAddress: '192.168.11.22', port: 6000, status: 'OFFLINE', lastPing: '2026-08-10T22:00:00Z', driverId: 'mindray-bc5k', area: 'HEMATOLOGIA' },
+  { id: 'an-cobas-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Roche Cobas c311', model: 'Cobas c311', protocol: 'ASTM_E1381', connectionType: 'RS232_SERIAL', comPort: 'COM3', status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'roche-cobas', area: 'QUIMICA' },
+  { id: 'an-sequencing-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Illumina MiSeq', model: 'MiSeq', protocol: 'FILE_PARSER', connectionType: 'NETWORK_FOLDER', folderPath: '\\\\NAS-LAB\\Illumina\\Output', status: 'PROCESSING', lastPing: new Date().toISOString(), driverId: 'illumina-genetics', area: 'ESPECIALES' },
+  { id: 'an-molecular-01', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Cepheid GeneXpert', model: 'Xpert Xpress', protocol: 'HL7_FHIR', connectionType: 'WEB_SERVICE', apiUrl: 'https://api.genexpert.cloud/v1/results', status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'cepheid-api', area: 'MOLECULAR' },
+  { id: 'an-serial-demo', tenantId: 'lab-san-jose', branchId: 'branch-via-espana', name: 'Dimension EXL 200', model: 'EXL-200-SERIAL', protocol: 'ASTM_E1381', connectionType: 'RS232_SERIAL', comPort: 'COM1', status: 'ONLINE', lastPing: new Date().toISOString(), driverId: 'siemens-dimension', area: 'QUIMICA' }
 ];
 
 export const MOCK_DOCTORS: Doctor[] = [
@@ -547,7 +566,7 @@ export const MOCK_MIDDLEWARE_LOGS: MiddlewareMessageLog[] = [
     protocol: 'ASTM E1381',
     direction: 'INBOUND',
     rawPayload: `H|\\^&|||Sysmex^XN-1000|||||||P|1\nP|1|||Pinzon^Gabriela\nO|1|BC-882001||^^^HEM|R||20260810103000\nR|1|^^^WBC|7.2|10^3/uL|4.5-11.0|N||F\nR|2|^^^HGB|13.8|g/dL|12.0-15.5|N||F\nL|1|N`,
-    parsedData: { wbc: 7.2, hgb: 13.8, order: 'ORD-2026-00101' },
+    parsedData: { wbc: 7.2, hgb: 13.8, order: '20260810073000' },
     status: 'PROCESADO',
     timestamp: '2026-08-10T10:30:15Z'
   },
@@ -559,7 +578,7 @@ export const MOCK_MIDDLEWARE_LOGS: MiddlewareMessageLog[] = [
     protocol: 'ASTM E1394',
     direction: 'INBOUND',
     rawPayload: `H|\\^&|||VITROS^4600|||||||P|1\nP|1|||Arosemena^Ricardo\nO|1|BC-882004||^^^4531|R||20260810103500\nR|1|^^^4531|340|mg/dL|70-99|HH||F\nL|1|N`,
-    parsedData: { glu: 340, order: 'ORD-2026-00102' },
+    parsedData: { glu: 340, order: '20260813083045' },
     status: 'PROCESADO',
     timestamp: '2026-08-10T10:35:45Z'
   },
@@ -619,4 +638,24 @@ export const MOCK_REAGENTS: ReagentInventory[] = [
   { id: 're-2', tenantId: 'lab-san-jose', name: 'Diluente Sysmex', code: 'DIL-SYS', lotNumber: 'LT112', expirationDate: '2027-05-15', quantityRemaining: 15, unit: 'Litros', testsPerUnit: 50, minAlertThreshold: 20, associatedTest: 'Hemograma Completo' },
 ];
 
-export const MOCK_ANALYZER_MAPPINGS: AnalyzerTestMapping[] = [];
+export const MOCK_ANALYZER_MAPPINGS: AnalyzerTestMapping[] = [
+  {
+    id: 'map-serial-crea',
+    tenantId: 'lab-san-jose',
+    analyzerId: 'an-serial-demo',
+    analyzerName: 'Dimension EXL 200',
+    lisTestCode: '4612',
+    lisTestName: 'Creatinina Sérica',
+    astmAnalyzerCode: 'DIM-CREA-001',
+    sampleType: 'Suero',
+    multiplierFactor: 1.0,
+    unit: 'mg/dL',
+    isActive: true,
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'Ing. Abrego',
+    referenceRanges: [
+      { id: 'rr-crea-1', gender: 'Masculino', minAgeYears: 18, maxAgeYears: 120, minValue: 0.7, maxValue: 1.3, panicHighValue: 5.0, unit: 'mg/dL' },
+      { id: 'rr-crea-2', gender: 'Femenino', minAgeYears: 18, maxAgeYears: 120, minValue: 0.6, maxValue: 1.1, panicHighValue: 4.5, unit: 'mg/dL' }
+    ]
+  }
+];

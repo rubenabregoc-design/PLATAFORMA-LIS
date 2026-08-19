@@ -633,8 +633,8 @@ export const ReagentInventoryModule: React.FC<ReagentInventoryModuleProps> = ({
       {/* Modal: Add New Lot */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0 sticky top-0 bg-white z-10">
               <div className="flex items-center space-x-3">
                 <div className="p-3 bg-teal-50 text-teal-600 rounded-2xl">
                   <Package className="w-6 h-6" />

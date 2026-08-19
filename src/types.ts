@@ -102,6 +102,13 @@ export interface TestParameter {
   refMaxFemale?: number;
   criticalMin?: number;
   criticalMax?: number;
+  // AUTO-INTERPRETACIÓN DINÁMICA (Configurada por Admin)
+  interpretationRules?: {
+    min: number;
+    max: number;
+    label: string;
+    flag?: 'NORMAL' | 'ALTO' | 'BAJO' | 'CRITICO_ALTO' | 'CRITICO_BAJO';
+  }[];
 }
 
 export interface TestPackage {
@@ -190,9 +197,27 @@ export interface TestResult {
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
   status: 'PENDIENTE' | 'INGRESADO' | 'PRELIMINAR' | 'VALIDADO_TEC' | 'VALIDADO_MED';
+  isExtra?: boolean;    // Indica si es un hallazgo instrumental no solicitado originalmente
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
   dilutionFactor?: number; // Factor de dilución aplicado (ej. 2, 5, 10)
+
+  // TRAZABILIDAD PRO (ISO 15189)
+  history: AuditLogEntry[];
+  version: number;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  action: 'RECEPCION' | 'INGRESO' | 'MODIFICACION' | 'VALIDACION' | 'DESVALIDACION' | 'CORRECCION' | 'REPETICION' | 'DESCARTADO_EXTRA';
+  previousValue?: string;
+  newValue?: string;
+  reason?: string;
+  details?: string;
+  metadata?: any; // Para guardar flags del equipo, rangos usados, etc.
 }
 
 export interface Analyzer {
@@ -201,14 +226,17 @@ export interface Analyzer {
   branchId: string;
   name: string; // e.g. "Sysmex XN-1000", "Vitros 4600"
   model: string;
-  protocol: 'ASTM_E1381' | 'HL7_V2';
-  connectionType: 'TCP_IP' | 'RS232_SERIAL';
+  protocol: 'ASTM_E1381' | 'HL7_V2' | 'HL7_FHIR' | 'FILE_PARSER' | 'PROPRIETARY';
+  connectionType: 'TCP_IP' | 'RS232_SERIAL' | 'NETWORK_FOLDER' | 'WEB_SERVICE' | 'USB_BRIDGE';
   ipAddress?: string;
   port?: number;
   comPort?: string;
+  folderPath?: string; // For NETWORK_FOLDER
+  apiUrl?: string;     // For WEB_SERVICE
   status: 'ONLINE' | 'OFFLINE' | 'ERROR' | 'PROCESSING';
+  area?: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION' | 'ESPECIALES' | 'MOLECULAR';
   lastPing: string;
-  driverId: string; // e.g. "sysmex-xn", "vitros-4600", "mindray-bc5000"
+  driverId: string;
 }
 
 export interface MiddlewareMessageLog {

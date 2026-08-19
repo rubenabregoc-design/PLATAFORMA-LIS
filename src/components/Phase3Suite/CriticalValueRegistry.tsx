@@ -188,7 +188,7 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
 
   // New Acknowledgment Log Modal State
   const [showLogModal, setShowLogModal] = useState(false);
-  const [newOrder, setNewOrder] = useState('ORD-2026-0920');
+  const [newOrder, setNewOrder] = useState(new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14));
   const [newPatient, setNewPatient] = useState('Dora Isabel Lasso');
   const [newPatientId, setNewPatientId] = useState('8-334-1122');
   const [newTest, setNewTest] = useState('Hemoglobina (Hb)');

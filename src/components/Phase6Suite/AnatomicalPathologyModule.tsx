@@ -336,8 +336,8 @@ export const AnatomicalPathologyModule: React.FC = () => {
       {/* New Case Modal */}
       {isNewCaseModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0 sticky top-0 bg-slate-900 z-10">
               <h3 className="font-black text-white text-lg flex items-center space-x-2">
                 <Microscope className="w-5 h-5 text-teal-400" />
                 <span>Ingresar Muestra Histopatológica</span>

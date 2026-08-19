@@ -131,7 +131,7 @@ const INITIAL_TRACKING: PhlebotomistTracking[] = [
 const INITIAL_APPOINTMENTS: PhlebotomyAppointment[] = [
   {
     id: 'phl-201',
-    orderNumber: 'ORD-2026-9041',
+    orderNumber: '20260810073015',
     patientName: 'Sr. Fernando Abrego',
     patientPhone: '+507 6612-9988',
     address: 'P.H. Titanium, Apt 14B, Costa del Este',
@@ -148,7 +148,7 @@ const INITIAL_APPOINTMENTS: PhlebotomyAppointment[] = [
   },
   {
     id: 'phl-202',
-    orderNumber: 'ORD-2026-9045',
+    orderNumber: '20260813081522',
     patientName: 'Dra. Gabriela Solís',
     patientPhone: '+507 6231-0022',
     address: 'Calle 50, P.H. Tower 50, Apt 8A',
@@ -165,7 +165,7 @@ const INITIAL_APPOINTMENTS: PhlebotomyAppointment[] = [
   },
   {
     id: 'phl-203',
-    orderNumber: 'ORD-2026-9050',
+    orderNumber: '20260813090041',
     patientName: 'Lic. Javier Moreno',
     patientPhone: '+507 6789-4411',
     address: 'Calle 73 Este, Casa 42, San Francisco',
@@ -182,7 +182,7 @@ const INITIAL_APPOINTMENTS: PhlebotomyAppointment[] = [
   },
   {
     id: 'phl-204',
-    orderNumber: 'ORD-2026-9012',
+    orderNumber: '20260812070010',
     patientName: 'Sra. Carmen Castillo',
     patientPhone: '+507 775-8822',
     address: 'Urbanización Obaldía, Casa 112, David',
@@ -258,7 +258,7 @@ export const HomePhlebotomyRouting: React.FC = () => {
     e.preventDefault();
     const newApp: PhlebotomyAppointment = {
       id: `phl-${Date.now()}`,
-      orderNumber: `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderNumber: new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14),
       patientName: formPatientName,
       patientPhone: formPhone,
       address: formAddress,
@@ -777,8 +777,8 @@ export const HomePhlebotomyRouting: React.FC = () => {
       {/* New Appointment Modal */}
       {isNewModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0 sticky top-0 bg-slate-900 z-10">
               <h3 className="font-black text-white text-lg flex items-center space-x-2">
                 <Truck className="w-5 h-5 text-teal-400" />
                 <span>Programar Cita Domiciliaria</span>

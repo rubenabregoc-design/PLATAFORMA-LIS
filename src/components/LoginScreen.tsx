@@ -22,7 +22,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const [isPatientModalOpen, setIsPatientModalOpen] = useState<boolean>(false);
   const [patientCedulaInput, setPatientCedulaInput] = useState<string>('8-812-4432');
-  const [patientOrderInput, setPatientOrderInput] = useState<string>('ORD-2026-8801');
+  const [patientOrderInput, setPatientOrderInput] = useState<string>('20260810073000');
   const [patientLookupError, setPatientLookupError] = useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(() => {
@@ -389,7 +389,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               </div>
               <div className="space-y-2">
                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">N° de Orden / Ticket</label>
-                 <input type="text" placeholder="Ej. ORD-2026-0001" className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl px-6 py-4 text-sm text-white outline-none focus:border-teal-500 shadow-inner font-bold placeholder:text-slate-900" />
+                 <input type="text" placeholder="Ej. 20260818040409" className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl px-6 py-4 text-sm text-white outline-none focus:border-teal-500 shadow-inner font-bold placeholder:text-slate-900" />
               </div>
               <button type="submit" className="w-full py-5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-3xl text-xs uppercase tracking-[0.4em] shadow-xl transition-all transform active:scale-95">Ver Expediente</button>
             </form>

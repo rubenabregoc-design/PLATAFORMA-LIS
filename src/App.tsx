@@ -163,6 +163,22 @@ export default function App() {
   const [results, setResults] = useState<TestResult[]>(MOCK_RESULTS);
   const [middlewareLogs, setMiddlewareLogs] = useState<MiddlewareMessageLog[]>(MOCK_MIDDLEWARE_LOGS);
   const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(MOCK_ANALYZER_MAPPINGS);
+  const [analyzers, setAnalyzers] = useState<Analyzer[]>(MOCK_ANALYZERS);
+
+  // SYSTEM HEALTH GUARDIAN: Detects analyzer status changes and alerts
+  const prevAnalyzersRef = useRef<Analyzer[]>(analyzers);
+  useEffect(() => {
+    analyzers.forEach(curr => {
+      const prev = prevAnalyzersRef.current.find(p => p.id === curr.id);
+      if (prev && prev.status === 'ONLINE' && curr.status === 'OFFLINE') {
+        // ALERT! System fell down
+        new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {});
+        // Usar alert de navegador como fallback, pero mejor un toast si estuviera disponible
+        console.warn(`🚨 ALERTA CRÍTICA: ${curr.name} DESCONECTADO`);
+      }
+    });
+    prevAnalyzersRef.current = analyzers;
+  }, [analyzers]);
 
   // Chat Context State
   const [activeChatContext, setActiveChatContext] = useState<any>(null);
@@ -190,6 +206,18 @@ export default function App() {
 
   const handleDeleteAnalyzerMapping = (mappingId: string) => {
     setAnalyzerMappings((prev) => prev.filter((m) => m.id !== mappingId));
+  };
+
+  const handleAddAnalyzer = (newAn: Analyzer) => {
+    setAnalyzers((prev) => [newAn, ...prev]);
+  };
+
+  const handleUpdateAnalyzer = (updatedAn: Analyzer) => {
+    setAnalyzers((prev) => prev.map(an => an.id === updatedAn.id ? updatedAn : an));
+  };
+
+  const handleDeleteAnalyzer = (id: string) => {
+    setAnalyzers((prev) => prev.filter(an => an.id !== id));
   };
 
   // PDF Preview Modal State
@@ -255,19 +283,43 @@ export default function App() {
   const handleNewResultSimulated = (newLog: MiddlewareMessageLog, newResult: TestResult) => {
     setMiddlewareLogs([newLog, ...middlewareLogs]);
     setResults((prev) => {
-      const existsIdx = prev.findIndex((r) => r.id === newResult.id || (r.orderId === newResult.orderId && r.parameterId === newResult.parameterId));
-      if (existsIdx >= 0) {
+      // 1. Professional Match Logic: Search by Order + Parameter Code (Master Analito)
+      const existingIdx = prev.findIndex(r =>
+        r.orderId === newResult.orderId &&
+        (r.parameterCode === newResult.parameterCode || r.parameterId === newResult.parameterId)
+      );
+
+      // 2. Determine if it's an "Unsolicited finding" (EXTRA)
+      const targetOrder = orders.find(o => o.id === newResult.orderId);
+      const isTestRequested = targetOrder?.testIds.includes(newResult.testId) ||
+                             targetOrder?.packageIds?.some(pkgId =>
+                               MOCK_TEST_PACKAGES.find(p => p.id === pkgId)?.testIds.includes(newResult.testId)
+                             );
+
+      const resultToSave = {
+        ...newResult,
+        isExtra: !isTestRequested,
+        status: 'INGRESADO' as const
+      };
+
+      if (existingIdx >= 0) {
+        // Overwrite/Update logic for repetitions
         const updated = [...prev];
-        updated[existsIdx] = newResult;
+        updated[existingIdx] = {
+          ...resultToSave,
+          id: updated[existingIdx].id, // Keep original record ID for DB consistency
+          isExtra: updated[existingIdx].isExtra || resultToSave.isExtra // Preserve extra status
+        };
         return updated;
       }
-      return [newResult, ...prev];
+
+      // Add new record (Either requested or EXTRA)
+      return [resultToSave, ...prev];
     });
   };
 
   const handleUpdateResultValue = (resultId: string, newValue: string, resultData?: TestResult) => {
     setResults((prev) => {
-      // Professional Overwrite Logic: Look for existing result by ID or by (OrderId + ParameterId)
       const targetOrderId = resultData?.orderId;
       const targetParamId = resultData?.parameterId;
 
@@ -276,25 +328,69 @@ export default function App() {
         (targetOrderId && targetParamId && r.orderId === targetOrderId && r.parameterId === targetParamId)
       );
 
+      // CLASIFICACIÓN INTELIGENTE (NUMÉRICA + CUALITATIVA)
+      let autoFlag: TestResult['flag'] = 'NORMAL';
+      let autoInterpretation = resultData?.interpretation || "";
+      const numVal = parseFloat(newValue);
+      const upperVal = newValue.toUpperCase();
+
+      if (!isNaN(numVal) && resultData) {
+        // LÓGICA DE INTERPRETACIÓN DINÁMICA (CONFIGURABLE POR ADMIN EN CATÁLOGO)
+        // Buscamos el analito en el catálogo para extraer sus reglas de interpretación
+        const testItem = MOCK_TEST_CATALOG.find(t => t.id === resultData.testId);
+        const paramConfig = testItem?.parameters.find(p => p.id === resultData.parameterId);
+
+        if (paramConfig?.interpretationRules) {
+           const rule = paramConfig.interpretationRules.find(r => numVal >= r.min && numVal <= r.max);
+           if (rule) {
+              autoInterpretation = rule.label;
+              if (rule.flag) autoFlag = rule.flag;
+           }
+        } else {
+           // Fallback: Si no hay reglas dinámicas, usar lógica estándar de flags
+           const mapping = analyzerMappings.find(m => m.lisTestCode === resultData.parameterCode);
+           const ranges = mapping?.referenceRanges || [];
+           const matchedRule = ranges[0];
+           if (matchedRule) {
+             if (matchedRule.panicHighValue && numVal >= matchedRule.panicHighValue) autoFlag = 'CRITICO_ALTO';
+             else if (matchedRule.panicLowValue && numVal <= matchedRule.panicLowValue) autoFlag = 'CRITICO_BAJO';
+             else if (numVal > matchedRule.maxValue) autoFlag = 'ALTO';
+             else if (numVal < matchedRule.minValue) autoFlag = 'BAJO';
+           }
+        }
+      } else {
+        // LÓGICA CUALITATIVA (TEXTO)
+        const dangerousTerms = ['POSITIVO', 'REACTIVO', 'PRESENTE', 'ABUNDANTE', 'ALTERADO', 'MACROCITICA', 'MICROCITICA'];
+        const isDangerous = dangerousTerms.some(term => upperVal.includes(term));
+
+        if (isDangerous) {
+          autoFlag = upperVal.includes('POSITIVO') || upperVal.includes('ABUNDANTE') ? 'ALTO' : 'NORMAL';
+          if (upperVal.includes('CRITICO') || upperVal.includes('MALIGNO')) {
+            autoFlag = 'CRITICO_ALTO';
+          }
+        }
+      }
+
       if (existingIdx >= 0) {
-        // Overwrite existing record
         const updated = [...prev];
         updated[existingIdx] = {
           ...updated[existingIdx],
           ...(resultData || {}),
           value: newValue,
-          numericValue: parseFloat(newValue) || undefined,
+          numericValue: isNaN(numVal) ? undefined : numVal,
+          flag: autoFlag,
+          interpretation: autoInterpretation, // Inyectar interpretación automática
           source: 'MANUAL',
           status: 'INGRESADO'
         };
         return updated;
       } else if (resultData) {
-        // Create new from placeholder
         const newResult: TestResult = {
           ...resultData,
           id: `res-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           value: newValue,
-          numericValue: parseFloat(newValue) || undefined,
+          numericValue: isNaN(numVal) ? undefined : numVal,
+          flag: autoFlag,
           source: 'MANUAL',
           status: 'INGRESADO',
           createdAt: new Date().toISOString()
@@ -318,8 +414,8 @@ export default function App() {
           ? {
               ...r,
               status: status,
-              technicalValidatedBy: status === 'VALIDADO_TEC' || status === 'PRELIMINAR' ? currentUser.name : undefined,
-              technicalValidatedAt: status === 'VALIDADO_TEC' || status === 'PRELIMINAR' ? new Date().toISOString() : undefined
+              technicalValidatedBy: currentUser.name,
+              technicalValidatedAt: new Date().toISOString()
             }
           : r
       )
@@ -436,12 +532,22 @@ export default function App() {
   const pendingOrdersCount = orders.filter(o => o.status !== 'VALIDADA_MED' && o.status !== 'COMPLETADA').length;
 
   // ADMIN NOTIFICATIONS: Offline Analyzers + Middleware Errors
-  const offlineAnalyzers = MOCK_ANALYZERS.filter(a => a.status !== 'ONLINE');
+  const offlineAnalyzers = analyzers.filter(a => a.status !== 'ONLINE');
   const middlewareErrors = middlewareLogs.filter(l => l.status === 'ERROR_PARSER' || l.status === 'ORDEN_NO_ENCONTRADA');
 
   const systemAlertsDetails = [
-    ...offlineAnalyzers.map(a => ({ type: 'DEVICE', message: `Analizador Offline: ${a.name}`, id: a.id })),
-    ...middlewareErrors.map(e => ({ type: 'MIDDLEWARE', message: `Error Middleware: ${e.status}`, id: e.id }))
+    ...offlineAnalyzers.map(a => ({
+      type: 'DEVICE',
+      message: `Analizador Desconectado: ${a.name}`,
+      id: a.id
+    })),
+    ...middlewareErrors.map(e => ({
+      type: 'MIDDLEWARE',
+      message: e.status === 'ERROR_PARSER'
+        ? 'Error de Interpretación de Trama (Parser)'
+        : 'ID de Orden No Registrada en LIS',
+      id: e.id
+    }))
   ];
 
   const adminSystemAlerts = systemAlertsDetails.length;
@@ -526,7 +632,7 @@ export default function App() {
                     onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
                   />
                 )}
-                {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
+                {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={analyzers} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
               </>
             )}
 
@@ -545,6 +651,7 @@ export default function App() {
                 patient={patients.find(p => p.id === (orders.find(o => o.id === activeOrderId) || orders[0]).patientId) || patients[0]}
                 results={results}
                 analyzers={MOCK_ANALYZERS}
+                currentUser={currentUser}
                 onUpdateResultValue={handleUpdateResultValue}
                 onUpdateInterpretation={handleUpdateInterpretation}
                 onUpdateResultStatus={handleUpdateResultStatus}
@@ -557,7 +664,7 @@ export default function App() {
             )}
 
             {/* Other modules */}
-            {activeTab === 'test_catalog' && <MasterTestCatalogManager />}
+            {activeTab === 'test_catalog' && <MasterTestCatalogManager user={currentUser || undefined} />}
             {activeTab === 'shifts' && <ShiftManagementModule />}
             {activeTab === 'tm_workbench' && <TechnologistWorkbench />}
             {activeTab === 'productivity' && <LabProductivityDashboard />}
@@ -569,10 +676,30 @@ export default function App() {
             {activeTab === 'whatsapp' && <WhatsAppNotificationEngine />}
             {activeTab === 'bloodbank' && <BloodBankModule />}
             {activeTab === 'schema' && <DatabaseSchemaViewer />}
-            {activeTab === 'homologation' && <AnalyzerHomologation currentUser={currentUser} currentRole={currentRole} analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} mappings={analyzerMappings} onAddMapping={handleAddAnalyzerMapping} onUpdateMapping={handleUpdateAnalyzerMapping} onDeleteMapping={handleDeleteAnalyzerMapping} />}
-            {activeTab === 'middleware' && <MiddlewareSimulator analyzers={MOCK_ANALYZERS} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
+            {activeTab === 'homologation' && (
+              <AnalyzerHomologation
+                currentUser={currentUser}
+                currentRole={currentRole}
+                analyzers={analyzers}
+                testCatalog={MOCK_TEST_CATALOG}
+                mappings={analyzerMappings}
+                onAddMapping={handleAddAnalyzerMapping}
+                onUpdateMapping={handleUpdateAnalyzerMapping}
+                onDeleteMapping={handleDeleteAnalyzerMapping}
+                onAddAnalyzer={handleAddAnalyzer}
+                onUpdateAnalyzer={handleUpdateAnalyzer}
+                onDeleteAnalyzer={handleDeleteAnalyzer}
+              />
+            )}
+            {activeTab === 'middleware' && <MiddlewareSimulator analyzers={analyzers} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
             {activeTab === 'qc' && <WestgardQC controls={MOCK_WESTGARD_QC} />}
-            {activeTab === 'drivers' && <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} />}
+            {activeTab === 'drivers' && (
+          <AstmDriverStudio
+            analyzers={analyzers}
+            testCatalog={MOCK_TEST_CATALOG}
+            logs={middlewareLogs}
+          />
+        )}
             {activeTab === 'billing' && <BillingPOS orders={orders} patients={patients} testCatalog={MOCK_TEST_CATALOG} tenant={currentTenant} branch={currentBranch} onOrderPaid={handleOrderPaid} />}
             {activeTab === 'delta' && <DeltaPanicAlerts orders={orders} results={results} patients={patients} />}
             {activeTab === 'panic_registry' && <CriticalValueRegistry />}

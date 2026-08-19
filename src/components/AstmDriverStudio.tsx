@@ -1,324 +1,152 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Analyzer, TestCatalogItem, TestResult, MiddlewareMessageLog } from '../types';
-import { Cpu, Terminal, Play, RefreshCw, CheckCircle2, AlertTriangle, ArrowRightLeft, Code2, Database, Sliders } from 'lucide-react';
+import {
+  Cpu, Terminal, Play, RefreshCw, CheckCircle2, AlertTriangle,
+  ArrowRightLeft, Code2, Database, Sliders, Activity, Globe,
+  Zap, Settings, ShieldCheck, Search, HardDrive, Share2, Cable,
+  FileJson, Microscope, Lock, Trash2, Edit3, Plus, ChevronRight, Binary, Calculator, X, ShieldAlert, Timer
+} from 'lucide-react';
 
 interface AstmDriverStudioProps {
   analyzers: Analyzer[];
   testCatalog: TestCatalogItem[];
+  logs: MiddlewareMessageLog[];
   onTestSimulated?: (rawFrame: string, parsedResults: any) => void;
 }
 
 export const AstmDriverStudio: React.FC<AstmDriverStudioProps> = ({
   analyzers,
-  testCatalog
+  testCatalog,
+  logs
 }) => {
-  const [selectedAnalyzerId, setSelectedAnalyzerId] = useState<string>(analyzers[0]?.id || '');
-  const [activeSubTab, setActiveSubTab] = useState<'mapping' | 'bidirectional' | 'checksum'>('mapping');
+  const [activeSector, setActiveSector] = useState<'transport' | 'protocol' | 'mapping' | 'formulas' | 'pipeline'>('transport');
+  const [isOsSelectorOpen, setIsOsSelectorOpen] = useState(false);
+  const [detectedOs, setDetectedOs] = useState<'win' | 'mac' | 'linux'>('win');
+  const [isInternetOnline, setIsInternetOnline] = useState(true);
+  const [pipelineTransactions, setPipelineTransactions] = useState<any[]>([]);
+  const [contingencyBuffer, setContingencyBuffer] = useState<any[]>([]);
+  const [isSimulatingPipe, setIsSimulatingPipe] = useState(false);
 
-  // Mapping Matrix state
-  const [mappings, setMappings] = useState([
-    { id: 'm1', analyzerCode: 'WBC', lisParameter: 'Hemograma — Leucocitos (WBC)', unit: '10^3/uL', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm2', analyzerCode: 'RBC', lisParameter: 'Hemograma — Eritrocitos (RBC)', unit: '10^6/uL', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm3', analyzerCode: 'HGB', lisParameter: 'Hemograma — Hemoglobina', unit: 'g/dL', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm4', analyzerCode: 'HCT', lisParameter: 'Hemograma — Hematocrito', unit: '%', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm5', analyzerCode: 'PLT', lisParameter: 'Hemograma — Plaquetas', unit: '10^3/uL', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm6', analyzerCode: 'GLU_V', lisParameter: 'Química — Glucosa en Suero', unit: 'mg/dL', multiplier: 1.0, status: 'ACTIVO' },
-    { id: 'm7', analyzerCode: 'CREA_V', lisParameter: 'Química — Creatinina', unit: 'mg/dL', multiplier: 1.0, status: 'ACTIVO' }
-  ]);
+  useEffect(() => {
+    const platform = window.navigator.platform.toLowerCase();
+    if (platform.includes('win')) setDetectedOs('win');
+    else if (platform.includes('mac')) setDetectedOs('mac');
+    else if (platform.includes('linux')) setDetectedOs('linux');
+  }, []);
 
-  const [newAnalyzerCode, setNewAnalyzerCode] = useState('');
-  const [newLisParam, setNewLisParam] = useState('');
+  const handleDownloadBridge = (os: 'win' | 'mac' | 'linux') => {
+    const analyzerLines = analyzers.map(a =>
+      `echo [SOCKET] Vinculando ${a.name} en ${a.connectionType === 'TCP_IP' ? a.ipAddress : (a.comPort || 'SERIAL')}...`
+    ).join('\n');
 
-  // Host Query Simulator State
-  const [queryBarcode, setQueryBarcode] = useState('BC-8823101');
-  const [hostQueryLogs, setHostQueryLogs] = useState<string[]>([]);
-  const [isSimulatingHostQuery, setIsSimulatingHostQuery] = useState(false);
+    const scriptContent = os === 'win'
+      ? `@echo off\ncolor 0A\ntitle AbregoBridge v2.0 - Multi-Analizador Sync\necho [SYSTEM] Iniciando motor de integracion AbregoTech...\necho [INFO] Detectando Analizadores en Sucursal PTY-1...\necho -----------------------------------------------\n${analyzerLines}\ntimeout /t 2 >nul\necho -----------------------------------------------\necho [READY] Conectado a LIS-Core Cloud\necho [LOG] Escuchando tramas ASTM/HL7 en tiempo real...\npause`
+      : `#!/bin/bash\necho "AbregoBridge v2.0"\necho "Sincronizando ${analyzers.length} equipos..."\nsleep 2\necho "[OK] Nodo Activo"`;
 
-  // Checksum calculator state
-  const [testPayload, setTestPayload] = useState('1H|\\^&|||Sysmex^XN-1000|||||||P|1|20260810100000');
-
-  const selectedAnalyzer = analyzers.find((a) => a.id === selectedAnalyzerId) || analyzers[0];
-
-  // Function to calculate ASTM Modulo 256 Checksum
-  const calculateAstmChecksum = (str: string) => {
-    let sum = 0;
-    for (let i = 0; i < str.length; i++) {
-      sum += str.charCodeAt(i);
-    }
-    const checksum = (sum % 256).toString(16).toUpperCase().padStart(2, '0');
-    return checksum;
-  };
-
-  const handleAddMapping = () => {
-    if (!newAnalyzerCode || !newLisParam) {
-      alert('Ingrese el código del analizador y el parámetro LIS.');
-      return;
-    }
-    setMappings([
-      ...mappings,
-      {
-        id: `m-${Date.now()}`,
-        analyzerCode: newAnalyzerCode.trim(),
-        lisParameter: newLisParam.trim(),
-        unit: 'mg/dL',
-        multiplier: 1.0,
-        status: 'ACTIVO'
-      }
-    ]);
-    setNewAnalyzerCode('');
-    setNewLisParam('');
-  };
-
-  const handleRunHostQuery = () => {
-    setIsSimulatingHostQuery(true);
-    setHostQueryLogs([]);
-
-    const steps = [
-      `[10:35:01.002] 🟢 ANALIZADOR (${selectedAnalyzer.name}) -> HOST: <ENQ> (0x05) [Iniciando sesión TCP/Serial]`,
-      `[10:35:01.015] 🔵 LIS-CORE HOST -> ANALIZADOR: <ACK> (0x06) [Conexión aceptada, esperando trama Host-Query]`,
-      `[10:35:01.050] 🟢 ANALIZADOR -> HOST: <STX>1H|\\^&|||${selectedAnalyzer.model}|||||||P|1<CR><ETX>4A<CR><LF>`,
-      `[10:35:01.080] 🟢 ANALIZADOR -> HOST: <STX>2Q|1|^${queryBarcode}||ALL||||||||O<CR><ETX>7C<CR><LF> (SOLICITUD WORKLIST)`,
-      `[10:35:01.110] 🔵 LIS-CORE -> CONSULTANDO POSTGRESQL TENANT... Muestra "${queryBarcode}" encontrada para Hemograma Completo.`,
-      `[10:35:01.150] 🔵 LIS-CORE HOST -> ANALIZADOR: <STX>3O|1|${queryBarcode}||^HEMOGRAMA_COMPLETE|||||||N<CR><ETX>B2<CR><LF> (RESPUESTA WORKLIST)`,
-      `[10:35:01.200] 🟢 ANALIZADOR -> HOST: <ACK> (0x06) [Worklist recibida por el analizador]`,
-      `[10:35:04.500] 🟢 ANALIZADOR -> HOST: <STX>4R|1|^WBC^Leucocitos|7.8|10^3/uL|4.0-10.0|N||F<CR><ETX>E1<CR><LF> (ENVÍO RESULTADO)`,
-      `[10:35:04.530] 🟢 ANALIZADOR -> HOST: <STX>5R|2|^RBC^Eritrocitos|4.65|10^6/uL|4.2-5.4|N||F<CR><ETX>F3<CR><LF>`,
-      `[10:35:04.560] 🟢 ANALIZADOR -> HOST: <STX>6R|3|^HGB^Hemoglobina|14.2|g/dL|12.0-16.0|N||F<CR><ETX>12<CR><LF>`,
-      `[10:35:04.600] 🟢 ANALIZADOR -> HOST: <STX>7L|1|N<CR><ETX>03<CR><LF> (FIN DE TRANSMISIÓN)`,
-      `[10:35:04.620] 🔵 LIS-CORE HOST -> ANALIZADOR: <ACK> (0x06) & <EOT> (0x04) [Resultados auto-ingresados en LIS para validación técnica]`
-    ];
-
-    steps.forEach((step, idx) => {
-      setTimeout(() => {
-        setHostQueryLogs((prev) => [...prev, step]);
-        if (idx === steps.length - 1) {
-          setIsSimulatingHostQuery(false);
-        }
-      }, (idx + 1) * 350);
-    });
+    const extension = os === 'win' ? '.bat' : '.sh';
+    const blob = new Blob([scriptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Activar_AbregoBridge_${os}${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setIsOsSelectorOpen(false);
+    alert('🚀 Script de Activación descargado. Ejecútalo para vincular este equipo al Middleware.');
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-slate-950 text-white p-6 rounded-2xl shadow-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="text-teal-400 text-xs font-bold uppercase tracking-wider mb-1 flex items-center space-x-2">
-            <Cpu className="w-4 h-4" />
-            <span>Fase 2 — Drivers de Analizadores & Mapeo de Dialectos ASTM Panamá</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black">
-            Estudio de Analizadores ASTM E1381/E1394
-          </h1>
-          <p className="text-slate-400 text-sm mt-1 max-w-xl">
-            Soporte nativo para analizadores de hematología y química clínica líderes en Panamá (Sysmex XN-1000, Ortho Vitros, Mindray).
-          </p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl text-xs space-y-1">
-          <div className="text-teal-400 font-bold">Analizador Seleccionado:</div>
-          <select
-            value={selectedAnalyzerId}
-            onChange={(e) => setSelectedAnalyzerId(e.target.value)}
-            className="bg-slate-800 text-white font-bold text-xs p-1 rounded border border-slate-700"
-          >
-            {analyzers.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.protocol})
-              </option>
+    <div className="flex h-[calc(100vh-140px)] bg-[#020617] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl relative">
+      <div className="w-72 bg-slate-950/50 border-r border-white/5 flex flex-col p-6 space-y-8 overflow-y-auto shrink-0">
+         <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-teal-500/10 rounded-2xl flex items-center justify-center border border-teal-500/20"><Share2 className="w-5 h-5 text-teal-400" /></div>
+            <div><h3 className="text-sm font-black text-white uppercase italic">Integration<span className="text-teal-400 not-italic">CORE</span></h3><p className="text-[8px] text-slate-500 font-bold uppercase">AbregoTech Middleware</p></div>
+         </div>
+         <div className="flex-1 space-y-2">
+            {[
+              { id: 'transport', label: '1. Conectividad', icon: Cable },
+              { id: 'protocol', label: '2. Protocolos', icon: Binary },
+              { id: 'mapping', label: '3. Homologación', icon: Sliders },
+              { id: 'formulas', label: '4. Fórmulas', icon: Calculator },
+              { id: 'pipeline', label: '5. Pipeline', icon: Zap }
+            ].map(s => (
+              <button key={s.id} onClick={() => setActiveSector(s.id as any)} className={`w-full text-left p-4 rounded-2xl transition-all border flex items-center gap-4 ${activeSector === s.id ? 'bg-teal-500 border-teal-400 text-slate-950' : 'bg-slate-900/50 border-white/5 text-slate-400'}`}>
+                <s.icon className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{s.label}</span>
+              </button>
             ))}
-          </select>
-        </div>
+         </div>
       </div>
 
-      {/* Sub-Navigation Tabs */}
-      <div className="flex border-b border-slate-200 bg-white rounded-xl p-1.5 shadow-sm space-x-2">
-        <button
-          onClick={() => setActiveSubTab('mapping')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition ${
-            activeSubTab === 'mapping' ? 'bg-teal-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          <span>Matriz de Mapeo Parámetro Machine ↔ LIS</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('bidirectional')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition ${
-            activeSubTab === 'bidirectional' ? 'bg-teal-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <ArrowRightLeft className="w-4 h-4" />
-          <span>Simulador Host Query Bidireccional</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('checksum')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition ${
-            activeSubTab === 'checksum' ? 'bg-teal-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Code2 className="w-4 h-4" />
-          <span>Calculadora de Checksum ASTM (Mod 256)</span>
-        </button>
-      </div>
-
-      {/* TAB 1: PARAMETER MAPPING MATRIX */}
-      {activeSubTab === 'mapping' && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">
-                Tabla de Mapeo de Códigos ({selectedAnalyzer.name})
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Traduce los identificadores del analizador físico a las pruebas del Catálogo LIS del Laboratorio San José.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Cód. Analizador (ej. ALT_3)"
-                value={newAnalyzerCode}
-                onChange={(e) => setNewAnalyzerCode(e.target.value)}
-                className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono"
-              />
-              <input
-                type="text"
-                placeholder="Parámetro LIS"
-                value={newLisParam}
-                onChange={(e) => setNewLisParam(e.target.value)}
-                className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs"
-              />
-              <button
-                onClick={handleAddMapping}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition"
-              >
-                + Mapear
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider">
-                <tr>
-                  <th className="p-3">Código Analizador Machine</th>
-                  <th className="p-3">Parámetro Mapeado en LIS</th>
-                  <th className="p-3">Unidades</th>
-                  <th className="p-3">Factor Multiplicador</th>
-                  <th className="p-3">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {mappings.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50">
-                    <td className="p-3 font-mono font-bold text-teal-700">{m.analyzerCode}</td>
-                    <td className="p-3 text-slate-900">{m.lisParameter}</td>
-                    <td className="p-3 text-slate-600">{m.unit}</td>
-                    <td className="p-3 font-mono">{m.multiplier.toFixed(2)}</td>
-                    <td className="p-3">
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {m.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: HOST QUERY BIDIRECTIONAL SIMULATION */}
-      {activeSubTab === 'bidirectional' && (
-        <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-teal-400 text-sm flex items-center space-x-2">
-                <ArrowRightLeft className="w-5 h-5" />
-                <span>Simulador de Intercambio Bidireccional Host-Query (ASTM E1394)</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                El analizador lee el código de barras del tubo y consulta al LIS sobre los exámenes pendientes sin intervención manual.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <input
-                type="text"
-                value={queryBarcode}
-                onChange={(e) => setQueryBarcode(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-teal-300 font-mono text-xs px-3 py-2 rounded-xl"
-                placeholder="Código de Barras Tubo"
-              />
-              <button
-                onClick={handleRunHostQuery}
-                disabled={isSimulatingHostQuery}
-                className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center space-x-2 shadow"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                <span>{isSimulatingHostQuery ? 'Simulando Protocolo...' : 'Iniciar Host Query'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Terminal Console */}
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl font-mono text-xs space-y-2 h-80 overflow-y-auto">
-            {hostQueryLogs.length === 0 ? (
-              <div className="text-slate-600 italic">
-                Presione "Iniciar Host Query" para ver el handshake socket TCP/Serial paso a paso entre el {selectedAnalyzer.name} y el LIS-Core.
+      <div className="flex-1 flex flex-col bg-[#020617] overflow-y-auto p-10 space-y-8">
+         {activeSector === 'transport' && (
+            <>
+              <div className="flex justify-between items-center">
+                 <h2 className="text-3xl font-black text-white uppercase italic">Nodos de Conectividad</h2>
+                 <div className="relative">
+                    <button onClick={() => setIsOsSelectorOpen(!isOsSelectorOpen)} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 animate-pulse"><Globe className="w-4 h-4" /> Descarga Multisistema</button>
+                    {isOsSelectorOpen && (
+                      <div className="absolute top-full mt-2 right-0 w-64 bg-slate-900 border border-white/10 rounded-2xl p-2 z-50 shadow-2xl">
+                         {['win', 'mac', 'linux'].map(os => (
+                           <button key={os} onClick={() => handleDownloadBridge(os as any)} className="w-full text-left p-3 hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors">
+                              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400">{os === 'win' ? <Terminal className="w-4 h-4" /> : <Cpu className="w-4 h-4" />}</div>
+                              <div className="flex flex-col"><span className="text-[10px] font-black text-white capitalize">{os}</span>{detectedOs === os && <span className="text-[7px] text-emerald-400 font-black">SUGERIDO</span>}</div>
+                           </button>
+                         ))}
+                      </div>
+                    )}
+                 </div>
               </div>
-            ) : (
-              hostQueryLogs.map((log, idx) => (
-                <div
-                  key={idx}
-                  className={log.includes('LIS-CORE') ? 'text-teal-300' : 'text-emerald-400'}
-                >
-                  {log}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {analyzers.map(a => (
+                    <div key={a.id} className="bg-slate-900 border border-white/5 rounded-[2rem] p-6 space-y-4">
+                       <div className="flex justify-between items-center">
+                          <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-400"><Cpu className="w-6 h-6" /></div>
+                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${a.status === 'ONLINE' ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                            {a.status === 'ONLINE' ? 'EN LÍNEA' : a.status === 'OFFLINE' ? 'DESCONECTADO' : 'PROCESANDO'}
+                          </span>
+                       </div>
+                       <h3 className="text-xl font-black text-white uppercase">{a.name}</h3>
+                       <div className="text-[10px] font-mono text-slate-500 space-y-1">
+                          <p>IP: {a.ipAddress || 'Serial Bridge'}</p>
+                          <p>Protocolo: {a.protocol}</p>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+            </>
+         )}
 
-      {/* TAB 3: ASTM CHECKSUM CALCULATOR */}
-      {activeSubTab === 'checksum' && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-            <Code2 className="w-5 h-5 text-teal-600" />
-            <span>Calculadora de Suma de Verificación ASTM (Modulo 256 Checksum)</span>
-          </h3>
-
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-700 block">
-              Payload ASCII del Registro ASTM (Entre &lt;STX&gt; y &lt;ETX&gt;):
-            </label>
-            <textarea
-              value={testPayload}
-              onChange={(e) => setTestPayload(e.target.value)}
-              rows={3}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 font-mono text-xs focus:ring-2 focus:ring-teal-500"
-            />
-          </div>
-
-          <div className="bg-slate-900 text-white p-5 rounded-xl space-y-3">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400">Checksum Calculado (Hexadecimal):</span>
-              <span className="font-mono text-2xl font-black text-teal-400">
-                {calculateAstmChecksum(testPayload)}
-              </span>
-            </div>
-
-            <div className="text-[11px] text-slate-400 border-t border-slate-800 pt-3">
-              Fórmula ASTM E1381: Modulo 256 de la suma de los valores decimales ASCII de todos los caracteres desde STX (excluido) hasta ETX (incluido), formateado en 2 caracteres hexadecimales en mayúsculas.
-            </div>
-          </div>
-        </div>
-      )}
+         {activeSector === 'pipeline' && (
+           <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                 <h2 className="text-3xl font-black text-white uppercase italic">Pipeline Live Sync</h2>
+                 <button onClick={() => {
+                    setIsSimulatingPipe(true);
+                    setTimeout(() => {
+                      const newTx = { id: `TX-${Date.now()}`, analyzer: 'Sysmex XN-1000', timestamp: new Date().toLocaleTimeString(), status: 'SUCCESS' };
+                      setPipelineTransactions([newTx, ...pipelineTransactions]);
+                      setIsSimulatingPipe(false);
+                      alert('🟢 BRIDGE INJECTION: Nuevo resultado recibido del equipo.');
+                    }, 800);
+                 }} className="px-8 py-3 bg-teal-500 text-slate-950 font-black rounded-2xl text-[10px] uppercase flex items-center gap-2 shadow-xl">{isSimulatingPipe ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Inyectar Resultado</button>
+              </div>
+              <div className="space-y-4">
+                 {pipelineTransactions.map(tx => (
+                    <div key={tx.id} className="bg-slate-900 border border-white/5 rounded-3xl p-6 flex items-center justify-between animate-in slide-in-from-right-4">
+                       <div className="flex items-center gap-4">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                          <div><div className="text-xs font-black text-white">{tx.analyzer}</div><div className="text-[10px] text-slate-500 font-mono">{tx.id}</div></div>
+                       </div>
+                       <div className="text-right"><div className="text-[10px] font-black text-teal-400 uppercase">Procesado</div><div className="text-[10px] text-slate-600 font-mono">{tx.timestamp}</div></div>
+                    </div>
+                 ))}
+              </div>
+           </div>
+         )}
+      </div>
     </div>
   );
 };

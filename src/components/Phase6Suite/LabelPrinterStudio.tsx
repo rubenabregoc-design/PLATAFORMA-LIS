@@ -337,7 +337,7 @@ export const PREDESIGNED_TEMPLATES_GALLERY: TubeLabelTemplate[] = [
 const INITIAL_QUEUE: PrintQueueJob[] = [
   {
     id: 'job-01',
-    orderNumber: 'ORD-2026-9041',
+    orderNumber: '20260810074210',
     patientName: 'Sr. Fernando Abrego',
     patientCedula: '8-812-4920',
     tubeType: 'EDTA_LAVENDER',
@@ -348,7 +348,7 @@ const INITIAL_QUEUE: PrintQueueJob[] = [
   },
   {
     id: 'job-02',
-    orderNumber: 'ORD-2026-9041',
+    orderNumber: '20260810074211',
     patientName: 'Sr. Fernando Abrego',
     patientCedula: '8-812-4920',
     tubeType: 'SST_GOLD',
@@ -359,7 +359,7 @@ const INITIAL_QUEUE: PrintQueueJob[] = [
   },
   {
     id: 'job-03',
-    orderNumber: 'ORD-2026-9042',
+    orderNumber: '20260813080115',
     patientName: 'Dra. Gabriela Solís',
     patientCedula: '4-780-1192',
     tubeType: 'CITRATE_BLUE',
@@ -370,7 +370,7 @@ const INITIAL_QUEUE: PrintQueueJob[] = [
   },
   {
     id: 'job-04',
-    orderNumber: 'ORD-2026-9045',
+    orderNumber: '20260813081000',
     patientName: 'Sra. Elena de Icaza',
     patientCedula: '8-220-9911',
     tubeType: 'EDTA_LAVENDER',
@@ -397,7 +397,7 @@ export const LabelPrinterStudio: React.FC = () => {
 
   // New Job Modal Form State
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState<boolean>(false);
-  const [newOrderNum, setNewOrderNum] = useState<string>('ORD-2026-9050');
+  const [newOrderNum, setNewOrderNum] = useState<string>(new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14));
   const [newPatientName, setNewPatientName] = useState<string>('MENDOZA, CARLOS');
   const [newCedula, setNewCedula] = useState<string>('8-771-3049');
   const [newTubeType, setNewTubeType] = useState<PrintQueueJob['tubeType']>('SST_GOLD');
@@ -536,7 +536,7 @@ export const LabelPrinterStudio: React.FC = () => {
 
   // Interactive Live Label Customizing Form Data
   const [samplePatientName, setSamplePatientName] = useState<string>('ABREGO, FERNANDO');
-  const [sampleOrderNumber, setSampleOrderNumber] = useState<string>('ORD-2026-9041');
+  const [sampleOrderNumber, setSampleOrderNumber] = useState<string>('20260810074210');
   const [sampleCedula, setSampleCedula] = useState<string>('8-812-4920');
   const [sampleTests, setSampleTests] = useState<string>('CBC, CREA, LIPID, TSH');
   const [sampleTubeType, setSampleTubeType] = useState<'EDTA_LAVENDER' | 'SST_GOLD' | 'CITRATE_BLUE' | 'HEPARIN_GREEN' | 'FLUORIDE_GRAY'>('EDTA_LAVENDER');
@@ -667,7 +667,7 @@ export const LabelPrinterStudio: React.FC = () => {
     e.preventDefault();
     const newJob: PrintQueueJob = {
       id: `job-${Date.now()}`,
-      orderNumber: newOrderNum.trim() || 'ORD-2026-9099',
+      orderNumber: newOrderNum.trim() || new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14),
       patientName: newPatientName.trim() || 'PACIENTE PRUEBA',
       patientCedula: newCedula.trim() || '8-000-0000',
       tubeType: newTubeType,
@@ -682,7 +682,7 @@ export const LabelPrinterStudio: React.FC = () => {
     setIsAddJobModalOpen(false);
 
     // Auto-fill form values for next creation
-    setNewOrderNum(`ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+    setNewOrderNum(new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14));
   };
 
   // Auto-Generate Sub-Aliquot Tube Jobs
