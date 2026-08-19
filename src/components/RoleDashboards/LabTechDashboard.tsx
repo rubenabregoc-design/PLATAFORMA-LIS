@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Order, Specimen, TestResult, Patient } from '../../types';
+import { SampleIntegrityBadge } from '../SampleIntegrityStatusWidget';
 import {
   QrCode,
   TestTube,
@@ -21,7 +22,8 @@ import {
   FileCheck2,
   XCircle,
   AlertOctagon,
-  RotateCcw
+  RotateCcw,
+  Clock
 } from 'lucide-react';
 
 interface LabTechDashboardProps {
@@ -674,18 +676,31 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {allSpecimens.map((sp) => (
-              <div key={sp.id} className="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/80 space-y-2 hover:border-cyan-300 transition-all">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono font-bold text-slate-900">{sp.barcode}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    sp.status === 'EN_ANALIZADOR' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {sp.status}
-                  </span>
+              <div key={sp.id} className="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/80 space-y-2 hover:border-cyan-300 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="font-mono font-black text-slate-900">{sp.barcode}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold font-mono ${
+                      sp.status === 'EN_ANALIZADOR' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {sp.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-700 font-bold">Tubo: {sp.tubeType}</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                    Flebotomía: {sp.collectedAt ? new Date(sp.collectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '08:30'}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-700 font-semibold">Tubo: {sp.tubeType}</div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  Toma: {sp.collectedAt ? new Date(sp.collectedAt).toLocaleTimeString() : 'Pendiente'}
+
+                <div className="pt-2 border-t border-slate-200/60">
+                  <SampleIntegrityBadge
+                    specimen={sp}
+                    barcode={sp.barcode}
+                    tubeType={sp.tubeType}
+                    phlebotomyTime={sp.collectedAt}
+                    isCompact={false}
+                    showModalOnClick={true}
+                  />
                 </div>
               </div>
             ))}

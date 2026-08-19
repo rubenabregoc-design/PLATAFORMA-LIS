@@ -28,8 +28,11 @@ import {
   MapPin,
   Check,
   Award,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Bell,
+  ShieldAlert
 } from 'lucide-react';
+import { ShiftAlertConfig } from './ShiftAlertConfig';
 
 export interface StaffMember {
   id: string;
@@ -338,7 +341,7 @@ export const ShiftManagementModule: React.FC = () => {
   const [selectedBranchId, setSelectedBranchId] = useState<string>('TODAS');
   const [selectedRole, setSelectedRole] = useState<string>('TODOS');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'CALENDARIO' | 'PERSONAL' | 'COBERTURA'>('CALENDARIO');
+  const [activeTab, setActiveTab] = useState<'CALENDARIO' | 'PERSONAL' | 'COBERTURA' | 'ALERTAS'>('CALENDARIO');
 
   // Staff and Shift State
   const [staffList, setStaffList] = useState<StaffMember[]>(MOCK_STAFF);
@@ -630,6 +633,14 @@ export const ShiftManagementModule: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('ALERTAS')}
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-4 py-3 rounded-2xl text-xs transition shadow flex items-center space-x-2 cursor-pointer"
+            >
+              <Bell className="w-4 h-4 text-amber-400" />
+              <span>Alertas de Marcaje (Push/Email)</span>
+            </button>
+
+            <button
               onClick={() => {
                 const firstShift = shifts[0];
                 if (firstShift) {
@@ -699,10 +710,10 @@ export const ShiftManagementModule: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Sub-module View Switcher Tabs */}
-          <div className="flex items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex flex-wrap items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
             <button
               onClick={() => setActiveTab('CALENDARIO')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
                 activeTab === 'CALENDARIO'
                   ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
                   : 'text-slate-400 hover:text-white'
@@ -714,14 +725,26 @@ export const ShiftManagementModule: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('PERSONAL')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
                 activeTab === 'PERSONAL'
                   ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>Roster de Personal & Disponibilidad</span>
+              <span>Roster de Personal</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('ALERTAS')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
+                activeTab === 'ALERTAS'
+                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-amber-300'
+              }`}
+            >
+              <Bell className="w-4 h-4 text-amber-400" />
+              <span>Alertas de Marcaje & Continuidad (Push/Email)</span>
             </button>
           </div>
 
@@ -1042,6 +1065,27 @@ export const ShiftManagementModule: React.FC = () => {
             })}
           </div>
         </div>
+      )}
+
+      {/* SUB-VIEW 3: ALERTAS DE CONTINUIDAD & NOTIFICACIONES DE MARCAJE (ShiftAlertConfig) */}
+      {activeTab === 'ALERTAS' && (
+        <ShiftAlertConfig
+          staffList={staffList}
+          shifts={shifts}
+          onTriggerOnCallSwap={(shiftId, backupStaffId) => {
+            const backupStaff = staffList.find(s => s.id === backupStaffId);
+            if (backupStaff) {
+              setShifts(prev => prev.map(s => s.id === shiftId ? {
+                ...s,
+                staffId: backupStaff.id,
+                staffName: backupStaff.name,
+                staffRole: backupStaff.roleTitle,
+                notes: `Reemplazo On-Call por ausencia de marcaje del titular.`
+              } : s));
+              alert(`¡Reemplazo On-Call asignado a ${backupStaff.name}!`);
+            }
+          }}
+        />
       )}
 
       {/* Modal 1: Creación & Edición de Turnos */}

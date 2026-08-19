@@ -126,7 +126,7 @@ export interface LisMasterTest {
 }
 
 // --- MASTER DATA SEEDING (ISO 15189 & LOINC 2.82 COMPLIANT) ---
-const MASTER_AREAS: LisArea[] = [
+export const MASTER_AREAS: LisArea[] = [
   { id: 'HEM', code: 'HEM', name: 'Hematología', description: 'Biometría hemática, coagulación y citometría', subareas: ['Hemograma', 'Coagulación', 'Reticulocitos', 'Hemoglobinas'] },
   { id: 'COA', code: 'COA', name: 'Coagulación', description: 'Pruebas de hemostasia primaria y secundaria', subareas: ['Tiempos de Coagulación', 'Factores', 'Fibrinólisis'] },
   { id: 'QCL', code: 'QCL', name: 'Química Clínica', description: 'Bioquímica sérica, metabolitos y enzimas', subareas: ['Glucosa & Metabolismo', 'Función Renal', 'Perfil Hepático', 'Perfil Lipídico'] },
@@ -146,7 +146,7 @@ const MASTER_AREAS: LisArea[] = [
   { id: 'CIT', code: 'CIT', name: 'Citología', description: 'Papanicolaou y citología de líquidos', subareas: ['Citología Cervicovaginal', 'Citología de Líquidos'] }
 ];
 
-const MASTER_TESTS: LisMasterTest[] = [
+export const MASTER_TESTS: LisMasterTest[] = [
   // 1. HEMATOLOGÍA - Hemograma Completo (Panel Multi-componente)
   {
     id: 'test-hem-001',

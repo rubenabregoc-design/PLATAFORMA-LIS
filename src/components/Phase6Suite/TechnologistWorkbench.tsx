@@ -48,10 +48,15 @@ import {
   QrCode,
   RefreshCw,
   MessageSquare,
-  XCircle
+  XCircle,
+  Camera,
+  Barcode
 } from 'lucide-react';
 import { SecureInternalMessagingWidget } from '../SecureInternalMessagingWidget';
 import { RejectedSampleWizard } from './RejectedSampleWizard';
+import { SampleIntegrityMonitorView } from './SampleIntegrityMonitorView';
+import { QuickScanCameraModal } from './QuickScanCameraModal';
+import { offlineSyncManager } from '../../utils/offlineSyncEngine';
 
 // --- TYPES ---
 export interface AuditLogEvent {
@@ -182,7 +187,21 @@ export interface TemperatureCheckItem {
 }
 
 export const TechnologistWorkbench: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('rejected_samples');
+  const [activeSubTab, setActiveSubTab] = useState<'sample_integrity' | 'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('sample_integrity');
+
+  // --- QUICK SCAN CAMERA BARCODE/QR STATE ---
+  const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState<boolean>(false);
+  const [focusedScannedItem, setFocusedScannedItem] = useState<{
+    barcode: string;
+    orderNumber: string;
+    patientName: string;
+    testName: string;
+    department?: string;
+    status?: string;
+    scannedAt: string;
+    format: string;
+    targetTab: typeof activeSubTab;
+  } | null>(null);
 
   // --- 1. HEMATOLOGY DIFFERENTIAL COUNTER STATE ---
   const [wbcTotal, setWbcTotal] = useState<number>(7.8); // x10^3 / µL
@@ -1184,6 +1203,159 @@ export const TechnologistWorkbench: React.FC = () => {
     setTimeout(() => setIncidentReportSubmitted(false), 5000);
   };
 
+  // Keyboard shortcut listener for Quick Scan (Alt+S or Shift+S)
+  useEffect(() => {
+    const handleGlobalScanKey = (e: KeyboardEvent) => {
+      if ((e.altKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        setIsQuickScanModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalScanKey);
+    return () => window.removeEventListener('keydown', handleGlobalScanKey);
+  }, []);
+
+  // Quick Scan barcode/QR detector handler
+  const handleQuickScanSuccess = (scannedCode: string, detectedFormat: string = 'BARCODE') => {
+    const code = scannedCode.trim().toUpperCase();
+
+    // 1. Search in TAT sample items
+    const tatMatch = tatSamples.find(s =>
+      s.sampleBarcode.toUpperCase() === code ||
+      s.orderNumber.toUpperCase() === code ||
+      s.patientName.toUpperCase().includes(code)
+    );
+
+    // 2. Search in Biosafety orders
+    const bioMatch = biosafetyWorkOrders.find(b =>
+      b.sampleBarcode.toUpperCase() === code ||
+      b.orderNumber.toUpperCase() === code ||
+      b.patientName.toUpperCase().includes(code)
+    );
+
+    // 3. Search in CDS Patient Scenarios
+    const scenMatch = patientScenarios.find(p =>
+      p.sampleId.toUpperCase() === code ||
+      p.patientName.toUpperCase().includes(code)
+    );
+
+    // 4. Search in Audit Events
+    const auditMatch = auditEvents.find(a =>
+      a.sampleBarcode.toUpperCase() === code ||
+      a.orderNumber.toUpperCase() === code
+    );
+
+    let targetTab: typeof activeSubTab = 'sample_integrity';
+    let matchedData = {
+      barcode: scannedCode,
+      orderNumber: `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      patientName: 'Paciente Identificado',
+      testName: 'Panel General de Laboratorio',
+      department: 'Mesón Técnico',
+      status: 'RECEPCIONADO',
+      scannedAt: new Date().toLocaleTimeString(),
+      format: detectedFormat,
+      targetTab: 'sample_integrity' as typeof activeSubTab
+    };
+
+    if (tatMatch) {
+      targetTab = 'tat_monitor';
+      matchedData = {
+        barcode: tatMatch.sampleBarcode,
+        orderNumber: tatMatch.orderNumber,
+        patientName: tatMatch.patientName,
+        testName: tatMatch.testName,
+        department: tatMatch.department,
+        status: tatMatch.status,
+        scannedAt: new Date().toLocaleTimeString(),
+        format: detectedFormat,
+        targetTab
+      };
+      setTatFilterStatus('TODOS');
+    } else if (bioMatch) {
+      targetTab = 'biosafety';
+      matchedData = {
+        barcode: bioMatch.sampleBarcode,
+        orderNumber: bioMatch.orderNumber,
+        patientName: bioMatch.patientName,
+        testName: bioMatch.requestedTests.join(', '),
+        department: 'Bioseguridad / Infecciosos',
+        status: bioMatch.status,
+        scannedAt: new Date().toLocaleTimeString(),
+        format: detectedFormat,
+        targetTab
+      };
+    } else if (scenMatch) {
+      targetTab = 'cds_engine';
+      setSelectedScenarioId(scenMatch.id);
+      matchedData = {
+        barcode: scenMatch.sampleId,
+        orderNumber: `ORD-${scenMatch.sampleId}`,
+        patientName: scenMatch.patientName,
+        testName: scenMatch.primaryPanel,
+        department: 'Soporte a la Decisión (CDS)',
+        status: 'EN_EVALUACION',
+        scannedAt: new Date().toLocaleTimeString(),
+        format: detectedFormat,
+        targetTab
+      };
+    } else if (auditMatch) {
+      targetTab = 'audit_trail';
+      setSelectedAuditBarcode(auditMatch.sampleBarcode);
+      matchedData = {
+        barcode: auditMatch.sampleBarcode,
+        orderNumber: auditMatch.orderNumber,
+        patientName: auditMatch.patientName,
+        testName: auditMatch.testName,
+        department: 'Trazabilidad ISO 15189',
+        status: 'AUDITADO',
+        scannedAt: new Date().toLocaleTimeString(),
+        format: detectedFormat,
+        targetTab
+      };
+    } else {
+      targetTab = 'sample_integrity';
+    }
+
+    setFocusedScannedItem(matchedData);
+    setActiveSubTab(targetTab);
+
+    // Register into ISO 15189 Audit Trail
+    const newAuditLog: AuditLogEvent = {
+      id: `aud-scan-${Date.now()}`,
+      sampleBarcode: matchedData.barcode,
+      orderNumber: matchedData.orderNumber,
+      patientName: matchedData.patientName,
+      testName: matchedData.testName,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      eventType: 'INGRESO',
+      actionTitle: `Escaneo Óptico Quick Scan (${detectedFormat})`,
+      description: `Código ${matchedData.barcode} escaneado con cámara. Orden enfocada automáticamente en sub-módulo ${targetTab}.`,
+      performedBy: 'Lic. Valentina Soto (TM-4091)',
+      role: 'Tecnólogo Médico Mesón',
+      workstation: 'Workbench Cámara Óptica-01',
+      isoClause: 'ISO 15189:2022 §7.3.2 (Identificación unívoca)',
+      integrityHash: `SHA256: ${Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+    };
+    setAuditEvents(prev => [newAuditLog, ...prev]);
+
+    // Offline buffer sync
+    offlineSyncManager.enqueue({
+      type: 'TUBE_SCAN',
+      sampleBarcode: matchedData.barcode,
+      patientName: matchedData.patientName,
+      payload: {
+        format: detectedFormat,
+        orderNumber: matchedData.orderNumber,
+        targetTab,
+        scannedAt: new Date().toISOString()
+      }
+    });
+
+    setSafetyLogNotice(`📷 Quick Scan: Muestra #${matchedData.barcode} (${matchedData.patientName}) enfocada inmediatamente en ${targetTab.toUpperCase()}.`);
+    setTimeout(() => setSafetyLogNotice(null), 6000);
+  };
+
   const formatTime = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);
     const secs = totalSec % 60;
@@ -1214,8 +1386,23 @@ export const TechnologistWorkbench: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Sound Toggle & Bench Quick Controls */}
-          <div className="flex items-center space-x-3 bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+          {/* Quick Sound Toggle, Quick Scan & Bench Quick Controls */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+            {/* Quick Scan Camera Button */}
+            <button
+              onClick={() => setIsQuickScanModalOpen(true)}
+              title="Escanear Código de Barras / QR con Cámara (Alt+S)"
+              className="px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs transition flex items-center space-x-2 cursor-pointer shadow-lg shadow-teal-500/25 ring-1 ring-teal-300"
+            >
+              <Camera className="w-4 h-4 text-slate-950" />
+              <span>Quick Scan Cámara</span>
+              <span className="bg-slate-950/20 text-slate-950 text-[10px] font-mono px-1.5 py-0.5 rounded font-bold hidden sm:inline">
+                Alt+S
+              </span>
+            </button>
+
+            <span className="text-slate-700 hidden sm:inline">|</span>
+
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className={`p-2 rounded-xl transition cursor-pointer flex items-center space-x-1.5 text-xs font-bold ${
@@ -1226,15 +1413,76 @@ export const TechnologistWorkbench: React.FC = () => {
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               <span>{soundEnabled ? 'Audio On' : 'Audio Mute'}</span>
             </button>
-            <span className="text-slate-700">|</span>
-            <span className="text-[11px] font-mono font-bold text-teal-400">
+            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-[11px] font-mono font-bold text-teal-400 hidden sm:inline">
               TM. Guardia Activa
             </span>
           </div>
         </div>
 
+        {/* FOCUSED SCANNED ITEM BANNER */}
+        {focusedScannedItem && (
+          <div className="mt-6 p-4 rounded-2xl bg-teal-950/80 border-2 border-teal-400/80 shadow-2xl relative z-10 animate-in slide-in-from-top-4 duration-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center space-x-3.5">
+              <div className="p-3 bg-teal-500 text-slate-950 rounded-2xl shrink-0 shadow-lg shadow-teal-500/30">
+                <Camera className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-teal-400 text-slate-950 text-[10px] font-mono font-black px-2 py-0.5 rounded-full flex items-center space-x-1">
+                    <Barcode className="w-3 h-3" />
+                    <span>{focusedScannedItem.barcode}</span>
+                  </span>
+                  <span className="bg-slate-900 text-teal-300 border border-teal-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+                    {focusedScannedItem.orderNumber}
+                  </span>
+                  <span className="text-[10px] text-teal-300 font-mono">
+                    Escaneado: {focusedScannedItem.scannedAt} ({focusedScannedItem.format})
+                  </span>
+                </div>
+                <div className="text-sm font-extrabold text-white">
+                  {focusedScannedItem.patientName} • <span className="text-teal-200 font-normal">{focusedScannedItem.testName}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0 self-end md:self-center">
+              <button
+                onClick={() => setActiveSubTab(focusedScannedItem.targetTab)}
+                className="px-3.5 py-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
+              >
+                <span>Ver en {focusedScannedItem.targetTab.replace('_', ' ').toUpperCase()}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setFocusedScannedItem(null)}
+                className="p-2 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl border border-white/10 transition cursor-pointer"
+                title="Cerrar Ficha Enfocada"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* SUB-MODULE TABS NAVIGATION */}
         <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-white/10 relative z-10">
+          <button
+            onClick={() => setActiveSubTab('sample_integrity')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeSubTab === 'sample_integrity'
+                ? 'bg-teal-400 text-slate-950 border-teal-300 shadow-lg shadow-teal-400/25 ring-2 ring-teal-400/40'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-teal-400" />
+            <span>Integridad de Muestra (ISO 15189)</span>
+            <span className="bg-teal-950 text-teal-300 border border-teal-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+              <span>Cinética Flebotomía</span>
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveSubTab('hematology')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
@@ -3364,6 +3612,13 @@ export const TechnologistWorkbench: React.FC = () => {
         </div>
       )}
 
+      {/* SUB-TAB: MONITOR DE INTEGRIDAD DE MUESTRA (ISO 15189:2022) */}
+      {activeSubTab === 'sample_integrity' && (
+        <div className="space-y-6 animate-fadeIn">
+          <SampleIntegrityMonitorView onNotifySafety={(msg) => setSafetyLogNotice(msg)} />
+        </div>
+      )}
+
       {/* SUB-TAB: MENSAJERÍA INTERNA SEGURA (WEBSOCKETS) */}
       {activeSubTab === 'inter_branch_chat' && (
         <div className="space-y-6 animate-fadeIn">
@@ -3662,6 +3917,21 @@ export const TechnologistWorkbench: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* QUICK SCAN CAMERA BARCODE & QR CODE READER MODAL */}
+      <QuickScanCameraModal
+        isOpen={isQuickScanModalOpen}
+        onClose={() => setIsQuickScanModalOpen(false)}
+        onScanSuccess={handleQuickScanSuccess}
+        sampleCatalogHints={[
+          { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Ríos, Gonzalo A.', test: 'Troponina I + CK-MB STAT' },
+          { barcode: 'BAR-GAS-02', label: 'Jeringa Heparinizada 2mL', patientName: 'Morales, Valeria M.', test: 'Gasometría Arterial STAT' },
+          { barcode: 'BAR-COAG-03', label: 'Tubo Citrato 3.2% 2.7mL', patientName: 'Castillo, Manuel E.', test: 'TTPa + TP / INR Quirúrgico' },
+          { barcode: 'BAR-HEM-04', label: 'Tubo EDTA K2 3mL', patientName: 'Vega, Lucía S.', test: 'Hemograma Completo STAT' },
+          { barcode: 'BAR-998101', label: 'Frasco BSL-3 Esputo', patientName: 'Santamaría, Fernando R.', test: 'PCR GenExpert BK (BSL-3)' },
+          { barcode: 'LAB-9024', label: 'Tubo Suero 5mL', patientName: 'Restrepo, Elena M.', test: 'Perfil Tiroideo (Reflex TSH)' }
+        ]}
+      />
     </div>
   );
 };

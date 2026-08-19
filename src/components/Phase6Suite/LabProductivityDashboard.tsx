@@ -29,8 +29,12 @@ import {
   Calendar,
   RefreshCw,
   Zap,
-  Gauge
+  Gauge,
+  MapPin,
+  Users,
+  LayoutGrid
 } from 'lucide-react';
+import { LabSpatialMonitor } from './LabSpatialMonitor';
 
 // Mock Data 1: TAT por Sede (Promedio Real vs Meta SLA en minutos)
 const TAT_PER_BRANCH_DATA = [
@@ -76,6 +80,7 @@ const MONTHLY_REJECTION_RATE = [
 export const LabProductivityDashboard: React.FC = () => {
   const [selectedBranch, setSelectedBranch] = useState<string>('TODAS');
   const [selectedShift, setSelectedShift] = useState<string>('MAÑANA');
+  const [activeTab, setActiveTab] = useState<'spatial_monitor' | 'tat_analytics' | 'rejections_qc' | 'all_overview'>('spatial_monitor');
 
   const totalSamplesToday = 1200;
   const totalRejectionsToday = 47;
@@ -90,13 +95,13 @@ export const LabProductivityDashboard: React.FC = () => {
           <div>
             <div className="text-teal-400 text-xs font-black uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
               <Gauge className="w-4 h-4 text-teal-400 animate-pulse" />
-              <span>Dashboard de Eficiencia Operativa & Control de Errores Pre-Analíticos</span>
+              <span>Dashboard de Eficiencia Operativa, Distribución Espacial & Control de Calidad</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Productividad del Laboratorio & Tiempo de Respuesta (TAT)
+              Productividad del Laboratorio & Gestión Espacial de Carga
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-2xl leading-relaxed">
-              Métricas en tiempo real impulsadas por Recharts: análisis de TAT promedio por sede, volumen de muestras rechazadas y tasa de errores pre-analíticos según ISO 15189.
+              Supervisión de mesones en tiempo real con D3.js para reasignación ágil de tecnólogos, monitoreo de TAT por sede y control estadístico de rechazos pre-analíticos.
             </p>
           </div>
 
@@ -132,7 +137,7 @@ export const LabProductivityDashboard: React.FC = () => {
               <span>Muestras Procesadas Hoy</span>
             </div>
             <div className="text-2xl font-black font-mono text-white">{totalSamplesToday} Tubos</div>
-            <div className="text-[10px] text-teal-400 font-bold">4 Analizadores Activos</div>
+            <div className="text-[10px] text-teal-400 font-bold">6 Mesones & 4 Analizadores Activos</div>
           </div>
 
           <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl space-y-1">
@@ -153,10 +158,75 @@ export const LabProductivityDashboard: React.FC = () => {
             <div className="text-[10px] text-emerald-400 font-bold">Dentro del Límite de Calidad</div>
           </div>
         </div>
+
+        {/* View Navigation Sub-Tabs */}
+        <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-white/10 relative z-10">
+          <button
+            onClick={() => setActiveTab('spatial_monitor')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeTab === 'spatial_monitor'
+                ? 'bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/30'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4 text-indigo-300" />
+            <span>Lab Spatial Monitor (D3.js)</span>
+            <span className="bg-indigo-950 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+              <span>Reasignar Personal</span>
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tat_analytics')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeTab === 'tat_analytics'
+                ? 'bg-teal-500 text-slate-950 border-teal-400 shadow-lg shadow-teal-500/20'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Analítica de TAT & Flujo Horario</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rejections_qc')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeTab === 'rejections_qc'
+                ? 'bg-teal-500 text-slate-950 border-teal-400 shadow-lg shadow-teal-500/20'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>Rechazos & Calidad Pre-analítica</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('all_overview')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeTab === 'all_overview'
+                ? 'bg-slate-800 text-white border-slate-600'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Vista Integral Completa</span>
+          </button>
+        </div>
       </div>
 
-      {/* Grid Layout 1: TAT per Branch & Hourly TAT Trend */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* VIEW 1: LAB SPATIAL MONITOR (D3) */}
+      {(activeTab === 'spatial_monitor' || activeTab === 'all_overview') && (
+        <div className="space-y-6">
+          <LabSpatialMonitor />
+        </div>
+      )}
+
+      {/* VIEW 2: TAT ANALYTICS (RECHARTS) */}
+      {(activeTab === 'tat_analytics' || activeTab === 'all_overview') && (
+        <div className="space-y-6">
+          {/* Grid Layout 1: TAT per Branch & Hourly TAT Trend */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Graph 1: TAT Real vs Target SLA por Sede */}
         <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
@@ -247,7 +317,12 @@ export const LabProductivityDashboard: React.FC = () => {
         </div>
 
       </div>
+    </div>
+  )}
 
+  {/* VIEW 3: PRE-ANALYTICAL REJECTIONS & QUALITY (RECHARTS) */}
+  {(activeTab === 'rejections_qc' || activeTab === 'all_overview') && (
+    <div className="space-y-6">
       {/* Grid Layout 2: Pre-analytical Rejections & Monthly Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -371,5 +446,7 @@ export const LabProductivityDashboard: React.FC = () => {
 
       </div>
     </div>
+  )}
+</div>
   );
 };

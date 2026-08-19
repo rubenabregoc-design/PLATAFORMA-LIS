@@ -133,6 +133,15 @@ export interface Specimen {
   collectedAt?: string;
   collectedBy?: string;
   status: 'PENDIENTE' | 'RECEPTADA' | 'EN_ANALIZADOR' | 'DESECHADA';
+  phlebotomyTime?: string;
+  receptionAt?: string;
+  centrifugedAt?: string;
+  processedAt?: string;
+  temperatureCondition?: 'AMBIENTE_20_25' | 'REFRIGERADA_2_8' | 'CONGELADA_MINUS_20' | 'BANO_HIELO';
+  preanalyticalNotes?: string;
+  sampleVolumeMl?: number;
+  hemolysisGrade?: 'AUSENTE' | 'LEVE' | 'MODERADA' | 'SEVERA';
+  isSeparated?: boolean;
 }
 
 export interface TestResult {
@@ -164,14 +173,29 @@ export interface Analyzer {
   branchId: string;
   name: string; // e.g. "Sysmex XN-1000", "Vitros 4600"
   model: string;
+  manufacturer?: string; // e.g. "Sysmex", "Ortho", "Roche", "Abbott", "Mindray", "Stago", "Bio-Rad"
+  category?: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'COAGULACION' | 'URINALISIS' | 'ESPECIALES';
   protocol: 'ASTM_E1381' | 'HL7_V2';
+  dialectName?: string; // e.g. "ASTM E1394-97 LIS01-A2", "HL7 v2.5 MLLP (ORU/OML)", "Cobas DataLink"
   connectionType: 'TCP_IP' | 'RS232_SERIAL';
   ipAddress?: string;
   port?: number;
   comPort?: string;
+  baudRate?: 9600 | 19200 | 38400 | 57600 | 115200;
+  parity?: 'None' | 'Even' | 'Odd';
+  dataBits?: 7 | 8;
+  stopBits?: 1 | 2;
+  flowControl?: 'None' | 'Hardware (RTS/CTS)' | 'Software (XON/XOFF)';
   status: 'ONLINE' | 'OFFLINE' | 'ERROR' | 'PROCESSING';
   lastPing: string;
+  pingLatencyMs?: number;
   driverId: string; // e.g. "sysmex-xn", "vitros-4600", "mindray-bc5000"
+  totalProcessedToday?: number;
+  errorCount?: number;
+  bufferQueueCount?: number;
+  autoValidationEnabled?: boolean;
+  hilInterferenceCheck?: boolean;
+  reflexRulesActive?: number;
 }
 
 export interface MiddlewareMessageLog {
@@ -182,10 +206,40 @@ export interface MiddlewareMessageLog {
   protocol: string;
   direction: 'INBOUND' | 'OUTBOUND';
   rawPayload: string; // Frame ASTM o HL7
+  hexDump?: string;
+  frameType?: 'ENQ' | 'ACK' | 'NAK' | 'STX_RECORD' | 'EOT' | 'MLLP_ORU' | 'MLLP_OML' | 'MLLP_QBP' | 'MLLP_ACK';
+  checksumValid?: boolean;
+  executionTimeMs?: number;
+  sampleBarcode?: string;
+  patientName?: string;
+  matchedOrderCode?: string;
+  autoValidated?: boolean;
+  reflexTriggered?: string;
+  hilFlags?: string[];
   parsedData?: any;
-  status: 'PROCESADO' | 'ERROR_PARSER' | 'ORDEN_NO_ENCONTRADA' | 'PENDIENTE';
+  status: 'PROCESADO' | 'ERROR_PARSER' | 'ORDEN_NO_ENCONTRADA' | 'PENDIENTE' | 'ERROR_CHECKSUM' | 'AUTO_VALIDADO';
   errorMessage?: string;
   timestamp: string;
+}
+
+export interface AutoResponseProfile {
+  id: string;
+  name: string; // e.g. "Perfil Estándar Sysmex XN (Fast ACK 0ms)", "Ortho Vitros Host-Query Profile"
+  targetModel: string; // e.g. "Sysmex XN-1000", "Ortho Vitros 4600", "Generic ASTM"
+  protocol: 'ASTM_E1381' | 'HL7_V2';
+  enqResponseSignal: 'ACK_06' | 'NAK_15' | 'CUSTOM_HEX' | 'DELAYED_ACK';
+  enqCustomHex?: string;
+  ackDelayMs: number; // 0, 15, 30, 50, 100, 200 ms
+  frameAckSignal: 'ACK_06' | 'NAK_ON_CHECKSUM_ERROR' | 'DOUBLE_ACK';
+  checksumErrorSignal: 'NAK_15' | 'SILENT_IGNORE' | 'ABORT_EOT';
+  maxRetriesOnNak: number; // 3, 6
+  lineContentionAction: 'BACKOFF_RANDOM' | 'HOST_PRIORITY' | 'ANALYZER_PRIORITY';
+  hostQueryNoOrderAction: 'EMPTY_TERMINATOR' | 'QUERY_REJECT_X' | 'NAK_REPLY';
+  eotHandshakeRequired: boolean;
+  mllpAckFormat?: 'MSA_AA' | 'MSA_CA' | 'CUSTOM';
+  autoSendWorklistOnEnq: boolean;
+  active: boolean;
+  description?: string;
 }
 
 export interface WestgardQCControl {

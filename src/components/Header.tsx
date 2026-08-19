@@ -3,6 +3,8 @@ import { Role, Tenant, Branch, User } from '../types';
 import {
   Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen
 } from 'lucide-react';
+import { OfflineSyncIndicator } from './OfflineSyncIndicator';
+import { SessionInactivityTracker } from './SessionInactivityTracker';
 
 interface HeaderProps {
   currentRole: Role;
@@ -176,9 +178,18 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </nav>
 
-        {/* Right Section: Profile & Logout */}
-        <div className="flex items-center space-x-6">
-          <div className="hidden sm:flex items-center space-x-4">
+        {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          
+          {/* Offline Data Sync & Local Storage Persistence Indicator */}
+          <OfflineSyncIndicator />
+
+          {/* Session Inactivity Countdown & Progress Bar (5 Min Auto-Lock) */}
+          <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
+
+          <div className="h-7 w-px bg-white/10 hidden sm:block"></div>
+
+          <div className="hidden sm:flex items-center space-x-3">
             <div className="flex flex-col text-right">
               <span className="text-[13px] font-black text-white leading-tight uppercase tracking-tight">{currentUser.name}</span>
               <span className="text-[10px] text-teal-400 font-black uppercase tracking-[0.2em]">{currentBranch.name}</span>

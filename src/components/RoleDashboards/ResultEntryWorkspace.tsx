@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { Order, TestResult, Patient, Analyzer } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Order, TestResult, Patient, Analyzer, Specimen } from '../../types';
 import { ResultTrendWidget } from './ResultTrendWidget';
 import { SecureInternalMessagingWidget } from '../SecureInternalMessagingWidget';
 import { RejectedSampleWizard } from '../Phase6Suite/RejectedSampleWizard';
+import { evaluateTestResult, ReferenceRangeEvaluation } from '../../utils/referenceRangeEvaluator';
+import { SampleIntegrityBadge } from '../SampleIntegrityStatusWidget';
+import { offlineSyncManager } from '../../utils/offlineSyncEngine';
 import {
   User, FileText, CheckCircle2, AlertTriangle, ShieldCheck,
   Printer, RotateCcw, Save, Trash2, Plus, Info, Lock,
   History, MessageSquare, Paperclip, Barcode, ChevronRight, Search, X,
   Microscope, Beaker, Check, Download, AlertOctagon, Upload, Sparkles, Send, XCircle,
-  TrendingUp, Activity
+  TrendingUp, Activity, ArrowUp, ArrowDown, AlertCircle, Filter, BookOpen, Layers, Sliders,
+  Clock, ShieldAlert
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
@@ -104,8 +108,28 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   // Labels Modal State
   const [labelQuantity, setLabelQuantity] = useState<number>(2);
   const [isPrintingLabel, setIsPrintingLabel] = useState<boolean>(false);
+  const [filterOutOfRangeOnly, setFilterOutOfRangeOnly] = useState<boolean>(false);
 
   const patientResults = localResults.filter(r => r.orderId === order.id);
+
+  // Compute evaluations for all results against Master Test Catalog
+  const resultsWithEvaluations = useMemo(() => {
+    return patientResults.map(r => ({
+      result: r,
+      evaluation: evaluateTestResult(r, patient)
+    }));
+  }, [patientResults, patient]);
+
+  const outOfRangeCount = resultsWithEvaluations.filter(re => re.evaluation.isOutOfRange).length;
+  const criticalCount = resultsWithEvaluations.filter(re => re.evaluation.isCritical).length;
+  const normalCount = patientResults.length - outOfRangeCount;
+
+  const displayedResults = useMemo(() => {
+    if (filterOutOfRangeOnly) {
+      return resultsWithEvaluations.filter(re => re.evaluation.isOutOfRange);
+    }
+    return resultsWithEvaluations;
+  }, [resultsWithEvaluations, filterOutOfRangeOnly]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -114,10 +138,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     }, 3500);
   };
 
-  const getFlagStyle = (flag?: string) => {
-    if (flag?.includes('CRITICO')) return 'bg-rose-500/20 text-rose-400 border-rose-500/30 font-black';
-    if (flag === 'ALTO' || flag === 'BAJO') return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-    return 'text-slate-300';
+  const getFlagStyle = (flag?: string, isOutOfRange?: boolean) => {
+    if (flag?.includes('CRITICO')) return 'bg-rose-500/25 text-rose-200 border-rose-500/80 font-black shadow-[0_0_15px_rgba(244,63,94,0.4)] ring-1 ring-rose-500';
+    if (isOutOfRange || flag === 'ALTO' || flag === 'BAJO') return 'bg-rose-500/20 text-rose-300 border-rose-500/60 font-black shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/40';
+    return 'bg-slate-900/40 text-slate-300 border-slate-800 hover:border-slate-700';
   };
 
   const toggleSelect = (id: string) => {
@@ -242,8 +266,25 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     setLocalResults(prev =>
       prev.map(r => (targets.includes(r.id) ? { ...r, status: 'VALIDADO_TEC' } : r))
     );
+    // Queue offline sync persistence
+    targets.forEach(id => {
+      const targetRes = patientResults.find(r => r.id === id);
+      offlineSyncManager.enqueue({
+        type: 'RESULT_VALIDATION',
+        sampleBarcode: order.orderNumber,
+        patientName: patient.name,
+        testCode: targetRes?.testCode || 'TEST',
+        payload: {
+          resultId: id,
+          orderId: order.id,
+          patientId: patient.id,
+          validatedAt: new Date().toISOString(),
+          status: 'VALIDADO_TEC'
+        }
+      });
+    });
     setSelectedResults([]);
-    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) bajo Idoneidad TM-4410.`);
+    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) bajo Idoneidad TM-4410 (Buffer local sincronizado).`);
   };
 
   // Button 8: Unvalidate Bulk / Desvalidar
@@ -304,7 +345,29 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          {/* Sample Integrity ISO 15189 Status */}
+          <div className="bg-slate-950/70 p-2.5 px-3.5 rounded-2xl border border-white/10 flex items-center space-x-3">
+            <div className="text-left">
+              <div className="text-[9px] font-black text-teal-400 uppercase tracking-widest flex items-center space-x-1">
+                <ShieldCheck className="w-3 h-3 text-teal-400" />
+                <span>Integridad Muestra (ISO 15189)</span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                Flebotomía: {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '08:30'}
+              </div>
+            </div>
+            <SampleIntegrityBadge
+              barcode={order.orderNumber}
+              tubeType={patientResults[0]?.specimenType || 'SUERO_ROJO'}
+              phlebotomyTime={order.createdAt || new Date(Date.now() - 42 * 60 * 1000).toISOString()}
+              isCompact={true}
+              showModalOnClick={true}
+            />
+          </div>
+
+          <div className="h-10 w-px bg-white/5 hidden sm:block"></div>
+
           <div className="text-right">
             <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">Procedencia</div>
             <div className="text-xs font-bold text-white uppercase">{order.doctorName || 'Particular'}</div>
@@ -330,6 +393,70 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         />
       )}
 
+      {/* Master Test Catalog Range Guardian Header Banner */}
+      <div className="bg-slate-900/70 border border-white/5 rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4 relative z-10">
+        <div className="flex items-center space-x-4">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
+            outOfRangeCount > 0 
+              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
+              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+          }`}>
+            {outOfRangeCount > 0 ? <AlertTriangle className="w-6 h-6 animate-pulse" /> : <CheckCircle2 className="w-6 h-6" />}
+          </div>
+          <div>
+            <div className="flex items-center space-x-2.5">
+              <h3 className="text-sm font-black text-white tracking-tight">
+                {outOfRangeCount > 0
+                  ? `${outOfRangeCount} ${outOfRangeCount === 1 ? 'Parámetro Fuera' : 'Parámetros Fuera'} de Rango de Referencia`
+                  : 'Todos los Parámetros Dentro de Límites de Referencia'}
+              </h3>
+              {criticalCount > 0 && (
+                <span className="px-2 py-0.5 rounded-md bg-rose-600/30 border border-rose-500 text-rose-300 text-[10px] font-black animate-pulse flex items-center space-x-1">
+                  <AlertOctagon className="w-3 h-3" />
+                  <span>{criticalCount} CRÍTICO / PÁNICO</span>
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5 flex items-center space-x-2 font-mono">
+              <span>Criterio Catálogo Maestro:</span>
+              <span className="text-teal-400 font-bold">{patient.gender === 'F' ? 'Femenino' : 'Masculino'} ({order.patientAge || 30}a)</span>
+              <span>•</span>
+              <span className="text-slate-500">ISO 15189 / CLSI EP28</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-white/5">
+            <button
+              onClick={() => setFilterOutOfRangeOnly(false)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
+                !filterOutOfRangeOnly
+                  ? 'bg-teal-500 text-slate-950 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Todos ({patientResults.length})</span>
+            </button>
+            <button
+              onClick={() => setFilterOutOfRangeOnly(true)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
+                filterOutOfRangeOnly
+                  ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  : outOfRangeCount > 0
+                  ? 'text-rose-400 hover:text-rose-300'
+                  : 'text-slate-600 cursor-not-allowed'
+              }`}
+              disabled={outOfRangeCount === 0}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Solo Alertas ({outOfRangeCount})</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 2. Main Entry Table Workspace */}
       <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl relative z-10">
         <div className="overflow-x-auto">
@@ -347,7 +474,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 <th className="px-4 py-5">Examen / Muestra</th>
                 <th className="px-4 py-5 text-center">Resultado</th>
                 <th className="px-4 py-5 text-center w-24">Unidad</th>
-                <th className="px-4 py-5">Referencia</th>
+                <th className="px-4 py-5">Referencia (Catálogo Maestro)</th>
                 <th className="px-4 py-5">Interpretación Clínica</th>
                 <th className="px-4 py-5 text-center">Estado</th>
                 <th className="px-4 py-5 text-right pr-8">Acciones</th>
@@ -356,19 +483,34 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             <tbody className="divide-y divide-white/5 font-medium">
               <tr className="bg-teal-500/5">
                 <td colSpan={8} className="px-6 py-2 text-[10px] font-black text-teal-400 uppercase tracking-[0.3em]">
-                  MESA DE TRABAJO TÉCNICA ({patientResults.length} Parámetros)
+                  MESA DE TRABAJO TÉCNICA ({displayedResults.length} Parámetros{filterOutOfRangeOnly ? ' • Filtrado Alertas Fuera de Rango' : ''})
                 </td>
               </tr>
 
-              {patientResults.map((res) => {
+              {displayedResults.map(({ result: res, evaluation: evalResult }) => {
                 const isEditingValue = editingId === res.id;
                 const isEditingInterp = editingInterpId === res.id;
-                const flagClass = getFlagStyle(res.flag);
                 const isSelected = selectedResults.includes(res.id);
                 const isDesvalidado = res.status === 'DESVALIDADO';
+                const isOut = evalResult.isOutOfRange;
+                const flagClass = getFlagStyle(evalResult.flag, isOut);
+
+                // Real-time evaluation during editing
+                const tempEval = isEditingValue ? evaluateTestResult({ ...res, value: tempValue }, patient) : null;
 
                 return (
-                  <tr key={res.id} className={`group transition-all ${isDesvalidado ? 'bg-rose-950/20 border-l-4 border-l-rose-500' : isSelected ? 'bg-teal-500/10' : 'hover:bg-white/[0.02]'}`}>
+                  <tr
+                    key={res.id}
+                    className={`group transition-all ${
+                      isDesvalidado
+                        ? 'bg-rose-950/20 border-l-4 border-l-rose-500'
+                        : isOut
+                        ? 'bg-rose-950/15 border-l-4 border-l-rose-500 hover:bg-rose-950/25'
+                        : isSelected
+                        ? 'bg-teal-500/10'
+                        : 'hover:bg-white/[0.02]'
+                    }`}
+                  >
                     <td className="px-6 py-4 text-center">
                       <input
                         type="checkbox"
@@ -378,72 +520,167 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       />
                     </td>
                     <td className="px-4 py-4">
-                       <div className="font-black text-slate-200 flex items-center space-x-2">
-                         <span className={isDesvalidado ? 'line-through text-slate-400 decoration-rose-500 decoration-2' : ''}>
-                           {res.parameterName}
-                         </span>
-                         {isDesvalidado && (
-                           <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black rounded uppercase tracking-wider animate-pulse inline-flex items-center space-x-1">
-                             <XCircle className="w-3 h-3 text-rose-400 shrink-0" />
-                             <span>REVOCADO</span>
-                           </span>
-                         )}
-                       </div>
-                       <div className="flex items-center space-x-1.5 mt-0.5">
-                         <Beaker className="w-3 h-3 text-teal-500/50" />
-                         <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{res.specimenType || 'SANGRE TOTAL'}</span>
-                       </div>
+                      <div className="font-black text-slate-200 flex items-center space-x-2">
+                        <span className={isDesvalidado ? 'line-through text-slate-400 decoration-rose-500 decoration-2' : ''}>
+                          {res.parameterName}
+                        </span>
+                        {isDesvalidado && (
+                          <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black rounded uppercase tracking-wider animate-pulse inline-flex items-center space-x-1">
+                            <XCircle className="w-3 h-3 text-rose-400 shrink-0" />
+                            <span>REVOCADO</span>
+                          </span>
+                        )}
+                        {isOut && !isDesvalidado && (
+                          <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black rounded uppercase tracking-wider inline-flex items-center space-x-1">
+                            <AlertCircle className="w-3 h-3 text-rose-400 shrink-0" />
+                            <span>ALERTA LIS</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Beaker className="w-3 h-3 text-teal-500/50" />
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{res.specimenType || 'SUERO'}</span>
+                        </div>
+                        <SampleIntegrityBadge
+                          barcode={order.orderNumber}
+                          tubeType={res.specimenType || 'SUERO_ROJO'}
+                          phlebotomyTime={order.createdAt || new Date(Date.now() - 45 * 60 * 1000).toISOString()}
+                          isCompact={true}
+                          showModalOnClick={true}
+                        />
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-center">
                       {isEditingValue ? (
-                        <div className="flex items-center justify-center space-x-1">
-                          <input
-                            type="text"
-                            autoFocus
-                            value={tempValue}
-                            onChange={(e) => setTempValue(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
+                        <div className="flex flex-col items-center justify-center space-y-1.5">
+                          <div className="flex items-center justify-center space-x-1">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={tempValue}
+                              onChange={(e) => setTempValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  const savedEval = evaluateTestResult({ ...res, value: tempValue }, patient);
+                                  onUpdateResultValue(res.id, tempValue);
+                                  setLocalResults(prev => prev.map(r => r.id === res.id ? { 
+                                    ...r, 
+                                    value: tempValue,
+                                    numericValue: savedEval.numericValue ?? undefined,
+                                    flag: savedEval.flag
+                                  } : r));
+                                  setEditingId(null);
+                                  showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
+                                }
+                              }}
+                              className={`bg-slate-950 border rounded-lg px-3 py-1.5 text-sm font-mono w-28 text-center focus:outline-none ${
+                                tempEval?.isOutOfRange
+                                  ? 'border-rose-500 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/50'
+                                  : 'border-teal-500/50 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.2)]'
+                              }`}
+                            />
+                            <button
+                              onClick={() => {
+                                const savedEval = evaluateTestResult({ ...res, value: tempValue }, patient);
                                 onUpdateResultValue(res.id, tempValue);
-                                setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, value: tempValue } : r));
+                                setLocalResults(prev => prev.map(r => r.id === res.id ? { 
+                                  ...r, 
+                                  value: tempValue,
+                                  numericValue: savedEval.numericValue ?? undefined,
+                                  flag: savedEval.flag
+                                } : r));
                                 setEditingId(null);
                                 showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
-                              }
-                            }}
-                            className="bg-slate-950 border border-teal-500/50 rounded-lg px-3 py-1.5 text-sm font-mono text-teal-400 w-28 text-center focus:outline-none shadow-[0_0_15px_rgba(20,184,166,0.2)]"
-                          />
-                          <button
-                            onClick={() => {
-                              onUpdateResultValue(res.id, tempValue);
-                              setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, value: tempValue } : r));
-                              setEditingId(null);
-                              showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
-                            }}
-                            className="p-1.5 bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-400 transition cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
+                              }}
+                              className="p-1.5 bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-400 transition cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {tempEval && (
+                            <div className={`text-[9px] font-mono px-2 py-0.5 rounded-full border ${
+                              tempEval.isOutOfRange
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            }`}>
+                              {tempEval.isOutOfRange ? `⚠️ ${tempEval.alertDetail}` : `✓ En Rango (${tempEval.catalogRefRangeText})`}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <button
-                          onClick={() => { setEditingId(res.id); setTempValue(res.value); }}
-                          className={`text-sm font-black font-mono px-4 py-1.5 rounded-xl border transition-all mx-auto block hover:border-white/10 cursor-pointer ${
-                            isDesvalidado
-                              ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
-                              : `border-transparent ${flagClass}`
-                          }`}
-                        >
-                          <span className={isDesvalidado ? 'line-through decoration-rose-500 decoration-2 opacity-90' : ''}>
-                            {res.value}
-                          </span>
-                          {isDesvalidado && (
-                            <span className="ml-1 text-[9px] text-rose-400 font-sans uppercase">(Desvalidado)</span>
+                        <div className="flex flex-col items-center justify-center">
+                          <button
+                            onClick={() => { setEditingId(res.id); setTempValue(res.value); }}
+                            className={`text-sm font-black font-mono px-4 py-1.5 rounded-xl border transition-all mx-auto block cursor-pointer ${
+                              isDesvalidado
+                                ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
+                                : isOut
+                                ? 'border-rose-500/80 bg-rose-500/20 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.35)] ring-1 ring-rose-500/50 hover:bg-rose-500/30'
+                                : `${flagClass}`
+                            }`}
+                          >
+                            <span className={isDesvalidado ? 'line-through decoration-rose-500 decoration-2 opacity-90' : ''}>
+                              {res.value}
+                            </span>
+                            {isDesvalidado && (
+                              <span className="ml-1 text-[9px] text-rose-400 font-sans uppercase">(Desvalidado)</span>
+                            )}
+                          </button>
+
+                          {/* Visual High/Low Cue Badge */}
+                          {isOut && !isDesvalidado && (
+                            <div className="mt-1.5 flex items-center justify-center">
+                              {evalResult.flag === 'CRITICO_ALTO' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-600/30 text-rose-200 border border-rose-500 text-[10px] font-black animate-pulse shadow-sm">
+                                  <AlertOctagon className="w-3 h-3 text-rose-400" />
+                                  <span>CRÍTICO ALTO</span>
+                                </span>
+                              ) : evalResult.flag === 'CRITICO_BAJO' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-600/30 text-rose-200 border border-rose-500 text-[10px] font-black animate-pulse shadow-sm">
+                                  <AlertOctagon className="w-3 h-3 text-rose-400" />
+                                  <span>CRÍTICO BAJO</span>
+                                </span>
+                              ) : evalResult.flag === 'ALTO' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/60 text-[10px] font-black shadow-sm">
+                                  <ArrowUp className="w-3 h-3 text-rose-400 stroke-[3]" />
+                                  <span>ALTO</span>
+                                </span>
+                              ) : evalResult.flag === 'BAJO' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/60 text-[10px] font-black shadow-sm">
+                                  <ArrowDown className="w-3 h-3 text-rose-400 stroke-[3]" />
+                                  <span>BAJO</span>
+                                </span>
+                              ) : null}
+                            </div>
                           )}
-                        </button>
+
+                          {isOut && !isDesvalidado && (
+                            <span className="text-[9px] text-rose-400/90 font-mono mt-1 text-center font-semibold max-w-[140px] truncate" title={evalResult.alertDetail}>
+                              {evalResult.alertDetail}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-4 text-slate-500 font-mono text-center">{res.unit}</td>
-                    <td className="px-4 py-4 text-slate-400 font-mono text-[11px] italic whitespace-nowrap">{res.refRangeText}</td>
+                    <td className="px-4 py-4">
+                      <div className="space-y-0.5">
+                        <div className={`font-mono text-[11px] ${isOut ? 'text-rose-300 font-bold' : 'text-slate-400 italic'}`}>
+                          {evalResult.catalogRefRangeText || res.refRangeText}
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-[8px] font-mono uppercase px-1 py-0.2 rounded bg-slate-800/80 text-slate-500 border border-white/5">
+                            Catálogo Maestro
+                          </span>
+                          {isOut && (
+                            <span className="text-[9px] text-rose-400 font-bold">
+                              {evalResult.flag === 'ALTO' ? '▲ Límite Excedido' : '▼ Límite Inferior'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-4 max-w-[250px]">
                       {isEditingInterp ? (
                         <textarea
@@ -472,6 +709,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                           : isDesvalidado
                           ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse'
+                          : isOut
+                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
                           : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                       }`}>
                         {isDesvalidado && <XCircle className="w-3 h-3 text-rose-400 shrink-0" />}
@@ -518,19 +757,19 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                             title="Re-validar Parámetro"
                             className="p-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg transition-all cursor-pointer"
                           >
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <Check className="w-4 h-4 text-emerald-400" />
                           </button>
                         ) : (
                           <button
                             onClick={() => {
                               onValidateTechnical(res.id);
                               setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, status: 'VALIDADO_TEC' } : r));
-                              showToast(`✓ Parámetro ${res.parameterName} validado.`);
+                              showToast(`✓ Parámetro ${res.parameterName} validado técnicamente.`);
                             }}
-                            title="Validar Individual"
-                            className="p-2 bg-slate-800 rounded-lg hover:text-emerald-400 transition-all cursor-pointer"
+                            title="Validación Técnica Individual"
+                            className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-all cursor-pointer"
                           >
-                            <CheckCircle2 className="w-4 h-4" />
+                            <Check className="w-4 h-4" />
                           </button>
                         )}
                         <button
