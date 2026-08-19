@@ -142,6 +142,12 @@ function startTcpServer(port, analyzerName) {
 
 server.listen(GUI_PORT, () => {
     console.log(`🚀 ACE Daemon GUI: http://localhost:${GUI_PORT}`);
+    
+    // Auto-abrir la interfaz gráfica en el navegador web por defecto
+    const { exec } = require('child_process');
+    const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    exec(`${startCmd} http://localhost:${GUI_PORT}`);
+
     setTimeout(() => {
         startTcpServer(5100, 'Sysmex XN-1000');
         startTcpServer(6000, 'Roche Cobas c311');

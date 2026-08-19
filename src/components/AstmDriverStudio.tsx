@@ -6,6 +6,8 @@ import {
   Zap, Settings, ShieldCheck, Search, HardDrive, Share2, Cable,
   FileJson, Microscope, Lock, Trash2, Edit3, Plus, ChevronRight, Binary, Calculator, X, ShieldAlert, Timer
 } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 interface AstmDriverStudioProps {
   analyzers: Analyzer[];
@@ -33,25 +35,84 @@ export const AstmDriverStudio: React.FC<AstmDriverStudioProps> = ({
     else if (platform.includes('linux')) setDetectedOs('linux');
   }, []);
 
-  const handleDownloadBridge = (os: 'win' | 'mac' | 'linux') => {
-    const analyzerLines = analyzers.map(a =>
-      `echo [ACE-CORE] Vinculando ${a.name} en ${a.connectionType === 'TCP_IP' ? a.ipAddress + ':' + a.port : (a.comPort || 'SERIAL')}...`
-    ).join('\n');
+  const handleDownloadBridge = async (os: 'win' | 'mac' | 'linux') => {
+    // Generar archivo ZIP usando jszip
+    const zip = new JSZip();
 
-    const scriptContent = os === 'win'
-      ? `@echo off\ncolor 0A\ntitle AbregoTech Analyzer Comm Engine (ACE) Bridge\necho [SYSTEM] Iniciando motor de integracion ACE TCP/Serial...\necho [INFO] Autenticando token JWT con la nube...\necho -----------------------------------------------\n${analyzerLines}\ntimeout /t 2 >nul\necho -----------------------------------------------\necho [READY] Conectado a LIS-Core Cloud\necho [LOG] Escuchando sockets locales en el puerto 5100/6000...\npause`
-      : `#!/bin/bash\necho "ACE Bridge v2.0"\necho "Iniciando demonios de sincronizacion ASTM/HL7 para ${analyzers.length} equipos..."\nsleep 2\necho "[OK] Nodos TCP y RS232 Activos"`;
+    // 1. package.json
+    zip.file("package.json", JSON.stringify({
+      name: "ace-daemon",
+      version: "1.0.0",
+      description: "AbregoTech ACE Daemon",
+      main: "index.js",
+      scripts: { start: "node index.js" },
+      dependencies: { axios: "^1.6.0", serialport: "^12.0.0", express: "^4.18.2", "socket.io": "^4.7.2" }
+    }, null, 2));
 
-    const extension = os === 'win' ? '.bat' : '.sh';
-    const blob = new Blob([scriptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `AbregoTech_ACE_Daemon_${os}${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // 2. index.js (El motor Node.js)
+    const indexJsCode = `const net = require('net');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const { exec } = require('child_process');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+app.use(express.static(path.join(__dirname, 'public')));
+
+const GUI_PORT = 5050;
+
+function logEvent(type, analyzer, message, isData = false) {
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(\`[\${timestamp}] [\${analyzer}] \${message}\`);
+    io.emit('terminal_log', { type, analyzer, message, timestamp, isData });
+}
+
+server.listen(GUI_PORT, () => {
+    console.log(\`🚀 ACE Daemon GUI disponible en: http://localhost:\${GUI_PORT}\`);
+    const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    exec(\`\${startCmd} http://localhost:\${GUI_PORT}\`);
+
+    // Iniciar puertos de simulación
+    setTimeout(() => {
+        logEvent('SYSTEM', 'ACE-CORE', 'Escuchando TCP Puerto 5100 -> Sysmex XN');
+        io.emit('analyzer_status', { name: 'Sysmex XN', status: 'ONLINE', port: 5100 });
+    }, 2000);
+});`;
+    zip.file("index.js", indexJsCode);
+
+    // 3. START_ACE_DAEMON.bat (Lanzador para Windows)
+    if (os === 'win') {
+        const batCode = `@echo off
+color 0B
+title AbregoTech ACE Daemon
+echo Instalando dependencias (esto toma 1 minuto la primera vez)...
+call npm install --no-audit --no-fund
+echo.
+echo Iniciando Servidor...
+call npm start
+pause`;
+        zip.file("START_ACE_DAEMON.bat", batCode);
+    }
+
+    // 4. public/index.html (Dashboard GUI)
+    const htmlCode = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>ACE Daemon Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script><script src="/socket.io/socket.io.js"></script></head>
+<body class="bg-slate-950 text-white p-8"><h1 class="text-2xl text-teal-400 font-bold mb-4">ACE Local Daemon</h1>
+<div id="terminal" class="bg-slate-900 p-4 font-mono text-xs rounded-xl h-96 overflow-y-auto"></div>
+<script>
+    const socket = io();
+    socket.on('terminal_log', data => {
+        document.getElementById('terminal').innerHTML += \`<div class="text-slate-400">[\${data.timestamp}] \${data.message}</div>\`;
+    });
+</script></body></html>`;
+    zip.folder("public")?.file("index.html", htmlCode);
+
+    // Generar y Descargar
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, \`AbregoTech_ACE_Daemon_\${os.toUpperCase()}.zip\`);
     setIsOsSelectorOpen(false);
   };
 

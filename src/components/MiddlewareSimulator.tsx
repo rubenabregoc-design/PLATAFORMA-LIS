@@ -201,8 +201,8 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
 
               <div className={`text-xs space-y-1 relative z-10 ${isSelected ? 'text-slate-400' : 'text-slate-500'}`}>
                 <div>Protocolo: <strong className={isSelected ? 'text-slate-200' : 'text-slate-700'}>{an.protocol}</strong></div>
-                <div>Conexión: <strong className={isSelected ? 'text-slate-200' : 'text-slate-700'}>{an.connectionType === 'TCP_IP' ? \`\${an.ipAddress}:\${an.port}\` : an.comPort}</strong></div>
-                <div>Driver Dialecto: <code className={\`px-1 py-0.5 rounded text-[11px] \${isSelected ? 'bg-slate-800 text-teal-300' : 'bg-slate-100 text-teal-700 font-bold'}\`}>{an.driverId}</code></div>
+                <div>Conexión: <strong className={isSelected ? 'text-slate-200' : 'text-slate-700'}>{an.connectionType === 'TCP_IP' ? `${an.ipAddress}:${an.port}` : an.comPort}</strong></div>
+                <div>Driver Dialecto: <code className={`px-1 py-0.5 rounded text-[11px] ${isSelected ? 'bg-slate-800 text-teal-300' : 'bg-slate-100 text-teal-700 font-bold'}`}>{an.driverId}</code></div>
               </div>
             </div>
           );

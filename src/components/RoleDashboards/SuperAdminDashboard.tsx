@@ -49,7 +49,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Header del Tablero */}
       <div className="bg-[#020617] rounded-3xl p-7 border border-white/10 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-teal-400 to-indigo-600"></div>
@@ -72,7 +72,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
       {activeTab === 'infrastructure' ? (
         <div className="animate-in fade-in duration-500 space-y-6">
-           {/* Métricas Rápidas */}
            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[
                 { label: 'Total Inquilinos', val: tenants.length, icon: Building2, color: 'text-teal-400' },
@@ -90,7 +89,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               ))}
            </div>
 
-           {/* Listado de Nodos Agrupados por Área */}
            <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-8">
               <h3 className="text-sm font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2"><Activity className="w-5 h-5 text-emerald-500" /> Nodos de Integración por Departamento</h3>
               <div className="space-y-10">
@@ -221,13 +219,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                }`}>
                                   {a.connectionType === 'RS232_SERIAL' ? <Terminal className="w-5 h-5" /> : <HardDrive className="w-5 h-5" />}
                                </div>
-                               <div>
-                                  <h4 className={`text-xs font-black uppercase ${isBridgeActive && currentLinkStatus === 'linked' ? 'text-white' : 'text-slate-600'}`}>{a.name}</h4>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                     <span className="text-[8px] px-1.5 py-0.5 bg-white/5 text-slate-500 rounded font-mono uppercase">{a.protocol}</span>
-                                     <span className="text-[8px] text-indigo-500 font-bold font-mono">{a.connectionType === 'TCP_IP' ? a.ipAddress : a.comPort || 'SERIAL'}</span>
-                                  </div>
-                               </div>
+                               <div><h4 className={`text-xs font-black uppercase ${isBridgeActive && currentLinkStatus === 'linked' ? 'text-white' : 'text-slate-600'}`}>{a.name}</h4><p className="text-[9px] text-slate-500 font-mono tracking-tighter">{a.protocol}</p></div>
                             </div>
                             <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border transition-all ${
                               !isBridgeActive
@@ -243,53 +235,21 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                 currentLinkStatus === 'negotiating' ? 'Negociando...' : 'Sin Enlace'}
                             </div>
                          </div>
-
                          <div className="grid grid-cols-2 gap-4 pt-2">
                             <div className="space-y-2">
                                <div className="text-[7px] font-black text-slate-600 uppercase tracking-widest">Actividad de Socket</div>
-                               <div className="flex gap-0.5 items-end h-4">
-                                  {[1,2,3,4,5,6,7,8].map(b => (
-                                    <div
-                                      key={b}
-                                      className={`flex-1 rounded-full transition-all duration-500 ${isBridgeActive && currentLinkStatus === 'linked' && b <= 6 ? 'bg-teal-500' : 'bg-slate-800'}`}
-                                      style={{ height: `${isBridgeActive && currentLinkStatus === 'linked' ? 30 + (Math.random() * 70) : 20}%` }}
-                                    ></div>
-                                  ))}
-                               </div>
+                               <div className="flex gap-0.5 items-end h-4">{[1,2,3,4,5,6,7,8].map(b => (<div key={b} className={`flex-1 rounded-full transition-all duration-500 ${isBridgeActive && currentLinkStatus === 'linked' && b <= 6 ? 'bg-teal-500' : 'bg-slate-800'}`} style={{ height: `${isBridgeActive && currentLinkStatus === 'linked' ? 30 + (Math.random() * 70) : 20}%` }}></div>))}</div>
                             </div>
                             <div className="text-right flex flex-col justify-end">
                                <span className="text-[7px] font-black text-slate-600 uppercase block mb-1">Tramas en Bóveda</span>
-                               <span className={`text-sm font-mono font-black ${isBridgeActive && currentLinkStatus === 'linked' ? 'text-white' : 'text-slate-800'}`}>
-                                  {isBridgeActive && currentLinkStatus === 'linked' ? equipmentLogs.length.toLocaleString() : '0'}
-                               </span>
+                               <span className={`text-sm font-mono font-black ${isBridgeActive && currentLinkStatus === 'linked' ? 'text-white' : 'text-slate-800'}`}>{isBridgeActive && currentLinkStatus === 'linked' ? equipmentLogs.length.toLocaleString() : '0'}</span>
                             </div>
                          </div>
-
                          <div className="pt-3 border-t border-white/5 flex justify-between items-center">
-                            <div className="flex items-center gap-1.5">
-                               <div className={`w-1.5 h-1.5 rounded-full ${isBridgeActive && currentLinkStatus === 'linked' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800'}`}></div>
-                               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Socket {a.port || 'TTY'}</span>
-                            </div>
+                            <div className="flex items-center gap-1.5"><div className={`w-1.5 h-1.5 rounded-full ${isBridgeActive && currentLinkStatus === 'linked' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800'}`}></div><span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Socket {a.port || 'TTY'}</span></div>
                             {isBridgeActive && currentLinkStatus !== 'linked' ? (
-                               <button
-                                 onClick={() => {
-                                    setLinkedAnalyzers(prev => ({ ...prev, [a.id]: 'negotiating' }));
-                                    setTimeout(() => {
-                                       setLinkedAnalyzers(prev => ({ ...prev, [a.id]: 'linked' }));
-                                    }, 1500);
-                                 }}
-                                 className="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
-                               >
-                                  Abrir Canal
-                               </button>
-                            ) : isBridgeActive && (
-                               <div className="text-right">
-                                  <span className="text-[7px] font-black text-slate-600 uppercase block leading-none mb-1">Sincronización</span>
-                                  <span className="text-[9px] font-bold text-slate-400 italic">
-                                     {lastLog ? new Date(lastLog.timestamp).toLocaleTimeString() : 'SIN ACTIVIDAD'}
-                                  </span>
-                               </div>
-                            )}
+                               <button onClick={() => { setLinkedAnalyzers(prev => ({ ...prev, [a.id]: 'negotiating' })); setTimeout(() => { setLinkedAnalyzers(prev => ({ ...prev, [a.id]: 'linked' })); }, 1500); }} className="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95">Abrir Canal</button>
+                            ) : isBridgeActive && (<div className="text-right"><span className="text-[7px] font-black text-slate-600 uppercase block leading-none mb-1">Sincronización</span><span className="text-[9px] font-bold text-slate-400 italic">{lastLog ? new Date(lastLog.timestamp).toLocaleTimeString() : 'SIN ACTIVIDAD'}</span></div>)}
                          </div>
                       </div>
                     );
