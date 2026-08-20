@@ -139,11 +139,15 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_patient_gender TEXT;
     v_patient_age INTEGER;
+    v_patient_id UUID;
     v_range RECORD;
     v_license TEXT;
+    v_prev_value NUMERIC;
+    v_diff_percent NUMERIC;
 BEGIN
-    -- 1. Obtener datos del paciente para el rango
-    SELECT p.gender, EXTRACT(YEAR FROM age(p.dob)) INTO v_patient_gender, v_patient_age
+    -- 1. Obtener datos del paciente para el rango y Delta Check
+    SELECT p.gender, EXTRACT(YEAR FROM age(p.dob)), p.id
+    INTO v_patient_gender, v_patient_age, v_patient_id
     FROM orders o JOIN patients p ON o.patient_id = p.id
     WHERE o.id = NEW.order_id;
 
@@ -167,15 +171,36 @@ BEGIN
         END IF;
     END IF;
 
-    -- 4. Lógica de Validación (Firma Electrónica)
-    IF NEW.status = 'VALIDADO' AND OLD.status != 'VALIDADO' THEN
+    -- 4. Delta Check (ISO 15189 Requirement)
+    IF NEW.numeric_value IS NOT NULL THEN
+        SELECT tr.numeric_value INTO v_prev_value
+        FROM test_results tr
+        JOIN orders o ON tr.order_id = o.id
+        WHERE o.patient_id = v_patient_id
+        AND tr.test_code = NEW.test_code
+        AND tr.status = 'VALIDADO'
+        AND tr.id != NEW.id
+        ORDER BY tr.created_at DESC
+        LIMIT 1;
+
+        IF v_prev_value IS NOT NULL AND v_prev_value != 0 THEN
+            v_diff_percent := ABS((NEW.numeric_value - v_prev_value) / v_prev_value) * 100;
+            IF v_diff_percent > 30 THEN
+                NEW.interpretation := COALESCE(NEW.interpretation, '') ||
+                    ' [ALERTA DELTA CHECK: Variación del ' || ROUND(v_diff_percent::numeric, 2) || '%]';
+            END IF;
+        END IF;
+    END IF;
+
+    -- 5. Lógica de Validación (Firma Electrónica)
+    IF NEW.status = 'VALIDADO' AND (OLD.status IS NULL OR OLD.status != 'VALIDADO') THEN
         SELECT license_number INTO v_license FROM profiles WHERE id = auth.uid();
         IF v_license IS NULL OR v_license = '' THEN
             RAISE EXCEPTION 'No puede validar resultados sin un número de licencia profesional.';
         END IF;
     END IF;
 
-    -- 5. Control de Versiones
+    -- 6. Control de Versiones
     IF OLD.status = 'VALIDADO' AND (OLD.value IS DISTINCT FROM NEW.value) THEN
         NEW.version := OLD.version + 1;
         NEW.status := 'PENDIENTE'; -- Requiere re-validación si se cambió
