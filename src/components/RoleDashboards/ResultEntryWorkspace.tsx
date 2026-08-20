@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Order, TestResult, Patient, Analyzer, Specimen } from '../../types';
+import { Order, TestResult, Patient, Analyzer, Specimen, AuditLogEntry } from '../../types';
+import { useLisStore } from '../../store/useLisStore';
 import { ResultTrendWidget } from './ResultTrendWidget';
+// ... (rest of imports)
 import { SecureInternalMessagingWidget } from '../SecureInternalMessagingWidget';
 import { RejectedSampleWizard } from '../Phase6Suite/RejectedSampleWizard';
 import { evaluateTestResult, ReferenceRangeEvaluation } from '../../utils/referenceRangeEvaluator';
@@ -29,24 +31,32 @@ interface ResultEntryWorkspaceProps {
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   order,
   patient,
-  results,
-  analyzers,
-  onUpdateResultValue,
-  onUpdateInterpretation,
-  onValidateTechnical,
   onOpenPdf
 }) => {
+  const {
+    results,
+    updateResult,
+    validateResult,
+    unvalidateResult,
+    updateInterpretation,
+    updateResultStatus,
+    addResults,
+    currentUser,
+    canDo
+  } = useLisStore();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>('');
   const [editingInterpId, setEditingInterpId] = useState<string | null>(null);
   const [tempInterp, setTempInterp] = useState<string>('');
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
-  const [localResults, setLocalResults] = useState<TestResult[]>(results);
 
   // Trend Widget & Messaging state
   const [selectedTrendResultId, setSelectedTrendResultId] = useState<string | null>(null);
   const [showTrendWidget, setShowTrendWidget] = useState<boolean>(true);
   const [showChatWidget, setShowChatWidget] = useState<boolean>(false);
+  const [showAuditSidebar, setShowAuditSidebar] = useState<boolean>(false);
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
 
   // Modal active states
   const [activeModal, setActiveModal] = useState<
@@ -110,7 +120,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [isPrintingLabel, setIsPrintingLabel] = useState<boolean>(false);
   const [filterOutOfRangeOnly, setFilterOutOfRangeOnly] = useState<boolean>(false);
 
-  const patientResults = localResults.filter(r => r.orderId === order.id);
+  const patientResults = results.filter(r => r.orderId === order.id);
 
   // Compute evaluations for all results against Master Test Catalog
   const resultsWithEvaluations = useMemo(() => {
@@ -188,7 +198,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       };
     });
 
-    setLocalResults(prev => [...prev, ...newResults]);
+    addResults(newResults);
     setSelectedCatalogTests([]);
     setActiveModal('NONE');
     showToast(`✓ Se agregaron ${newResults.length} nueva(s) prueba(s) a la Orden #${order.orderNumber}.`);
@@ -197,24 +207,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   // Button 3: Return / Rework
   const handleConfirmRework = () => {
     const targets = reworkTests.length > 0 ? reworkTests : patientResults.map(r => r.id);
-    setLocalResults(prev =>
-      prev.map(r =>
-        targets.includes(r.id)
-          ? { ...r, status: 'EN_PROCESO', value: 'PENDIENTE REPETICIÓN' }
-          : r
-      )
-    );
+    targets.forEach(id => updateResultStatus(id, 'EN_PROCESO', 'PENDIENTE REPETICIÓN'));
     setActiveModal('NONE');
     showToast(`🔄 Muestra retornada a repetición técnica. Motivo: ${reworkReason}`);
   };
 
   // Button 4: Rejection
   const handleConfirmRejection = () => {
-    setLocalResults(prev =>
-      prev.map(r =>
-        r.orderId === order.id ? { ...r, status: 'PENDIENTE', value: 'MUESTRA RECHAZADA' } : r
-      )
-    );
+    patientResults.forEach(r => updateResultStatus(r.id, 'PENDIENTE', 'MUESTRA RECHAZADA'));
     setActiveModal('NONE');
     showToast(`⚠️ Rechazo registrado oficialmente. Criterio: ${rejectionReason}`);
   };
@@ -262,29 +262,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       showToast('No hay resultados disponibles para validar.');
       return;
     }
-    targets.forEach(id => onValidateTechnical(id));
-    setLocalResults(prev =>
-      prev.map(r => (targets.includes(r.id) ? { ...r, status: 'VALIDADO_TEC' } : r))
-    );
-    // Queue offline sync persistence
-    targets.forEach(id => {
-      const targetRes = patientResults.find(r => r.id === id);
-      offlineSyncManager.enqueue({
-        type: 'RESULT_VALIDATION',
-        sampleBarcode: order.orderNumber,
-        patientName: patient.name,
-        testCode: targetRes?.testCode || 'TEST',
-        payload: {
-          resultId: id,
-          orderId: order.id,
-          patientId: patient.id,
-          validatedAt: new Date().toISOString(),
-          status: 'VALIDADO_TEC'
-        }
-      });
-    });
+    targets.forEach(id => validateResult(id, currentUser?.name || 'Sistema'));
+
     setSelectedResults([]);
-    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) bajo Idoneidad TM-4410 (Buffer local sincronizado).`);
+    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) bajo Idoneidad TM-4410.`);
   };
 
   // Button 8: Unvalidate Bulk / Desvalidar
@@ -294,11 +275,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       showToast('⚠️ No hay resultados disponibles para desvalidar.');
       return;
     }
-    setLocalResults(prev =>
-      prev.map(r => (targets.includes(r.id) ? { ...r, status: 'DESVALIDADO' } : r))
-    );
-    setSelectedResults([]);
-    showToast(`↺ Se ha cambiado el estado a DESVALIDADO en ${targets.length} resultado(s).`);
+    const reason = prompt(`Ingrese motivo obligatorio para desvalidar ${targets.length} resultado(s):`);
+    if (reason) {
+      targets.forEach(id => unvalidateResult(id, reason));
+      setSelectedResults([]);
+      showToast(`↺ Se ha cambiado el estado a DESVALIDADO en ${targets.length} resultado(s).`);
+    }
   };
 
   // Button 9: Print Barcode Labels
@@ -562,14 +544,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               onChange={(e) => setTempValue(e.target.value)}
                               onKeyDown={e => {
                                 if (e.key === 'Enter') {
-                                  const savedEval = evaluateTestResult({ ...res, value: tempValue }, patient);
-                                  onUpdateResultValue(res.id, tempValue);
-                                  setLocalResults(prev => prev.map(r => r.id === res.id ? { 
-                                    ...r, 
-                                    value: tempValue,
-                                    numericValue: savedEval.numericValue ?? undefined,
-                                    flag: savedEval.flag
-                                  } : r));
+                                  updateResult(res.id, tempValue);
                                   setEditingId(null);
                                   showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
                                 }
@@ -582,14 +557,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                             />
                             <button
                               onClick={() => {
-                                const savedEval = evaluateTestResult({ ...res, value: tempValue }, patient);
-                                onUpdateResultValue(res.id, tempValue);
-                                setLocalResults(prev => prev.map(r => r.id === res.id ? { 
-                                  ...r, 
-                                  value: tempValue,
-                                  numericValue: savedEval.numericValue ?? undefined,
-                                  flag: savedEval.flag
-                                } : r));
+                                updateResult(res.id, tempValue);
                                 setEditingId(null);
                                 showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
                               }}
@@ -611,7 +579,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       ) : (
                         <div className="flex flex-col items-center justify-center">
                           <button
-                            onClick={() => { setEditingId(res.id); setTempValue(res.value); }}
+                            onClick={() => { if(canDo('RESULT_ENTRY')) { setEditingId(res.id); setTempValue(res.value); } else { showToast('Acceso Denegado: No tienes permiso para editar resultados.'); } }}
                             className={`text-sm font-black font-mono px-4 py-1.5 rounded-xl border transition-all mx-auto block cursor-pointer ${
                               isDesvalidado
                                 ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
@@ -688,8 +656,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           value={tempInterp}
                           onChange={(e) => setTempInterp(e.target.value)}
                           onBlur={() => {
-                            onUpdateInterpretation(res.id, tempInterp);
-                            setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, interpretation: tempInterp } : r));
+                            updateInterpretation(res.id, tempInterp);
                             setEditingInterpId(null);
                           }}
                           className="w-full bg-slate-950 border border-teal-500/50 rounded-xl p-2 text-[10px] text-slate-200 focus:outline-none h-12 resize-none shadow-[0_0_10px_rgba(20,184,166,0.1)]"
@@ -729,48 +696,60 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                         >
                           <TrendingUp className="w-4 h-4 text-teal-400" />
                         </button>
-                        <button
-                          onClick={() => setActiveModal('NOTES')}
-                          title="Bitácora de Notas"
-                          className="p-2 bg-slate-800 rounded-lg hover:text-teal-400 transition-all cursor-pointer"
-                        >
-                          <History className="w-4 h-4" />
-                        </button>
+                        {canDo('RESULT_HISTORY_VIEW') && (
+                          <button
+                            onClick={() => {
+                              setSelectedAuditId(res.id);
+                              setShowAuditSidebar(true);
+                            }}
+                            title="Bitácora de Trazabilidad ISO 15189"
+                            className="p-2 bg-slate-800 rounded-lg hover:text-amber-400 transition-all cursor-pointer"
+                          >
+                            <History className="w-4 h-4" />
+                          </button>
+                        )}
                         {res.status === 'VALIDADO_TEC' ? (
-                          <button
-                            onClick={() => {
-                              setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, status: 'DESVALIDADO' } : r));
-                              showToast(`↺ Parámetro ${res.parameterName} marcado como DESVALIDADO.`);
-                            }}
-                            title="Desvalidar Individual"
-                            className="p-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 rounded-lg transition-all cursor-pointer"
-                          >
-                            <XCircle className="w-4 h-4 text-rose-400" />
-                          </button>
+                          canDo('RESULT_UNVALIDATE') && (
+                            <button
+                              onClick={() => {
+                                const reason = prompt('Ingrese motivo obligatorio de desvalidación (ISO 15189):');
+                                if (reason) {
+                                  unvalidateResult(res.id, reason);
+                                  showToast(`↺ Parámetro ${res.parameterName} marcado como DESVALIDADO.`);
+                                }
+                              }}
+                              title="Desvalidar Individual"
+                              className="p-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 rounded-lg transition-all cursor-pointer"
+                            >
+                              <XCircle className="w-4 h-4 text-rose-400" />
+                            </button>
+                          )
                         ) : isDesvalidado ? (
-                          <button
-                            onClick={() => {
-                              onValidateTechnical(res.id);
-                              setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, status: 'VALIDADO_TEC' } : r));
-                              showToast(`✓ Parámetro ${res.parameterName} re-validado.`);
-                            }}
-                            title="Re-validar Parámetro"
-                            className="p-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg transition-all cursor-pointer"
-                          >
-                            <Check className="w-4 h-4 text-emerald-400" />
-                          </button>
+                          canDo('RESULT_VALIDATE_TECH') && (
+                            <button
+                              onClick={() => {
+                                validateResult(res.id, currentUser?.name || 'Sistema');
+                                showToast(`✓ Parámetro ${res.parameterName} re-validado.`);
+                              }}
+                              title="Re-validar Parámetro"
+                              className="p-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Check className="w-4 h-4 text-emerald-400" />
+                            </button>
+                          )
                         ) : (
-                          <button
-                            onClick={() => {
-                              onValidateTechnical(res.id);
-                              setLocalResults(prev => prev.map(r => r.id === res.id ? { ...r, status: 'VALIDADO_TEC' } : r));
-                              showToast(`✓ Parámetro ${res.parameterName} validado técnicamente.`);
-                            }}
-                            title="Validación Técnica Individual"
-                            className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-all cursor-pointer"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
+                          canDo('RESULT_VALIDATE_TECH') && (
+                            <button
+                              onClick={() => {
+                                validateResult(res.id, currentUser?.name || 'Sistema');
+                                showToast(`✓ Parámetro ${res.parameterName} validado técnicamente.`);
+                              }}
+                              title="Validación Técnica Individual"
+                              className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )
                         )}
                         <button
                           onClick={() => onOpenPdf(order.id)}
@@ -879,7 +858,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             text: 'text-white font-bold',
             action: () => setShowChatWidget(prev => !prev)
           }
-        ].map((btn, i) => (
+        ].filter(btn => {
+          if (btn.label === 'Validar') return canDo('RESULT_VALIDATE_TECH');
+          if (btn.label === 'Desvalidar') return canDo('RESULT_UNVALIDATE');
+          if (btn.label === 'Rechazo') return canDo('ORDER_CANCEL');
+          if (btn.label === '+ Pruebas') return canDo('ORDER_CREATE');
+          if (btn.label === 'Guardar') return canDo('RESULT_ENTRY');
+          return true;
+        }).map((btn, i) => (
           <button
             key={i}
             onClick={btn.action}
@@ -1249,6 +1235,97 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 5. Clinical Traceability Sidebar (ISO 15189 Audit Trail) */}
+      {showAuditSidebar && selectedAuditId && (
+        <>
+          <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-[2px] z-[120]" onClick={() => setShowAuditSidebar(false)}></div>
+          <div className="fixed top-0 right-0 h-full w-[400px] bg-slate-900 border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-[130] p-8 space-y-8 animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center space-x-2">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Bitácora Auditoría ISO 15189</span>
+                </div>
+                <h3 className="text-lg font-black text-white uppercase italic">Historial de Analito</h3>
+              </div>
+              <button onClick={() => setShowAuditSidebar(false)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"><X className="w-5 h-5" /></button>
+            </div>
+
+            {(() => {
+              const res = results.find(r => r.id === selectedAuditId);
+              if (!res) return null;
+              return (
+                <div className="space-y-6">
+                  <div className="bg-slate-950 p-5 rounded-2xl border border-white/5 space-y-1">
+                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Parámetro Seleccionado</div>
+                    <div className="text-sm font-black text-white">{res.parameterName}</div>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <span className="text-2xl font-mono font-black text-teal-400">{res.value}</span>
+                      <span className="text-xs text-slate-500 font-mono">{res.unit}</span>
+                      <span className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[10px] text-slate-400 font-bold">V{res.version}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Línea de Tiempo de Versiones</span>
+                    </div>
+
+                    <div className="relative pl-6 space-y-8 border-l border-white/10 ml-2 pt-2">
+                      {res.history?.slice().reverse().map((entry, idx) => (
+                        <div key={entry.id} className="relative">
+                          <div className={`absolute -left-[31px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 shadow-xl ${
+                            entry.action === 'CREACION' ? 'bg-teal-500 shadow-teal-500/20' :
+                            entry.action === 'EDICION' ? 'bg-amber-500 shadow-amber-500/20' :
+                            entry.action === 'VALIDACION_TEC' ? 'bg-emerald-500 shadow-emerald-500/20' :
+                            'bg-rose-500 shadow-rose-500/20'
+                          }`}></div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-white uppercase tracking-tight">{entry.action}</span>
+                              <span className="text-[9px] text-slate-500 font-mono">{new Date(entry.timestamp).toLocaleString()}</span>
+                            </div>
+                            <div className="bg-slate-950 p-4 rounded-2xl border border-white/5 space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-teal-400">
+                                  {entry.author.charAt(0)}
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-300">{entry.author}</span>
+                              </div>
+
+                              {entry.previousValue && (
+                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                  <div className="p-2 bg-rose-500/5 rounded-lg border border-rose-500/10">
+                                    <div className="text-[8px] text-rose-500 uppercase font-bold">Anterior</div>
+                                    <div className="text-xs font-mono font-bold text-slate-500">{entry.previousValue}</div>
+                                  </div>
+                                  <div className="p-2 bg-teal-500/5 rounded-lg border border-teal-500/10">
+                                    <div className="text-[8px] text-teal-500 uppercase font-bold">Nuevo</div>
+                                    <div className="text-xs font-mono font-bold text-white">{entry.newValue}</div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {entry.reason && (entry.action === 'DESVALIDACION' || entry.action === 'EDICION') && (
+                                <div className="text-[10px] text-amber-400 italic bg-amber-400/5 p-2 rounded-lg border border-amber-400/10">
+                                  Motivo: {entry.reason}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </>
       )}
 
       {/* SECURE INTERNAL MESSAGING WIDGET OVERLAY */}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
+import { useLisStore } from '../store/useLisStore';
 import {
   Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen
 } from 'lucide-react';
@@ -7,17 +8,10 @@ import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
 
 interface HeaderProps {
-  currentRole: Role;
-  currentUser: User;
   onRoleChange: (role: Role) => void;
-  currentTenant: Tenant;
-  currentBranch: Branch;
   onTenantChange: (tenantId: string) => void;
   onBranchChange: (branchId: string) => void;
   onOpenBranchModal?: () => void;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onLogout: () => void;
   onLockSession?: () => void;
   showAllModules: boolean;
   setShowAllModules: (show: boolean) => void;
@@ -78,20 +72,26 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 };
 
 export const Header: React.FC<HeaderProps> = ({
-  currentRole,
-  currentUser,
-  currentBranch,
-  activeTab,
-  setActiveTab,
-  onLogout,
+  onOpenBranchModal,
   onLockSession,
   showAllModules,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
+  const {
+    currentRole,
+    currentUser,
+    currentBranch,
+    activeTab,
+    setActiveTab,
+    logout,
+    isSyncing,
+    isDemoMode
+  } = useLisStore();
+
   const allowedTabIds = showAllModules
     ? NAVIGATION_TABS.map((t) => t.id)
-    : ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
+    : ALLOWED_TABS_PER_ROLE[currentRole || 'lab_tech'] || ['dashboard'];
 
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
@@ -181,6 +181,20 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           
+          {isDemoMode && (
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse mr-2">
+               <Sparkles className="w-3 h-3 text-amber-400" />
+               <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Demo Mode</span>
+            </div>
+          )}
+
+          {isSyncing && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-teal-500/10 border border-teal-500/20 rounded-full animate-pulse">
+               <RefreshCw className="w-3 h-3 text-teal-400 animate-spin" />
+               <span className="text-[10px] font-black text-teal-400 uppercase tracking-tighter">Syncing Cloud</span>
+            </div>
+          )}
+
           {/* Offline Data Sync & Local Storage Persistence Indicator */}
           <OfflineSyncIndicator />
 
@@ -189,13 +203,16 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-7 w-px bg-white/10 hidden sm:block"></div>
 
-          <div className="hidden sm:flex items-center space-x-3">
+          <div className="hidden sm:flex items-center bg-white/5 border border-white/5 rounded-2xl px-4 py-1.5 gap-4">
             <div className="flex flex-col text-right">
-              <span className="text-[13px] font-black text-white leading-tight uppercase tracking-tight">{currentUser.name}</span>
-              <span className="text-[10px] text-teal-400 font-black uppercase tracking-[0.2em]">{currentBranch.name}</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none">{currentUser?.name}</span>
+              <div className="mt-1 flex items-center justify-end space-x-1.5">
+                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                 <span className="text-[9px] text-teal-400 font-bold uppercase tracking-widest opacity-80">{currentBranch?.name}</span>
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center text-teal-400 font-black text-sm shadow-xl">
-              {currentUser.name.charAt(0)}
+            <div className="w-8 h-8 rounded-xl bg-slate-950 border border-teal-500/20 flex items-center justify-center text-teal-400 font-black text-xs shadow-inner shrink-0">
+              {currentUser?.name.charAt(0)}
             </div>
           </div>
 
@@ -212,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           <button
-            onClick={onLogout}
+            onClick={logout}
             title="Cerrar Sesión"
             className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/5 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all duration-300 cursor-pointer group shadow-2xl"
           >

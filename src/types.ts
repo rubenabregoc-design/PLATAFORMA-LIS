@@ -8,6 +8,21 @@ export type Role =
   | 'patient'          // Cliente / Paciente
   | 'abregotech_admin';// Súper-Admin AbregoTech
 
+export type Permission =
+  | 'RESULT_ENTRY'
+  | 'RESULT_VALIDATE_TECH'
+  | 'RESULT_VALIDATE_MED'
+  | 'RESULT_UNVALIDATE'
+  | 'RESULT_HISTORY_VIEW'
+  | 'ORDER_CREATE'
+  | 'ORDER_CANCEL'
+  | 'CATALOG_MANAGE'
+  | 'INVENTORY_MANAGE'
+  | 'USER_MANAGE'
+  | 'FINANCIAL_VIEW'
+  | 'BRIDGE_CONTROL'
+  | 'AUDIT_LOG_VIEW';
+
 export interface Tenant {
   id: string;
   name: string;
@@ -144,6 +159,16 @@ export interface Specimen {
   isSeparated?: boolean;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  action: 'CREACION' | 'EDICION' | 'VALIDACION_TEC' | 'VALIDACION_MED' | 'DESVALIDACION' | 'REPETICION';
+  author: string;
+  previousValue?: string;
+  newValue?: string;
+  reason?: string;
+}
+
 export interface TestResult {
   id: string;
   tenantId: string;
@@ -165,6 +190,8 @@ export interface TestResult {
   status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DESVALIDADO';
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
+  version: number;
+  history: AuditLogEntry[];
 }
 
 export interface Analyzer {

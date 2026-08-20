@@ -346,9 +346,69 @@ export const MOCK_ORDERS: Order[] = [
 ];
 
 export const MOCK_RESULTS: TestResult[] = [
-  { id: 'res-1', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-wbc', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.2', numericValue: 7.2, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total', interpretation: 'Valores dentro de la normalidad clínica.' },
-  { id: 'res-2', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-hgb', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '13.8', numericValue: 13.8, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
-  { id: 'res-3', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-col', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '235', numericValue: 235, flag: 'ALTO', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.' }
+  {
+    id: 'res-1',
+    tenantId: 'lab-san-jose',
+    orderId: 'ord-1001',
+    testId: 'test-hemograma',
+    parameterId: 'p-wbc',
+    parameterName: 'Leucocitos (WBC)',
+    unit: 'x10^3/µL',
+    value: '7.2',
+    numericValue: 7.2,
+    flag: 'NORMAL',
+    refRangeText: '4.5 - 11.0',
+    source: 'MIDDLEWARE_ASTM',
+    status: 'VALIDADO_MED',
+    specimenType: 'Sangre Total',
+    interpretation: 'Valores dentro de la normalidad clínica.',
+    version: 1,
+    history: [
+      { id: 'h1', timestamp: '2026-08-10T08:00:00Z', action: 'CREACION', author: 'Sysmex XN-1000', newValue: '7.2' }
+    ]
+  },
+  {
+    id: 'res-2',
+    tenantId: 'lab-san-jose',
+    orderId: 'ord-1001',
+    testId: 'test-hemograma',
+    parameterId: 'p-hgb',
+    parameterName: 'Hemoglobina (HGB)',
+    unit: 'g/dL',
+    value: '13.8',
+    numericValue: 13.8,
+    flag: 'NORMAL',
+    refRangeText: '12.0 - 15.5',
+    source: 'MIDDLEWARE_ASTM',
+    status: 'VALIDADO_MED',
+    specimenType: 'Sangre Total',
+    version: 1,
+    history: [
+      { id: 'h2', timestamp: '2026-08-10T08:00:00Z', action: 'CREACION', author: 'Sysmex XN-1000', newValue: '13.8' }
+    ]
+  },
+  {
+    id: 'res-3',
+    tenantId: 'lab-san-jose',
+    orderId: 'ord-1001',
+    testId: 'test-lipidico',
+    parameterId: 'p-col',
+    parameterName: 'Colesterol Total',
+    unit: 'mg/dL',
+    value: '235',
+    numericValue: 235,
+    flag: 'ALTO',
+    refRangeText: '< 200',
+    source: 'MIDDLEWARE_ASTM',
+    status: 'VALIDADO_MED',
+    specimenType: 'Suero',
+    interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.',
+    version: 2,
+    history: [
+      { id: 'h3-1', timestamp: '2026-08-10T08:15:00Z', action: 'CREACION', author: 'Vitros 4600', newValue: '240' },
+      { id: 'h3-2', timestamp: '2026-08-10T09:00:00Z', action: 'EDICION', author: 'Lic. Sofía Guardia', previousValue: '240', newValue: '235', reason: 'Confirmación por dilución' }
+    ]
+  }
 ];
 
 export const MOCK_ANALYZERS: Analyzer[] = [

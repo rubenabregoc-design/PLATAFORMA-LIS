@@ -62,25 +62,37 @@ import { SkeletonLoader } from './components/SkeletonLoader';
 import { RecentActivityWidget } from './components/RecentActivityWidget';
 
 export default function App() {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const {
+    isAuthenticated,
+    currentUser,
+    currentRole,
+    currentTenant,
+    currentBranch,
+    activeTab,
+    setActiveTab,
+    isSessionLocked,
+    setSessionLock,
+    orders,
+    results,
+    patients,
+    activeOrderId,
+    login,
+    logout,
+    setActiveOrder
+  } = useLisStore();
 
-  // Tenant, Branch and User State
+  // Tenant, Branch and User State (Transitioning to Zustand)
   const [tenants, setTenants] = useState<Tenant[]>(MOCK_TENANTS);
   const [currentTenantId, setCurrentTenantId] = useState<string>('lab-san-jose');
   const [currentBranchId, setCurrentBranchId] = useState<string>('branch-via-espana');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
   const [isBranchModalOpen, setIsBranchModalOpen] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<User>(MOCK_USERS[0]);
-  const [currentRole, setCurrentRole] = useState<Role>('owner');
-  
+
   // Navigation & View State
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [showAllModules, setShowAllModules] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Session Lock & Security Guard State (5 Min Inactivity Auto-Lock / Auto-Logout)
-  const [isSessionLocked, setIsSessionLocked] = useState<boolean>(false);
+  // Session Lock State (Local UI parts)
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
   const [unlockError, setUnlockError] = useState<string | null>(null);
@@ -105,7 +117,7 @@ export default function App() {
       if (!isSessionLocked && isAuthenticated) {
         const elapsed = Date.now() - lastActivityRef.current;
         if (elapsed >= INACTIVITY_TIMEOUT_MS) {
-          setIsSessionLocked(true);
+          setSessionLock(true);
           setAutoLockReason('inactivity');
         }
       }
@@ -118,7 +130,7 @@ export default function App() {
   }, [isAuthenticated, isSessionLocked]);
 
   const handleLockSession = () => {
-    setIsSessionLocked(true);
+    setSessionLock(true);
     setAutoLockReason('manual');
     setUnlockPinInput('');
     setUnlockError(null);
@@ -126,9 +138,9 @@ export default function App() {
 
   const handleUnlockSession = (e: React.FormEvent) => {
     e.preventDefault();
-    const expectedPin = currentUser.pinCode || '1234';
+    const expectedPin = currentUser?.pinCode || '1234';
     if (unlockPinInput.trim() === expectedPin || unlockPinInput.trim() === '9999' || unlockPinInput.trim() === '1234') {
-      setIsSessionLocked(false);
+      setSessionLock(false);
       setAutoLockReason(null);
       lastActivityRef.current = Date.now();
       setUnlockPinInput('');
@@ -370,17 +382,10 @@ export default function App() {
 
       {/* Top Navbar */}
       <Header
-        currentRole={currentRole}
-        currentUser={currentUser}
         onRoleChange={handleRoleChangeDirect}
-        currentTenant={currentTenant}
-        currentBranch={currentBranch}
         onTenantChange={handleTenantChange}
         onBranchChange={handleBranchChange}
         onOpenBranchModal={() => setIsBranchModalOpen(true)}
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        onLogout={handleLogout}
         onLockSession={handleLockSession}
         showAllModules={showAllModules}
         setShowAllModules={setShowAllModules}
@@ -452,11 +457,6 @@ export default function App() {
               <ResultEntryWorkspace
                 order={orders[0]}
                 patient={patients[0]}
-                results={results}
-                analyzers={MOCK_ANALYZERS}
-                onUpdateResultValue={handleUpdateResultValue}
-                onUpdateInterpretation={handleUpdateInterpretation}
-                onValidateTechnical={handleValidateTechnical}
                 onOpenPdf={setPreviewOrderId}
               />
             )}

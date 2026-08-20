@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Role, User, Tenant, Branch } from '../types';
 import { MOCK_TENANTS, MOCK_USERS, MOCK_PATIENTS } from '../data/mockData';
+import { useLisStore } from '../store/useLisStore';
 import { ROLE_LABELS } from './Header';
 import {
   ShieldCheck, Building2, Lock, CheckCircle2, Activity,
   Users, LogIn, Eye, EyeOff, AlertTriangle, Key, Sparkles, HelpCircle,
-  Search, Stethoscope, Microscope, UserCircle, Heart, Shield, FileText, ArrowRight
+  Search, Stethoscope, Microscope, UserCircle, Heart, Shield, FileText, ArrowRight, Play
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -13,6 +14,7 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+  const { setDemoMode } = useLisStore();
   const [selectedTenantId, setSelectedTenantId] = useState<string>('lab-san-jose');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
   
@@ -451,6 +453,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <span>Ingresar al Sistema LIS</span>
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setDemoMode(true);
+              const demoUser = MOCK_USERS.find(u => u.role === 'owner') || MOCK_USERS[0];
+              onLogin(demoUser, MOCK_TENANTS[0], MOCK_TENANTS[0].branches[0]);
+            }}
+            className="w-full py-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-black rounded-xl text-[10px] uppercase tracking-[0.2em] transition flex items-center justify-center space-x-2 shadow-inner"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Exploración Rápida (SaaS Demo)</span>
           </button>
         </form>
 
