@@ -66,7 +66,7 @@ export const FhirInteroperabilityStudio: React.FC<FhirInteroperabilityStudioProp
           { system: 'email', value: currentPatient.email }
         ],
         gender: currentPatient.gender === 'M' ? 'male' : 'female',
-        birthDate: currentPatient.dateOfBirth,
+        birthDate: currentPatient.dob,
         address: [
           {
             line: [currentPatient.address],

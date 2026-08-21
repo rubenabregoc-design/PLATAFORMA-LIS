@@ -88,7 +88,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
 
     const rawValStr = activeResult.value || '0';
     const parsedCurrent = parseFloat(rawValStr.replace(/[^0-9.]/g, '')) || 100;
-    const testCode = (activeResult.testCode || activeResult.parameterName || '').toUpperCase();
+    const testCode = (activeResult.parameterName || activeResult.parameterId || '').toUpperCase();
     const unit = activeResult.unit || '';
 
     // Specialized presets for common test parameters to give realistic historical profiles
@@ -424,7 +424,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
                 />
                 <YAxis
                   stroke="#64748b"
-                  tick={{ fontSize: 11, fill: '#94a3b8', fontMono: true }}
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'monospace' }}
                   domain={['auto', 'auto']}
                 />
                 <Tooltip

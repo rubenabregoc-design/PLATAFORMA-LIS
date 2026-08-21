@@ -57,6 +57,7 @@ import { RejectedSampleWizard } from './RejectedSampleWizard';
 import { SampleIntegrityMonitorView } from './SampleIntegrityMonitorView';
 import { QuickScanCameraModal } from './QuickScanCameraModal';
 import { TechnologistMasterSuite } from './TechnologistSuite/TechnologistMasterSuite';
+import { StatPendingQueue } from './TechnologistSuite/StatPendingQueue';
 import { offlineSyncManager } from '../../utils/offlineSyncEngine';
 
 // --- TYPES ---
@@ -188,7 +189,7 @@ export interface TemperatureCheckItem {
 }
 
 export const TechnologistWorkbench: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'tm_suite_5' | 'sample_integrity' | 'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('tm_suite_5');
+  const [activeSubTab, setActiveSubTab] = useState<'stat_queue' | 'tm_suite_5' | 'sample_integrity' | 'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('stat_queue');
 
   // --- QUICK SCAN CAMERA BARCODE/QR STATE ---
   const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState<boolean>(false);
@@ -1469,6 +1470,21 @@ export const TechnologistWorkbench: React.FC = () => {
         {/* SUB-MODULE TABS NAVIGATION */}
         <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-white/10 relative z-10">
           <button
+            onClick={() => setActiveSubTab('stat_queue')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeSubTab === 'stat_queue'
+                ? 'bg-gradient-to-r from-amber-400 to-rose-400 text-slate-950 border-amber-300 shadow-xl shadow-amber-400/30 ring-2 ring-amber-400/50 font-black'
+                : 'bg-slate-900/90 text-amber-300 border-amber-500/40 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Flame className="w-4 h-4 text-slate-950 animate-pulse" />
+            <span>🚨 Cola STAT & Validación Rápida</span>
+            <span className="bg-slate-950 text-amber-300 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+              Prioridad Crítica
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('tm_suite_5')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
               activeSubTab === 'tm_suite_5'
@@ -1768,6 +1784,11 @@ export const TechnologistWorkbench: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* --- STAT PENDING QUEUE & RAPID VALIDATION --- */}
+      {activeSubTab === 'stat_queue' && (
+        <StatPendingQueue />
+      )}
 
       {/* --- MASTER SUITE: 5 ADVANCED TECHNOLOGIST MODULES --- */}
       {activeSubTab === 'tm_suite_5' && (

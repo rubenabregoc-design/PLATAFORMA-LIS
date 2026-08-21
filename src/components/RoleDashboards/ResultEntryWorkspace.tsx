@@ -20,11 +20,11 @@ import {
 interface ResultEntryWorkspaceProps {
   order: Order;
   patient: Patient;
-  results: TestResult[];
-  analyzers: Analyzer[];
-  onUpdateResultValue: (resultId: string, newValue: string) => void;
-  onUpdateInterpretation: (resultId: string, interpretation: string) => void;
-  onValidateTechnical: (resultId: string) => void;
+  results?: TestResult[];
+  analyzers?: Analyzer[];
+  onUpdateResultValue?: (resultId: string, newValue: string) => void;
+  onUpdateInterpretation?: (resultId: string, interpretation: string) => void;
+  onValidateTechnical?: (resultId: string) => void;
   onOpenPdf: (orderId: string) => void;
 }
 
@@ -187,12 +187,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         tenantId: order.tenantId,
         orderId: order.id,
         testId: `t-${code}`,
-        testCode: catItem.code,
+        parameterId: `p-${code}`,
         parameterName: catItem.name,
         value: '---',
         unit: catItem.unit,
         refRangeText: catItem.ref,
         flag: 'NORMAL',
+        source: 'MANUAL',
         status: 'PENDIENTE',
         specimenType: catItem.spec
       };
@@ -207,7 +208,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   // Button 3: Return / Rework
   const handleConfirmRework = () => {
     const targets = reworkTests.length > 0 ? reworkTests : patientResults.map(r => r.id);
-    targets.forEach(id => updateResultStatus(id, 'EN_PROCESO', 'PENDIENTE REPETICIÓN'));
+    targets.forEach(id => updateResultStatus(id, 'INGRESADO', 'PENDIENTE REPETICIÓN'));
     setActiveModal('NONE');
     showToast(`🔄 Muestra retornada a repetición técnica. Motivo: ${reworkReason}`);
   };
@@ -1028,9 +1029,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           <div className="max-w-4xl w-full my-8">
             <RejectedSampleWizard
               embeddedMode={true}
-              initialBarcode={order.specimenId || `BAR-${order.orderNumber}`}
+              initialBarcode={order.specimens?.[0]?.barcode || `BAR-${order.orderNumber}`}
               onComplete={() => {
-                showToast(`Muestra #${order.specimenId || order.orderNumber} rechazada. Notificaciones enviadas a Recepción y Paciente vía WhatsApp.`);
+                showToast(`Muestra #${order.specimens?.[0]?.barcode || order.orderNumber} rechazada. Notificaciones enviadas a Recepción y Paciente vía WhatsApp.`);
                 setActiveModal('NONE');
               }}
               onClose={() => setActiveModal('NONE')}
@@ -1333,10 +1334,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         <SecureInternalMessagingWidget
           initialOpen={true}
           activeSampleContext={{
-            barcode: order.specimenId || `BAR-${order.orderNumber}`,
+            barcode: order.specimens?.[0]?.barcode || `BAR-${order.orderNumber}`,
             orderNumber: order.orderNumber,
             patientName: `${patient.firstName} ${patient.lastName}`,
-            testName: patientResults[0]?.testName || 'Consulta de Resultado',
+            testName: patientResults[0]?.parameterName || 'Consulta de Resultado',
             value: patientResults[0]?.value,
             status: 'DUDOSA'
           }}

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLisStore } from './store/useLisStore';
 import { Role, Tenant, Branch, Order, TestResult, Patient, MiddlewareMessageLog, Specimen, User, AnalyzerTestMapping } from './types';
 import {
   MOCK_TENANTS,
   MOCK_USERS,
-  MOCK_PATIENTS,
   MOCK_TEST_CATALOG,
-  MOCK_ORDERS,
-  MOCK_RESULTS,
   MOCK_ANALYZERS,
   MOCK_MIDDLEWARE_LOGS,
   MOCK_WESTGARD_QC,
@@ -48,6 +46,7 @@ import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWork
 import { BatchReportingStudio } from './components/Phase6Suite/BatchReportingStudio';
 import { SecureInternalMessagingWidget } from './components/SecureInternalMessagingWidget';
 import { MasterTestCatalogManager } from './components/MasterTestCatalogManager';
+import { DashboardMetricsSummary } from './components/DashboardMetricsSummary';
 
 import { OwnerDashboard } from './components/RoleDashboards/OwnerDashboard';
 import { LabChiefDashboard } from './components/RoleDashboards/LabChiefDashboard';
@@ -79,14 +78,18 @@ export default function App() {
     activeOrderId,
     login,
     logout,
-    setActiveOrder
+    setCurrentUser,
+    setCurrentRole,
+    setCurrentTenant,
+    setCurrentBranch,
+    setActiveOrder,
+    setOrders,
+    setResults,
+    setPatients
   } = useLisStore();
 
-  // Tenant, Branch and User State (Transitioning to Zustand)
+  // Tenant and Branch Selection Modal State
   const [tenants, setTenants] = useState<Tenant[]>(MOCK_TENANTS);
-  const [currentTenantId, setCurrentTenantId] = useState<string>('lab-san-jose');
-  const [currentBranchId, setCurrentBranchId] = useState<string>('branch-via-espana');
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
   const [isBranchModalOpen, setIsBranchModalOpen] = useState<boolean>(false);
 
   // Navigation & View State
@@ -158,10 +161,7 @@ export default function App() {
     }, 350);
   };
 
-  // Domain data state
-  const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
-  const [results, setResults] = useState<TestResult[]>(MOCK_RESULTS);
+  // Middleware & Analyzer Mappings State
   const [middlewareLogs, setMiddlewareLogs] = useState<MiddlewareMessageLog[]>(MOCK_MIDDLEWARE_LOGS);
   const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(MOCK_ANALYZER_MAPPINGS);
 
@@ -182,46 +182,43 @@ export default function App() {
   // PDF Preview Modal State
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
-  const currentTenant = tenants.find((t) => t.id === currentTenantId) || tenants[0];
-  const currentBranch = currentTenant.branches.find((b) => b.id === (selectedBranchId || currentBranchId)) || currentTenant.branches[0];
-
   // Actions
   const handleLogin = (user: User, tenant: Tenant, branch: Branch) => {
-    setCurrentUser(user);
-    setCurrentRole(user.role);
-    setCurrentTenantId(tenant.id);
-    setCurrentBranchId(branch.id);
-    setSelectedBranchId(branch.id);
-    setIsAuthenticated(true);
+    login(user, tenant, branch);
     setIsBranchModalOpen(true);
-    setActiveTab('dashboard');
     triggerLoading();
   };
 
   const handleConfirmBranchSelection = (branchId: string) => {
-    setSelectedBranchId(branchId);
-    setCurrentBranchId(branchId);
+    const branch = currentTenant?.branches?.find((b) => b.id === branchId);
+    if (branch) {
+      setCurrentBranch(branch);
+    }
     setIsBranchModalOpen(false);
     triggerLoading();
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
   };
 
   const handleTenantChange = (tenantId: string) => {
     triggerLoading();
-    setCurrentTenantId(tenantId);
     const tenant = tenants.find((t) => t.id === tenantId);
-    if (tenant && tenant.branches.length > 0) {
-      setCurrentBranchId(tenant.branches[0].id);
+    if (tenant) {
+      setCurrentTenant(tenant);
+      if (tenant.branches.length > 0) {
+        setCurrentBranch(tenant.branches[0]);
+      }
     }
   };
 
   const handleBranchChange = (branchId: string) => {
     triggerLoading();
-    setCurrentBranchId(branchId);
-    setSelectedBranchId(branchId);
+    const branch = currentTenant?.branches?.find((b) => b.id === branchId);
+    if (branch) {
+      setCurrentBranch(branch);
+    }
   };
 
   const handleTabChange = (newTab: string) => {
@@ -428,9 +425,17 @@ export default function App() {
           <div className="max-w-7xl mx-auto p-4 sm:p-8">
             {activeTab === 'dashboard' && (
               <>
+                <DashboardMetricsSummary
+                  orders={orders}
+                  results={results}
+                  patients={patients}
+                  onFilterStat={() => setActiveTab('tm_workbench')}
+                  onFilterCritical={() => setActiveTab('delta')}
+                  onFilterErrors={() => setActiveTab('qc')}
+                />
                 {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
                 {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
-                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} patients={patients} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} />}
+                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} />}
                 {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} results={results} patients={patients} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} onOpenPdf={setPreviewOrderId} />}
                 {currentRole === 'receptionist' && (
                   <ReceptionDashboard
@@ -534,10 +539,9 @@ export default function App() {
         isOpen={isBranchModalOpen}
         currentUser={currentUser}
         currentTenant={currentTenant}
-        selectedBranchId={selectedBranchId || currentBranchId}
+        selectedBranchId={currentBranch?.id || ''}
         onSelectBranch={(branchId) => {
-          setSelectedBranchId(branchId);
-          setCurrentBranchId(branchId);
+          handleBranchChange(branchId);
         }}
         onConfirm={handleConfirmBranchSelection}
         onClose={() => setIsBranchModalOpen(false)}

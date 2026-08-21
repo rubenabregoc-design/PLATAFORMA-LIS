@@ -6,13 +6,13 @@ import { ResultEvaluator } from '../domain/ResultEvaluator';
 import { InterpretationEngine } from '../domain/InterpretationEngine';
 import { PermissionManager } from '../domain/PermissionManager';
 import { SupabaseRepository } from '../services/SupabaseRepository';
+import { supabase } from '../lib/supabaseClient';
 
 interface LisState {
-  // ... (existing fields)
-  currentUser: User | null;
+  currentUser: User;
   currentRole: Role;
-  currentTenant: Tenant | null;
-  currentBranch: Branch | null;
+  currentTenant: Tenant;
+  currentBranch: Branch;
   isAuthenticated: boolean;
 
   // --- Domain Data ---
@@ -34,11 +34,18 @@ interface LisState {
   fetchInitialData: () => Promise<void>;
   login: (user: User, tenant: Tenant, branch: Branch) => void;
   logout: () => void;
+  setCurrentUser: (user: User) => void;
+  setCurrentRole: (role: Role) => void;
+  setCurrentTenant: (tenant: Tenant) => void;
+  setCurrentBranch: (branch: Branch) => void;
   setSessionLock: (locked: boolean) => void;
   setActiveTab: (tab: string) => void;
   setActiveOrder: (orderId: string) => void;
 
   // --- Domain Actions ---
+  setOrders: (orders: Order[] | ((prev: Order[]) => Order[])) => void;
+  setResults: (results: TestResult[] | ((prev: TestResult[]) => TestResult[])) => void;
+  setPatients: (patients: Patient[] | ((prev: Patient[]) => Patient[])) => void;
   addOrder: (order: Order) => void;
   addResults: (newResults: TestResult[]) => void;
   updateResult: (resultId: string, newValue: string, resultData?: TestResult) => void;
@@ -113,43 +120,40 @@ export const useLisStore = create<LisState>()(
         }
       },
 
-      login: async (email, password) => {
-        set({ isLoading: true });
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (error) throw error;
-
-          if (data.user) {
-            // Buscamos el perfil extendido en nuestra tabla de usuarios (que crearemos en el SQL)
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
-
-            set({
-              currentUser: profile || { id: data.user.id, name: data.user.email, role: 'lab_tech' },
-              isAuthenticated: true
-            });
-          }
-        } catch (error: any) {
-          alert('Error de Autenticación: ' + error.message);
-        } finally {
-          set({ isLoading: false });
-        }
+      login: (user: User, tenant: Tenant, branch: Branch) => {
+        set({
+          currentUser: user,
+          currentRole: user.role,
+          currentTenant: tenant,
+          currentBranch: branch,
+          isAuthenticated: true,
+          activeTab: 'dashboard'
+        });
       },
 
-      logout: () => set({ isAuthenticated: false, currentUser: null }),
+      logout: () => set({ isAuthenticated: false }),
+      setCurrentUser: (user) => set({ currentUser: user, currentRole: user.role }),
+      setCurrentRole: (role) => set({ currentRole: role }),
+      setCurrentTenant: (tenant) => set({ currentTenant: tenant }),
+      setCurrentBranch: (branch) => set({ currentBranch: branch }),
 
       setSessionLock: (locked) => set({ isSessionLocked: locked }),
 
       setActiveTab: (tab) => set({ activeTab: tab }),
 
       setActiveOrder: (orderId) => set({ activeOrderId: orderId }),
+
+      setOrders: (updater) => set((state) => ({
+        orders: typeof updater === 'function' ? updater(state.orders) : updater
+      })),
+
+      setResults: (updater) => set((state) => ({
+        results: typeof updater === 'function' ? updater(state.results) : updater
+      })),
+
+      setPatients: (updater) => set((state) => ({
+        patients: typeof updater === 'function' ? updater(state.patients) : updater
+      })),
 
       addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
 
@@ -247,26 +251,27 @@ export const useLisStore = create<LisState>()(
 
         return {
           results: state.results.map(r => {
-          if (r.id === resultId) {
-            const auditEntry: AuditLogEntry = {
-              id: `audit-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              action: 'DESVALIDACION',
-              author: state.currentUser?.name || 'Sistema',
-              reason
-            };
-            return {
-              ...r,
-              status: 'INGRESADO',
-              technicalValidatedBy: undefined,
-              technicalValidatedAt: undefined,
-              version: (r.version || 1) + 1,
-              history: [...(r.history || []), auditEntry]
-            };
-          }
-          return r;
-        })
-      }))
+            if (r.id === resultId) {
+              const auditEntry: AuditLogEntry = {
+                id: `audit-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                action: 'DESVALIDACION',
+                author: state.currentUser?.name || 'Sistema',
+                reason
+              };
+              return {
+                ...r,
+                status: 'INGRESADO',
+                technicalValidatedBy: undefined,
+                technicalValidatedAt: undefined,
+                version: (r.version || 1) + 1,
+                history: [...(r.history || []), auditEntry]
+              };
+            }
+            return r;
+          })
+        };
+      })
     }),
     {
       name: 'lis-storage', // persist state in localStorage

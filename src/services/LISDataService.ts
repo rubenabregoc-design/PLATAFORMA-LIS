@@ -24,7 +24,7 @@ export const LISDataService = {
     const { data, error } = await supabase
       .from('patients')
       .insert([{
-        national_id: patient.idNumber || patient.nationalId,
+        national_id: patient.nationalId,
         first_name: patient.firstName,
         last_name: patient.lastName,
         gender: patient.gender,

@@ -190,8 +190,8 @@ export interface TestResult {
   status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DESVALIDADO';
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
-  version: number;
-  history: AuditLogEntry[];
+  version?: number;
+  history?: AuditLogEntry[];
 }
 
 export interface Analyzer {

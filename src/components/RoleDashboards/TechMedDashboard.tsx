@@ -11,7 +11,7 @@ interface TechMedDashboardProps {
 export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, orders, analyzers }) => {
   const pendingValidation = results.filter(r => r.status === 'PENDIENTE').length;
   const criticalResults = results.filter(r => r.flag?.includes('CRITICO')).length;
-  const activeAnalyzers = analyzers.filter(a => a.status === 'En línea').length;
+  const activeAnalyzers = analyzers.filter(a => a.status === 'ONLINE').length;
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -87,7 +87,7 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, ord
           <div className="space-y-3">
             {analyzers.map((a) => (
               <div key={a.id} className="bg-slate-900/40 border border-slate-800 p-4 rounded-3xl flex items-center space-x-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${a.status === 'En línea' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${a.status === 'ONLINE' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                   <Microscope className="w-5 h-5" />
                 </div>
                 <div>

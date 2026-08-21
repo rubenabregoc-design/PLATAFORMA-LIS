@@ -476,7 +476,9 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                                 >
                                   <td className="p-2 text-center">
                                     {isDesvalidado ? (
-                                      <AlertOctagon className="w-4 h-4 text-rose-600 mx-auto animate-bounce" title="Estado Revocado" />
+                                      <span title="Estado Revocado">
+                                        <AlertOctagon className="w-4 h-4 text-rose-600 mx-auto animate-bounce" />
+                                      </span>
                                     ) : isPending ? (
                                       <input
                                         type="checkbox"
@@ -501,7 +503,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-[10px] text-slate-500 font-mono">{res.testCode}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono">{res.parameterId || res.testId}</div>
                                   </td>
 
                                   <td className="p-2 text-center font-mono font-black text-sm">

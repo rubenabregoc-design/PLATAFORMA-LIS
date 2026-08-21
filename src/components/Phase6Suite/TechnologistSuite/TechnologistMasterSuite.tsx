@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Flame,
   CheckSquare,
   Activity,
   AlertOctagon,
@@ -8,6 +9,7 @@ import {
   Sparkles,
   LayoutDashboard
 } from 'lucide-react';
+import { StatPendingQueue } from './StatPendingQueue';
 import { AnalyticalValidationWorkstation } from './AnalyticalValidationWorkstation';
 import { InternalQualityControlQC } from './InternalQualityControlQC';
 import { CriticalPanicManagement } from './CriticalPanicManagement';
@@ -15,9 +17,16 @@ import { SpecializedLaboratorySections } from './SpecializedLaboratorySections';
 import { ReagentsHilPreanalytics } from './ReagentsHilPreanalytics';
 
 export const TechnologistMasterSuite: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'validation' | 'qc' | 'critical' | 'sections' | 'reagents'>('validation');
+  const [activeTab, setActiveTab] = useState<'stat_queue' | 'validation' | 'qc' | 'critical' | 'sections' | 'reagents'>('stat_queue');
 
   const tabs = [
+    {
+      id: 'stat_queue' as const,
+      label: 'Cola de Pendientes STAT & Validación Rápida',
+      shortLabel: '🚨 Cola STAT & Rápida',
+      icon: Flame,
+      badge: 'Prioridad Urgente'
+    },
     {
       id: 'validation' as const,
       label: 'Validación Analítica & Delta Check',
@@ -57,7 +66,7 @@ export const TechnologistMasterSuite: React.FC = () => {
 
   return (
     <div className="space-y-6" id="technologist-master-suite">
-      {/* Top Main Navigation Bar for the 5 Modules */}
+      {/* Top Main Navigation Bar for the Modules */}
       <div className="bg-slate-900/95 border border-slate-800/90 rounded-3xl p-3 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
           {tabs.map(tab => {
@@ -95,6 +104,7 @@ export const TechnologistMasterSuite: React.FC = () => {
 
       {/* Render Active Sub-Suite */}
       <div className="transition-all duration-300">
+        {activeTab === 'stat_queue' && <StatPendingQueue />}
         {activeTab === 'validation' && <AnalyticalValidationWorkstation />}
         {activeTab === 'qc' && <InternalQualityControlQC />}
         {activeTab === 'critical' && <CriticalPanicManagement />}

@@ -1,8 +1,8 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react';
 import { AlertOctagon, RefreshCw, Home, ShieldAlert } from 'lucide-react';
 
 interface Props {
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 interface State {
@@ -15,8 +15,8 @@ interface State {
  * Prevents the entire LIS from crashing due to a single component failure.
  * Essential for High Availability clinical systems.
  */
-export class GlobalErrorBoundary extends Component<Props, State> {
-  public state: State = {
+export class GlobalErrorBoundary extends React.Component<Props, State> {
+  public override state: State = {
     hasError: false,
     error: null
   };
@@ -25,9 +25,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[LIS-CRITICAL-ERROR]:', error, errorInfo);
-    // Here you would typically log to an external service like Sentry or Datadog
   }
 
   private handleReset = () => {
