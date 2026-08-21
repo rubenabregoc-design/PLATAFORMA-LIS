@@ -332,3 +332,52 @@ export interface AnalyzerTestMapping {
   updatedAt: string;
   updatedBy: string;
 }
+
+export type CriticalUrgencyLevel = 'CRITICO_PANICO' | 'ALTA_PRIORIDAD' | 'STAT_URGENTE';
+export type NotificationStatus = 'PENDIENTE' | 'NOTIFICADO' | 'NO_CONTESTO' | 'REINTENTAR';
+
+export interface NotificationLogItem {
+  id: string;
+  timestamp: string;
+  action: string;
+  user: string;
+  channel: 'WHATSAPP' | 'TELEFONO' | 'PRESENCIAL' | 'SMS';
+  recipientType: 'MEDICO_TRATANTE' | 'PACIENTE_DIRECTO' | 'FAMILIAR_EMERGENCIA';
+  recipientName: string;
+  recipientContact: string;
+  outcome: string;
+  notes?: string;
+}
+
+export interface PatientImmediateNotificationRecord {
+  orderId: string;
+  orderNumber: string;
+  patientId: string;
+  patientName: string;
+  patientNationalId: string;
+  patientPhone: string;
+  doctorName?: string;
+  flaggedAt: string;
+  flaggedBy: string;
+  urgencyLevel: CriticalUrgencyLevel;
+  status: NotificationStatus;
+  criticalReason: string;
+  criticalParameters: {
+    parameterName: string;
+    value: string;
+    unit: string;
+    refRangeText: string;
+    flag?: string;
+    specimenType?: string;
+  }[];
+  history: NotificationLogItem[];
+  notifiedAt?: string;
+  notifiedBy?: string;
+  channel?: 'WHATSAPP' | 'TELEFONO' | 'PRESENCIAL' | 'SMS';
+  recipientType?: 'MEDICO_TRATANTE' | 'PACIENTE_DIRECTO' | 'FAMILIAR_EMERGENCIA';
+  recipientName?: string;
+  recipientContact?: string;
+  outcome?: string;
+  notes?: string;
+}
+

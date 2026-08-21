@@ -81,6 +81,111 @@ export const MOCK_PATIENTS: Patient[] = [
     address: 'San Francisco, Calle 50, Edif. Torre Vega',
     dataConsentLey81: true,
     consentDate: '2026-01-10'
+  },
+  {
+    id: 'pat-002',
+    tenantId: 'lab-san-jose',
+    nationalId: '8-745-1290',
+    idType: 'CEDULA',
+    firstName: 'Ricardo',
+    lastName: 'Arosemena Boyd',
+    dob: '1984-11-22',
+    gender: 'M',
+    phone: '+507 6789-2211',
+    email: 'ricardo.arosemena@hotmail.com',
+    address: 'Costa del Este, Av. Centenario, PH Titanium',
+    dataConsentLey81: true,
+    consentDate: '2026-02-15'
+  },
+  {
+    id: 'pat-003',
+    tenantId: 'lab-san-jose',
+    nationalId: '4-721-9088',
+    idType: 'CEDULA',
+    firstName: 'Esteban',
+    lastName: 'Castillo Vega',
+    dob: '1980-03-12',
+    gender: 'M',
+    phone: '+507 6554-3322',
+    email: 'ecastillo.chiriqui@gmail.com',
+    address: 'David, Chiriquí, Calle 4ta',
+    dataConsentLey81: true,
+    consentDate: '2026-03-01'
+  },
+  {
+    id: 'pat-004',
+    tenantId: 'lab-san-jose',
+    nationalId: '8-910-3341',
+    idType: 'CEDULA',
+    firstName: 'Valeria',
+    lastName: 'Morales Rios',
+    dob: '1996-08-30',
+    gender: 'F',
+    phone: '+507 6223-1100',
+    email: 'valeria.morales.r@outlook.com',
+    address: 'El Cangrejo, Calle Eusebio Morales',
+    dataConsentLey81: true,
+    consentDate: '2026-04-12'
+  },
+  {
+    id: 'pat-005',
+    tenantId: 'lab-san-jose',
+    nationalId: '3-709-1823',
+    idType: 'CEDULA',
+    firstName: 'Dionisio',
+    lastName: 'Herrera Batista',
+    dob: '1968-12-05',
+    gender: 'M',
+    phone: '+507 6901-4477',
+    email: 'dionisio.herrera@gmail.com',
+    address: 'Colón, Zona Libre, Calle 11',
+    dataConsentLey81: true,
+    consentDate: '2026-05-18'
+  },
+  {
+    id: 'pat-006',
+    tenantId: 'lab-san-jose',
+    nationalId: '8-888-5120',
+    idType: 'CEDULA',
+    firstName: 'Lucía',
+    lastName: 'Santana De León',
+    dob: '1999-04-18',
+    gender: 'F',
+    phone: '+507 6332-9900',
+    email: 'lucia.santana.dl@gmail.com',
+    address: 'Clayton, Ciudad del Saber, Apto 402',
+    dataConsentLey81: false, // For testing consent block
+    consentDate: undefined
+  },
+  {
+    id: 'pat-007',
+    tenantId: 'lab-san-jose',
+    nationalId: 'PE-982103',
+    idType: 'PASAPORTE',
+    firstName: 'Alejandro',
+    lastName: 'Mendoza Silva',
+    dob: '1975-09-09',
+    gender: 'M',
+    phone: '+507 6443-8811',
+    email: 'alejandro.mendoza@latam.corp',
+    address: 'Punta Pacífica, Calle Isaac Hanono',
+    dataConsentLey81: true,
+    consentDate: '2026-06-20'
+  },
+  {
+    id: 'pat-008',
+    tenantId: 'lab-san-jose',
+    nationalId: '8-800-4491',
+    idType: 'CEDULA',
+    firstName: 'Mariana',
+    lastName: 'Navarro Lasso',
+    dob: '1990-02-14',
+    gender: 'F',
+    phone: '+507 6112-7766',
+    email: 'mariana.navarro@gmail.com',
+    address: 'Bella Vista, Av. Balboa, PH Yoo',
+    dataConsentLey81: true,
+    consentDate: '2026-07-01'
   }
 ];
 
@@ -335,80 +440,187 @@ export const MOCK_ORDERS: Order[] = [
     patientNationalId: '8-812-4432',
     patientGender: 'F',
     patientAge: 33,
+    doctorName: 'Dr. Roberto Eisenmann (Medicina Interna)',
     priority: 'RUTINA',
     status: 'VALIDADA_MED',
-    createdAt: '2026-08-10T07:30:00Z',
+    createdAt: '2026-08-18T07:30:00Z',
     totalAmount: 53.50,
     paymentStatus: 'PAGADO',
     specimens: [],
     testIds: ['test-hemograma', 'test-lipidico']
+  },
+  {
+    id: 'ord-1002',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00102',
+    patientId: 'pat-002',
+    patientName: 'Ricardo Arosemena Boyd',
+    patientNationalId: '8-745-1290',
+    patientGender: 'M',
+    patientAge: 41,
+    doctorName: 'Dra. Carmen Boyd (Endocrinología)',
+    priority: 'STAT',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-18T08:15:00Z',
+    totalAmount: 68.00,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-glucosa', 'test-tsh', 'test-creatinina']
+  },
+  {
+    id: 'ord-1003',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-david',
+    orderNumber: 'ORD-2026-00103',
+    patientId: 'pat-003',
+    patientName: 'Esteban Castillo Vega',
+    patientNationalId: '4-721-9088',
+    patientGender: 'M',
+    patientAge: 46,
+    doctorName: 'Dr. Franklin Castillo (Cardiología)',
+    priority: 'RUTINA',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-19T09:00:00Z',
+    totalAmount: 70.00,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-lipidico', 'test-creatinina', 'test-pt']
+  },
+  {
+    id: 'ord-1004',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00104',
+    patientId: 'pat-004',
+    patientName: 'Valeria Morales Rios',
+    patientNationalId: '8-910-3341',
+    patientGender: 'F',
+    patientAge: 29,
+    doctorName: 'Dra. Patricia Rios (Ginecología)',
+    priority: 'RUTINA',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-19T10:20:00Z',
+    totalAmount: 48.50,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma', 'test-hcg', 'test-uri']
+  },
+  {
+    id: 'ord-1005',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00105',
+    patientId: 'pat-005',
+    patientName: 'Dionisio Herrera Batista',
+    patientNationalId: '3-709-1823',
+    patientGender: 'M',
+    patientAge: 57,
+    doctorName: 'Dr. Alberto Herrera (Urología)',
+    priority: 'RUTINA',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-19T11:45:00Z',
+    totalAmount: 85.00,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hepatico', 'test-electrolitos']
+  },
+  {
+    id: 'ord-1006',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00106',
+    patientId: 'pat-006',
+    patientName: 'Lucía Santana De León',
+    patientNationalId: '8-888-5120',
+    patientGender: 'F',
+    patientAge: 27,
+    doctorName: 'Particular',
+    priority: 'RUTINA',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-20T07:15:00Z',
+    totalAmount: 33.50,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma', 'test-vdrl']
+  },
+  {
+    id: 'ord-1007',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00107',
+    patientId: 'pat-007',
+    patientName: 'Alejandro Mendoza Silva',
+    patientNationalId: 'PE-982103',
+    patientGender: 'M',
+    patientAge: 50,
+    doctorName: 'Dr. Jorge Mendoza (Salud Ocupacional)',
+    priority: 'STAT',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-20T08:30:00Z',
+    totalAmount: 92.00,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma', 'test-lipidico', 'test-glucosa', 'test-hiv']
+  },
+  {
+    id: 'ord-1008',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-david',
+    orderNumber: 'ORD-2026-00108',
+    patientId: 'pat-008',
+    patientName: 'Mariana Navarro Lasso',
+    patientNationalId: '8-800-4491',
+    patientGender: 'F',
+    patientAge: 36,
+    doctorName: 'Dra. Julia Lasso (Reumatología)',
+    priority: 'RUTINA',
+    status: 'VALIDADA_MED',
+    createdAt: '2026-08-20T09:10:00Z',
+    totalAmount: 50.50,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma', 'test-vsg', 'test-tsh']
   }
 ];
 
 export const MOCK_RESULTS: TestResult[] = [
-  {
-    id: 'res-1',
-    tenantId: 'lab-san-jose',
-    orderId: 'ord-1001',
-    testId: 'test-hemograma',
-    parameterId: 'p-wbc',
-    parameterName: 'Leucocitos (WBC)',
-    unit: 'x10^3/µL',
-    value: '7.2',
-    numericValue: 7.2,
-    flag: 'NORMAL',
-    refRangeText: '4.5 - 11.0',
-    source: 'MIDDLEWARE_ASTM',
-    status: 'VALIDADO_MED',
-    specimenType: 'Sangre Total',
-    interpretation: 'Valores dentro de la normalidad clínica.',
-    version: 1,
-    history: [
-      { id: 'h1', timestamp: '2026-08-10T08:00:00Z', action: 'CREACION', author: 'Sysmex XN-1000', newValue: '7.2' }
-    ]
-  },
-  {
-    id: 'res-2',
-    tenantId: 'lab-san-jose',
-    orderId: 'ord-1001',
-    testId: 'test-hemograma',
-    parameterId: 'p-hgb',
-    parameterName: 'Hemoglobina (HGB)',
-    unit: 'g/dL',
-    value: '13.8',
-    numericValue: 13.8,
-    flag: 'NORMAL',
-    refRangeText: '12.0 - 15.5',
-    source: 'MIDDLEWARE_ASTM',
-    status: 'VALIDADO_MED',
-    specimenType: 'Sangre Total',
-    version: 1,
-    history: [
-      { id: 'h2', timestamp: '2026-08-10T08:00:00Z', action: 'CREACION', author: 'Sysmex XN-1000', newValue: '13.8' }
-    ]
-  },
-  {
-    id: 'res-3',
-    tenantId: 'lab-san-jose',
-    orderId: 'ord-1001',
-    testId: 'test-lipidico',
-    parameterId: 'p-col',
-    parameterName: 'Colesterol Total',
-    unit: 'mg/dL',
-    value: '235',
-    numericValue: 235,
-    flag: 'ALTO',
-    refRangeText: '< 200',
-    source: 'MIDDLEWARE_ASTM',
-    status: 'VALIDADO_MED',
-    specimenType: 'Suero',
-    interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.',
-    version: 2,
-    history: [
-      { id: 'h3-1', timestamp: '2026-08-10T08:15:00Z', action: 'CREACION', author: 'Vitros 4600', newValue: '240' },
-      { id: 'h3-2', timestamp: '2026-08-10T09:00:00Z', action: 'EDICION', author: 'Lic. Sofía Guardia', previousValue: '240', newValue: '235', reason: 'Confirmación por dilución' }
-    ]
-  }
+  // ORD 1001 (Gabriela Pinzón)
+  { id: 'res-1', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-wbc', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.2', numericValue: 7.2, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total', interpretation: 'Valores dentro de la normalidad clínica.' },
+  { id: 'res-2', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-hemograma', parameterId: 'p-hgb', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '13.8', numericValue: 13.8, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
+  { id: 'res-3', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-col', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '235', numericValue: 235, flag: 'ALTO', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Hipercolesterolemia leve detectada. Se sugiere control dietético.' },
+  { id: 'res-4', tenantId: 'lab-san-jose', orderId: 'ord-1001', testId: 'test-lipidico', parameterId: 'p-trig', parameterName: 'Triglicéridos', unit: 'mg/dL', value: '145', numericValue: 145, flag: 'NORMAL', refRangeText: '< 150', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+
+  // ORD 1002 (Ricardo Arosemena)
+  { id: 'res-5', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-glucosa', parameterId: 'p-glu', parameterName: 'Glucosa en Ayunas', unit: 'mg/dL', value: '340', numericValue: 340, flag: 'CRITICO_ALTO', refRangeText: '70 - 99', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'VALOR DE PÁNICO NOTIFICADO AL MÉDICO TRATANTE.' },
+  { id: 'res-6', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-tsh', parameterId: 'p-tsh', parameterName: 'TSH Ultrasensible', unit: 'uIU/mL', value: '2.45', numericValue: 2.45, flag: 'NORMAL', refRangeText: '0.40 - 4.50', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+  { id: 'res-7', tenantId: 'lab-san-jose', orderId: 'ord-1002', testId: 'test-creatinina', parameterId: 'p-crea', parameterName: 'Creatinina Sérica', unit: 'mg/dL', value: '1.05', numericValue: 1.05, flag: 'NORMAL', refRangeText: '0.70 - 1.30', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+
+  // ORD 1003 (Esteban Castillo)
+  { id: 'res-8', tenantId: 'lab-san-jose', orderId: 'ord-1003', testId: 'test-lipidico', parameterId: 'p-col-3', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '188', numericValue: 188, flag: 'NORMAL', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+  { id: 'res-9', tenantId: 'lab-san-jose', orderId: 'ord-1003', testId: 'test-creatinina', parameterId: 'p-crea-3', parameterName: 'Creatinina Sérica', unit: 'mg/dL', value: '0.95', numericValue: 0.95, flag: 'NORMAL', refRangeText: '0.70 - 1.30', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+  { id: 'res-10', tenantId: 'lab-san-jose', orderId: 'ord-1003', testId: 'test-pt', parameterId: 'p-pt', parameterName: 'Tiempo de Protrombina (PT)', unit: 'Segundos', value: '12.4', numericValue: 12.4, flag: 'NORMAL', refRangeText: '11.0 - 13.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Plasma Citratado' },
+
+  // ORD 1004 (Valeria Morales)
+  { id: 'res-11', tenantId: 'lab-san-jose', orderId: 'ord-1004', testId: 'test-hemograma', parameterId: 'p-wbc-4', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '6.8', numericValue: 6.8, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
+  { id: 'res-12', tenantId: 'lab-san-jose', orderId: 'ord-1004', testId: 'test-hcg', parameterId: 'p-hcg', parameterName: 'hCG Cualitativa (Embarazo)', unit: 'Cualitativo', value: 'NEGATIVO', flag: 'NORMAL', refRangeText: 'Negativo', source: 'MANUAL', status: 'VALIDADO_MED', specimenType: 'Suero' },
+  { id: 'res-13', tenantId: 'lab-san-jose', orderId: 'ord-1004', testId: 'test-uri', parameterId: 'p-uri', parameterName: 'Urianálisis Físico-Químico', unit: 'Panel', value: 'Normal / Límpido', flag: 'NORMAL', refRangeText: 'Normal', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Orina' },
+
+  // ORD 1005 (Dionisio Herrera)
+  { id: 'res-14', tenantId: 'lab-san-jose', orderId: 'ord-1005', testId: 'test-hepatico', parameterId: 'p-alt', parameterName: 'TGP / ALT', unit: 'U/L', value: '68', numericValue: 68, flag: 'ALTO', refRangeText: '10 - 45', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Elevación moderada de enzimas hepáticas.' },
+  { id: 'res-15', tenantId: 'lab-san-jose', orderId: 'ord-1005', testId: 'test-electrolitos', parameterId: 'p-na', parameterName: 'Sodio (Na)', unit: 'mEq/L', value: '141', numericValue: 141, flag: 'NORMAL', refRangeText: '135 - 145', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+
+  // ORD 1006 (Lucía Santana)
+  { id: 'res-16', tenantId: 'lab-san-jose', orderId: 'ord-1006', testId: 'test-hemograma', parameterId: 'p-hgb-6', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '12.2', numericValue: 12.2, flag: 'NORMAL', refRangeText: '12.0 - 15.5', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' },
+  { id: 'res-17', tenantId: 'lab-san-jose', orderId: 'ord-1006', testId: 'test-vdrl', parameterId: 'p-vdrl', parameterName: 'VDRL / RPR', unit: 'Cualitativo', value: 'NO REACTIVO', flag: 'NORMAL', refRangeText: 'No Reactivo', source: 'MANUAL', status: 'VALIDADO_MED', specimenType: 'Suero' },
+
+  // ORD 1007 (Alejandro Mendoza)
+  { id: 'res-18', tenantId: 'lab-san-jose', orderId: 'ord-1007', testId: 'test-glucosa', parameterId: 'p-glu-7', parameterName: 'Glucosa en Ayunas', unit: 'mg/dL', value: '92', numericValue: 92, flag: 'NORMAL', refRangeText: '70 - 99', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' },
+  { id: 'res-19', tenantId: 'lab-san-jose', orderId: 'ord-1007', testId: 'test-hiv', parameterId: 'p-hiv', parameterName: 'HIV 1/2 Ag/Ab 4ta Generación', unit: 'Cualitativo', value: 'NO REACTIVO', flag: 'NORMAL', refRangeText: 'No Reactivo', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero', interpretation: 'Prueba de tamizaje no reactiva.' },
+
+  // ORD 1008 (Mariana Navarro)
+  { id: 'res-20', tenantId: 'lab-san-jose', orderId: 'ord-1008', testId: 'test-vsg', parameterId: 'p-vsg-8', parameterName: 'VSG (Eritrosedimentación)', unit: 'mm/h', value: '38', numericValue: 38, flag: 'ALTO', refRangeText: '0 - 20', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total', interpretation: 'Velocidad de sedimentación acelerada.' },
+  { id: 'res-21', tenantId: 'lab-san-jose', orderId: 'ord-1008', testId: 'test-tsh', parameterId: 'p-tsh-8', parameterName: 'TSH Ultrasensible', unit: 'uIU/mL', value: '1.92', numericValue: 1.92, flag: 'NORMAL', refRangeText: '0.40 - 4.50', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Suero' }
 ];
 
 export const MOCK_ANALYZERS: Analyzer[] = [

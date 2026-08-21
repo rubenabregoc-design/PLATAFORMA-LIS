@@ -45,6 +45,7 @@ import { BloodBankModule } from './components/Phase6Suite/BloodBankModule';
 import { LabelPrinterStudio } from './components/Phase6Suite/LabelPrinterStudio';
 import { LabProductivityDashboard } from './components/Phase6Suite/LabProductivityDashboard';
 import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWorkbench';
+import { BatchReportingStudio } from './components/Phase6Suite/BatchReportingStudio';
 import { SecureInternalMessagingWidget } from './components/SecureInternalMessagingWidget';
 import { MasterTestCatalogManager } from './components/MasterTestCatalogManager';
 
@@ -436,12 +437,24 @@ export default function App() {
                     patients={patients}
                     testCatalog={MOCK_TEST_CATALOG}
                     orders={orders}
+                    results={results}
                     onCreateOrder={handleCreateOrder}
                     onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
                   />
                 )}
                 {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
               </>
+            )}
+
+            {activeTab === 'batch_reporting' && (
+              <BatchReportingStudio
+                orders={orders}
+                patients={patients}
+                results={results}
+                tenant={currentTenant}
+                branch={currentBranch}
+                onOpenSinglePdf={setPreviewOrderId}
+              />
             )}
 
             {activeTab === 'patient_results' && (
@@ -465,7 +478,12 @@ export default function App() {
             {activeTab === 'test_catalog' && <MasterTestCatalogManager />}
             {activeTab === 'shifts' && <ShiftManagementModule />}
             {activeTab === 'tm_workbench' && <TechnologistWorkbench />}
-            {activeTab === 'productivity' && <LabProductivityDashboard />}
+            {activeTab === 'productivity' && (
+              <LabProductivityDashboard
+                orders={orders}
+                onNavigateToShifts={() => setActiveTab('shifts')}
+              />
+            )}
             {activeTab === 'label_studio' && <LabelPrinterStudio />}
             {activeTab === 'eqa' && <EqaPeecModule />}
             {activeTab === 'cmms' && <EquipmentMaintenanceCmms />}

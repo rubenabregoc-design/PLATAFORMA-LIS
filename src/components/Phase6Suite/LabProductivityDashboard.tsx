@@ -32,9 +32,18 @@ import {
   Gauge,
   MapPin,
   Users,
-  LayoutGrid
+  LayoutGrid,
+  BrainCircuit,
+  ArrowRight
 } from 'lucide-react';
 import { LabSpatialMonitor } from './LabSpatialMonitor';
+import { HourlyWorkloadPredictorWidget } from './HourlyWorkloadPredictorWidget';
+import { Order } from '../../types';
+
+interface LabProductivityDashboardProps {
+  orders?: Order[];
+  onNavigateToShifts?: () => void;
+}
 
 // Mock Data 1: TAT por Sede (Promedio Real vs Meta SLA en minutos)
 const TAT_PER_BRANCH_DATA = [
@@ -77,10 +86,13 @@ const MONTHLY_REJECTION_RATE = [
   { month: 'Ago', rate: 0.9, limit: 1.5 }
 ];
 
-export const LabProductivityDashboard: React.FC = () => {
+export const LabProductivityDashboard: React.FC<LabProductivityDashboardProps> = ({
+  orders = [],
+  onNavigateToShifts
+}) => {
   const [selectedBranch, setSelectedBranch] = useState<string>('TODAS');
   const [selectedShift, setSelectedShift] = useState<string>('MAÑANA');
-  const [activeTab, setActiveTab] = useState<'spatial_monitor' | 'tat_analytics' | 'rejections_qc' | 'all_overview'>('spatial_monitor');
+  const [activeTab, setActiveTab] = useState<'spatial_monitor' | 'workload_prediction' | 'tat_analytics' | 'rejections_qc' | 'all_overview'>('workload_prediction');
 
   const totalSamplesToday = 1200;
   const totalRejectionsToday = 47;
@@ -101,7 +113,7 @@ export const LabProductivityDashboard: React.FC = () => {
               Productividad del Laboratorio & Gestión Espacial de Carga
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-2xl leading-relaxed">
-              Supervisión de mesones en tiempo real con D3.js para reasignación ágil de tecnólogos, monitoreo de TAT por sede y control estadístico de rechazos pre-analíticos.
+              Supervisión de mesones en tiempo real con D3.js para reasignación ágil de tecnólogos, monitoreo de TAT por sede, control de rechazos y motor predictivo de demanda horaria para ajuste de turnos.
             </p>
           </div>
 
@@ -109,7 +121,7 @@ export const LabProductivityDashboard: React.FC = () => {
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs font-bold text-teal-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-teal-500"
+              className="bg-slate-950 border border-slate-800 text-xs font-bold text-teal-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-lg"
             >
               <option value="TODAS">Todas las Sedes</option>
               <option value="Vía España">Sede Vía España</option>
@@ -162,6 +174,22 @@ export const LabProductivityDashboard: React.FC = () => {
         {/* View Navigation Sub-Tabs */}
         <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-white/10 relative z-10">
           <button
+            onClick={() => setActiveTab('workload_prediction')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeTab === 'workload_prediction'
+                ? 'bg-gradient-to-r from-indigo-500 to-teal-500 text-slate-950 border-teal-300 shadow-xl shadow-teal-500/30 font-black'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <BrainCircuit className="w-4 h-4" />
+            <span>Predicción Horaria IA & Ajuste de Turnos</span>
+            <span className="bg-slate-950/90 text-teal-300 border border-teal-400/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+              <span>Día Siguiente</span>
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('spatial_monitor')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
               activeTab === 'spatial_monitor'
@@ -171,9 +199,8 @@ export const LabProductivityDashboard: React.FC = () => {
           >
             <LayoutGrid className="w-4 h-4 text-indigo-300" />
             <span>Lab Spatial Monitor (D3.js)</span>
-            <span className="bg-indigo-950 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-              <span>Reasignar Personal</span>
+            <span className="bg-indigo-950 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+              Mesones
             </span>
           </button>
 
@@ -214,6 +241,41 @@ export const LabProductivityDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Predictive Workload Alert Bar (when in other tabs) */}
+      {activeTab !== 'workload_prediction' && (
+        <div className="bg-gradient-to-r from-indigo-950/80 via-slate-900 to-indigo-950/80 border border-indigo-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center space-x-3 text-xs">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center justify-center shrink-0">
+              <BrainCircuit className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <span className="font-bold text-white block">
+                Predicción de Carga Horaria para Mañana disponible:
+              </span>
+              <span className="text-slate-300">
+                Se prevé un pico de <strong className="text-teal-300">175 tubos a las 09:00 AM</strong> con posible déficit de dotación en Bioquímica y Hematología.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('workload_prediction')}
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-teal-500 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shrink-0 hover:brightness-110 transition cursor-pointer shadow"
+          >
+            <span>Ver Curva & Ajustar Turnos</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* VIEW: WORKLOAD PREDICTION & SHIFT ADJUSTMENT (NEW WIDGET) */}
+      {(activeTab === 'workload_prediction' || activeTab === 'all_overview') && (
+        <HourlyWorkloadPredictorWidget
+          orders={orders}
+          selectedBranch={selectedBranch}
+          onNavigateToShifts={onNavigateToShifts}
+        />
+      )}
 
       {/* VIEW 1: LAB SPATIAL MONITOR (D3) */}
       {(activeTab === 'spatial_monitor' || activeTab === 'all_overview') && (

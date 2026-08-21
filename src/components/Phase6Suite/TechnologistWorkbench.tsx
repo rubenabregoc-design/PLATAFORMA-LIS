@@ -56,6 +56,7 @@ import { SecureInternalMessagingWidget } from '../SecureInternalMessagingWidget'
 import { RejectedSampleWizard } from './RejectedSampleWizard';
 import { SampleIntegrityMonitorView } from './SampleIntegrityMonitorView';
 import { QuickScanCameraModal } from './QuickScanCameraModal';
+import { TechnologistMasterSuite } from './TechnologistSuite/TechnologistMasterSuite';
 import { offlineSyncManager } from '../../utils/offlineSyncEngine';
 
 // --- TYPES ---
@@ -187,7 +188,7 @@ export interface TemperatureCheckItem {
 }
 
 export const TechnologistWorkbench: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'sample_integrity' | 'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('sample_integrity');
+  const [activeSubTab, setActiveSubTab] = useState<'tm_suite_5' | 'sample_integrity' | 'hematology' | 'hil_dilution' | 'timers' | 'bloodbank' | 'biosafety' | 'cds_engine' | 'tat_monitor' | 'audit_trail' | 'inter_branch_chat' | 'rejected_samples'>('tm_suite_5');
 
   // --- QUICK SCAN CAMERA BARCODE/QR STATE ---
   const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState<boolean>(false);
@@ -1468,6 +1469,21 @@ export const TechnologistWorkbench: React.FC = () => {
         {/* SUB-MODULE TABS NAVIGATION */}
         <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-white/10 relative z-10">
           <button
+            onClick={() => setActiveSubTab('tm_suite_5')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
+              activeSubTab === 'tm_suite_5'
+                ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 border-teal-300 shadow-xl shadow-teal-400/30 ring-2 ring-teal-400/50 font-black'
+                : 'bg-slate-900/90 text-teal-300 border-teal-500/40 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-slate-950" />
+            <span>✨ Suite Especializada (5 Módulos TM)</span>
+            <span className="bg-slate-950 text-teal-300 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+              ISO/Westgard/SLA
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('sample_integrity')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center space-x-2 cursor-pointer border ${
               activeSubTab === 'sample_integrity'
@@ -1752,6 +1768,11 @@ export const TechnologistWorkbench: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* --- MASTER SUITE: 5 ADVANCED TECHNOLOGIST MODULES --- */}
+      {activeSubTab === 'tm_suite_5' && (
+        <TechnologistMasterSuite />
+      )}
 
       {/* --- SUB-TAB 1: HEMATOLOGY DIFFERENTIAL COUNTER & ATLAS --- */}
       {activeSubTab === 'hematology' && (
