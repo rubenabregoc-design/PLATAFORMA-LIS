@@ -120,7 +120,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '70 - 99',
           source: 'MIDDLEWARE_ASTM',
           analyzerName: 'Ortho Vitros 4600',
-          status: 'INGRESADO',
+          status: 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Suero',
           interpretation: 'Valor crítico de pánico. Requiere confirmación por dilución y notificación médica inmediata.'
         };
@@ -168,7 +170,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '< 14.0',
           source: 'MIDDLEWARE_HL7',
           analyzerName: 'Roche Cobas 6000 (e601 ECLIA)',
-          status: 'INGRESADO',
+          status: 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Suero',
           interpretation: '¡ALERTA CRÍTICA STAT! Elevación severa compatible con síndrome coronario agudo.'
         };
@@ -216,7 +220,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '3.5 - 5.1',
           source: 'MIDDLEWARE_HL7',
           analyzerName: 'Abbott Alinity ci',
-          status: 'INGRESADO',
+          status: 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Suero',
           interpretation: '¡Peligro de arritmia cardíaca por hipopotasemia severa! Notificar a médico tratante.'
         };
@@ -264,7 +270,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '0.80 - 1.20',
           source: 'MIDDLEWARE_ASTM',
           analyzerName: 'Stago STA Compact Max',
-          status: 'INGRESADO',
+          status: 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Plasma Citratado',
           interpretation: 'Riesgo hemorrágico elevado. Paciente en sobre-anticoagulación por cumarínicos.'
         };
@@ -312,7 +320,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '4.0 - 5.6',
           source: 'MIDDLEWARE_ASTM',
           analyzerName: 'Bio-Rad D-10 HPLC',
-          status: 'INGRESADO',
+          status: 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Sangre Total EDTA',
           interpretation: 'Descontrol metabólico severo. Control glucémico promedio estimado > 275 mg/dL.'
         };
@@ -362,7 +372,9 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           refRangeText: '4.50 - 11.00',
           source: 'MIDDLEWARE_ASTM',
           analyzerName: 'Sysmex XN-1000',
-          status: deltaCheckActive ? 'VALIDADO_TEC' : 'INGRESADO',
+          status: deltaCheckActive ? 'PRE-VALIDADO' : 'PENDIENTE',
+          version: 1,
+          history: [],
           specimenType: 'Sangre Total EDTA',
           interpretation: 'Parámetros hematológicos normales auto-verificados por LIS-Core.'
         };

@@ -16,6 +16,8 @@ import { turnService } from '../../utils/turnService';
 import { printerService, ThermalPrinterDevice, SpecimenTubeLabel } from '../../utils/printerService';
 import { CriticalNotificationModal } from './CriticalNotificationModal';
 import { MOCK_RESULTS } from '../../data/mockData';
+import { SupabaseService } from '../../services/SupabaseService';
+import { notifyToast } from '../../utils/toastNotification';
 
 interface ReceptionDashboardProps {
   patients: Patient[];
@@ -162,6 +164,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   const [dateFilter, setDateFilter] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState<string | null>(null);
   const [createdOrderSummary, setCreatedOrderSummary] = useState<Order | null>(null);
+  const [portalAccessCode, setPortalAccessCode] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
   // Helper to extract critical and high-priority status for an order
@@ -431,7 +434,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      alert('Por favor complete los datos obligatorios marcados en rojo.');
+      notifyToast('Por favor complete los datos obligatorios marcados en rojo.', 'warning');
       return;
     }
 
@@ -531,12 +534,20 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       setActiveAttendingTicketNumber(null);
     }
 
+    // Generate Patient Portal Access Code
+    try {
+      const accessCode = await SupabaseService.patientPortal.generateAccessToken(newOrder.patientId, newOrder.id);
+      setPortalAccessCode(accessCode);
+    } catch (err) {
+      console.error('Error generating portal code', err);
+    }
+
     setShowSuccessDialog(newOrder.id);
   };
 
   const handleManualPrintLabels = async (order: Order) => {
     const printResult = await printerService.printOrderSpecimenLabels(order, undefined, { autoTriggered: false });
-    alert(`✓ ${printResult.labelsCount} etiqueta(s) enviadas a imprimir en ${printResult.printer.name}`);
+    notifyToast(`✓ ${printResult.labelsCount} etiqueta(s) enviadas a imprimir en ${printResult.printer.name}`, 'success');
   };
 
   const handleToggleAutoPrint = () => {
@@ -1353,7 +1364,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                           testIds: ['test-hemograma', 'test-quimica']
                         };
                         await printerService.printOrderSpecimenLabels(mockOrder, undefined, { targetPrinterId: printer.id });
-                        alert(`✓ Prueba de impresión enviada exitosamente a ${printer.name}`);
+                        notifyToast(`✓ Prueba de impresión enviada exitosamente a ${printer.name}`, 'success');
                       }}
                       className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold rounded-xl text-[10px] transition cursor-pointer"
                     >
@@ -1401,6 +1412,28 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                 {createdOrderSummary.patientName} • Cédula: {createdOrderSummary.patientNationalId}
               </p>
             </div>
+
+            {/* Patient Portal Access Code Section */}
+            {portalAccessCode && (
+              <div className="bg-slate-950 p-6 rounded-3xl border-2 border-dashed border-teal-500/30 space-y-4">
+                <div className="flex items-center justify-center gap-2 text-teal-400">
+                  <Globe size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Acceso a Resultados Online</span>
+                </div>
+                <div className="text-4xl font-black text-white tracking-[0.3em] font-mono">
+                  {portalAccessCode}
+                </div>
+                <p className="text-[9px] text-slate-500 uppercase font-bold">Entregue este código al paciente para consultar en<br/>www.plataforma-lis.com/portal</p>
+                <div className="flex justify-center gap-2">
+                  <button className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-teal-300 px-3 py-1.5 rounded-xl text-[9px] font-black transition-all">
+                    <Smartphone size={14} /> SMS
+                  </button>
+                  <button className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-emerald-300 px-3 py-1.5 rounded-xl text-[9px] font-black transition-all">
+                    <Smartphone size={14} /> WHATSAPP
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Critical Alert Indicator in Success Dialog */}
             {createdOrderSummary.priority === 'STAT' && (

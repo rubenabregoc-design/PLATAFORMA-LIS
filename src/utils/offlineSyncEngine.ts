@@ -4,9 +4,22 @@
  * when the middleware server or cloud connection is unstable.
  */
 
+import { SupabaseService } from '../services/SupabaseService';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
+import { notifyToast } from './toastNotification';
+import { lisIndexedDb } from './indexedDbStorage';
+
 export interface OfflineSyncItem {
   id: string;
-  type: 'RESULT_VALIDATION' | 'TUBE_SCAN' | 'SAMPLE_REGISTRATION' | 'SAMPLE_INTEGRITY_ACTION' | 'STAT_FLAG';
+  type:
+    | 'RESULT_VALIDATION'
+    | 'RESULT_UPDATE'
+    | 'RESULT_UNVALIDATE'
+    | 'TUBE_SCAN'
+    | 'SAMPLE_REGISTRATION'
+    | 'PATIENT_REGISTRATION'
+    | 'SAMPLE_INTEGRITY_ACTION'
+    | 'STAT_FLAG';
   timestamp: string;
   payload: Record<string, any>;
   sampleBarcode?: string;
@@ -14,6 +27,7 @@ export interface OfflineSyncItem {
   testCode?: string;
   retryCount: number;
   status: 'PENDING' | 'SYNCING' | 'FAILED';
+  errorMessage?: string;
 }
 
 const STORAGE_KEY = 'LISCORE_OFFLINE_SYNC_QUEUE_V2';
@@ -25,10 +39,25 @@ export class OfflineSyncManager {
   private isSimulatedOffline: boolean = false;
   private isSyncing: boolean = false;
   private listeners: Array<() => void> = [];
+  private cachedQueue: OfflineSyncItem[] = [];
+  private isInitialized: boolean = false;
 
   private constructor() {
     if (typeof window !== 'undefined') {
       this.isSimulatedOffline = localStorage.getItem(SIMULATED_OFFLINE_KEY) === 'true';
+
+      // Carga inicial sincrónica desde localStorage para disponibilidad inmediata en render
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          this.cachedQueue = JSON.parse(raw);
+        }
+      } catch {
+        this.cachedQueue = [];
+      }
+
+      // Hidratación y migración asincrónica a IndexedDB si está disponible
+      this.initIndexedDb();
 
       window.addEventListener('online', () => this.handleNetworkChange(true));
       window.addEventListener('offline', () => this.handleNetworkChange(false));
@@ -39,6 +68,26 @@ export class OfflineSyncManager {
           this.syncPendingQueue();
         }
       }, 8000);
+    }
+  }
+
+  private async initIndexedDb(): Promise<void> {
+    if (!lisIndexedDb.hasIndexedDb()) return;
+
+    try {
+      const dbItems = await lisIndexedDb.getQueueItems<OfflineSyncItem>();
+      if (dbItems && dbItems.length > 0) {
+        // IndexedDB ya tiene elementos más recientes o de mayor capacidad
+        this.cachedQueue = dbItems;
+      } else if (this.cachedQueue.length > 0) {
+        // Migración automática inicial: Volcar localStorage hacia IndexedDB
+        await lisIndexedDb.replaceEntireQueue(this.cachedQueue);
+        console.info(`[OfflineSyncManager] Migrados ${this.cachedQueue.length} ítems de localStorage a IndexedDB.`);
+      }
+      this.isInitialized = true;
+      this.notify();
+    } catch (e) {
+      console.warn('[OfflineSyncManager] Error al inicializar IndexedDB:', e);
     }
   }
 
@@ -93,20 +142,27 @@ export class OfflineSyncManager {
   }
 
   public getQueue(): OfflineSyncItem[] {
-    if (typeof window === 'undefined') return [];
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (!data) return [];
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
+    return this.cachedQueue;
   }
 
   public getStorageUsageBytes(): number {
-    if (typeof window === 'undefined') return 0;
-    const data = localStorage.getItem(STORAGE_KEY) || '';
-    return new Blob([data]).size;
+    const raw = JSON.stringify(this.cachedQueue);
+    return typeof Blob !== 'undefined' ? new Blob([raw]).size : raw.length;
+  }
+
+  public getStorageEngine(): 'IndexedDB' | 'localStorage' {
+    return lisIndexedDb.hasIndexedDb() ? 'IndexedDB' : 'localStorage';
+  }
+
+  public async getStorageMetrics(): Promise<{ engine: string; usageBytes: number; quotaBytes: number; usagePercent: number }> {
+    const estimate = await lisIndexedDb.getStorageEstimate();
+    const queueBytes = this.getStorageUsageBytes();
+    return {
+      engine: this.getStorageEngine(),
+      usageBytes: estimate.usageBytes || queueBytes,
+      quotaBytes: estimate.quotaBytes || 5 * 1024 * 1024,
+      usagePercent: estimate.usagePercent || (queueBytes / (5 * 1024 * 1024)) * 100
+    };
   }
 
   public enqueue(item: Omit<OfflineSyncItem, 'id' | 'timestamp' | 'retryCount' | 'status'>): OfflineSyncItem {
@@ -118,9 +174,14 @@ export class OfflineSyncManager {
       status: 'PENDING'
     };
 
-    const queue = this.getQueue();
-    queue.unshift(fullItem);
-    this.saveQueue(queue);
+    this.cachedQueue.unshift(fullItem);
+    this.saveQueue(this.cachedQueue);
+    
+    // Persistencia asíncrona transaccional en IndexedDB
+    lisIndexedDb.saveQueueItem(fullItem).catch((e) => {
+      console.warn('[OfflineSyncManager] Error guardando en IndexedDB:', e);
+    });
+
     this.notify();
 
     // If online, trigger background sync
@@ -132,12 +193,25 @@ export class OfflineSyncManager {
   }
 
   private saveQueue(queue: OfflineSyncItem[]) {
+    this.cachedQueue = queue;
     if (typeof window === 'undefined') return;
+
+    // Dual-write: respaldo en localStorage (hasta 5MB) para arranque síncrono ultra-rápido
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-    } catch (e) {
-      console.error('Failed to save offline sync queue to localStorage', e);
+    } catch (e: any) {
+      console.warn('LocalStorage saturado, utilizando IndexedDB como store primario', e);
+      if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+        if (!lisIndexedDb.hasIndexedDb()) {
+          notifyToast('⚠️ Cuota de almacenamiento local excedida. Descargue el paquete DRP para respaldar.', 'error', 6000);
+        }
+      }
     }
+
+    // Persistencia en IndexedDB (sin límite de 5MB)
+    lisIndexedDb.replaceEntireQueue(queue).catch((err) => {
+      console.warn('[OfflineSyncManager] Fallo de persistencia en IndexedDB:', err);
+    });
   }
 
   public async syncPendingQueue(): Promise<{ syncedCount: number; remainingCount: number }> {
@@ -158,15 +232,77 @@ export class OfflineSyncManager {
 
     for (const item of queue) {
       try {
-        // Simulate network transmit latency with server/middleware
-        await new Promise((res) => setTimeout(res, 350));
-        // Simulated success delivery to LIS middleware
+        if (!isSupabaseConfigured) {
+          // Entorno local / demo aislado sin credenciales Supabase
+          await new Promise((res) => setTimeout(res, 120));
+          synced++;
+          continue;
+        }
+
+        // Despacho transaccional seguro según el tipo de operación
+        switch (item.type) {
+          case 'RESULT_UPDATE': {
+            const { resultId, value, numeric_value, status, interpretation, reason } = item.payload;
+            await SupabaseService.results.update(
+              resultId,
+              {
+                value,
+                numeric_value: numeric_value ?? null,
+                status: status || 'PENDIENTE',
+                interpretation: interpretation ?? null,
+              },
+              reason || 'Sincronización automática de cambios offline'
+            );
+            break;
+          }
+
+          case 'RESULT_VALIDATION': {
+            const { resultId, status } = item.payload;
+            await SupabaseService.results.validate(
+              resultId,
+              status || 'VALIDADO'
+            );
+            break;
+          }
+
+          case 'RESULT_UNVALIDATE': {
+            const { resultId, reason } = item.payload;
+            await SupabaseService.results.update(
+              resultId,
+              { status: 'PENDIENTE' },
+              reason || 'Desvalidación offline sincronizada'
+            );
+            break;
+          }
+
+          case 'SAMPLE_REGISTRATION': {
+            await SupabaseService.orders.create(item.payload as any);
+            break;
+          }
+
+          case 'PATIENT_REGISTRATION': {
+            await SupabaseService.patients.create(item.payload as any);
+            break;
+          }
+
+          case 'TUBE_SCAN':
+          case 'SAMPLE_INTEGRITY_ACTION':
+          case 'STAT_FLAG':
+          default: {
+            console.info(`[OfflineSyncManager] Sincronizando evento telemétrico ${item.type}:`, item.payload);
+            await new Promise((res) => setTimeout(res, 80));
+            break;
+          }
+        }
+
         synced++;
-      } catch (err) {
+      } catch (err: any) {
+        console.error(`[OfflineSyncManager] Error sincronizando ${item.id} (${item.type}):`, err);
         remaining.push({
           ...item,
           retryCount: item.retryCount + 1,
-          status: 'FAILED'
+          status: 'FAILED',
+          errorMessage: err?.message || 'Fallo de transmisión de red'
         });
       }
     }
@@ -175,11 +311,26 @@ export class OfflineSyncManager {
     this.isSyncing = false;
     this.notify();
 
+    if (synced > 0) {
+      notifyToast(
+        `✓ Sincronización exitosa: ${synced} operación(es) transmitida(s) a la nube central.`,
+        'success'
+      );
+    }
+
+    if (remaining.length > 0) {
+      notifyToast(
+        `⚠️ Sincronización parcial: ${remaining.length} operación(es) permanecen en buffer para reintento.`,
+        'warning'
+      );
+    }
+
     return { syncedCount: synced, remainingCount: remaining.length };
   }
 
   public clearQueue() {
     this.saveQueue([]);
+    lisIndexedDb.clearQueue().catch((e) => console.warn('[OfflineSyncManager] Error limpiando cola en IndexedDB:', e));
     this.notify();
   }
 

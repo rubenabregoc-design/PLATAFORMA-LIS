@@ -132,13 +132,18 @@ export function evaluateTestResult(
   }
 
   // 1. Extract numeric value
+  const rawValue = result.value ? result.value.trim() : '';
+  const isEmptyValue = !rawValue || rawValue === '---' || rawValue === 'PENDIENTE';
+
   let numericVal: number | null = null;
-  if (typeof result.numericValue === 'number' && !isNaN(result.numericValue)) {
-    numericVal = result.numericValue;
-  } else if (result.value) {
-    const parsed = parseFloat(result.value.replace(',', '.').replace(/[^0-9.-]/g, ''));
-    if (!isNaN(parsed)) {
-      numericVal = parsed;
+  if (!isEmptyValue) {
+    if (typeof result.numericValue === 'number' && !isNaN(result.numericValue)) {
+      numericVal = result.numericValue;
+    } else {
+      const parsed = parseFloat(rawValue.replace(',', '.').replace(/[^0-9.-]/g, ''));
+      if (!isNaN(parsed)) {
+        numericVal = parsed;
+      }
     }
   }
 
@@ -237,22 +242,22 @@ export function evaluateTestResult(
 
   // 3. Evaluation logic
   if (numericVal === null) {
-    // Non-numeric result
-    const isQualitativeFlag = result.flag === 'ALTO' || result.flag === 'BAJO' || result.flag?.includes('CRITICO');
+    // Non-numeric or empty result
+    const isQualitativeFlag = !isEmptyValue && (result.flag === 'ALTO' || result.flag === 'BAJO' || !!result.flag?.includes('CRITICO'));
     return {
       isOutOfRange: isQualitativeFlag,
       severity: isQualitativeFlag ? 'HIGH' : 'NORMAL',
-      flag: result.flag || 'NORMAL',
+      flag: isEmptyValue ? 'NORMAL' : (result.flag || 'NORMAL'),
       numericValue: null,
       minValue,
       maxValue,
       criticalMin,
       criticalMax,
-      cueText: isQualitativeFlag ? '⚠️ ALERTA' : 'NORMAL',
-      badgeLabel: isQualitativeFlag ? 'FUERA DE RANGO' : 'NORMAL',
-      alertDetail: isQualitativeFlag ? 'Resultado cualitativo fuera de referencia' : 'En rango normal',
+      cueText: isEmptyValue ? 'PENDIENTE' : isQualitativeFlag ? '⚠️ ALERTA' : 'NORMAL',
+      badgeLabel: isEmptyValue ? 'SIN RESULTADO' : isQualitativeFlag ? 'FUERA DE RANGO' : 'NORMAL',
+      alertDetail: isEmptyValue ? 'Sin resultado ingresado' : isQualitativeFlag ? 'Resultado cualitativo fuera de referencia' : 'En rango normal',
       catalogRefRangeText: catalogRefRangeText || result.refRangeText || 'Normal',
-      isCritical: !!result.flag?.includes('CRITICO')
+      isCritical: !isEmptyValue && !!result.flag?.includes('CRITICO')
     };
   }
 

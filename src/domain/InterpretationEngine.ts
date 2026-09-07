@@ -6,8 +6,14 @@ import { TestResult, Patient } from '../types';
  */
 export class InterpretationEngine {
   static getInterpretation(result: TestResult, patient: Patient): string {
+    const rawVal = result.value ? result.value.trim() : '';
+    if (!rawVal || rawVal === '---' || rawVal === 'PENDIENTE') return '';
+    if (result.numericValue === null || result.numericValue === undefined || isNaN(result.numericValue)) {
+      return result.interpretation || '';
+    }
+
     const name = result.parameterName.toLowerCase();
-    const val = result.numericValue || 0;
+    const val = result.numericValue;
     const gender = patient.gender;
 
     // 1. Glucose Rules

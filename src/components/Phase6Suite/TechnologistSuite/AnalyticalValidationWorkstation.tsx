@@ -18,8 +18,11 @@ import {
   Filter,
   Search,
   Eye,
-  Plus
+  Plus,
+  Lock
 } from 'lucide-react';
+import { SupabaseService } from '../../../services/SupabaseService';
+import SecurityPinModal from './SecurityPinModal';
 
 interface BatchTestItem {
   id: string;
@@ -46,6 +49,9 @@ interface BatchTestItem {
   analyzerName: string;
   transmissionTime: string;
   hilStatus: 'NORMAL' | 'HEMOLISIS_LIGERA' | 'ICTERICIA' | 'LIPEMIA';
+  reagentLot?: string;
+  reagentExpiry?: string;
+  reagentExpired?: boolean;
 }
 
 const INITIAL_BATCH_RESULTS: BatchTestItem[] = [
@@ -173,7 +179,10 @@ const INITIAL_BATCH_RESULTS: BatchTestItem[] = [
     status: 'PENDIENTE',
     analyzerName: 'Cobas ISE 900',
     transmissionTime: '10:28 AM',
-    hilStatus: 'HEMOLISIS_LIGERA'
+    hilStatus: 'HEMOLISIS_LIGERA',
+    reagentLot: 'ISE-K-L9921',
+    reagentExpiry: '2026-08-30',
+    reagentExpired: true
   },
   {
     id: 'res-106',
@@ -231,6 +240,7 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedItemForDelta, setSelectedItemForDelta] = useState<BatchTestItem | null>(INITIAL_BATCH_RESULTS[1]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState<{ active: boolean, action: string, callback: () => void }>({ active: false, action: '', callback: () => {} });
 
   // --- CALCULATOR STATES ---
   const [activeCalculator, setActiveCalculator] = useState<'egfr' | 'ldl' | 'homa' | 'deritis' | 'calcium' | 'osmolarity'>('egfr');
@@ -335,20 +345,87 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
 
   // Batch 1-Click Validation for all Normal Pending Results
   const handleBatchValidateNormals = () => {
-    const normalIds = items.filter(i => i.status === 'PENDIENTE' && isItemNormal(i)).map(i => i.id);
+    const normalItems = items.filter(i => i.status === 'PENDIENTE' && isItemNormal(i));
+    const normalIds = normalItems.map(i => i.id);
     if (normalIds.length === 0) {
       setToastMessage('No hay resultados normales pendientes por validar.');
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
 
-    setItems(prev => prev.map(item => normalIds.includes(item.id) ? { ...item, status: 'VALIDADO_TECNICO' } : item));
-    setToastMessage(`✓ ${normalIds.length} resultados normales validados exitosamente por lote.`);
-    setTimeout(() => setToastMessage(null), 5000);
+    const hasExpiredReagents = normalItems.some(i => i.reagentExpired);
+    if (hasExpiredReagents) {
+      setToastMessage('⛔ Bloqueo ISO 15189: Uno o más resultados en el lote utilizan reactivos con fecha vencida. Reemplace los lotes en analizadores antes de validar.');
+      setTimeout(() => setToastMessage(null), 5500);
+      return;
+    }
+
+    setShowPinModal({
+      active: true,
+      action: `Validar lote de ${normalIds.length} resultados normales`,
+      callback: () => {
+        setItems(prev => prev.map(item => normalIds.includes(item.id) ? { ...item, status: 'VALIDADO_TECNICO' } : item));
+        setToastMessage(`✓ ${normalIds.length} resultados normales validados exitosamente por lote.`);
+        setTimeout(() => setToastMessage(null), 5000);
+        setShowPinModal({ active: false, action: '', callback: () => {} });
+      }
+    });
   };
 
   const handleValidateSingle = (id: string) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, status: item.status === 'VALIDADO_TECNICO' ? 'PENDIENTE' : 'VALIDADO_TECNICO' } : item));
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    if (item.reagentExpired) {
+      setToastMessage(`⛔ Bloqueo Calidad ISO 15189: El lote de reactivo para ${item.analyte} (${item.reagentLot || 'Lote'}) expiró el ${item.reagentExpiry || 'fecha pasada'}. Reemplace el cartucho en ${item.analyzerName} antes de validar.`);
+      setTimeout(() => setToastMessage(null), 5500);
+      return;
+    }
+
+    if (item.status === 'PENDIENTE') {
+      setShowPinModal({
+        active: true,
+        action: `Validación de resultado: ${item.analyte} para ${item.patientName}`,
+        callback: async () => {
+          setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'VALIDADO_TECNICO' } : it));
+
+          // Trigger Panic Notification if critical
+          if (isItemCritical(item)) {
+            // 1. WhatsApp Dispatch (Simulated)
+            await SupabaseService.notifications.sendWhatsApp(
+              '+507-6000-0000',
+              `ALERTA VALOR DE PÁNICO: ${item.patientName} (${item.patientNationalId}) - ${item.analyte}: ${item.resultValue} ${item.unit}.`,
+              'PANIC_VALUE'
+            );
+
+            // 2. Add to Clinical Management Queue (SLA)
+            await SupabaseService.notifications.triggerClinicalAlert({
+              order_id: item.orderNumber, // Mocking ID as orderNumber for this UI-only test
+              result_id: item.id,
+              analyte: item.analyte,
+              value: `${item.resultValue} ${item.unit}`,
+              status: 'PENDING_CALL',
+              receiver_name: null,
+              receiver_role: null,
+              read_back_confirmed: false,
+              notified_at: null,
+              notified_by: null,
+              tat_minutes: null,
+              notes: null
+            });
+
+            setToastMessage(`🚨 ALERTA DE PÁNICO DISPARADA: WhatsApp enviado y SLA de 15min iniciado para ${item.patientName}.`);
+          } else {
+            setToastMessage(`✓ Resultado de ${item.patientName} validado.`);
+          }
+
+          setTimeout(() => setToastMessage(null), 6000);
+          setShowPinModal({ active: false, action: '', callback: () => {} });
+        }
+      });
+    } else {
+      setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'PENDIENTE' } : it));
+    }
   };
 
   return (
@@ -500,7 +577,15 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3">
-                          <div className="font-bold text-slate-200">{item.analyte}</div>
+                          <div className="font-bold text-slate-200 flex items-center gap-1.5">
+                            <span>{item.analyte}</span>
+                            {item.reagentExpired && (
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 inline-flex items-center gap-0.5" title={`Lote ${item.reagentLot} expiró el ${item.reagentExpiry}`}>
+                                <AlertTriangle className="w-2.5 h-2.5 text-rose-400" />
+                                LOTE VENCIDO
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[10px] text-slate-500 font-mono">{item.analyzerName}</div>
                         </td>
 
@@ -986,6 +1071,14 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showPinModal.active && (
+        <SecurityPinModal
+          actionTitle={showPinModal.action}
+          onSuccess={showPinModal.callback}
+          onCancel={() => setShowPinModal({ active: false, action: '', callback: () => {} })}
+        />
+      )}
     </div>
   );
 };

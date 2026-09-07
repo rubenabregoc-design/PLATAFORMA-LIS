@@ -30,7 +30,7 @@ describe('ResultEvaluator Unit Tests (ISO 15189 Logic)', () => {
       value: '85',
       refRangeText: '70 - 99',
       source: 'MANUAL',
-      status: 'INGRESADO',
+      status: 'PENDIENTE',
       version: 1,
       history: []
     };

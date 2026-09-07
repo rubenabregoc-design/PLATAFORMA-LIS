@@ -13,6 +13,7 @@ import {
   MOCK_ANALYZER_MAPPINGS
 } from './data/mockData';
 
+import { useLisStore } from './store/useLisStore';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE } from './components/Header';
 import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw } from 'lucide-react';
 import { LoginScreen } from './components/LoginScreen';
@@ -67,8 +68,6 @@ export default function App() {
     isAuthenticated,
     currentUser,
     currentRole,
-    currentTenant,
-    currentBranch,
     activeTab,
     setActiveTab,
     isSessionLocked,
@@ -79,7 +78,19 @@ export default function App() {
     activeOrderId,
     login,
     logout,
-    setActiveOrder
+    setActiveOrder,
+    setCurrentUser,
+    setCurrentRole,
+    setCurrentTenant,
+    setCurrentBranch,
+    setIsAuthenticated,
+    setOrders,
+    setResults,
+    setPatients,
+    addOrder,
+    addPatient,
+    updateSpecimenStatus,
+    validateResult
   } = useLisStore();
 
   // Tenant, Branch and User State (Transitioning to Zustand)
@@ -93,10 +104,22 @@ export default function App() {
   const [showAllModules, setShowAllModules] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Session Lock State (Local UI parts)
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [globalToast, setGlobalToast] = useState<{ message: string; type: string } | null>(null);
+
+  useEffect(() => {
+    const handleToast = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setGlobalToast({ message: detail.message, type: detail.type || 'info' });
+      setTimeout(() => {
+        setGlobalToast(null);
+      }, detail.duration || 3500);
+    };
+    window.addEventListener('lis-global-toast', handleToast);
+    return () => window.removeEventListener('lis-global-toast', handleToast);
+  }, []);
 
   const lastActivityRef = useRef<number>(Date.now());
   const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos = 300,000 ms
@@ -140,14 +163,14 @@ export default function App() {
   const handleUnlockSession = (e: React.FormEvent) => {
     e.preventDefault();
     const expectedPin = currentUser?.pinCode || '1234';
-    if (unlockPinInput.trim() === expectedPin || unlockPinInput.trim() === '9999' || unlockPinInput.trim() === '1234') {
+    if (unlockPinInput.trim() === expectedPin) {
       setSessionLock(false);
       setAutoLockReason(null);
       lastActivityRef.current = Date.now();
       setUnlockPinInput('');
       setUnlockError(null);
     } else {
-      setUnlockError('❌ PIN de Desbloqueo incorrecto. Ingrese el PIN de usuario (Demo: 1234).');
+      setUnlockError('❌ PIN de Desbloqueo incorrecto. Ingrese su PIN de firma autorizado.');
     }
   };
 
@@ -159,9 +182,6 @@ export default function App() {
   };
 
   // Domain data state
-  const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
-  const [results, setResults] = useState<TestResult[]>(MOCK_RESULTS);
   const [middlewareLogs, setMiddlewareLogs] = useState<MiddlewareMessageLog[]>(MOCK_MIDDLEWARE_LOGS);
   const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(MOCK_ANALYZER_MAPPINGS);
 
@@ -206,7 +226,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
   };
 
   const handleTenantChange = (tenantId: string) => {
@@ -265,33 +285,11 @@ export default function App() {
   };
 
   const handleValidateTechnical = (resultId: string) => {
-    setResults((prev) =>
-      prev.map((r) =>
-        r.id === resultId
-          ? {
-              ...r,
-              status: 'VALIDADO_TEC',
-              technicalValidatedBy: currentUser.name,
-              technicalValidatedAt: new Date().toISOString()
-            }
-          : r
-      )
-    );
+    validateResult(resultId, currentUser?.name || 'Tecnólogo Médico');
   };
 
   const handleValidateTechnicalBulk = (resultIds: string[]) => {
-    setResults((prev) =>
-      prev.map((r) =>
-        resultIds.includes(r.id)
-          ? {
-              ...r,
-              status: 'VALIDADO_TEC',
-              technicalValidatedBy: currentUser.name,
-              technicalValidatedAt: new Date().toISOString()
-            }
-          : r
-      )
-    );
+    resultIds.forEach((id) => validateResult(id, currentUser?.name || 'Tecnólogo Médico'));
   };
 
   const handleValidateMedical = (resultIds: string[], signatureHash: string) => {
@@ -300,7 +298,7 @@ export default function App() {
         resultIds.includes(r.id)
           ? {
               ...r,
-              status: 'VALIDADO_MED',
+              status: 'VALIDADO',
               medicalValidatedBy: `${currentUser.name} (${currentUser.licenseNumber || 'TM-3109-PA'})`,
               medicalValidatedAt: new Date().toISOString()
             }
@@ -318,19 +316,24 @@ export default function App() {
   };
 
   const handleUpdateSpecimenStatus = (specimenId: string, status: Specimen['status']) => {
-    setOrders((prev) =>
-      prev.map((o) => ({
-        ...o,
-        specimens: o.specimens.map((s) => (s.id === specimenId ? { ...s, status } : s))
-      }))
-    );
+    const targetOrder = orders.find((o) => o.specimens.some((s) => s.id === specimenId));
+    if (targetOrder) {
+      updateSpecimenStatus(targetOrder.id, specimenId, status);
+    } else {
+      setOrders((prev) =>
+        prev.map((o) => ({
+          ...o,
+          specimens: o.specimens.map((s) => (s.id === specimenId ? { ...s, status } : s))
+        }))
+      );
+    }
   };
 
   const handleCreateOrder = (newOrder: Order, newPatient?: Patient) => {
     if (newPatient) {
-      setPatients((prev) => [newPatient, ...prev]);
+      addPatient(newPatient);
     }
-    setOrders((prev) => [newOrder, ...prev]);
+    addOrder(newOrder);
   };
 
   const handleProvisionTenant = (name: string, ruc: string, dv: string, plan: Tenant['plan']) => {
@@ -468,8 +471,8 @@ export default function App() {
 
             {activeTab === 'validation' && (
               <ResultEntryWorkspace
-                order={orders[0]}
-                patient={patients[0]}
+                order={orders.find((o) => o.id === activeOrderId) || orders[0]}
+                patient={patients.find((p) => p.id === (orders.find((o) => o.id === activeOrderId) || orders[0])?.patientId) || patients[0]}
                 onOpenPdf={setPreviewOrderId}
               />
             )}
@@ -615,6 +618,23 @@ export default function App() {
       {/* Floating Inter-Branch Secure Messaging Widget (WebSockets) */}
       {isAuthenticated && !isSessionLocked && (
         <SecureInternalMessagingWidget />
+      )}
+
+      {/* Global Toast Notification */}
+      {globalToast && (
+        <div className="fixed bottom-6 right-6 z-[9999] max-w-md animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto">
+          <div className={`px-5 py-4 rounded-2xl shadow-2xl border flex items-center space-x-3 text-xs font-bold backdrop-blur-xl ${
+            globalToast.type === 'error'
+              ? 'bg-rose-950/95 text-rose-200 border-rose-500/60 shadow-rose-950/60'
+              : globalToast.type === 'warning'
+              ? 'bg-amber-950/95 text-amber-200 border-amber-500/60 shadow-amber-950/60'
+              : globalToast.type === 'success'
+              ? 'bg-emerald-950/95 text-emerald-200 border-emerald-500/60 shadow-emerald-950/60'
+              : 'bg-slate-900/95 text-teal-200 border-teal-500/60 shadow-teal-950/60'
+          }`}>
+            <span>{globalToast.message}</span>
+          </div>
+        </div>
       )}
     </div>
   );

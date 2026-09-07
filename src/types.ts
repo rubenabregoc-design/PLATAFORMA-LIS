@@ -1,3 +1,6 @@
+// Re-exports from database.types — keep front-end types aligned with DB
+export type { DbResultFlag, DbResultStatus, DbAuditAction } from './database.types';
+
 export type Role = 
   | 'owner'            // Dueño / Gerente de laboratorio
   | 'lab_chief'        // Jefe de laboratorio
@@ -62,7 +65,7 @@ export interface Patient {
   idType: 'CEDULA' | 'PASAPORTE' | 'CARNET';
   firstName: string;
   lastName: string;
-  dob: string;
+  dob: string;           // DB: DATE field (ISO 8601 — matches patients.dob)
   gender: 'M' | 'F';
   phone: string;
   email: string;
@@ -187,7 +190,8 @@ export interface TestResult {
   technicalValidatedAt?: string;
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
-  status: 'PENDIENTE' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DESVALIDADO';
+  /** DB-aligned status (lifecycle enforced by trigger + license check) */
+  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO';
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
   version: number;
@@ -347,6 +351,83 @@ export interface NotificationLogItem {
   recipientContact: string;
   outcome: string;
   notes?: string;
+}
+
+// --- BLOOD BANK MODULE TYPES ---
+
+export type BloodType = 'A' | 'B' | 'AB' | 'O';
+export type RhFactor = 'POS' | 'NEG';
+export type BloodComponent = 'WHOLE_BLOOD' | 'RBC' | 'PLASMA' | 'PLATELETS' | 'CRYO';
+export type BloodUnitStatus = 'QUARANTINE' | 'AVAILABLE' | 'RESERVED' | 'TRANSFUSED' | 'DISCARDED';
+export type BloodRequestStatus = 'PENDING' | 'CROSSMATCHING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+
+export interface BloodDonor {
+  id: string;
+  tenantId: string;
+  patientId?: string;
+  bloodType?: BloodType;
+  rhFactor?: RhFactor;
+  phenotype?: string;
+  lastDonationDate?: string;
+  eligibilityStatus: 'ELIGIBLE' | 'TEMPORARY_DEFERRAL' | 'PERMANENT_DEFERRAL';
+  deferralReason?: string;
+  createdAt: string;
+}
+
+export interface BloodUnit {
+  id: string;
+  tenantId: string;
+  donorId?: string;
+  unitNumber: string; // ISBT 128
+  componentType: BloodComponent;
+  bloodType: BloodType;
+  rhFactor: RhFactor;
+  volumeMl?: number;
+  collectionDate: string;
+  expiryDate: string;
+  status: BloodUnitStatus;
+  locationStorage?: string;
+  serologyStatus: 'PENDING' | 'NEGATIVE' | 'REACTIVE';
+  createdAt: string;
+}
+
+export interface BloodRequest {
+  id: string;
+  orderId: string;
+  patientId: string;
+  componentRequested: BloodComponent;
+  quantityUnits: number;
+  urgency: 'ROUTINE' | 'URGENT' | 'EXTREME_URGENCY';
+  diagnosis?: string;
+  transfusionHistory: boolean;
+  status: BloodRequestStatus;
+  createdAt: string;
+}
+
+export interface BloodCrossmatch {
+  id: string;
+  requestId: string;
+  unitId: string;
+  technologistId: string;
+  method: string; // Gel, Tubo
+  salinePhase?: string;
+  albuminPhase?: string;
+  coombsPhase?: string;
+  result: 'COMPATIBLE' | 'INCOMPATIBLE';
+  incompatibilityNotes?: string;
+  performedAt: string;
+}
+
+export interface BloodHemovigilance {
+  id: string;
+  unitId: string;
+  patientId: string;
+  reactionType: string;
+  severity: 'MILD' | 'MODERATE' | 'SEVERE' | 'FATAL';
+  description: string;
+  investigationNotes?: string;
+  reportedBy: string;
+  createdAt: string;
 }
 
 export interface PatientImmediateNotificationRecord {

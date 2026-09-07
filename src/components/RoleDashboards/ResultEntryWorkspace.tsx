@@ -158,8 +158,65 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     setSelectedResults(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  // Button 1: Save
+  // ─── Redundant save-time validation helper ─────────────────────────────────
+  /**
+   * Validates all result values in the current order before persisting.
+   * Prevents empty/placeholder values ("---", "", whitespace) from reaching
+   * the store or downstream AI integrations (Gemini SDK).
+   *
+   * @returns { valid: boolean, issues: string[] }
+   */
+  const validateAllResultsBeforeSave = (): { valid: boolean; issues: string[] } => {
+    const issues: string[] = [];
+
+    patientResults.forEach(r => {
+      const rawValue = r.value ?? '';
+      const trimmedValue = rawValue.trim();
+
+      // Check 1: value must not be null/undefined/empty string
+      if (!trimmedValue || trimmedValue.length === 0) {
+        issues.push(`"${r.parameterName}": valor vacío (campo requerido).`);
+        return;
+      }
+
+      // Check 2: value must not be the placeholder sentinel "---"
+      if (trimmedValue === '---' || trimmedValue === '--' || trimmedValue === '-') {
+        issues.push(`"${r.parameterName}": valor pendiente ("${trimmedValue}") — ingrese el resultado real.`);
+        return;
+      }
+
+      // Check 3: value must not consist only of whitespace or control characters
+      const stripped = trimmedValue.replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '');
+      if (stripped.length === 0) {
+        issues.push(`"${r.parameterName}": valor contiene solo espacios o caracteres invisibles.`);
+        return;
+      }
+
+      // Check 4: numeric results must be parseable (non-textual tests excluded)
+      if (r.unit && r.unit.trim().length > 0) {
+        const numericAttempt = parseFloat(trimmedValue);
+        if (isNaN(numericAttempt) && !trimmedValue.match(/^(positivo|negativo|reactivo|no\s*reactivo|presente|ausente|normal|anormal)/i)) {
+          issues.push(`"${r.parameterName}": valor "${trimmedValue}" no es numérico válido para unidad "${r.unit}".`);
+        }
+      }
+    });
+
+    return { valid: issues.length === 0, issues };
+  };
+
+  // Button 1: Save — with redundant validation
   const handleSave = () => {
+    // ── Redundant validation before persisting to store ─────────────────────
+    const { valid, issues } = validateAllResultsBeforeSave();
+
+    if (!valid) {
+      const issueSummary = issues.slice(0, 3).join(' | ');
+      const extraCount = issues.length > 3 ? ` (+${issues.length - 3} más)` : '';
+      showToast(`⚠️ No se puede guardar: ${issueSummary}${extraCount}`);
+      console.warn('[ResultEntryWorkspace] Validación fallida al guardar:', issues);
+      return;
+    }
+
     showToast('✓ Cambios e interpretaciones guardados exitosamente en la bitácora LIS.');
   };
 
@@ -207,7 +264,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   // Button 3: Return / Rework
   const handleConfirmRework = () => {
     const targets = reworkTests.length > 0 ? reworkTests : patientResults.map(r => r.id);
-    targets.forEach(id => updateResultStatus(id, 'EN_PROCESO', 'PENDIENTE REPETICIÓN'));
+    targets.forEach(id => updateResultStatus(id, 'PENDIENTE', 'PENDIENTE REPETICIÓN'));
     setActiveModal('NONE');
     showToast(`🔄 Muestra retornada a repetición técnica. Motivo: ${reworkReason}`);
   };
@@ -265,7 +322,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     targets.forEach(id => validateResult(id, currentUser?.name || 'Sistema'));
 
     setSelectedResults([]);
-    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) bajo Idoneidad TM-4410.`);
+    const license = currentUser?.licenseNumber ? `bajo Idoneidad ${currentUser.licenseNumber}` : `por ${currentUser?.name || 'Sistema'}`;
+    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) ${license}.`);
   };
 
   // Button 8: Unvalidate Bulk / Desvalidar
@@ -544,9 +602,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               onChange={(e) => setTempValue(e.target.value)}
                               onKeyDown={e => {
                                 if (e.key === 'Enter') {
-                                  updateResult(res.id, tempValue);
+                                  // ── Redundant inline validation (Enter key) ───────────────────────
+                                  const cleanVal = tempValue?.trim() ?? '';
+                                  if (!cleanVal || cleanVal.length === 0 || cleanVal === '---') {
+                                    showToast('⚠️ El valor no puede estar vacío o ser un marcador pendiente.');
+                                    return;
+                                  }
+                                  updateResult(res.id, cleanVal);
                                   setEditingId(null);
-                                  showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
+                                  showToast(`Valor actualizado: ${cleanVal} ${res.unit}`);
                                 }
                               }}
                               className={`bg-slate-950 border rounded-lg px-3 py-1.5 text-sm font-mono w-28 text-center focus:outline-none ${
@@ -557,9 +621,19 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                             />
                             <button
                               onClick={() => {
-                                updateResult(res.id, tempValue);
+                                // ── Redundant inline validation (confirm button) ──────────────────
+                                const cleanVal = tempValue?.trim() ?? '';
+                                if (!cleanVal || cleanVal.length === 0) {
+                                  showToast('⚠️ Ingrese un valor numérico o textual antes de confirmar.');
+                                  return;
+                                }
+                                if (cleanVal === '---' || cleanVal === '--' || cleanVal === '-') {
+                                  showToast('⚠️ El marcador de pendiente "---" no es un resultado válido.');
+                                  return;
+                                }
+                                updateResult(res.id, cleanVal);
                                 setEditingId(null);
-                                showToast(`Valor actualizado: ${tempValue} ${res.unit}`);
+                                showToast(`Valor actualizado: ${cleanVal} ${res.unit}`);
                               }}
                               className="p-1.5 bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-400 transition cursor-pointer"
                             >
@@ -656,7 +730,23 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           value={tempInterp}
                           onChange={(e) => setTempInterp(e.target.value)}
                           onBlur={() => {
-                            updateInterpretation(res.id, tempInterp);
+                            // ── Redundant interpretation validation on blur ────────────────────
+                            const cleanInterp = tempInterp?.trim() ?? '';
+
+                            // Allow empty interpretations (they are optional)
+                            // but prevent saving whitespace-only or zero-width content
+                            const strippedInterp = cleanInterp.replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '');
+
+                            if (tempInterp.length > 0 && strippedInterp.length === 0) {
+                              // Contains only invisible characters — clear instead of saving
+                              console.warn(
+                                '[ResultEntryWorkspace] Interpretación contiene solo caracteres invisibles, ' +
+                                'no se guarda para evitar errores downstream en Gemini SDK.'
+                              );
+                              updateInterpretation(res.id, '');
+                            } else {
+                              updateInterpretation(res.id, cleanInterp);
+                            }
                             setEditingInterpId(null);
                           }}
                           className="w-full bg-slate-950 border border-teal-500/50 rounded-xl p-2 text-[10px] text-slate-200 focus:outline-none h-12 resize-none shadow-[0_0_10px_rgba(20,184,166,0.1)]"
@@ -1336,7 +1426,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             barcode: order.specimenId || `BAR-${order.orderNumber}`,
             orderNumber: order.orderNumber,
             patientName: `${patient.firstName} ${patient.lastName}`,
-            testName: patientResults[0]?.testName || 'Consulta de Resultado',
+            testName: patientResults[0]?.parameterName || 'Consulta de Resultado',
             value: patientResults[0]?.value,
             status: 'DUDOSA'
           }}

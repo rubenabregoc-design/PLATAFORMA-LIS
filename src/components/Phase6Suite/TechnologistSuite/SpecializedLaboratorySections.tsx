@@ -600,3 +600,5 @@ export const SpecializedLaboratorySections: React.FC = () => {
     </div>
   );
 };
+
+export default SpecializedLaboratorySections;

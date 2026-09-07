@@ -618,7 +618,7 @@ export class BatchReportingService {
     // 5. Results Rows
     tableY += 7.5;
     const defaultResults: TestResult[] = results.length > 0 ? results : [
-      { id: 'def-1', tenantId: tenant.id, orderId: order.id, testId: 't1', parameterId: 'p1', parameterName: 'Hemograma Completo (Automatizado)', unit: 'N/A', value: 'Reporte Normal', refRangeText: 'Valores Estándar', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO_MED', specimenType: 'Sangre Total' }
+      { id: 'def-1', tenantId: tenant.id, orderId: order.id, testId: 't1', parameterId: 'p1', parameterName: 'Hemograma Completo (Automatizado)', unit: 'N/A', value: 'Reporte Normal', refRangeText: 'Valores Estándar', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO', specimenType: 'Sangre Total', version: 1, history: [] }
     ];
 
     defaultResults.forEach((res, index) => {

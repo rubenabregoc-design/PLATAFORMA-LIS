@@ -72,3 +72,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- Habilitar tiempo real (Realtime) en la tabla de resultados para los dashboards
 ALTER PUBLICATION supabase_realtime ADD TABLE test_results;
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
+
+-- 6. Habilitar Seguridad por Fila (Row Level Security - RLS)
+ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analyzers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users access patients" ON patients FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users access orders" ON orders FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users access analyzers" ON analyzers FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users access test_results" ON test_results FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users read audit_logs" ON audit_logs FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users create audit_logs" ON audit_logs FOR INSERT WITH CHECK (auth.role() = 'authenticated');

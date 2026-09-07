@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS orders (
   status TEXT DEFAULT 'REGISTRADA',
   payment_status TEXT DEFAULT 'PENDIENTE',
   created_at TIMESTAMPTZ DEFAULT now(),
-  created_by UUID -- Auth user
+  created_by UUID REFERENCES auth.users(id) -- Auth user
 );
 
 -- 4. Results & Versioning (ISO 15189)
@@ -193,15 +193,18 @@ BEGIN
     END IF;
 
     -- 5. Lógica de Validación (Firma Electrónica)
-    IF NEW.status = 'VALIDADO' AND (OLD.status IS NULL OR OLD.status != 'VALIDADO') THEN
-        SELECT license_number INTO v_license FROM profiles WHERE id = auth.uid();
-        IF v_license IS NULL OR v_license = '' THEN
-            RAISE EXCEPTION 'No puede validar resultados sin un número de licencia profesional.';
+    IF NEW.status = 'VALIDADO' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'VALIDADO') THEN
+        -- Solo validar si la operación es realizada por un usuario autenticado
+        IF auth.uid() IS NOT NULL THEN
+            SELECT license_number INTO v_license FROM profiles WHERE id = auth.uid();
+            IF v_license IS NULL OR v_license = '' THEN
+                RAISE EXCEPTION 'No puede validar resultados sin un número de licencia profesional.';
+            END IF;
         END IF;
     END IF;
 
     -- 6. Control de Versiones
-    IF OLD.status = 'VALIDADO' AND (OLD.value IS DISTINCT FROM NEW.value) THEN
+    IF TG_OP = 'UPDATE' AND OLD.status = 'VALIDADO' AND (OLD.value IS DISTINCT FROM NEW.value) THEN
         NEW.version := OLD.version + 1;
         NEW.status := 'PENDIENTE'; -- Requiere re-validación si se cambió
     END IF;
@@ -262,6 +265,8 @@ CREATE INDEX IF NOT EXISTS idx_patients_national_id ON patients(national_id);
 CREATE INDEX IF NOT EXISTS idx_orders_tenant_id ON orders(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
 CREATE INDEX IF NOT EXISTS idx_test_results_order_id ON test_results(order_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_tenant_id ON profiles(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_branch_id ON profiles(branch_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_result_id ON result_audit_logs(result_id);
 CREATE INDEX IF NOT EXISTS idx_analyzers_tenant_id ON analyzers(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_ref_ranges_test_code ON reference_ranges(test_code);

@@ -170,7 +170,19 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!messageInput.trim() && !attachedSample && !attachedFile) return;
+
+    // CORRECCIÓN: Validación estricta contra textos vacíos o solo espacios
+    const trimmedMessage = messageInput ? messageInput.trim() : '';
+    if (!trimmedMessage && !attachedSample && !attachedFile) return;
+
+    // Garantizar que el mensaje no sea una cadena vacía para evitar INVALID_ARGUMENT en la IA/chat
+    const finalContent = trimmedMessage || (
+      attachedSample
+        ? `[Consulta sobre Muestra #${attachedSample.barcode} - ${attachedSample.testName}]`
+        : `[Archivo Adjunto: ${attachedFile?.name}]`
+    );
+
+    if (!finalContent.trim()) return;
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -182,7 +194,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       senderRole: 'Tecnólogo Médico Senior',
       senderBranch: 'Sede Vía España (Lab Central)',
       timestamp: timeStr,
-      content: messageInput.trim(),
+      content: finalContent,
       channelId: activeChannelId,
       sampleContext: attachedSample || undefined,
       attachmentName: attachedFile?.name,

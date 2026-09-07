@@ -142,7 +142,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
       if (!isPinValid) {
         setIsAuthenticating(false);
-        setErrorMessage(`PIN 2FA incorrecto (PIN asignado: ${expectedPin}).`);
+        setPinInput('');
+        setErrorMessage('PIN de verificación 2FA incorrecto. Por favor verifique e intente nuevamente.');
         return;
       }
 

@@ -60,23 +60,29 @@ export class ResultEvaluator {
     return age;
   }
 
-  private static toNumeric(valStr: string, existingNum?: number): number | null {
-    if (typeof existingNum === 'number' && !isNaN(existingNum)) return existingNum;
+  private static toNumeric(valStr?: string, existingNum?: number): number | null {
+    if (!valStr || !valStr.trim() || valStr === '---' || valStr === 'PENDIENTE') {
+      return null;
+    }
     const parsed = parseFloat(valStr.replace(',', '.').replace(/[^0-9.-]/g, ''));
-    return isNaN(parsed) ? null : parsed;
+    if (!isNaN(parsed)) return parsed;
+    if (typeof existingNum === 'number' && !isNaN(existingNum)) return existingNum;
+    return null;
   }
 
   private static handleQualitative(res: TestResult, refText: string): ReferenceRangeEvaluation {
-    const isAbnormal = ['POSITIVO', 'DETECTADO', 'REACCIONAL', 'ALTO', 'BAJO'].includes(res.value.toUpperCase());
+    const rawVal = res.value ? res.value.trim().toUpperCase() : '';
+    const isEmpty = !rawVal || rawVal === '---' || rawVal === 'PENDIENTE';
+    const isAbnormal = !isEmpty && ['POSITIVO', 'DETECTADO', 'REACCIONAL', 'ALTO', 'BAJO'].includes(rawVal);
     return {
       isOutOfRange: isAbnormal,
       severity: isAbnormal ? 'HIGH' : 'NORMAL',
       flag: isAbnormal ? 'ALTO' : 'NORMAL',
       numericValue: null,
-      cueText: isAbnormal ? '⚠️ ANORMAL' : 'NORMAL',
-      badgeLabel: isAbnormal ? 'FUERA DE RANGO' : 'NORMAL',
-      alertDetail: isAbnormal ? 'Valor cualitativo fuera de referencia' : 'Normal',
-      catalogRefRangeText: refText,
+      cueText: isEmpty ? 'SIN VALOR' : isAbnormal ? '⚠️ ANORMAL' : 'NORMAL',
+      badgeLabel: isEmpty ? 'PENDIENTE' : isAbnormal ? 'FUERA DE RANGO' : 'NORMAL',
+      alertDetail: isEmpty ? 'Sin resultado ingresado' : isAbnormal ? 'Valor cualitativo fuera de referencia' : 'Normal',
+      catalogRefRangeText: refText || 'Normal',
       isCritical: false
     };
   }

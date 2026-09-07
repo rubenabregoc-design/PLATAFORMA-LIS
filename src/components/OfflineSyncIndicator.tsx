@@ -34,6 +34,8 @@ export const OfflineSyncIndicator: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(offlineSyncManager.getIsSyncing());
   const [queue, setQueue] = useState<OfflineSyncItem[]>(offlineSyncManager.getQueue());
   const [storageBytes, setStorageBytes] = useState<number>(offlineSyncManager.getStorageUsageBytes());
+  const [storageEngine, setStorageEngine] = useState<'IndexedDB' | 'localStorage'>(offlineSyncManager.getStorageEngine());
+  const [storageQuota, setStorageQuota] = useState<{ usageMb: string; quotaMb: string } | null>(null);
   const [toastNotice, setToastNotice] = useState<string | null>(null);
   
   // Emergency Export Modal State
@@ -59,8 +61,19 @@ export const OfflineSyncIndicator: React.FC = () => {
       setIsSyncing(offlineSyncManager.getIsSyncing());
       setQueue(offlineSyncManager.getQueue());
       setStorageBytes(offlineSyncManager.getStorageUsageBytes());
+      setStorageEngine(offlineSyncManager.getStorageEngine());
+
+      offlineSyncManager.getStorageMetrics().then((m) => {
+        if (m.quotaBytes > 0) {
+          setStorageQuota({
+            usageMb: (m.usageBytes / (1024 * 1024)).toFixed(2),
+            quotaMb: (m.quotaBytes / (1024 * 1024)).toFixed(0),
+          });
+        }
+      }).catch(() => {});
     };
 
+    updateState();
     const unsubscribe = offlineSyncManager.subscribe(updateState);
     return () => unsubscribe();
   }, []);
@@ -221,6 +234,24 @@ export const OfflineSyncIndicator: React.FC = () => {
               </p>
             </div>
 
+            {/* Storage Engine & Quota Badge */}
+            <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-teal-500/20">
+              <div className="flex items-center space-x-2">
+                <Database className="w-3.5 h-3.5 text-teal-400" />
+                <span className="text-[11px] text-slate-300 font-medium">Motor de Persistencia:</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-500/40">
+                  {storageEngine === 'IndexedDB' ? '🗄️ IndexedDB Enterprise' : '💾 localStorage'}
+                </span>
+                {storageQuota && (
+                  <span className="text-[9px] font-mono text-slate-400">
+                    ({storageQuota.usageMb}MB / {storageQuota.quotaMb}MB)
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Storage Telemetry Stats */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
@@ -232,8 +263,10 @@ export const OfflineSyncIndicator: React.FC = () => {
                 <span className="text-base font-black font-mono text-teal-300">{storageKb} KB</span>
               </div>
               <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[9px] font-mono text-slate-400 block uppercase">Integridad:</span>
-                <span className="text-base font-black font-mono text-emerald-400">100% OK</span>
+                <span className="text-[9px] font-mono text-slate-400 block uppercase">Capacidad:</span>
+                <span className="text-base font-black font-mono text-emerald-400">
+                  {storageEngine === 'IndexedDB' ? 'Multi-GB' : '~5 MB'}
+                </span>
               </div>
             </div>
 

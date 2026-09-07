@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -16,15 +16,21 @@ import {
   Info,
   Calendar,
   Layers,
-  Cpu
+  Cpu,
+  TrendingUp,
+  BarChart3,
+  Zap
 } from 'lucide-react';
+import { SupabaseService } from '../../../services/SupabaseService';
+import SecurityPinModal from './SecurityPinModal';
 
 interface QCPoint {
+  id?: string;
   day: number;
   date: string;
   value: number;
   sdScore: number; // z-score (-3 to +3)
-  violation?: '1_3s' | '2_2s' | 'R_4s' | '4_1s' | '10_x' | '1_2s';
+  violation?: string;
   technician: string;
 }
 
@@ -35,7 +41,7 @@ interface AnalyzerQcProfile {
   unit: string;
   lotNumber: string;
   expirationDate: string;
-  level: 'Nivel 1 (Normal)' | 'Nivel 2 (Patológico Alto)' | 'Nivel 3 (Patológico Bajo)';
+  level: string;
   targetMean: number;
   targetSd: number;
   points: QCPoint[];
@@ -44,244 +50,163 @@ interface AnalyzerQcProfile {
   correctiveActionRecorded?: boolean;
 }
 
-const INITIAL_QC_PROFILES: AnalyzerQcProfile[] = [
-  {
-    id: 'qc-gluc-c501',
-    analyzerName: 'Cobas 6000 c501',
-    analyte: 'Glucosa Sérica',
-    unit: 'mg/dL',
-    lotNumber: 'PRECI-GLU-8821',
-    expirationDate: '30/11/2026',
-    level: 'Nivel 1 (Normal)',
-    targetMean: 95.0,
-    targetSd: 2.5,
-    status: 'OPTIMO',
-    points: [
-      { day: 1, date: '01/08', value: 95.2, sdScore: 0.08, technician: 'TM-4091' },
-      { day: 2, date: '02/08', value: 94.8, sdScore: -0.08, technician: 'TM-4091' },
-      { day: 3, date: '03/08', value: 96.1, sdScore: 0.44, technician: 'TM-3180' },
-      { day: 4, date: '04/08', value: 95.0, sdScore: 0.0, technician: 'TM-4091' },
-      { day: 5, date: '05/08', value: 93.9, sdScore: -0.44, technician: 'TM-3180' },
-      { day: 6, date: '06/08', value: 96.8, sdScore: 0.72, technician: 'TM-4091' },
-      { day: 7, date: '07/08', value: 95.4, sdScore: 0.16, technician: 'TM-4091' },
-      { day: 8, date: '08/08', value: 94.2, sdScore: -0.32, technician: 'TM-3180' },
-      { day: 9, date: '09/08', value: 95.9, sdScore: 0.36, technician: 'TM-4091' },
-      { day: 10, date: '10/08', value: 95.1, sdScore: 0.04, technician: 'TM-4091' },
-      { day: 11, date: '11/08', value: 94.6, sdScore: -0.16, technician: 'TM-3180' },
-      { day: 12, date: '12/08', value: 95.8, sdScore: 0.32, technician: 'TM-4091' },
-      { day: 13, date: '13/08', value: 97.4, sdScore: 0.96, technician: 'TM-4091' },
-      { day: 14, date: '14/08', value: 95.0, sdScore: 0.0, technician: 'TM-3180' },
-      { day: 15, date: '15/08', value: 96.2, sdScore: 0.48, technician: 'TM-4091' }
-    ]
-  },
-  {
-    id: 'qc-trop-e601',
-    analyzerName: 'Cobas e601 Inmuno',
-    analyte: 'Troponina I High-Sensitivity',
-    unit: 'ng/mL',
-    lotNumber: 'TROP-LOT-9044',
-    expirationDate: '15/10/2026',
-    level: 'Nivel 2 (Patológico Alto)',
-    targetMean: 0.450,
-    targetSd: 0.025,
-    status: 'BLOQUEADO_RECHAZO',
-    activeViolation: 'Regla 1_3s (Valor excede +3.2 SD) - Error Aleatorio Severo',
-    correctiveActionRecorded: false,
-    points: [
-      { day: 1, date: '01/08', value: 0.448, sdScore: -0.08, technician: 'TM-4091' },
-      { day: 2, date: '02/08', value: 0.452, sdScore: 0.08, technician: 'TM-4091' },
-      { day: 3, date: '03/08', value: 0.460, sdScore: 0.40, technician: 'TM-3180' },
-      { day: 4, date: '04/08', value: 0.455, sdScore: 0.20, technician: 'TM-4091' },
-      { day: 5, date: '05/08', value: 0.468, sdScore: 0.72, technician: 'TM-4091' },
-      { day: 6, date: '06/08', value: 0.472, sdScore: 0.88, technician: 'TM-3180' },
-      { day: 7, date: '07/08', value: 0.485, sdScore: 1.40, technician: 'TM-4091' },
-      { day: 8, date: '08/08', value: 0.490, sdScore: 1.60, technician: 'TM-4091' },
-      { day: 9, date: '09/08', value: 0.505, sdScore: 2.20, violation: '1_2s', technician: 'TM-3180' },
-      { day: 10, date: '10/08', value: 0.532, sdScore: 3.28, violation: '1_3s', technician: 'TM-4091' }
-    ]
-  },
-  {
-    id: 'qc-hb-xn1000',
-    analyzerName: 'Sysmex XN-1000',
-    analyte: 'Hemoglobina (Hb)',
-    unit: 'g/dL',
-    lotNumber: 'EIGHT-CHECK-331',
-    expirationDate: '28/09/2026',
-    level: 'Nivel 1 (Normal)',
-    targetMean: 13.5,
-    targetSd: 0.35,
-    status: 'OPTIMO',
-    points: [
-      { day: 1, date: '01/08', value: 13.4, sdScore: -0.28, technician: 'TM-4091' },
-      { day: 2, date: '02/08', value: 13.6, sdScore: 0.28, technician: 'TM-4091' },
-      { day: 3, date: '03/08', value: 13.5, sdScore: 0.0, technician: 'TM-3180' },
-      { day: 4, date: '04/08', value: 13.3, sdScore: -0.57, technician: 'TM-4091' },
-      { day: 5, date: '05/08', value: 13.7, sdScore: 0.57, technician: 'TM-3180' },
-      { day: 6, date: '06/08', value: 13.5, sdScore: 0.0, technician: 'TM-4091' },
-      { day: 7, date: '07/08', value: 13.4, sdScore: -0.28, technician: 'TM-4091' }
-    ]
-  }
-];
-
-interface MaintenanceTask {
-  id: string;
-  analyzer: string;
-  category: 'DIARIO' | 'SEMANAL';
-  taskDescription: string;
-  parameterValue: string;
-  status: 'COMPLETADO' | 'PENDIENTE';
-  verifiedBy?: string;
-  timeChecked?: string;
-}
-
-const INITIAL_MAINTENANCE_TASKS: MaintenanceTask[] = [
-  {
-    id: 'maint-1',
-    analyzer: 'Cobas 6000 c501',
-    category: 'DIARIO',
-    taskDescription: 'Verificación de Temperatura de Baño de Incubación (37.0°C ± 0.1°C)',
-    parameterValue: '37.05 °C (Óptimo)',
-    status: 'COMPLETADO',
-    verifiedBy: 'Lic. Valentina Soto (TM-4091)',
-    timeChecked: '06:45 AM'
-  },
-  {
-    id: 'maint-2',
-    analyzer: 'Cobas 6000 c501',
-    category: 'DIARIO',
-    taskDescription: 'Lavado y Purga de Agujas de Muestra y Reactivo (CleanL / SysClean)',
-    parameterValue: 'Ciclo Ejecutado Sin Obstrucción',
-    status: 'COMPLETADO',
-    verifiedBy: 'Lic. Valentina Soto (TM-4091)',
-    timeChecked: '06:50 AM'
-  },
-  {
-    id: 'maint-3',
-    analyzer: 'Sysmex XN-1000',
-    category: 'DIARIO',
-    taskDescription: 'Control de Presión de Vacío y Nivel de Desecho Biológico',
-    parameterValue: '-0.06 MPa / Recipiente 20%',
-    status: 'COMPLETADO',
-    verifiedBy: 'Lic. Rubén Abrego (TM-3180)',
-    timeChecked: '07:10 AM'
-  },
-  {
-    id: 'maint-4',
-    analyzer: 'Cobas e601 Inmuno',
-    category: 'SEMANAL',
-    taskDescription: 'Reemplazo de Puntas y Cubetas de Ensayo & Limpieza de Vortex',
-    parameterValue: 'Pendiente de Ejecución',
-    status: 'PENDIENTE'
-  }
-];
-
 export const InternalQualityControlQC: React.FC = () => {
-  const [profiles, setProfiles] = useState<AnalyzerQcProfile[]>(INITIAL_QC_PROFILES);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>('qc-trop-e601');
-  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>(INITIAL_MAINTENANCE_TASKS);
+  const [profiles, setProfiles] = useState<AnalyzerQcProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Corrective Action Modal / Drawer Form State
   const [isCorrectiveModalOpen, setIsCorrectiveModalOpen] = useState<boolean>(false);
-  const [rootCause, setRootCause] = useState<string>('Vial de control con evaporación / degradado por temperatura');
-  const [actionTaken, setActionTaken] = useState<string>('Apertura de nuevo vial de control liofilizado, reconstitución con pipeta calibrada y corrida en duplicado.');
-  const [technologistPin, setTechnologistPin] = useState<string>('TM-4091');
+  const [rootCause, setRootCause] = useState<string>('');
+  const [actionTaken, setActionTaken] = useState<string>('');
+  const [technologistPin, setTechnologistPin] = useState<string>('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
 
   // New point input form
-  const [newPointVal, setNewPointVal] = useState<number>(0.452);
+  const [newPointVal, setNewPointVal] = useState<number>(0);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [configs, schedules] = await Promise.all([
+        SupabaseService.internalQC.getConfigurations(),
+        SupabaseService.maintenance.getSchedules()
+      ]);
+
+      const loadedProfiles: AnalyzerQcProfile[] = await Promise.all(configs.map(async (c: any) => {
+        const runs = await SupabaseService.internalQC.getRuns(c.id);
+        const points = runs.map((r: any, idx: number) => ({
+          id: r.id,
+          day: idx + 1,
+          date: new Date(r.created_at).toLocaleDateString('es-PA', { day: '2-digit', month: '2-digit' }),
+          value: parseFloat(r.value),
+          sdScore: parseFloat(r.sd_score),
+          violation: r.violation,
+          technician: r.technician_id || 'N/A'
+        }));
+
+        const lastPoint = points[points.length - 1];
+        let status: any = 'OPTIMO';
+        if (lastPoint?.violation === '1_3s' || lastPoint?.violation === '2_2s') status = 'BLOQUEADO_RECHAZO';
+        else if (lastPoint?.violation === '1_2s') status = 'ALERTA_1_2S';
+
+        return {
+          id: c.id,
+          analyzerName: 'Instrumento',
+          analyte: c.analyte_name,
+          unit: c.unit || '',
+          lotNumber: c.lot_number,
+          expirationDate: c.expiration_date,
+          level: c.level,
+          targetMean: parseFloat(c.target_mean),
+          targetSd: parseFloat(c.target_sd),
+          points,
+          status,
+          activeViolation: lastPoint?.violation
+        };
+      }));
+
+      setProfiles(loadedProfiles);
+      if (loadedProfiles.length > 0) setSelectedProfileId(loadedProfiles[0].id);
+      setMaintenanceTasks(schedules);
+    } catch (error) {
+      console.error("Error loading QC data", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
 
-  // Calculate stats
-  const count = activeProfile.points.length;
-  const currentMean = count > 0 ? activeProfile.points.reduce((acc, p) => acc + p.value, 0) / count : activeProfile.targetMean;
+  const count = activeProfile?.points.length || 0;
+  const currentMean = count > 0 ? activeProfile.points.reduce((acc, p) => acc + p.value, 0) / count : activeProfile?.targetMean || 0;
   const variance = count > 1 ? activeProfile.points.reduce((acc, p) => acc + Math.pow(p.value - currentMean, 2), 0) / (count - 1) : 0;
-  const currentSd = Math.sqrt(variance) || activeProfile.targetSd;
+  const currentSd = Math.sqrt(variance) || activeProfile?.targetSd || 0;
   const currentCv = currentMean > 0 ? (currentSd / currentMean) * 100 : 0;
 
-  // Add new QC Point and evaluate Westgard Rules
-  const handleAddQcPoint = () => {
+  const handleAddQcPoint = async () => {
+    if (!activeProfile) return;
     const sdScore = Math.round(((newPointVal - activeProfile.targetMean) / activeProfile.targetSd) * 100) / 100;
-    let violation: QCPoint['violation'] = undefined;
-    let newStatus: AnalyzerQcProfile['status'] = 'OPTIMO';
-    let violationDesc: string | undefined = undefined;
+    let violation: string | null = null;
 
+    const points = activeProfile.points;
+    const lastP = points[points.length - 1];
+    const secondLastP = points[points.length - 2];
+
+    // --- ELITE WESTGARD ENGINE ---
     if (Math.abs(sdScore) >= 3.0) {
-      violation = '1_3s';
-      newStatus = 'BLOQUEADO_RECHAZO';
-      violationDesc = `Regla 1_3s: Valor (${newPointVal}) excede 3 SD (${sdScore} SD). Rechazo de corrida analítica.`;
-    } else if (Math.abs(sdScore) >= 2.0) {
-      // Check if previous point also exceeded 2 SD on same side
-      const lastPoint = activeProfile.points[activeProfile.points.length - 1];
-      if (lastPoint && ((sdScore >= 2.0 && lastPoint.sdScore >= 2.0) || (sdScore <= -2.0 && lastPoint.sdScore <= -2.0))) {
-        violation = '2_2s';
-        newStatus = 'BLOQUEADO_RECHAZO';
-        violationDesc = `Regla 2_2s: Dos valores consecutivos exceden 2 SD en el mismo sentido. Error Sistemático.`;
-      } else {
-        violation = '1_2s';
-        newStatus = 'ALERTA_1_2S';
-        violationDesc = `Regla de Advertencia 1_2s (${sdScore} SD). Requiere inspección preventiva.`;
+      violation = '1_3s'; // REJECT: Random Error
+    } else if (lastP && ((sdScore >= 2.0 && lastP.sdScore >= 2.0) || (sdScore <= -2.0 && lastP.sdScore <= -2.0))) {
+      violation = '2_2s'; // REJECT: Systematic Error
+    } else if (lastP && Math.abs(sdScore - lastP.sdScore) >= 4.0) {
+      violation = 'R_4s'; // REJECT: Random Error (Range)
+    } else if (points.length >= 3 && Math.abs(sdScore) >= 1.0 && Math.abs(lastP?.sdScore) >= 1.0 && Math.abs(secondLastP?.sdScore) >= 1.0) {
+      // 4_1s simplified check
+      if ((sdScore > 0 && lastP.sdScore > 0 && secondLastP.sdScore > 0) || (sdScore < 0 && lastP.sdScore < 0 && secondLastP.sdScore < 0)) {
+        violation = '4_1s'; // WARNING/REJECT: Systematic Trend
       }
+    } else if (Math.abs(sdScore) >= 2.0) {
+      violation = '1_2s'; // WARNING: Check other rules
     }
 
-    const newPoint: QCPoint = {
-      day: count + 1,
-      date: new Date().toLocaleDateString('es-PA', { day: '2-digit', month: '2-digit' }),
-      value: newPointVal,
-      sdScore,
-      violation,
-      technician: 'TM-4091'
-    };
-
-    setProfiles(prev => prev.map(prof => {
-      if (prof.id === activeProfile.id) {
-        return {
-          ...prof,
-          points: [...prof.points, newPoint],
-          status: newStatus,
-          activeViolation: violationDesc,
-          correctiveActionRecorded: false
-        };
-      }
-      return prof;
-    }));
-
-    setToastMsg(`✓ Punto QC de ${newPointVal} ${activeProfile.unit} registrado en Levey-Jennings.`);
-    setTimeout(() => setToastMsg(null), 4000);
+    try {
+      const { data: profile } = await SupabaseService.auth.getCurrentProfile() as any;
+      await SupabaseService.internalQC.addRun({
+        config_id: activeProfile.id,
+        value: newPointVal,
+        sd_score: sdScore,
+        violation: violation,
+        technician_id: profile?.id,
+        corrective_action: null,
+        root_cause: null,
+        is_validated: (violation === null || violation === '1_2s')
+      });
+      fetchData();
+      setToastMsg(`✓ Punto QC de ${newPointVal} ${activeProfile.unit} registrado.`);
+      setTimeout(() => setToastMsg(null), 4000);
+    } catch (error) { console.error(error); }
   };
 
   // Submit Corrective Action & Unlock Analyzer
   const handleSaveCorrectiveAction = () => {
-    setProfiles(prev => prev.map(prof => {
-      if (prof.id === activeProfile.id) {
-        return {
-          ...prof,
-          status: 'OPTIMO',
-          activeViolation: undefined,
-          correctiveActionRecorded: true
-        };
-      }
-      return prof;
-    }));
+    const lastRunId = activeProfile.points[activeProfile.points.length - 1]?.id;
+    if (!lastRunId) return;
 
-    setIsCorrectiveModalOpen(false);
-    setToastMsg(`✓ Acción Correctiva ISO 15189 registrada. Desbloqueo de validación técnica autorizado.`);
-    setTimeout(() => setToastMsg(null), 5000);
+    setShowPinModal(true);
   };
 
-  const handleToggleMaintenance = (id: string) => {
-    setMaintenanceTasks(prev => prev.map(task => {
-      if (task.id === id) {
-        const isComp = task.status === 'COMPLETADO';
-        return {
-          ...task,
-          status: isComp ? 'PENDIENTE' : 'COMPLETADO',
-          verifiedBy: isComp ? undefined : 'Lic. Valentina Soto (TM-4091)',
-          timeChecked: isComp ? undefined : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-      }
-      return task;
-    }));
+  const finalizeCorrectiveAction = async () => {
+    const lastRunId = activeProfile.points[activeProfile.points.length - 1]?.id;
+    try {
+      await SupabaseService.internalQC.saveCorrectiveAction(lastRunId, actionTaken, rootCause);
+      setIsCorrectiveModalOpen(false);
+      setShowPinModal(false);
+      fetchData();
+      setToastMsg(`✓ Acción Correctiva registrada y firmada digitalmente. Analito desbloqueado.`);
+      setTimeout(() => setToastMsg(null), 5000);
+    } catch (error) { console.error(error); }
+  };
+
+  const handleToggleMaintenance = async (task: any) => {
+    try {
+      const { data: profile } = await SupabaseService.auth.getCurrentProfile() as any;
+      await SupabaseService.maintenance.logMaintenance({
+        schedule_id: task.id,
+        analyzer_id: task.analyzer_id,
+        task_name: task.task_name,
+        performed_by: profile?.id,
+        notes: 'Verificado vía Dashboard',
+        parameter_value: 'OK',
+        status: 'COMPLETADO'
+      });
+      fetchData();
+    } catch (error) { console.error(error); }
   };
 
   // Levey-Jennings SVG Coordinates helpers
@@ -304,7 +229,8 @@ export const InternalQualityControlQC: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500" id="qc-westgard-container">
       {/* Title Header */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <div
+className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="flex items-center space-x-4 relative z-10">
           <div className="w-14 h-14 bg-gradient-to-tr from-indigo-500 to-teal-400 rounded-2xl flex items-center justify-center text-slate-950 font-black shadow-lg shadow-indigo-500/20">
             <Activity className="w-7 h-7" />
@@ -453,6 +379,16 @@ export const InternalQualityControlQC: React.FC = () => {
           {/* SVG Levey Jennings Graph */}
           <div className="overflow-x-auto">
             <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-64 bg-slate-950 rounded-2xl border border-slate-800 select-none">
+              {/* Multizone Background Coloring */}
+              {/* Zone ±1 SD (Optimal Green) */}
+              <rect x={padLeft} y={getY(1)} width={plotWidth} height={getY(-1) - getY(1)} fill="#10b981" fillOpacity="0.05" />
+              {/* Zone ±2 SD (Warning Yellow) */}
+              <rect x={padLeft} y={getY(2)} width={plotWidth} height={getY(1) - getY(2)} fill="#f59e0b" fillOpacity="0.05" />
+              <rect x={padLeft} y={getY(-1)} width={plotWidth} height={getY(-2) - getY(-1)} fill="#f59e0b" fillOpacity="0.05" />
+              {/* Zone ±3 SD (Critical Red) */}
+              <rect x={padLeft} y={getY(3)} width={plotWidth} height={getY(2) - getY(3)} fill="#ef4444" fillOpacity="0.05" />
+              <rect x={padLeft} y={getY(-2)} width={plotWidth} height={getY(-3) - getY(-2)} fill="#ef4444" fillOpacity="0.05" />
+
               {/* Reference Grid Lines */}
               {/* +3 SD */}
               <line x1={padLeft} y1={getY(3)} x2={svgWidth - padRight} y2={getY(3)} stroke="#f43f5e" strokeDasharray="3 3" strokeWidth="1" />
@@ -525,21 +461,24 @@ export const InternalQualityControlQC: React.FC = () => {
 
           {/* Westgard Rules Legend */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <div className="font-bold text-rose-400">1_3s (Rechazo)</div>
-              <div className="text-[10px] text-slate-400">1 valor excede ±3 SD. Error aleatorio severo.</div>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-teal-500/50 transition-all group">
+              <div className="font-black text-rose-400 flex items-center justify-between uppercase text-[10px]">
+                <span>1_3s (Rechazo)</span>
+                <Zap size={12} className="animate-pulse" />
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1">1 valor excede ±3 SD. Error aleatorio severo o fallo de equipo.</div>
             </div>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <div className="font-bold text-rose-400">2_2s (Rechazo)</div>
-              <div className="text-[10px] text-slate-400">2 valores consecutivos exceden ±2 SD. Error sistemático.</div>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-teal-500/50 transition-all">
+              <div className="font-black text-rose-400 uppercase text-[10px]">2_2s (Rechazo)</div>
+              <div className="text-[10px] text-slate-400 mt-1">2 valores consecutivos ±2 SD. Error sistemático / reactivo.</div>
             </div>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <div className="font-bold text-amber-400">1_2s (Advertencia)</div>
-              <div className="text-[10px] text-slate-400">1 valor excede ±2 SD. Gatilla evaluación de otras reglas.</div>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-teal-500/50 transition-all">
+              <div className="font-black text-amber-400 uppercase text-[10px]">R_4s (Rechazo)</div>
+              <div className="text-[10px] text-slate-400 mt-1">Rango entre niveles excede 4 SD. Error aleatorio detectado.</div>
             </div>
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <div className="font-bold text-teal-400">10_x (Alerta)</div>
-              <div className="text-[10px] text-slate-400">10 valores consecutivos en el mismo lado de la media.</div>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-teal-500/50 transition-all">
+              <div className="font-black text-teal-400 uppercase text-[10px]">4_1s (Alerta)</div>
+              <div className="text-[10px] text-slate-400 mt-1">4 valores en un lado &gt; 1 SD. Sugiere deriva analítica.</div>
             </div>
           </div>
         </div>
@@ -702,6 +641,14 @@ export const InternalQualityControlQC: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showPinModal && (
+        <SecurityPinModal
+          actionTitle={`Firmar Acción Correctiva: ${activeProfile.analyte}`}
+          onSuccess={finalizeCorrectiveAction}
+          onCancel={() => setShowPinModal(false)}
+        />
       )}
     </div>
   );
