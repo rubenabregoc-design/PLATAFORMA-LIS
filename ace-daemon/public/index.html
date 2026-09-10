@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACE Local Daemon Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .log-entry { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden p-6 gap-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-teal-500/10 border border-teal-500/20 rounded-xl flex items-center justify-center text-teal-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-white tracking-tight uppercase italic">AbregoTech <span class="text-teal-400 not-italic">ACE Daemon</span></h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Local Hardware Gateway [PORT 5050]</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud API Conectada
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex gap-6 overflow-hidden">
+        
+        <!-- Sidebar (Nodos) -->
+        <div class="w-1/3 flex flex-col gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Puertos Físicos Escuchando</h2>
+                <div id="nodes-container" class="space-y-3 flex-1 overflow-y-auto custom-scroll">
+                    <!-- Nodos inyectados por JS -->
+                    <div class="text-center p-8 text-slate-600 text-xs italic">Esperando inicio de puertos...</div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Métricas Locales</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase">Tramas Subidas</div>
+                        <div id="metric-tx" class="text-xl font-black text-white mt-1">0</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase">Errores TCP</div>
+                        <div id="metric-err" class="text-xl font-black text-rose-400 mt-1">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal -->
+        <div class="w-2/3 bg-slate-950 border border-slate-800 rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
+            <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex justify-between items-center z-10">
+                <span class="text-xs font-mono font-bold text-teal-400 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 6h16M4 18h16"></path></svg>
+                    LIVE TERMINAL MONITOR
+                </span>
+                <button onclick="document.getElementById('terminal').innerHTML=''" class="text-[10px] uppercase font-bold text-slate-500 hover:text-white transition">Limpiar</button>
+            </div>
+            
+            <div id="terminal" class="flex-1 p-5 font-mono text-xs space-y-3 overflow-y-auto custom-scroll">
+                <div class="text-slate-600 italic">Inicializando daemon ACE...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const socket = io();
+        const terminal = document.getElementById('terminal');
+        const nodesContainer = document.getElementById('nodes-container');
+        let txCount = 0;
+        let errCount = 0;
+        const nodesMap = new Map();
+
+        // Recibir logs del servidor Node
+        socket.on('terminal_log', (data) => {
+            const div = document.createElement('div');
+            div.className = 'log-entry border-l-2 pl-3 py-1 ' + 
+                (data.type === 'INBOUND' ? 'border-emerald-500' : 
+                 data.type === 'OUTBOUND' ? 'border-amber-500' : 
+                 data.type === 'SUCCESS' ? 'border-teal-500' : 
+                 data.type === 'ERROR' ? 'border-rose-500' : 'border-blue-500');
+
+            let typeBadge = '';
+            if(data.type === 'INBOUND') typeBadge = '<span class="bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded text-[9px] font-bold">← INBOUND</span>';
+            else if(data.type === 'OUTBOUND') typeBadge = '<span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[9px] font-bold">→ OUTBOUND</span>';
+            else if(data.type === 'SYSTEM') typeBadge = '<span class="bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded text-[9px] font-bold">⚙ SYSTEM</span>';
+            else if(data.type === 'SUCCESS') typeBadge = '<span class="bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded text-[9px] font-bold">✅ SUCCESS</span>';
+            else if(data.type === 'ERROR') {
+                typeBadge = '<span class="bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded text-[9px] font-bold">❌ ERROR</span>';
+                errCount++;
+                document.getElementById('metric-err').innerText = errCount;
+            }
+
+            let msgHTML = `<div class="text-slate-300">${data.message}</div>`;
+            if (data.isData) {
+                msgHTML = `<pre class="mt-1 p-2 bg-slate-900 border border-slate-800 rounded-md text-[10px] text-teal-500/80 whitespace-pre-wrap">${data.message}</pre>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-slate-500">${data.timestamp}</span>
+                    ${typeBadge}
+                    <span class="text-[10px] font-bold text-slate-400">[${data.analyzer}]</span>
+                </div>
+                ${msgHTML}
+            `;
+            
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        });
+
+        // Actualizar UI de nodos
+        socket.on('analyzer_status', (data) => {
+            nodesMap.set(data.name, data);
+            renderNodes();
+        });
+
+        socket.on('tx_success', () => {
+            txCount++;
+            document.getElementById('metric-tx').innerText = txCount;
+        });
+
+        function renderNodes() {
+            if(nodesMap.size === 0) return;
+            nodesContainer.innerHTML = '';
+            
+            nodesMap.forEach((node) => {
+                const statusColor = node.status === 'LISTENING' ? 'text-blue-400 bg-blue-500/10' : 
+                                  node.status === 'ONLINE' ? 'text-emerald-400 bg-emerald-500/10 animate-pulse' : 
+                                  'text-rose-400 bg-rose-500/10';
+                                  
+                const icon = node.status === 'ONLINE' ? 
+                    '<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>' :
+                    '<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 6h16M4 18h16"></path></svg>';
+
+                nodesContainer.innerHTML += `
+                    <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">
+                                ${icon}
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-sm">${node.name}</div>
+                                <div class="text-[10px] text-slate-500 font-mono mt-0.5">TCP PORT: ${node.port}</div>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-black uppercase px-2 py-1 rounded ${statusColor}">${node.status}</span>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
