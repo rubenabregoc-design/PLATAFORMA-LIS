@@ -29,45 +29,69 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
 };
 
 export const NAVIGATION_TABS = [
+  // 🔬 LIS (Laboratorio Clínico - 15 Módulos)
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'validation', label: 'Resultados', icon: Microscope },
-  { id: 'tm_workbench', label: 'Estación TM', icon: Activity },
-  { id: 'patient_results', label: 'Expedientes', icon: FileText },
-  { id: 'billing', label: 'Facturación POS', icon: Receipt },
-  { id: 'inventory', label: 'Inventario', icon: Package },
-  { id: 'test_catalog', label: 'Catálogo LIS', icon: BookOpen },
-  { id: 'batch_reporting', label: 'Batch Reporting', icon: Files },
-  { id: 'productivity', label: 'Productividad', icon: BarChart3 },
-  { id: 'qc', label: 'Control Calidad', icon: SlidersHorizontal },
+  { id: 'validation', label: 'Resultados & Validación', icon: Microscope },
+  { id: 'tm_workbench', label: 'Estación TM (Bancada)', icon: Activity },
+  { id: 'lis_workstation', label: 'Workstation 3D Validación', icon: Sparkles },
+  { id: 'patient_results', label: 'Expedientes & Muestras', icon: FileText },
+  { id: 'test_catalog', label: 'Catálogo LIS & Pruebas', icon: BookOpen },
+  { id: 'qc', label: 'Control Calidad QC', icon: SlidersHorizontal },
+  { id: 'middleware', label: 'Middleware ASTM', icon: Sparkles },
+  { id: 'homologation', label: 'Analizadores Clínicos', icon: SlidersHorizontal },
+  { id: 'drivers', label: 'Drivers ASTM / HL7', icon: Cpu },
   { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck },
-  { id: 'bloodbank', label: 'Banco Sangre', icon: Droplets },
-  { id: 'pathology', label: 'Patología', icon: Microscope },
-  { id: 'whatsapp', label: 'WhatsApp LIS', icon: MessageSquare },
-  { id: 'label_studio', label: 'Etiquetas', icon: Printer },
-  { id: 'shifts', label: 'Turnos', icon: Calendar },
-  { id: 'eqa', label: 'PEEC / EQA', icon: Target },
-  { id: 'cmms', label: 'CMMS Equipos', icon: Wrench },
-  { id: 'middleware', label: 'Middleware', icon: Sparkles },
-  { id: 'homologation', label: 'Analizadores', icon: SlidersHorizontal },
-  { id: 'drivers', label: 'Drivers ASTM', icon: Cpu },
-  { id: 'delta', label: 'Alertas Delta', icon: AlertTriangle },
+  { id: 'pathology', label: 'Patología Anatómica', icon: Microscope },
+  { id: 'batch_reporting', label: 'Batch Reporting PDF', icon: Files },
+  { id: 'lis_hil', label: 'Preanalítica HIL', icon: Droplets },
+  { id: 'lis_panic', label: 'Registro de Pánicos', icon: AlertTriangle },
+
+  // 🏥 HIS (Suite Hospitalaria - 10 Módulos)
+  { id: 'his_triage', label: 'Urgencias & Triage', icon: Activity },
+  { id: 'his_beds', label: 'Censo & Mapa de Camas', icon: Building2 },
+  { id: 'his_ehr', label: 'Historia Clínica EHR', icon: FileText },
+  { id: 'his_kardex', label: 'Kardex Enfermería eMAR', icon: ShieldCheck },
+  { id: 'his_operating', label: 'Quirófanos & Cirugías', icon: Wrench },
+  { id: 'his_maternity', label: 'Maternidad & Neonatos', icon: Award },
+  { id: 'his_ris_pacs', label: 'Radiología RIS / PACS', icon: Globe },
+  { id: 'his_pharmacy', label: 'Farmacia Hospitalaria', icon: Package },
+  { id: 'his_console', label: 'Consola Integración HL7', icon: Server },
+  { id: 'shifts', label: 'Turnos & Citas', icon: Calendar },
+
+  // 🩸 BANCO DE SANGRE (Medicina Transfusional - 15 Módulos)
+  { id: 'bloodbank', label: 'Centro Banco de Sangre', icon: Droplets },
+  { id: 'blood_donors', label: 'Cuestionario Donantes', icon: FileText },
+  { id: 'blood_deferral', label: 'Diferimiento e Inaptitud', icon: AlertTriangle },
+  { id: 'blood_apheresis', label: 'Aféresis & Extracción', icon: Activity },
+  { id: 'blood_drives', label: 'Colectas Extramuros', icon: Truck },
+  { id: 'blood_fractionation', label: 'Fraccionamiento Componentes', icon: Package },
+  { id: 'blood_cold_chain', label: 'Cadena de Frío IoT', icon: Server },
+  { id: 'blood_logistics', label: 'Logística Hemocomponentes', icon: Truck },
+  { id: 'blood_crossmatch', label: 'Inmuno & Crossmatch', icon: Microscope },
+  { id: 'blood_hemovigilance', label: 'Hemovigilancia Eventos', icon: ShieldCheck },
+  { id: 'blood_waste', label: 'Desechos Biológicos', icon: Wrench },
+  { id: 'blood_chemical_waste', label: 'Desechos Químicos', icon: Wrench },
+  { id: 'blood_manifest', label: 'Manifiesto Descarte PDF', icon: Printer },
+  { id: 'label_studio', label: 'Etiquetas ISBT 128', icon: Printer },
+  { id: 'routing', label: 'Ruteo Inter-Sedes', icon: Truck },
+
+  // 💼 GESTIÓN & BI (Administración - 15 Módulos)
+  { id: 'billing', label: 'Facturación POS & DGI', icon: Receipt },
+  { id: 'inventory', label: 'Inventario Reactivos FEFO', icon: Package },
+  { id: 'executive', label: 'Analítica BI & Ejecutivo', icon: BrainCircuit },
+  { id: 'productivity', label: 'Productividad & Métricas', icon: BarChart3 },
   { id: 'minsa', label: 'Reportes MINSA', icon: FileCheck2 },
-  { id: 'executive', label: 'Analítica BI', icon: BrainCircuit },
   { id: 'audit', label: 'Auditoría Ley 81', icon: ShieldCheck },
-  { id: 'routing', label: 'Ruteo Sedes', icon: Truck },
-  { id: 'fhir', label: 'FHIR Interop', icon: Globe },
-  { id: 'ha_dr', label: 'HA / Cluster', icon: Server },
-  { id: 'accreditation', label: 'ISO 15189', icon: Award },
-  { id: 'schema', label: 'Base de Datos', icon: Database },
+  { id: 'cmms', label: 'Mantenimiento CMMS', icon: Wrench },
+  { id: 'eqa', label: 'PEEC / Control Calidad EQA', icon: Target },
+  { id: 'whatsapp', label: 'WhatsApp LIS Engine', icon: MessageSquare },
+  { id: 'fhir', label: 'FHIR Interoperabilidad', icon: Globe },
+  { id: 'ha_dr', label: 'HA / Cluster Alta Disponibilidad', icon: Server },
+  { id: 'accreditation', label: 'Acreditación ISO 15189', icon: Award },
+  { id: 'schema', label: 'Base de Datos & Esquemas', icon: Database },
 ];
 
-const ALL_MODULE_TABS = [
-  'dashboard', 'validation', 'tm_workbench', 'patient_results', 'billing', 'inventory',
-  'test_catalog', 'batch_reporting', 'productivity', 'qc', 'phlebotomy', 'bloodbank',
-  'pathology', 'whatsapp', 'label_studio', 'shifts', 'eqa', 'cmms', 'middleware',
-  'homologation', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing',
-  'fhir', 'ha_dr', 'accreditation', 'schema'
-];
+const ALL_MODULE_TABS = NAVIGATION_TABS.map(t => t.id);
 
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
   owner: ALL_MODULE_TABS,
@@ -113,35 +137,35 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
-  // Grand Domain Categories Definition (Concise single-line labels)
+  // Grand Domain Categories Definition (Explicitly mapping all 55 modules)
   const DOMAIN_CATEGORIES = [
     {
       id: 'lis',
       label: 'Laboratorio',
       icon: Microscope,
-      badge: '10 Módulos',
-      tabs: ['validation', 'tm_workbench', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'phlebotomy', 'pathology', 'batch_reporting']
+      badge: '15 Módulos',
+      tabs: ['validation', 'tm_workbench', 'lis_workstation', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy', 'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_specialized']
     },
     {
       id: 'his',
       label: 'Hospital HIS',
       icon: Activity,
-      badge: 'Hospital',
-      tabs: ['patient_results', 'shifts', 'routing', 'fhir']
+      badge: '10 Módulos',
+      tabs: ['his_triage', 'his_beds', 'his_ehr', 'his_kardex', 'his_operating', 'his_maternity', 'his_ris_pacs', 'his_pharmacy', 'his_console', 'shifts']
     },
     {
       id: 'bloodbank',
       label: 'Banco Sangre',
       icon: Droplets,
-      badge: 'Transfusional',
-      tabs: ['bloodbank', 'label_studio']
+      badge: '15 Módulos',
+      tabs: ['bloodbank', 'blood_donors', 'blood_deferral', 'blood_apheresis', 'blood_drives', 'blood_fractionation', 'blood_cold_chain', 'blood_logistics', 'blood_crossmatch', 'blood_hemovigilance', 'blood_waste', 'blood_chemical_waste', 'blood_manifest', 'label_studio', 'routing']
     },
     {
       id: 'bi',
       label: 'Gestión',
       icon: BrainCircuit,
-      badge: 'Gerencial',
-      tabs: ['billing', 'inventory', 'executive', 'minsa', 'audit', 'cmms', 'eqa', 'whatsapp', 'accreditation', 'schema']
+      badge: '15 Módulos',
+      tabs: ['billing', 'inventory', 'executive', 'productivity', 'minsa', 'audit', 'cmms', 'eqa', 'whatsapp', 'fhir', 'ha_dr', 'accreditation', 'schema']
     }
   ];
 

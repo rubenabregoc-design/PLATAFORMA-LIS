@@ -36,9 +36,34 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+
+      {/* US Letter Printable Page Media Styles */}
+      <style>{`
+        @media print {
+          @page {
+            size: letter portrait;
+            margin: 8mm 10mm;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          #printable-report {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+        }
+      `}</style>
+
       <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[95vh] overflow-y-auto flex flex-col">
         {/* Top Control Bar */}
-        <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-10">
+        <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-10 no-print">
           <div className="flex items-center space-x-2">
             <FileText className="w-5 h-5 text-teal-400" />
             <span className="font-bold text-sm">Vista Previa de Informe Clínico Oficial (PDF Report)</span>

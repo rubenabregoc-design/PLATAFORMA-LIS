@@ -47,6 +47,29 @@ import { LabelPrinterStudio } from './components/Phase6Suite/LabelPrinterStudio'
 import { LabProductivityDashboard } from './components/Phase6Suite/LabProductivityDashboard';
 import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWorkbench';
 import { BatchReportingStudio } from './components/Phase6Suite/BatchReportingStudio';
+
+import { EmergencyTriageModule } from './components/HospitalSuite/EmergencyTriageModule';
+import { BedCensusManagement } from './components/HospitalSuite/BedCensusManagement';
+import { ElectronicHealthRecordEHR } from './components/HospitalSuite/ElectronicHealthRecordEHR';
+import { KardexNursingModule } from './components/HospitalSuite/KardexNursingModule';
+import { OperatingRoomManagement } from './components/HospitalSuite/OperatingRoomManagement';
+import { MaternityNeonatalModule } from './components/HospitalSuite/MaternityNeonatalModule';
+import { RisPacsRadiologyStudio } from './components/HospitalSuite/RisPacsRadiologyStudio';
+import { HospitalPharmacyDispensing } from './components/HospitalSuite/HospitalPharmacyDispensing';
+
+import DonorScreeningForm from './components/Phase6Suite/TechnologistSuite/DonorScreeningForm';
+import DonorDeferralDashboard from './components/Phase6Suite/TechnologistSuite/DonorDeferralDashboard';
+import ApheresisDonationModule from './components/Phase6Suite/TechnologistSuite/ApheresisDonationModule';
+import ExtramuralBloodDriveManager from './components/Phase6Suite/TechnologistSuite/ExtramuralBloodDriveManager';
+import UnitProcessingWorkspace from './components/Phase6Suite/TechnologistSuite/UnitProcessingWorkspace';
+import ColdChainMonitor from './components/Phase6Suite/TechnologistSuite/ColdChainMonitor';
+import BloodLogisticsManager from './components/Phase6Suite/TechnologistSuite/BloodLogisticsManager';
+import CrossmatchWorkflow from './components/Phase6Suite/TechnologistSuite/CrossmatchWorkflow';
+import HemovigilanceAnalytics from './components/Phase6Suite/TechnologistSuite/HemovigilanceAnalytics';
+import BiohazardWasteManager from './components/Phase6Suite/TechnologistSuite/BiohazardWasteManager';
+import { AnalyticalValidationWorkstation } from './components/Phase6Suite/TechnologistSuite/AnalyticalValidationWorkstation';
+import HISIntegrationConsole from './components/Phase6Suite/TechnologistSuite/HISIntegrationConsole';
+
 import { SecureInternalMessagingWidget } from './components/SecureInternalMessagingWidget';
 import { MasterTestCatalogManager } from './components/MasterTestCatalogManager';
 
@@ -500,6 +523,34 @@ export default function App() {
                 allOrders={orders}
                 allPatients={patients}
               />
+            )}
+
+            {/* HIS Hospital Suite Sub-Modules */}
+            {activeTab === 'his_triage' && <EmergencyTriageModule />}
+            {activeTab === 'his_beds' && <BedCensusManagement />}
+            {activeTab === 'his_ehr' && <ElectronicHealthRecordEHR />}
+            {activeTab === 'his_kardex' && <KardexNursingModule />}
+            {activeTab === 'his_operating' && <OperatingRoomManagement />}
+            {activeTab === 'his_maternity' && <MaternityNeonatalModule />}
+            {activeTab === 'his_ris_pacs' && <RisPacsRadiologyStudio />}
+            {activeTab === 'his_pharmacy' && <HospitalPharmacyDispensing />}
+            {activeTab === 'his_console' && <HISIntegrationConsole />}
+
+            {/* Blood Bank Sub-Modules */}
+            {activeTab === 'blood_donors' && <DonorScreeningForm />}
+            {activeTab === 'blood_deferral' && <DonorDeferralDashboard />}
+            {activeTab === 'blood_apheresis' && <ApheresisDonationModule />}
+            {activeTab === 'blood_drives' && <ExtramuralBloodDriveManager />}
+            {activeTab === 'blood_fractionation' && <UnitProcessingWorkspace />}
+            {activeTab === 'blood_cold_chain' && <ColdChainMonitor />}
+            {activeTab === 'blood_logistics' && <BloodLogisticsManager />}
+            {activeTab === 'blood_crossmatch' && <CrossmatchWorkflow />}
+            {activeTab === 'blood_hemovigilance' && <HemovigilanceAnalytics />}
+            {activeTab === 'blood_waste' && <BiohazardWasteManager />}
+
+            {/* LIS & Workstation Sub-Modules */}
+            {activeTab === 'lis_workstation' && (
+              <AnalyticalValidationWorkstation />
             )}
 
             {/* Other modules */}
