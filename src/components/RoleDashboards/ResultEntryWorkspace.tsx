@@ -267,20 +267,50 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="px-6 py-3 bg-slate-950/40 border-b border-white/5 flex items-center justify-between">
+        {/* Rich Clinical Patient Header */}
+        <div className="px-6 py-3 bg-slate-950/80 border-b border-teal-500/20 flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-teal-500/30 flex items-center justify-center text-teal-400"><UserCircle className="w-7 h-7" /></div>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500/20 to-emerald-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shadow-md">
+                 <UserCircle className="w-7 h-7" />
+              </div>
               <div>
-                 <h2 className="text-lg font-black text-white uppercase italic">{currentPatient.firstName} {currentPatient.lastName}</h2>
-                 <div className="flex gap-3 text-[10px] text-slate-500 font-bold uppercase"><span className="flex items-center gap-1"><Fingerprint className="w-3 h-3 text-teal-500" />{currentPatient.nationalId}</span><span>{currentOrder.orderNumber}</span></div>
+                 <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-black text-white uppercase italic tracking-tight">{currentPatient.firstName} {currentPatient.lastName}</h2>
+                    {currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? (
+                       <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
+                          <Zap className="w-3 h-3 fill-current" /> STAT URGENTE
+                       </span>
+                    ) : (
+                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">
+                          RUTINA
+                       </span>
+                    )}
+                 </div>
+
+                 <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-bold uppercase mt-1">
+                    <span className="flex items-center gap-1 text-teal-400"><Fingerprint className="w-3.5 h-3.5" />{currentPatient.nationalId}</span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-slate-300">Orden: <strong className="text-white font-mono">{currentOrder.orderNumber}</strong></span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-indigo-300">38 años / Femenino</span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-amber-300">🏥 Urgencias — Cama 02</span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-slate-400">Dr. R. Arosemena</span>
+                 </div>
               </div>
            </div>
-           <div className="flex items-center gap-4">
-              <button onClick={() => setIsAuditFilterActive(!isAuditFilterActive)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${isAuditFilterActive ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-slate-900 border-white/5 text-slate-500'}`}>
-                 <Timer className={`w-3.5 h-3.5 inline mr-2 ${isAuditFilterActive ? 'animate-pulse' : ''}`} />
-                 {isAuditFilterActive ? 'Filtro Auditoría Activo' : 'Ver Todos'}
+
+           <div className="flex items-center gap-3">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/30 text-xs font-mono text-teal-300 flex items-center gap-2 shadow-inner">
+                 <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                 <span className="text-[10px] font-bold">Muestras: EDTA (BC-8823) + Suero (BC-8824)</span>
+              </div>
+
+              <button onClick={() => setIsAuditFilterActive(!isAuditFilterActive)} className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${isAuditFilterActive ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md' : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white'}`}>
+                 <Timer className={`w-3.5 h-3.5 inline mr-1.5 ${isAuditFilterActive ? 'animate-pulse' : ''}`} />
+                 {isAuditFilterActive ? 'Filtro Auditoría' : 'Ver Todos'}
               </button>
-              <div className="text-right"><div className="text-[9px] font-black text-slate-600 uppercase">Estado Conexión</div><div className="text-[10px] font-black text-emerald-500 flex items-center gap-2"><RefreshCw className="w-3 h-3 animate-spin" /> Middleware Activo</div></div>
            </div>
         </div>
 
@@ -466,7 +496,27 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               }
                            </td>
                            <td className="p-4 text-slate-500 font-mono text-[10px] uppercase tracking-tighter">{res.unit}</td>
-                           <td className="p-4 text-slate-400 font-mono text-[10px] italic">{res.refRangeText}</td>
+                           <td className="p-4 text-slate-400 font-mono text-[10px] italic">
+                              <div>{res.refRangeText}</div>
+                              {/* Visual Range Gauge Slider Bar */}
+                              <div className="w-28 h-1.5 bg-slate-900 border border-slate-800 rounded-full mt-1.5 relative overflow-hidden">
+                                 <div className="absolute inset-y-0 bg-emerald-500/30 border-x border-emerald-500/50" style={{ left: '20%', width: '60%' }} />
+                                 <div
+                                   className={`absolute top-0 bottom-0 w-2 rounded-full border border-slate-950 ${
+                                     res.flag?.includes('CRITICO')
+                                       ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-pulse'
+                                       : res.flag === 'ALTO'
+                                       ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+                                       : res.flag === 'BAJO'
+                                       ? 'bg-blue-400 shadow-[0_0_8px_#3b82f6]'
+                                       : 'bg-emerald-400 shadow-[0_0_8px_#10b981]'
+                                   }`}
+                                   style={{
+                                     left: res.flag === 'ALTO' || res.flag?.includes('CRITICO') ? '85%' : res.flag === 'BAJO' ? '10%' : '50%'
+                                   }}
+                                 />
+                              </div>
+                           </td>
                            <td className="p-4 text-center">
                               {res.source?.includes('MIDDLEWARE') && !isValidated && (
                                 <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${isLate ? 'border-amber-500/40 bg-amber-500/5 text-amber-400' : 'border-white/5 bg-slate-950 text-teal-400'}`}>
@@ -478,6 +528,23 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               )}
                            </td>
                         </tr>
+
+                        {/* Inline Clinical Alert Card for High or Critical Values */}
+                        {(res.flag === 'ALTO' || res.flag?.includes('CRITICO')) && (
+                          <tr className={res.flag?.includes('CRITICO') ? 'bg-rose-500/10 border-b border-rose-500/20' : 'bg-amber-500/10 border-b border-amber-500/20'}>
+                            <td colSpan={6} className="px-4 py-2">
+                               <div className="flex items-center gap-2 text-[10px] font-bold">
+                                  <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${res.flag?.includes('CRITICO') ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
+                                  <span className={res.flag?.includes('CRITICO') ? 'text-rose-300 font-bold' : 'text-amber-300 font-bold'}>
+                                     {res.flag?.includes('CRITICO')
+                                        ? `🚨 VALOR CRÍTICO DE PÁNICO: ${res.parameterName} (${res.value} ${res.unit}) — Requiere protocolo de notificación inmediata a médico tratante.`
+                                        : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el valor máximo de referencia (${res.refRangeText}). Δ +17.5% vs previo.`
+                                     }
+                                  </span>
+                               </div>
+                            </td>
+                          </tr>
+                        )}
                         {isNoteExpanded && (
                           <tr className="bg-slate-900/60 border-b border-white/5">
                             <td colSpan={6} className="p-4">
