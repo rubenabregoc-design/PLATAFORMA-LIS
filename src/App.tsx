@@ -375,6 +375,14 @@ export default function App() {
   const allowedTabsForRole = ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
 
+  // Auto-redirect unauthorized tab to user's primary default tab
+  useEffect(() => {
+    if (isAuthenticated && !isTabAuthorized) {
+      const defaultTab = allowedTabsForRole[0] || 'dashboard';
+      setActiveTab(defaultTab);
+    }
+  }, [isAuthenticated, isTabAuthorized, currentRole]);
+
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
       {/* Dynamic Background Elements */}
