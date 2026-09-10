@@ -572,7 +572,7 @@ export const useLisStore = create<LisState>()(
       }),
     }),
     {
-      name: 'lis-storage', // persist state in IndexedDB (with localStorage/memory fallback)
+      name: 'lis-storage-v4', // Version bump to flush stale IndexedDB cache & load latest fresh mock dataset
       storage: createJSONStorage(() => lisIndexedDb),
       partialize: (state) => ({
         currentUser: state.currentUser,
