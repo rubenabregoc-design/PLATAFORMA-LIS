@@ -247,27 +247,21 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   const currentChannel = CHANNELS_LIST.find(c => c.id === activeChannelId) || CHANNELS_LIST[0];
   const channelMessages = messages.filter(m => m.channelId === activeChannelId);
 
-  // If floating collapsed trigger button
+  // If floating collapsed trigger button (Compact Round FAB so it never covers technologist action bar)
   if (!isOpen && !embeddedMode) {
     return (
       <button
         onClick={() => { setIsOpen(true); setUnreadCount(0); }}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 hover:from-indigo-500 hover:to-blue-600 text-white p-3.5 rounded-full shadow-2xl border-2 border-indigo-400/40 flex items-center space-x-3 transition-all transform hover:scale-105 cursor-pointer group"
+        title="Mensajería Inter-Sedes WSS — Consultas Técnicas & Muestras"
+        className="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-700 to-blue-700 hover:from-indigo-500 hover:to-blue-600 text-white shadow-[0_10px_25px_rgba(79,70,229,0.5)] border-2 border-indigo-400/50 flex items-center justify-center transition-all transform hover:scale-110 cursor-pointer group"
       >
-        <div className="relative">
-          <MessageSquare className="w-6 h-6 text-white" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></span>
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-indigo-900"></span>
-        </div>
-        <div className="text-left hidden sm:block pr-1">
-          <div className="text-xs font-black tracking-wide flex items-center space-x-1.5">
-            <span>Mensajería Inter-Sedes</span>
-            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[9px] px-1.5 py-0.2 rounded font-mono">WSS</span>
-          </div>
-          <div className="text-[10px] text-indigo-200 font-mono">Consultas Técnicas & Muestras</div>
+        <div className="relative flex items-center justify-center">
+          <MessageSquare className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full animate-ping"></span>
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-indigo-900"></span>
         </div>
         {unreadCount > 0 && (
-          <span className="bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow border border-white/20">
+          <span className="absolute -top-1 -left-1 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow border border-white/20 animate-pulse">
             {unreadCount}
           </span>
         )}

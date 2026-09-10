@@ -80,10 +80,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   }, [currentOrder.id, results, isAuditFilterActive]);
 
   const getFlagStyle = (flag?: string) => {
-    if (flag?.includes('CRITICO')) return 'bg-rose-500/20 text-rose-500 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)] animate-pulse';
-    if (flag === 'ALTO') return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-    if (flag === 'BAJO') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    return 'text-slate-300';
+    if (flag?.includes('CRITICO')) return 'bg-rose-500/25 border-2 border-rose-500 text-rose-200 font-black text-sm px-3.5 py-1 rounded-xl shadow-lg shadow-rose-500/30 animate-pulse';
+    if (flag === 'ALTO') return 'bg-amber-500/25 border-2 border-amber-500/60 text-amber-300 font-black text-sm px-3.5 py-1 rounded-xl shadow-md shadow-amber-500/20';
+    if (flag === 'BAJO') return 'bg-blue-500/25 border-2 border-blue-500/60 text-blue-300 font-black text-sm px-3.5 py-1 rounded-xl shadow-md shadow-blue-500/20';
+    return 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-3 py-1 rounded-xl';
   };
 
   const filteredOrders = useMemo(() => {
