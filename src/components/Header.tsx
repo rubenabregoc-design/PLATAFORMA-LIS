@@ -303,17 +303,17 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-5 w-px bg-white/10 hidden sm:block"></div>
 
-          {/* Fixed Compact User Profile Badge Pill */}
-          <div className="hidden sm:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 py-1 gap-1.5 shadow-lg shrink-0">
+          {/* User Profile Badge Pill - Full Untruncated Name */}
+          <div className="hidden sm:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-3 py-1.5 gap-2 shadow-lg shrink-0">
             <div className="flex flex-col text-right">
-              <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[95px]" title={currentUser?.name}>
+              <span className="text-xs font-black text-white uppercase tracking-tight leading-none whitespace-nowrap">
                 {currentUser?.name || 'Lic. Sofía Guardia'}
               </span>
-              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[85px]">
+              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 whitespace-nowrap mt-0.5">
                 {currentBranch?.name || 'Sede Vía España'}
               </span>
             </div>
-            <div className="w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[10px] flex items-center justify-center shadow-md shrink-0">
+            <div className="w-7.5 h-7.5 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
               {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>
