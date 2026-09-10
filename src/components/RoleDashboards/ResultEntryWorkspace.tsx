@@ -395,6 +395,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       <th className="p-4">Unidad</th>
                       <th className="p-4">Valor Referencia</th>
                       <th className="p-4 text-center">TAT / Origen</th>
+                      <th className="p-4 text-center">ESTADO</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-white/5">
@@ -534,6 +535,30 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               )}
                               {isValidated && (
                                 <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">OK</span>
+                              )}
+                           </td>
+                           {/* Dedicated ESTADO / VALIDACIÓN Column */}
+                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              {isValidated ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>VALIDADO</span>
+                                </span>
+                              ) : res.status === 'LIBERADO' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                                  <span>LIBERADO</span>
+                                </span>
+                              ) : res.status === 'RECHAZADO' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm animate-pulse">
+                                  <X className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>RECHAZADO</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
+                                  <Timer className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                  <span>PENDIENTE</span>
+                                </span>
                               )}
                            </td>
                         </tr>

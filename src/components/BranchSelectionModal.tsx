@@ -45,25 +45,25 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
   const selectedBranch = currentTenant.branches.find(b => b.id === activeBranchId) || currentTenant.branches[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 sm:p-8 shadow-2xl relative space-y-4 sm:space-y-6">
+    <div className="fixed inset-0 z-50 bg-[#020617]/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-[#03091e]/95 border-2 border-cyan-400/40 rounded-3xl max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,240,255,0.25)] ring-1 ring-cyan-500/30 relative space-y-4 sm:space-y-6">
         
-        {/* Glow backdrop decoration */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-teal-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-60 h-60 bg-emerald-500/10 rounded-full blur-[90px] pointer-events-none"></div>
+        {/* Glow backdrop decoration matching Hospital Sunset Background */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-600/20 rounded-full blur-[90px] pointer-events-none"></div>
 
         {/* Modal Header */}
         <div className="space-y-2 relative z-10">
           <div className="flex items-center justify-between">
-            <span className="px-3 py-1 bg-teal-500/20 border border-teal-500/40 text-teal-300 font-bold rounded-full text-[11px] uppercase tracking-wider flex items-center space-x-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+            <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 font-bold rounded-full text-[11px] uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
               <span>Confirmación de Sede Operativa</span>
             </span>
 
             {onClose && (
               <button
                 onClick={onClose}
-                className="text-slate-500 hover:text-slate-300 text-sm font-bold p-1 rounded-lg transition cursor-pointer"
+                className="text-slate-400 hover:text-white text-sm font-bold p-1 rounded-lg transition cursor-pointer"
               >
                 ✕
               </button>
@@ -71,20 +71,20 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center space-x-2">
-            <Building2 className="w-7 h-7 text-teal-400 shrink-0" />
+            <Building2 className="w-7 h-7 text-cyan-400 shrink-0" />
             <span>Seleccione su Sede de Trabajo</span>
           </h2>
 
-          <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">
-            Hola <strong className="text-white">{currentUser.name}</strong>, tu cuenta tiene acceso a múltiples centros clínicos en <strong className="text-teal-300">{currentTenant.name}</strong>. Por favor confirma la sede en la que operarás durante esta sesión.
+          <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+            Hola <strong className="text-white">{currentUser.name}</strong>, tu cuenta tiene acceso a múltiples centros clínicos en <strong className="text-cyan-300">{currentTenant.name}</strong>. Por favor confirma la sede en la que operarás durante esta sesión.
           </p>
         </div>
 
         {/* User Role Badge Banner */}
-        <div className="p-3.5 bg-slate-950/90 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 text-xs relative z-10">
+        <div className="p-3.5 bg-[#020718] border border-cyan-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs relative z-10 shadow-inner">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center font-bold">
-              <ShieldCheck className="w-4 h-4 text-teal-400" />
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center font-bold">
+              <ShieldCheck className="w-4 h-4 text-cyan-400" />
             </div>
             <div>
               <div className="font-bold text-white text-xs">{currentUser.name}</div>
@@ -92,7 +92,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
             </div>
           </div>
 
-          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${roleInfo.color}`}>
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm">
             {roleInfo.title}
           </span>
         </div>
@@ -101,7 +101,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
         <div className="space-y-3 relative z-10">
           <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
             <span>Sedes Disponibles ({currentTenant.branches.length})</span>
-            <span className="text-[10px] text-teal-400 font-mono">Selección obligatoria de sesión</span>
+            <span className="text-[10px] text-cyan-400 font-mono">Selección obligatoria de sesión</span>
           </label>
 
           <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
@@ -115,15 +115,15 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
                   onClick={() => handleSelect(branch.id)}
                   className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden group ${
                     isSelected
-                      ? 'bg-slate-950 border-teal-400 ring-2 ring-teal-500/30 shadow-xl'
-                      : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-950'
+                      ? 'bg-[#020718] border-cyan-400 ring-2 ring-cyan-500/40 shadow-xl shadow-cyan-500/20'
+                      : 'bg-[#020718]/60 border-slate-800 hover:border-cyan-500/40 hover:bg-[#020718]'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                         isSelected
-                          ? 'bg-teal-500/20 border-teal-400 text-teal-300'
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
                           : 'bg-slate-900 border-slate-800 text-slate-500 group-hover:text-slate-300'
                       }`}>
                         <Building className="w-5 h-5" />
@@ -138,12 +138,12 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
                         </div>
 
                         <div className="text-[11px] text-slate-400 flex items-center space-x-1.5">
-                          <MapPin className="w-3 h-3 text-teal-400 shrink-0" />
+                          <MapPin className="w-3.3 h-3.3 text-cyan-400 shrink-0" />
                           <span>{branch.address}</span>
                         </div>
 
                         <div className="text-[11px] text-slate-400 flex items-center space-x-1.5 font-mono">
-                          <Phone className="w-3 h-3 text-slate-500 shrink-0" />
+                          <Phone className="w-3.3 h-3.3 text-slate-500 shrink-0" />
                           <span>{branch.phone}</span>
                         </div>
                       </div>
@@ -151,7 +151,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
 
                     <div className="shrink-0 pt-0.5">
                       {isSelected ? (
-                        <div className="w-6 h-6 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-teal-500/30">
+                        <div className="w-6 h-6 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-cyan-400/40">
                           <Check className="w-4 h-4 stroke-[3]" />
                         </div>
                       ) : (
@@ -167,9 +167,9 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
 
         {/* Selected Branch Summary Footer */}
         {selectedBranch && (
-          <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-2xl text-[11px] text-teal-300 space-y-1 relative z-10">
+          <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl text-[11px] text-cyan-200 space-y-1 relative z-10">
             <div className="font-bold flex items-center space-x-1.5">
-              <Activity className="w-3.5 h-3.5 text-teal-400" />
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
               <span>Configuración Activa de Sesión:</span>
             </div>
             <p className="text-slate-300">
@@ -193,7 +193,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
           <button
             type="button"
             onClick={handleConfirmAction}
-            className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 flex items-center space-x-2 cursor-pointer"
+            className="px-6 py-2.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs transition shadow-[0_10px_25px_rgba(0,240,255,0.35)] flex items-center space-x-2 cursor-pointer"
           >
             <span>Confirmar e Iniciar en esta Sede</span>
             <ArrowRight className="w-4 h-4 stroke-[3]" />
