@@ -214,7 +214,10 @@ export default function App() {
     setSelectedBranchId(branch.id);
     setIsAuthenticated(true);
     setIsBranchModalOpen(true);
-    setActiveTab('dashboard');
+
+    // Default to the first allowed tab for the user's specific role
+    const allowed = ALLOWED_TABS_PER_ROLE[user.role] || ['dashboard'];
+    setActiveTab(allowed[0] || 'dashboard');
     triggerLoading();
   };
 

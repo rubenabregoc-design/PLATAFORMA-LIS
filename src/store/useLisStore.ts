@@ -202,7 +202,7 @@ export const useLisStore = create<LisState>()(
 
       setActiveOrder: (orderId) => set({ activeOrderId: orderId }),
 
-      setCurrentUser: (user) => set({ currentUser: user }),
+      setCurrentUser: (user) => set({ currentUser: user, currentRole: user ? user.role : 'lab_tech' }),
       setCurrentRole: (role) => set({ currentRole: role }),
       setCurrentTenant: (tenant) => set({ currentTenant: tenant }),
       setCurrentBranch: (branch) => set({ currentBranch: branch }),
