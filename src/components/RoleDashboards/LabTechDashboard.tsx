@@ -476,7 +476,9 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                                 >
                                   <td className="p-2 text-center">
                                     {isDesvalidado ? (
-                                      <AlertOctagon className="w-4 h-4 text-rose-600 mx-auto animate-bounce" title="Estado Revocado" />
+                                      <span title="Estado Revocado" className="inline-block mx-auto">
+                                        <AlertOctagon className="w-4 h-4 text-rose-600 animate-bounce" />
+                                      </span>
                                     ) : isPending ? (
                                       <input
                                         type="checkbox"

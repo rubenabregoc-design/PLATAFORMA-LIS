@@ -394,10 +394,10 @@ class HybridDatabaseService {
     return {
       mode: DATABASE_MODE,
       isOnline,
-      localLatencyMs: health.local.latencyMs,
-      cloudLatencyMs: health.cloud.latencyMs,
-      localStatus: health.local.status,
-      cloudStatus: health.cloud.status,
+      localLatencyMs: health.latencyLocalMs,
+      cloudLatencyMs: health.latencyCloudMs,
+      localStatus: health.local ? 'ONLINE' : (isLocalConfigured ? 'OFFLINE' : 'UNCONFIGURED'),
+      cloudStatus: health.cloud ? 'ONLINE' : (isCloudConfigured ? 'OFFLINE' : 'UNCONFIGURED'),
       pendingCloudSyncCount: pendingCount,
       lastSyncTimestamp: this.lastSyncTimestamp,
       mirroredModules: ['Pacientes', 'Órdenes', 'Resultados', 'Facturación & Caja', 'Inventario & Reactivos', 'Auditoría Ley 81']

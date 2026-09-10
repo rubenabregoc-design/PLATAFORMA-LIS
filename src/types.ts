@@ -66,6 +66,7 @@ export interface Patient {
   firstName: string;
   lastName: string;
   dob: string;           // DB: DATE field (ISO 8601 — matches patients.dob)
+  dateOfBirth?: string;  // Alias for compatibility
   gender: 'M' | 'F';
   phone: string;
   email: string;
@@ -141,6 +142,7 @@ export interface Order {
   insuranceName?: string;
   specimens: Specimen[];
   testIds: string[];
+  expandedTestIds?: string[];
 }
 
 export interface Specimen {
@@ -191,10 +193,11 @@ export interface TestResult {
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
   /** Lifecycle status: UI and DB aligned */
-  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DUDOSA';
+  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DUDOSA' | 'DESVALIDADO';
   isExtra?: boolean;
   parameterCode?: string;
   testCode?: string;
+  createdAt?: string;
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
   version: number;
@@ -475,7 +478,7 @@ export interface HospitalBed {
   id: string;
   tenantId: string;
   branchId: string;
-  ward: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD';
+  ward: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
   roomNumber: string;
   bedNumber: string;
   status: BedStatus;
@@ -495,7 +498,9 @@ export type TriagePriority =
 
 export interface VitalSigns {
   systolic: number;
+  systolicBp?: number; // Alias for compatibility
   diastolic: number;
+  diastolicBp?: number;
   heartRate: number;
   respiratoryRate: number;
   temperature: number;
@@ -513,7 +518,7 @@ export interface TriageRecord {
   patientCedula: string;
   triageTime: string;
   chiefComplaint: string;
-  allergies?: string;
+  allergies?: string | string[];
   priority: TriagePriority;
   vitalSigns: VitalSigns;
   evaluatedBy: string;
@@ -531,12 +536,13 @@ export interface HospitalAdmission {
   patientNationalId?: string;
   bedId: string;
   bedLabel?: string;
-  ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD';
+  ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
   admittedAt: string;
   dischargedAt?: string;
   dischargeDate?: string;
   admittingDiagnosis: string;
   admittingDoctor: string;
+  admittingDoctorName?: string; // Alias
   status: 'ACTIVA' | 'ALTA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';
 }
 
@@ -544,6 +550,7 @@ export interface SoapNote {
   id: string;
   admissionId: string;
   patientId: string;
+  doctorId?: string;
   authorName: string;
   authorRole: string;
   createdAt: string;
@@ -559,7 +566,7 @@ export interface MedicationOrder {
   patientId: string;
   medicationName: string;
   dose: string;
-  route: 'ORAL' | 'IV' | 'IM' | 'SC' | 'INHALATORIA' | 'TOPICA';
+  route: 'ORAL' | 'IV' | 'IM' | 'SC' | 'INHALATORIA' | 'TOPICA' | 'SUBCUTANEA' | 'INTRAVENOSA';
   frequency: string;
   prescribedBy: string;
   prescribedAt: string;
@@ -576,7 +583,7 @@ export interface KardexAdministrationRecord {
   administeredAt?: string;
   administeredTime?: string;
   administeredBy?: string;
-  status: 'ADMINISTRADO' | 'OMITIDO' | 'RECHAZADO' | 'PROGRAMADA';
+  status: 'ADMINISTRADO' | 'ADMINISTRADA' | 'OMITIDO' | 'RECHAZADO' | 'PROGRAMADA';
   notes?: string;
 }
 

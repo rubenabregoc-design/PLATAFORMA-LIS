@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Order, TestResult, Patient, Analyzer } from '../../types';
+import { Order, TestResult, Patient, Analyzer, User } from '../../types';
 import { MOCK_TEST_CATALOG } from '../../data/mockData';
 import {
   UserCircle, RefreshCw, Disc, Timer, Layers, Search, X, Zap,
@@ -74,7 +74,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     let list = results.filter(r => r.orderId === currentOrder.id);
     if (isAuditFilterActive) {
       const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
-      list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' && r.createdAt >= oneHourAgo);
+      list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' && (r.createdAt || '') >= oneHourAgo);
     }
     return list;
   }, [currentOrder.id, results, isAuditFilterActive]);
@@ -346,7 +346,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                            </td>
                            <td className="p-4">
                               <div className="flex items-center gap-2">
-                                {isValidated && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" title="Resultado Validado" />}
+                                 {isValidated && (
+                                   <span title="Resultado Validado" className="shrink-0">
+                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                   </span>
+                                 )}
                                 <div className={`font-black uppercase ${isValidated ? 'text-slate-400' : 'text-slate-200'}`}>{res.parameterName}</div>
                                 {res.isExtra && (
                                   <span className="bg-amber-500 text-slate-950 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-lg shadow-amber-500/20">EXTRA</span>
@@ -402,7 +406,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       <MessageSquare className="w-3.5 h-3.5" />
                                     </button>
                                     {res.flag?.includes('CRITICO') && <span className="text-[9px] font-black text-rose-500 animate-pulse uppercase">!!!</span>}
-                                    {isValidated && <Fingerprint className="w-3.5 h-3.5 text-emerald-500/50" title="Validado con firma digital" />}
+                                    {isValidated && (
+                                      <span title="Validado con firma digital">
+                                        <Fingerprint className="w-3.5 h-3.5 text-emerald-500/50" />
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               }
@@ -566,7 +574,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
              {/* Grupo 4: Orden & PDF */}
              <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
-                <button title="MASTER CATALOG: Añadir analitos extra a la orden" onClick={() => onUpdateOrderTests?.(currentOrder.id, currentOrder.expandedTestIds)} className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all group">
+                <button title="MASTER CATALOG: Añadir analitos extra a la orden" onClick={() => onUpdateOrderTests?.(currentOrder.id, currentOrder.expandedTestIds || currentOrder.testIds)} className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all group">
                   <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
                 <button title="REPORT PREVIEW: Generar PDF oficial" onClick={() => onOpenPdf(currentOrder.id)} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all group">
