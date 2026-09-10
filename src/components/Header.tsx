@@ -159,23 +159,23 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-black tracking-tighter text-lg sm:text-xl text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
-        {/* Category Navigation Header (Zero Overflow, Direct Grand Category Access) */}
-        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center py-1">
+        {/* Floating Luxury Glass Capsule Navigation Bar (Sistema Caro / High-End Enterprise) */}
+        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)]">
 
-          {/* Dashboard Direct Button */}
+          {/* Dashboard Direct Capsule Pill */}
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'dashboard'
-                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30'
-                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.4)]'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
+            <LayoutDashboard className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
             <span className="uppercase tracking-wider">Dashboard</span>
           </button>
 
-          {/* Domain Category Dropdowns */}
+          {/* Domain Category Capsule Pills */}
           {DOMAIN_CATEGORIES.map((category) => {
             const CategoryIcon = category.icon;
             const categoryTabObjects = NAVIGATION_TABS.filter(t => category.tabs.includes(t.id) && visibleTabs.some(v => v.id === t.id));
@@ -188,25 +188,25 @@ export const Header: React.FC<HeaderProps> = ({
               <div key={category.id} className="relative">
                 <button
                   onClick={() => setActiveCategoryMenu(isOpen ? null : category.id)}
-                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     isCategoryActive
-                      ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border-2 border-cyan-400/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+                      ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <CategoryIcon className={`w-4 h-4 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <CategoryIcon className={`w-3.5 h-3.5 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
                   <span className="uppercase tracking-wider">{category.label}</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Glassmorphic Category Dropdown Panel */}
+                {/* Ultra-Sleek Glassmorphic Category Menu */}
                 {isOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setActiveCategoryMenu(null)}></div>
-                    <div className="absolute top-full left-0 mt-2.5 w-[360px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[340px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
                       <div className="px-3 py-1.5 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
-                        <span>Módulos de {category.label}</span>
-                        <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px]">{categoryTabObjects.length}</span>
+                        <span>Plataforma {category.label}</span>
+                        <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px] font-mono">{categoryTabObjects.length} Módulos</span>
                       </div>
 
                       <div className="grid grid-cols-1 gap-1 max-h-[360px] overflow-y-auto no-scrollbar">
@@ -262,16 +262,16 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-7 w-px bg-white/10 hidden sm:block"></div>
 
-          <div className="hidden sm:flex items-center bg-white/5 border border-white/5 rounded-2xl px-4 py-1.5 gap-4">
-            <div className="flex flex-col text-right">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none">{currentUser?.name}</span>
-              <div className="mt-1 flex items-center justify-end space-x-1.5">
-                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
-                 <span className="text-[9px] text-teal-400 font-bold uppercase tracking-widest opacity-80">{currentBranch?.name}</span>
+          <div className="hidden sm:flex items-center bg-slate-900/80 border border-slate-700/60 rounded-2xl px-3 py-1.5 gap-2.5 shadow-md">
+            <div className="flex flex-col text-right max-w-[140px]">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate" title={currentUser?.name}>{currentUser?.name}</span>
+              <div className="mt-1 flex items-center justify-end space-x-1">
+                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                 <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[110px]">{currentBranch?.name}</span>
               </div>
             </div>
-            <div className="w-8 h-8 rounded-xl bg-slate-950 border border-teal-500/20 flex items-center justify-center text-teal-400 font-black text-xs shadow-inner shrink-0">
-              {currentUser?.name.charAt(0)}
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+              {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>
 
