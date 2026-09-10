@@ -278,18 +278,18 @@ export const Header: React.FC<HeaderProps> = ({
           })}
         </nav>
 
-        {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout (Compact & Shrink-0) */}
-        <div className="flex items-center space-x-2 shrink-0">
+        {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout (Fixed & Compact Shrink-0) */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
           
           {isDemoMode && (
-            <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
+            <div className="hidden xl:flex items-center space-x-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
                <Sparkles className="w-3 h-3 text-amber-400" />
                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Demo</span>
             </div>
           )}
 
           {isSyncing && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
+            <div className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
                <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-tighter">Sync</span>
             </div>
@@ -301,15 +301,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Session Inactivity Countdown */}
           <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
 
-          <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
+          <div className="h-5 w-px bg-white/10 hidden sm:block"></div>
 
-          {/* Compact User Profile Badge Pill */}
-          <div className="hidden sm:flex items-center bg-[#02071a]/90 border border-cyan-500/40 rounded-full px-2.5 py-1 gap-2 shadow-lg shrink-0">
+          {/* Fixed Compact User Profile Badge Pill */}
+          <div className="hidden sm:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 py-1 gap-1.5 shadow-lg shrink-0">
             <div className="flex flex-col text-right">
-              <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px]" title={currentUser?.name}>
+              <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[95px]" title={currentUser?.name}>
                 {currentUser?.name || 'Lic. Sofía Guardia'}
               </span>
-              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[95px]">
+              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[85px]">
                 {currentBranch?.name || 'Sede Vía España'}
               </span>
             </div>
