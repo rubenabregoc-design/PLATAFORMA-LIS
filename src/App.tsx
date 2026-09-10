@@ -101,7 +101,7 @@ export default function App() {
   const [isBranchModalOpen, setIsBranchModalOpen] = useState<boolean>(false);
 
   // Navigation & View State
-  const [showAllModules, setShowAllModules] = useState<boolean>(false);
+  const [showAllModules, setShowAllModules] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);

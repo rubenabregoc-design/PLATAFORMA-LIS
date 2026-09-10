@@ -70,13 +70,13 @@ const ALL_MODULE_TABS = [
 ];
 
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
-  owner: ['dashboard', 'executive', 'billing', 'patient_results', 'inventory', 'productivity', 'test_catalog', 'shifts', 'qc', 'audit', 'schema', 'routing'],
-  lab_chief: ['dashboard', 'validation', 'patient_results', 'batch_reporting', 'test_catalog', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
-  tech_med: ['validation', 'tm_workbench', 'dashboard', 'patient_results', 'test_catalog', 'productivity', 'label_studio', 'shifts', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
-  lab_tech: ['dashboard', 'patient_results', 'phlebotomy', 'label_studio', 'shifts', 'inventory', 'test_catalog'],
-  receptionist: ['dashboard', 'patient_results', 'billing', 'inventory', 'label_studio', 'shifts', 'whatsapp'],
-  ext_doctor: ['dashboard', 'patient_results'],
-  patient: ['dashboard'],
+  owner: ALL_MODULE_TABS,
+  lab_chief: ALL_MODULE_TABS,
+  tech_med: ALL_MODULE_TABS,
+  lab_tech: ALL_MODULE_TABS,
+  receptionist: ALL_MODULE_TABS,
+  ext_doctor: ALL_MODULE_TABS,
+  patient: ALL_MODULE_TABS,
   abregotech_admin: ALL_MODULE_TABS
 };
 
