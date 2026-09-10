@@ -575,6 +575,7 @@ export const useLisStore = create<LisState>()(
       name: 'lis-storage-v4', // Version bump to flush stale IndexedDB cache & load latest fresh mock dataset
       storage: createJSONStorage(() => lisIndexedDb),
       partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
         currentRole: state.currentRole,
         activeTab: state.activeTab,
