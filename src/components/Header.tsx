@@ -183,13 +183,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-black tracking-tighter text-base sm:text-lg text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
-        {/* Floating Luxury Glass Capsule Navigation Bar (Ultra-Compact Enterprise) */}
+        {/* Floating Luxury Glass Capsule Navigation Bar (Standalone Commercial Suites) */}
         <nav className="hidden lg:flex items-center space-x-1.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)] shrink-0">
 
           {/* Dashboard Direct Capsule Pill */}
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -199,79 +199,66 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider whitespace-nowrap">Dashboard</span>
           </button>
 
-          {/* Direct Operational Tab: Laboratorio LIS */}
-          <button
-            onClick={() => setActiveTab('validation')}
-            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'validation' || activeTab === 'tm_workbench'
-                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.4)]'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Microscope className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'validation' || activeTab === 'tm_workbench' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider whitespace-nowrap">Laboratorio LIS</span>
-          </button>
+          {/* Standalone Commercial Suite Buttons */}
+          {DOMAIN_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
+            const categoryTabObjects = NAVIGATION_TABS.filter(t => category.tabs.includes(t.id) && visibleTabs.some(v => v.id === t.id));
+            const isCategoryActive = categoryTabObjects.some(t => t.id === activeTab);
+            const isOpen = activeCategoryMenu === category.id;
 
-          {/* All Platforms & Suites Mega Dropdown Pill */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setIsMoreOpen(!isMoreOpen)}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeTab !== 'dashboard' && activeTab !== 'validation' && activeTab !== 'tm_workbench'
-                  ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="uppercase tracking-wider whitespace-nowrap">Suites HIS, LIS & Banco ⌄</span>
-            </button>
+            if (categoryTabObjects.length === 0) return null;
 
-            {isMoreOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[460px] max-h-[460px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-3 animate-in fade-in zoom-in-95 duration-200">
-                  {DOMAIN_CATEGORIES.map((category) => {
-                    const CategoryIcon = category.icon;
-                    const categoryTabObjects = NAVIGATION_TABS.filter(t => category.tabs.includes(t.id) && visibleTabs.some(v => v.id === t.id));
-                    if (categoryTabObjects.length === 0) return null;
+            return (
+              <div key={category.id} className="relative shrink-0">
+                <button
+                  onClick={() => setActiveCategoryMenu(isOpen ? null : category.id)}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isCategoryActive
+                      ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <span className="uppercase tracking-wider whitespace-nowrap">{category.label}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-                    return (
-                      <div key={category.id} className="space-y-1">
-                        <div className="px-2 py-1 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <CategoryIcon className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Plataforma {category.label}</span>
-                          </span>
-                          <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px] font-mono">{categoryTabObjects.length} Módulos</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1 pt-1">
-                          {categoryTabObjects.map((tab) => {
-                            const SubIcon = tab.icon;
-                            const isSubActive = activeTab === tab.id;
-                            return (
-                              <button
-                                key={tab.id}
-                                onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
-                                className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer border ${
-                                  isSubActive
-                                    ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
-                                    : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
-                                }`}
-                              >
-                                <SubIcon className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? 'text-slate-950' : 'text-cyan-400'}`} />
-                                <span className="truncate">{getTabLabel(tab)}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                {/* Glassmorphic Suite Dropdown Panel */}
+                {isOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setActiveCategoryMenu(null)}></div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 w-[340px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-3 py-1.5 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
+                        <span>Plataforma Independiente {category.label}</span>
+                        <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px] font-mono">{categoryTabObjects.length} Módulos</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+
+                      <div className="grid grid-cols-1 gap-1 max-h-[360px] overflow-y-auto no-scrollbar">
+                        {categoryTabObjects.map((tab) => {
+                          const SubIcon = tab.icon;
+                          const isSubActive = activeTab === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              onClick={() => { setActiveTab(tab.id); setActiveCategoryMenu(null); }}
+                              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
+                                isSubActive
+                                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
+                                  : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
+                              }`}
+                            >
+                              <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-slate-950' : 'text-cyan-400'}`} />
+                              <span className="truncate">{getTabLabel(tab)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout (Compact & Shrink-0) */}
