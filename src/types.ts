@@ -469,7 +469,7 @@ export interface PatientImmediateNotificationRecord {
 // HIS / HOSPITAL MANAGEMENT TYPES (Panama CSS / MINSA / ISO 15189)
 // ---------------------------------------------------------------------------
 
-export type BedStatus = 'DISPONIBLE' | 'OCUPADA' | 'RESERVADA' | 'EN_LIMPIEZA' | 'MANTENIMIENTO';
+export type BedStatus = 'DISPONIBLE' | 'OCUPADA' | 'RESERVADA' | 'EN_LIMPIEZA' | 'MANTENIMIENTO' | 'DESINFECCION';
 
 export interface HospitalBed {
   id: string;
@@ -517,7 +517,7 @@ export interface TriageRecord {
   priority: TriagePriority;
   vitalSigns: VitalSigns;
   evaluatedBy: string;
-  status: 'EVALUADO' | 'EN_ESPERA' | 'ASIGNADO_CAMA' | 'ATENDIDO' | 'ALTA';
+  status: 'EVALUADO' | 'EN_ESPERA' | 'ASIGNADO_CAMA' | 'ATENDIDO' | 'ALTA' | 'INGRESADO';
   assignedBedId?: string;
 }
 
@@ -527,14 +527,17 @@ export interface HospitalAdmission {
   branchId: string;
   patientId: string;
   patientName: string;
-  patientCedula: string;
+  patientCedula?: string;
+  patientNationalId?: string;
   bedId: string;
-  bedLabel: string;
+  bedLabel?: string;
+  ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD';
   admittedAt: string;
   dischargedAt?: string;
+  dischargeDate?: string;
   admittingDiagnosis: string;
   admittingDoctor: string;
-  status: 'ACTIVA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';
+  status: 'ACTIVA' | 'ALTA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';
 }
 
 export interface SoapNote {
@@ -565,10 +568,15 @@ export interface MedicationOrder {
 
 export interface KardexAdministrationRecord {
   id: string;
-  orderId: string;
-  administeredAt: string;
-  administeredBy: string;
-  status: 'ADMINISTRADO' | 'OMITIDO' | 'RECHAZADO';
+  orderId?: string;
+  medicationOrderId?: string;
+  admissionId?: string;
+  patientId?: string;
+  scheduledTime?: string;
+  administeredAt?: string;
+  administeredTime?: string;
+  administeredBy?: string;
+  status: 'ADMINISTRADO' | 'OMITIDO' | 'RECHAZADO' | 'PROGRAMADA';
   notes?: string;
 }
 
