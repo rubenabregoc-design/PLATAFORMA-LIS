@@ -1,1439 +1,977 @@
-import React, { useState, useMemo } from 'react';
-import { Order, TestResult, Patient, Analyzer, Specimen, AuditLogEntry } from '../../types';
-import { useLisStore } from '../../store/useLisStore';
-import { ResultTrendWidget } from './ResultTrendWidget';
-// ... (rest of imports)
-import { SecureInternalMessagingWidget } from '../SecureInternalMessagingWidget';
-import { RejectedSampleWizard } from '../Phase6Suite/RejectedSampleWizard';
-import { evaluateTestResult, ReferenceRangeEvaluation } from '../../utils/referenceRangeEvaluator';
-import { SampleIntegrityBadge } from '../SampleIntegrityStatusWidget';
-import { offlineSyncManager } from '../../utils/offlineSyncEngine';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Order, TestResult, Patient, Analyzer } from '../../types';
+import { MOCK_TEST_CATALOG } from '../../data/mockData';
 import {
-  User, FileText, CheckCircle2, AlertTriangle, ShieldCheck,
-  Printer, RotateCcw, Save, Trash2, Plus, Info, Lock,
-  History, MessageSquare, Paperclip, Barcode, ChevronRight, Search, X,
-  Microscope, Beaker, Check, Download, AlertOctagon, Upload, Sparkles, Send, XCircle,
-  TrendingUp, Activity, ArrowUp, ArrowDown, AlertCircle, Filter, BookOpen, Layers, Sliders,
-  Clock, ShieldAlert
+  UserCircle, RefreshCw, Disc, Timer, Layers, Search, X, Zap,
+  PencilLine, Cpu, Mic, Calculator, MessageSquare, TrendingUp,
+  Smartphone, Trash2, RotateCcw, Beaker, CheckCircle2, Printer,
+  Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
+  ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
-  order: Order;
-  patient: Patient;
-  results: TestResult[];
-  analyzers: Analyzer[];
-  onUpdateResultValue: (resultId: string, newValue: string) => void;
+  order: Order; patient: Patient; results: TestResult[]; analyzers: Analyzer[];
+  currentUser: User;
+  onUpdateResultValue: (resultId: string, newValue: string, resultData?: TestResult) => void;
   onUpdateInterpretation: (resultId: string, interpretation: string) => void;
-  onValidateTechnical: (resultId: string) => void;
+  onUpdateResultStatus: (resultId: string, status: TestResult['status']) => void;
   onOpenPdf: (orderId: string) => void;
+  onConsultInterBranch?: (order: Order, patient: Patient, testName: string) => void;
+  onUpdateOrderTests?: (orderId: string, testIds: string[]) => void;
+  allOrders?: Order[]; allPatients?: Patient[];
 }
 
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
-  order,
-  patient,
-  onOpenPdf
+  order: initialOrder, patient: initialPatient, results, currentUser,
+  onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
+  onConsultInterBranch, onUpdateOrderTests, allOrders = [], allPatients = []
 }) => {
-  const {
-    results,
-    updateResult,
-    validateResult,
-    unvalidateResult,
-    updateInterpretation,
-    updateResultStatus,
-    addResults,
-    currentUser,
-    canDo
-  } = useLisStore();
+  const [activeOrderId, setActiveOrderId] = useState<string>(initialOrder.id);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'validated'>('all');
+
+  const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null);
+  const [showTrendViewer, setShowTrendViewer] = useState(false);
+  const [isTrendsLoading, setIsTrendsLoading] = useState(true);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
+  useEffect(() => {
+    if (showTrendViewer) {
+      setIsTrendsLoading(true);
+      const timer = setTimeout(() => setIsTrendsLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showTrendViewer]);
+
+  const currentOrder = allOrders.find(o => o.id === activeOrderId) || initialOrder;
+  const currentPatient = allPatients.find(p => p.id === currentOrder.patientId) || initialPatient;
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandingNotesId, setExpandingNotesId] = useState<string | null>(null);
+  const [activeTraceabilityId, setActiveTraceabilityId] = useState<string | null>(null);
+  const [unvalidateReason, setUnvalidateReason] = useState('');
+  const [showUnvalidateModal, setShowUnvalidateModal] = useState(false);
+
   const [tempValue, setTempValue] = useState<string>('');
-  const [editingInterpId, setEditingInterpId] = useState<string | null>(null);
-  const [tempInterp, setTempInterp] = useState<string>('');
+  const [tempNote, setTempNote] = useState<string>('');
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
+  const [isAuditFilterActive, setIsAuditFilterActive] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
-  // Trend Widget & Messaging state
-  const [selectedTrendResultId, setSelectedTrendResultId] = useState<string | null>(null);
-  const [showTrendWidget, setShowTrendWidget] = useState<boolean>(true);
-  const [showChatWidget, setShowChatWidget] = useState<boolean>(false);
-  const [showAuditSidebar, setShowAuditSidebar] = useState<boolean>(false);
-  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
-  // Modal active states
-  const [activeModal, setActiveModal] = useState<
-    'NONE' | 'ADD_TESTS' | 'REWORK' | 'REJECT' | 'NOTES' | 'ATTACHMENTS' | 'LABELS'
-  >('NONE');
-
-  // Toast Notification State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Add Tests Modal State
-  const [testSearchQuery, setTestSearchQuery] = useState<string>('');
-  const [selectedCatalogTests, setSelectedCatalogTests] = useState<string[]>([]);
-
-  // Rework Modal State
-  const [reworkReason, setReworkReason] = useState<string>('Verificación de valor crítico fuera de rango');
-  const [reworkTests, setReworkTests] = useState<string[]>([]);
-
-  // Rejection Modal State
-  const [rejectionReason, setRejectionReason] = useState<string>('Muestra Hemolizada (Grado 3+)');
-  const [rejectionNotes, setRejectionNotes] = useState<string>('');
-
-  // Notes Modal State
-  const [notesList, setNotesList] = useState<Array<{ id: string; author: string; time: string; text: string; type: string }>>([
-    {
-      id: 'n-1',
-      author: 'Lic. Sofía Guardia (TM-4410)',
-      time: '11/08/2026 19:42',
-      text: 'Muestra de sangre entera colectada en ayuno comprobado. Suero lípido ligero ++.',
-      type: 'TÉCNICA'
-    },
-    {
-      id: 'n-2',
-      author: 'Sistema Middleware ASTM',
-      time: '11/08/2026 19:45',
-      text: 'Resultado transmitido automáticamente desde analizador Sysmex XN-550.',
-      type: 'SISTEMA'
-    }
-  ]);
-  const [newNoteText, setNewNoteText] = useState<string>('');
-
-  // Attachments Modal State
-  const [attachmentsList, setAttachmentsList] = useState<Array<{ id: string; name: string; size: string; type: string; date: string }>>([
-    {
-      id: 'att-1',
-      name: 'Requisicion_Medica_Firmada.pdf',
-      size: '1.2 MB',
-      type: 'PDF',
-      date: '11/08/2026 19:10'
-    },
-    {
-      id: 'att-2',
-      name: 'Histograma_Sysmex_XN550.png',
-      size: '480 KB',
-      type: 'IMAGEN',
-      date: '11/08/2026 19:45'
-    }
-  ]);
-
-  // Labels Modal State
-  const [labelQuantity, setLabelQuantity] = useState<number>(2);
-  const [isPrintingLabel, setIsPrintingLabel] = useState<boolean>(false);
-  const [filterOutOfRangeOnly, setFilterOutOfRangeOnly] = useState<boolean>(false);
-
-  const patientResults = results.filter(r => r.orderId === order.id);
-
-  // Compute evaluations for all results against Master Test Catalog
-  const resultsWithEvaluations = useMemo(() => {
-    return patientResults.map(r => ({
-      result: r,
-      evaluation: evaluateTestResult(r, patient)
-    }));
-  }, [patientResults, patient]);
-
-  const outOfRangeCount = resultsWithEvaluations.filter(re => re.evaluation.isOutOfRange).length;
-  const criticalCount = resultsWithEvaluations.filter(re => re.evaluation.isCritical).length;
-  const normalCount = patientResults.length - outOfRangeCount;
-
-  const displayedResults = useMemo(() => {
-    if (filterOutOfRangeOnly) {
-      return resultsWithEvaluations.filter(re => re.evaluation.isOutOfRange);
-    }
-    return resultsWithEvaluations;
-  }, [resultsWithEvaluations, filterOutOfRangeOnly]);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3500);
+  const getTimeAgoData = (isoString?: string) => {
+    if (!isoString) return { text: '', isLate: false };
+    const diff = Math.floor((now - new Date(isoString).getTime()) / 60000);
+    return { text: diff < 1 ? 'Justo ahora' : `${diff}m`, isLate: diff >= 30 };
   };
 
-  const getFlagStyle = (flag?: string, isOutOfRange?: boolean) => {
-    if (flag?.includes('CRITICO')) return 'bg-rose-500/25 text-rose-200 border-rose-500/80 font-black shadow-[0_0_15px_rgba(244,63,94,0.4)] ring-1 ring-rose-500';
-    if (isOutOfRange || flag === 'ALTO' || flag === 'BAJO') return 'bg-rose-500/20 text-rose-300 border-rose-500/60 font-black shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/40';
-    return 'bg-slate-900/40 text-slate-300 border-slate-800 hover:border-slate-700';
+  const patientResults = useMemo(() => {
+    let list = results.filter(r => r.orderId === currentOrder.id);
+    if (isAuditFilterActive) {
+      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+      list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' && r.createdAt >= oneHourAgo);
+    }
+    return list;
+  }, [currentOrder.id, results, isAuditFilterActive]);
+
+  const getFlagStyle = (flag?: string) => {
+    if (flag?.includes('CRITICO')) return 'bg-rose-500/20 text-rose-500 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)] animate-pulse';
+    if (flag === 'ALTO') return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+    if (flag === 'BAJO') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    return 'text-slate-300';
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedResults(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
+  const filteredOrders = useMemo(() => {
+    return allOrders.filter(o => {
+      const matchesSearch = o.patientName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+                          o.orderNumber.toLowerCase().includes(orderSearchQuery.toLowerCase());
 
-  // ─── Redundant save-time validation helper ─────────────────────────────────
-  /**
-   * Validates all result values in the current order before persisting.
-   * Prevents empty/placeholder values ("---", "", whitespace) from reaching
-   * the store or downstream AI integrations (Gemini SDK).
-   *
-   * @returns { valid: boolean, issues: string[] }
-   */
-  const validateAllResultsBeforeSave = (): { valid: boolean; issues: string[] } => {
-    const issues: string[] = [];
+      const orderResults = results.filter(r => r.orderId === o.id);
+      const isPending = orderResults.some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED');
 
-    patientResults.forEach(r => {
-      const rawValue = r.value ?? '';
-      const trimmedValue = rawValue.trim();
-
-      // Check 1: value must not be null/undefined/empty string
-      if (!trimmedValue || trimmedValue.length === 0) {
-        issues.push(`"${r.parameterName}": valor vacío (campo requerido).`);
-        return;
-      }
-
-      // Check 2: value must not be the placeholder sentinel "---"
-      if (trimmedValue === '---' || trimmedValue === '--' || trimmedValue === '-') {
-        issues.push(`"${r.parameterName}": valor pendiente ("${trimmedValue}") — ingrese el resultado real.`);
-        return;
-      }
-
-      // Check 3: value must not consist only of whitespace or control characters
-      const stripped = trimmedValue.replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '');
-      if (stripped.length === 0) {
-        issues.push(`"${r.parameterName}": valor contiene solo espacios o caracteres invisibles.`);
-        return;
-      }
-
-      // Check 4: numeric results must be parseable (non-textual tests excluded)
-      if (r.unit && r.unit.trim().length > 0) {
-        const numericAttempt = parseFloat(trimmedValue);
-        if (isNaN(numericAttempt) && !trimmedValue.match(/^(positivo|negativo|reactivo|no\s*reactivo|presente|ausente|normal|anormal)/i)) {
-          issues.push(`"${r.parameterName}": valor "${trimmedValue}" no es numérico válido para unidad "${r.unit}".`);
-        }
-      }
+      if (orderStatusFilter === 'pending') return matchesSearch && isPending;
+      if (orderStatusFilter === 'validated') return matchesSearch && !isPending;
+      return matchesSearch;
     });
+  }, [allOrders, orderSearchQuery, orderStatusFilter, results]);
 
-    return { valid: issues.length === 0, issues };
-  };
+  const pendingCount = useMemo(() => {
+    return allOrders.filter(o =>
+      results.filter(r => r.orderId === o.id).some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED')
+    ).length;
+  }, [allOrders, results]);
 
-  // Button 1: Save — with redundant validation
-  const handleSave = () => {
-    // ── Redundant validation before persisting to store ─────────────────────
-    const { valid, issues } = validateAllResultsBeforeSave();
-
-    if (!valid) {
-      const issueSummary = issues.slice(0, 3).join(' | ');
-      const extraCount = issues.length > 3 ? ` (+${issues.length - 3} más)` : '';
-      showToast(`⚠️ No se puede guardar: ${issueSummary}${extraCount}`);
-      console.warn('[ResultEntryWorkspace] Validación fallida al guardar:', issues);
-      return;
-    }
-
-    showToast('✓ Cambios e interpretaciones guardados exitosamente en la bitácora LIS.');
-  };
-
-  // Button 2: Add Tests
-  const handleConfirmAddTests = () => {
-    if (selectedCatalogTests.length === 0) {
-      showToast('Seleccione al menos una prueba del catálogo.');
-      return;
-    }
-
-    const availableCatalog = [
-      { code: 'GLU', name: 'Glucosa en Ayunas', unit: 'mg/dL', ref: '70 - 99 mg/dL', spec: 'SUERO ROJO' },
-      { code: 'LIP', name: 'Perfil Lipídico Completo', unit: 'mg/dL', ref: 'Panel Multi-parámetro', spec: 'SUERO ROJO' },
-      { code: 'TROP', name: 'Troponina I Alta Sensibilidad', unit: 'pg/mL', ref: '< 14 pg/mL', spec: 'HEPARINA VERDE' },
-      { code: 'TSH', name: 'Hormona Estimulante de Tiroides (TSH)', unit: 'uIU/mL', ref: '0.40 - 4.20 uIU/mL', spec: 'SUERO ROJO' },
-      { code: 'PCR', name: 'Proteína C Reactiva Ultra Sensible', unit: 'mg/L', ref: '< 3.0 mg/L', spec: 'SUERO ROJO' },
-      { code: 'ELECT', name: 'Electrólitos Séricos (Na, K, Cl)', unit: 'mEq/L', ref: 'Na: 135-145, K: 3.5-5.0', spec: 'SUERO ROJO' },
-      { code: 'TPT', name: 'Tiempo de Tromboplastina (TPT)', unit: 'seg', ref: '25.0 - 35.0 seg', spec: 'CITRATO AZUL' }
-    ];
-
-    const newResults: TestResult[] = selectedCatalogTests.map(code => {
-      const catItem = availableCatalog.find(c => c.code === code) || availableCatalog[0];
-      return {
-        id: `res-add-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        tenantId: order.tenantId,
-        orderId: order.id,
-        testId: `t-${code}`,
-        testCode: catItem.code,
-        parameterName: catItem.name,
-        value: '---',
-        unit: catItem.unit,
-        refRangeText: catItem.ref,
-        flag: 'NORMAL',
-        status: 'PENDIENTE',
-        specimenType: catItem.spec
-      };
-    });
-
-    addResults(newResults);
-    setSelectedCatalogTests([]);
-    setActiveModal('NONE');
-    showToast(`✓ Se agregaron ${newResults.length} nueva(s) prueba(s) a la Orden #${order.orderNumber}.`);
-  };
-
-  // Button 3: Return / Rework
-  const handleConfirmRework = () => {
-    const targets = reworkTests.length > 0 ? reworkTests : patientResults.map(r => r.id);
-    targets.forEach(id => updateResultStatus(id, 'PENDIENTE', 'PENDIENTE REPETICIÓN'));
-    setActiveModal('NONE');
-    showToast(`🔄 Muestra retornada a repetición técnica. Motivo: ${reworkReason}`);
-  };
-
-  // Button 4: Rejection
-  const handleConfirmRejection = () => {
-    patientResults.forEach(r => updateResultStatus(r.id, 'PENDIENTE', 'MUESTRA RECHAZADA'));
-    setActiveModal('NONE');
-    showToast(`⚠️ Rechazo registrado oficialmente. Criterio: ${rejectionReason}`);
-  };
-
-  // Button 5: Add Note
-  const handleAddNote = () => {
-    if (!newNoteText.trim()) return;
-    const now = new Date();
-    const timeStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setNotesList(prev => [
-      ...prev,
-      {
-        id: `n-${Date.now()}`,
-        author: 'Lic. Sofía Guardia (TM-4410)',
-        time: timeStr,
-        text: newNoteText,
-        type: 'TÉCNICA'
-      }
-    ]);
-    setNewNoteText('');
-    showToast('✓ Observación agregada a la bitácora de la orden.');
-  };
-
-  // Button 6: Attachments Upload
-  const handleSimulateUpload = () => {
-    const now = new Date();
-    const timeStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setAttachmentsList(prev => [
-      ...prev,
-      {
-        id: `att-${Date.now()}`,
-        name: `Escaneo_Complementario_${Math.floor(100 + Math.random() * 900)}.pdf`,
-        size: '850 KB',
-        type: 'PDF',
-        date: timeStr
-      }
-    ]);
-    showToast('✓ Archivo adjuntado correctamente a la orden.');
-  };
-
-  // Button 7: Validate Bulk
-  const handleBulkValidate = () => {
-    const targets = selectedResults.length > 0 ? selectedResults : patientResults.map(r => r.id);
-    if (targets.length === 0) {
-      showToast('No hay resultados disponibles para validar.');
-      return;
-    }
-    targets.forEach(id => validateResult(id, currentUser?.name || 'Sistema'));
-
-    setSelectedResults([]);
-    const license = currentUser?.licenseNumber ? `bajo Idoneidad ${currentUser.licenseNumber}` : `por ${currentUser?.name || 'Sistema'}`;
-    showToast(`✓ Validados técnicamente ${targets.length} resultado(s) ${license}.`);
-  };
-
-  // Button 8: Unvalidate Bulk / Desvalidar
-  const handleBulkUnvalidate = () => {
-    const targets = selectedResults.length > 0 ? selectedResults : patientResults.map(r => r.id);
-    if (targets.length === 0) {
-      showToast('⚠️ No hay resultados disponibles para desvalidar.');
-      return;
-    }
-    const reason = prompt(`Ingrese motivo obligatorio para desvalidar ${targets.length} resultado(s):`);
-    if (reason) {
-      targets.forEach(id => unvalidateResult(id, reason));
+  const toggleSelectAll = () => {
+    const allIds = patientResults.map(r => r.id);
+    if (selectedResults.length === allIds.length) {
       setSelectedResults([]);
-      showToast(`↺ Se ha cambiado el estado a DESVALIDADO en ${targets.length} resultado(s).`);
+    } else {
+      setSelectedResults(allIds);
     }
-  };
-
-  // Button 9: Print Barcode Labels
-  const handlePrintLabels = () => {
-    setIsPrintingLabel(true);
-    setTimeout(() => {
-      setIsPrintingLabel(false);
-      setActiveModal('NONE');
-      showToast(`🖨️ ${labelQuantity} etiqueta(s) térmica(s) de código de barras enviadas a la impresora ZEBRA.`);
-    }, 1500);
   };
 
   return (
-    <div className="flex flex-col min-h-[80vh] pb-36 space-y-6 animate-in fade-in duration-700 relative text-slate-200">
+    <div className="flex h-[calc(100vh-100px)] bg-[#020617] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl relative">
+      {/* Sidebar: Órdenes - Collapsible */}
+      <div className={`${isSidebarCollapsed ? 'w-20' : 'w-80'} bg-slate-950/50 border-r border-white/5 flex flex-col transition-all duration-500 ease-in-out relative group`}>
+        {/* Collapse Toggle */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-10 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-teal-500/20 z-10 hover:scale-110 transition-transform"
+        >
+          <ChevronRight className={`w-4 h-4 text-slate-950 transition-transform duration-500 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
+        </button>
 
-      {/* Floating Toast Alert */}
-      {toastMessage && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/95 border border-teal-500/50 text-white font-bold text-xs px-6 py-3 rounded-2xl shadow-[0_10px_30px_rgba(20,184,166,0.3)] backdrop-blur-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-4">
-          <Sparkles className="w-4 h-4 text-teal-400 animate-pulse" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* 1. Demographics Header - Glass Panel */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 relative z-10">
-        <div className="flex items-center space-x-5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-400 to-emerald-500 flex items-center justify-center text-slate-950 shadow-lg">
-            <User className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-3">
-              <h2 className="text-xl font-black text-white tracking-tight">{patient.firstName} {patient.lastName}</h2>
-              <span className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-teal-400 font-mono text-[10px] font-bold border border-teal-500/20">
-                {order.orderNumber}
-              </span>
-            </div>
-            <div className="flex items-center space-x-4 mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              <span>{patient.nationalId}</span>
-              <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-              <span>{order.patientAge} Años</span>
-              <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-              <span className="text-slate-400">{patient.gender === 'F' ? 'Femenino' : 'Masculino'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {/* Sample Integrity ISO 15189 Status */}
-          <div className="bg-slate-950/70 p-2.5 px-3.5 rounded-2xl border border-white/10 flex items-center space-x-3">
-            <div className="text-left">
-              <div className="text-[9px] font-black text-teal-400 uppercase tracking-widest flex items-center space-x-1">
-                <ShieldCheck className="w-3 h-3 text-teal-400" />
-                <span>Integridad Muestra (ISO 15189)</span>
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                Flebotomía: {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '08:30'}
-              </div>
-            </div>
-            <SampleIntegrityBadge
-              barcode={order.orderNumber}
-              tubeType={patientResults[0]?.specimenType || 'SUERO_ROJO'}
-              phlebotomyTime={order.createdAt || new Date(Date.now() - 42 * 60 * 1000).toISOString()}
-              isCompact={true}
-              showModalOnClick={true}
-            />
-          </div>
-
-          <div className="h-10 w-px bg-white/5 hidden sm:block"></div>
-
-          <div className="text-right">
-            <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">Procedencia</div>
-            <div className="text-xs font-bold text-white uppercase">{order.doctorName || 'Particular'}</div>
-          </div>
-          <div className="h-10 w-px bg-white/5"></div>
-          <div className="text-right">
-            <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">Prioridad</div>
-            <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${order.priority === 'STAT' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
-              {order.priority}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Widget de 'Tendencia de Resultados' (Delta Check & Histórico) */}
-      {showTrendWidget && (
-        <ResultTrendWidget
-          order={order}
-          patient={patient}
-          results={patientResults}
-          selectedResultId={selectedTrendResultId}
-          onSelectResultId={(id) => setSelectedTrendResultId(id)}
-        />
-      )}
-
-      {/* Master Test Catalog Range Guardian Header Banner */}
-      <div className="bg-slate-900/70 border border-white/5 rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4 relative z-10">
-        <div className="flex items-center space-x-4">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
-            outOfRangeCount > 0 
-              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
-              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-          }`}>
-            {outOfRangeCount > 0 ? <AlertTriangle className="w-6 h-6 animate-pulse" /> : <CheckCircle2 className="w-6 h-6" />}
-          </div>
-          <div>
-            <div className="flex items-center space-x-2.5">
-              <h3 className="text-sm font-black text-white tracking-tight">
-                {outOfRangeCount > 0
-                  ? `${outOfRangeCount} ${outOfRangeCount === 1 ? 'Parámetro Fuera' : 'Parámetros Fuera'} de Rango de Referencia`
-                  : 'Todos los Parámetros Dentro de Límites de Referencia'}
+        <div className={`p-4 space-y-4 flex flex-col h-full ${isSidebarCollapsed ? 'items-center' : ''}`}>
+          <div className="flex items-center justify-between">
+            {!isSidebarCollapsed && (
+              <h3 className="text-xs font-black text-slate-500 uppercase flex items-center gap-2">
+                <Layers className="w-4 h-4 text-teal-500" />
+                Bandeja de Órdenes
+                <span className="ml-2 bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full text-[9px]">{pendingCount}</span>
               </h3>
-              {criticalCount > 0 && (
-                <span className="px-2 py-0.5 rounded-md bg-rose-600/30 border border-rose-500 text-rose-300 text-[10px] font-black animate-pulse flex items-center space-x-1">
-                  <AlertOctagon className="w-3 h-3" />
-                  <span>{criticalCount} CRÍTICO / PÁNICO</span>
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5 flex items-center space-x-2 font-mono">
-              <span>Criterio Catálogo Maestro:</span>
-              <span className="text-teal-400 font-bold">{patient.gender === 'F' ? 'Femenino' : 'Masculino'} ({order.patientAge || 30}a)</span>
-              <span>•</span>
-              <span className="text-slate-500">ISO 15189 / CLSI EP28</span>
-            </p>
+            )}
+            {isSidebarCollapsed && <Layers className="w-5 h-5 text-teal-500 animate-pulse" />}
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-slate-950/80 p-1 rounded-2xl border border-white/5">
-            <button
-              onClick={() => setFilterOutOfRangeOnly(false)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
-                !filterOutOfRangeOnly
-                  ? 'bg-teal-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Todos ({patientResults.length})</span>
-            </button>
-            <button
-              onClick={() => setFilterOutOfRangeOnly(true)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex items-center space-x-1.5 cursor-pointer ${
-                filterOutOfRangeOnly
-                  ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]'
-                  : outOfRangeCount > 0
-                  ? 'text-rose-400 hover:text-rose-300'
-                  : 'text-slate-600 cursor-not-allowed'
-              }`}
-              disabled={outOfRangeCount === 0}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Solo Alertas ({outOfRangeCount})</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Main Entry Table Workspace */}
-      <div className="bg-slate-900/40 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl relative z-10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[1200px]">
-            <thead>
-              <tr className="bg-slate-950/80 backdrop-blur-md text-slate-500 border-b border-white/5 font-black uppercase tracking-[0.2em] text-[9px]">
-                <th className="px-6 py-5 w-16 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedResults.length === patientResults.length && patientResults.length > 0}
-                    onChange={(e) => setSelectedResults(e.target.checked ? patientResults.map(r => r.id) : [])}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-teal-500 focus:ring-0 cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-5">Examen / Muestra</th>
-                <th className="px-4 py-5 text-center">Resultado</th>
-                <th className="px-4 py-5 text-center w-24">Unidad</th>
-                <th className="px-4 py-5">Referencia (Catálogo Maestro)</th>
-                <th className="px-4 py-5">Interpretación Clínica</th>
-                <th className="px-4 py-5 text-center">Estado</th>
-                <th className="px-4 py-5 text-right pr-8">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 font-medium">
-              <tr className="bg-teal-500/5">
-                <td colSpan={8} className="px-6 py-2 text-[10px] font-black text-teal-400 uppercase tracking-[0.3em]">
-                  MESA DE TRABAJO TÉCNICA ({displayedResults.length} Parámetros{filterOutOfRangeOnly ? ' • Filtrado Alertas Fuera de Rango' : ''})
-                </td>
-              </tr>
-
-              {displayedResults.map(({ result: res, evaluation: evalResult }) => {
-                const isEditingValue = editingId === res.id;
-                const isEditingInterp = editingInterpId === res.id;
-                const isSelected = selectedResults.includes(res.id);
-                const isDesvalidado = res.status === 'DESVALIDADO';
-                const isOut = evalResult.isOutOfRange;
-                const flagClass = getFlagStyle(evalResult.flag, isOut);
-
-                // Real-time evaluation during editing
-                const tempEval = isEditingValue ? evaluateTestResult({ ...res, value: tempValue }, patient) : null;
-
-                return (
-                  <tr
-                    key={res.id}
-                    className={`group transition-all ${
-                      isDesvalidado
-                        ? 'bg-rose-950/20 border-l-4 border-l-rose-500'
-                        : isOut
-                        ? 'bg-rose-950/15 border-l-4 border-l-rose-500 hover:bg-rose-950/25'
-                        : isSelected
-                        ? 'bg-teal-500/10'
-                        : 'hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <td className="px-6 py-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(res.id)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-teal-500 focus:ring-0 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="font-black text-slate-200 flex items-center space-x-2">
-                        <span className={isDesvalidado ? 'line-through text-slate-400 decoration-rose-500 decoration-2' : ''}>
-                          {res.parameterName}
-                        </span>
-                        {isDesvalidado && (
-                          <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black rounded uppercase tracking-wider animate-pulse inline-flex items-center space-x-1">
-                            <XCircle className="w-3 h-3 text-rose-400 shrink-0" />
-                            <span>REVOCADO</span>
-                          </span>
-                        )}
-                        {isOut && !isDesvalidado && (
-                          <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black rounded uppercase tracking-wider inline-flex items-center space-x-1">
-                            <AlertCircle className="w-3 h-3 text-rose-400 shrink-0" />
-                            <span>ALERTA LIS</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <div className="flex items-center space-x-1">
-                          <Beaker className="w-3 h-3 text-teal-500/50" />
-                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{res.specimenType || 'SUERO'}</span>
-                        </div>
-                        <SampleIntegrityBadge
-                          barcode={order.orderNumber}
-                          tubeType={res.specimenType || 'SUERO_ROJO'}
-                          phlebotomyTime={order.createdAt || new Date(Date.now() - 45 * 60 * 1000).toISOString()}
-                          isCompact={true}
-                          showModalOnClick={true}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {isEditingValue ? (
-                        <div className="flex flex-col items-center justify-center space-y-1.5">
-                          <div className="flex items-center justify-center space-x-1">
-                            <input
-                              type="text"
-                              autoFocus
-                              value={tempValue}
-                              onChange={(e) => setTempValue(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  // ── Redundant inline validation (Enter key) ───────────────────────
-                                  const cleanVal = tempValue?.trim() ?? '';
-                                  if (!cleanVal || cleanVal.length === 0 || cleanVal === '---') {
-                                    showToast('⚠️ El valor no puede estar vacío o ser un marcador pendiente.');
-                                    return;
-                                  }
-                                  updateResult(res.id, cleanVal);
-                                  setEditingId(null);
-                                  showToast(`Valor actualizado: ${cleanVal} ${res.unit}`);
-                                }
-                              }}
-                              className={`bg-slate-950 border rounded-lg px-3 py-1.5 text-sm font-mono w-28 text-center focus:outline-none ${
-                                tempEval?.isOutOfRange
-                                  ? 'border-rose-500 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/50'
-                                  : 'border-teal-500/50 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.2)]'
-                              }`}
-                            />
-                            <button
-                              onClick={() => {
-                                // ── Redundant inline validation (confirm button) ──────────────────
-                                const cleanVal = tempValue?.trim() ?? '';
-                                if (!cleanVal || cleanVal.length === 0) {
-                                  showToast('⚠️ Ingrese un valor numérico o textual antes de confirmar.');
-                                  return;
-                                }
-                                if (cleanVal === '---' || cleanVal === '--' || cleanVal === '-') {
-                                  showToast('⚠️ El marcador de pendiente "---" no es un resultado válido.');
-                                  return;
-                                }
-                                updateResult(res.id, cleanVal);
-                                setEditingId(null);
-                                showToast(`Valor actualizado: ${cleanVal} ${res.unit}`);
-                              }}
-                              className="p-1.5 bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-400 transition cursor-pointer"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          {tempEval && (
-                            <div className={`text-[9px] font-mono px-2 py-0.5 rounded-full border ${
-                              tempEval.isOutOfRange
-                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            }`}>
-                              {tempEval.isOutOfRange ? `⚠️ ${tempEval.alertDetail}` : `✓ En Rango (${tempEval.catalogRefRangeText})`}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center">
-                          <button
-                            onClick={() => { if(canDo('RESULT_ENTRY')) { setEditingId(res.id); setTempValue(res.value); } else { showToast('Acceso Denegado: No tienes permiso para editar resultados.'); } }}
-                            className={`text-sm font-black font-mono px-4 py-1.5 rounded-xl border transition-all mx-auto block cursor-pointer ${
-                              isDesvalidado
-                                ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
-                                : isOut
-                                ? 'border-rose-500/80 bg-rose-500/20 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.35)] ring-1 ring-rose-500/50 hover:bg-rose-500/30'
-                                : `${flagClass}`
-                            }`}
-                          >
-                            <span className={isDesvalidado ? 'line-through decoration-rose-500 decoration-2 opacity-90' : ''}>
-                              {res.value}
-                            </span>
-                            {isDesvalidado && (
-                              <span className="ml-1 text-[9px] text-rose-400 font-sans uppercase">(Desvalidado)</span>
-                            )}
-                          </button>
-
-                          {/* Visual High/Low Cue Badge */}
-                          {isOut && !isDesvalidado && (
-                            <div className="mt-1.5 flex items-center justify-center">
-                              {evalResult.flag === 'CRITICO_ALTO' ? (
-                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-600/30 text-rose-200 border border-rose-500 text-[10px] font-black animate-pulse shadow-sm">
-                                  <AlertOctagon className="w-3 h-3 text-rose-400" />
-                                  <span>CRÍTICO ALTO</span>
-                                </span>
-                              ) : evalResult.flag === 'CRITICO_BAJO' ? (
-                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-600/30 text-rose-200 border border-rose-500 text-[10px] font-black animate-pulse shadow-sm">
-                                  <AlertOctagon className="w-3 h-3 text-rose-400" />
-                                  <span>CRÍTICO BAJO</span>
-                                </span>
-                              ) : evalResult.flag === 'ALTO' ? (
-                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/60 text-[10px] font-black shadow-sm">
-                                  <ArrowUp className="w-3 h-3 text-rose-400 stroke-[3]" />
-                                  <span>ALTO</span>
-                                </span>
-                              ) : evalResult.flag === 'BAJO' ? (
-                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/60 text-[10px] font-black shadow-sm">
-                                  <ArrowDown className="w-3 h-3 text-rose-400 stroke-[3]" />
-                                  <span>BAJO</span>
-                                </span>
-                              ) : null}
-                            </div>
-                          )}
-
-                          {isOut && !isDesvalidado && (
-                            <span className="text-[9px] text-rose-400/90 font-mono mt-1 text-center font-semibold max-w-[140px] truncate" title={evalResult.alertDetail}>
-                              {evalResult.alertDetail}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-slate-500 font-mono text-center">{res.unit}</td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-0.5">
-                        <div className={`font-mono text-[11px] ${isOut ? 'text-rose-300 font-bold' : 'text-slate-400 italic'}`}>
-                          {evalResult.catalogRefRangeText || res.refRangeText}
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <span className="text-[8px] font-mono uppercase px-1 py-0.2 rounded bg-slate-800/80 text-slate-500 border border-white/5">
-                            Catálogo Maestro
-                          </span>
-                          {isOut && (
-                            <span className="text-[9px] text-rose-400 font-bold">
-                              {evalResult.flag === 'ALTO' ? '▲ Límite Excedido' : '▼ Límite Inferior'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 max-w-[250px]">
-                      {isEditingInterp ? (
-                        <textarea
-                          autoFocus
-                          value={tempInterp}
-                          onChange={(e) => setTempInterp(e.target.value)}
-                          onBlur={() => {
-                            // ── Redundant interpretation validation on blur ────────────────────
-                            const cleanInterp = tempInterp?.trim() ?? '';
-
-                            // Allow empty interpretations (they are optional)
-                            // but prevent saving whitespace-only or zero-width content
-                            const strippedInterp = cleanInterp.replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '');
-
-                            if (tempInterp.length > 0 && strippedInterp.length === 0) {
-                              // Contains only invisible characters — clear instead of saving
-                              console.warn(
-                                '[ResultEntryWorkspace] Interpretación contiene solo caracteres invisibles, ' +
-                                'no se guarda para evitar errores downstream en Gemini SDK.'
-                              );
-                              updateInterpretation(res.id, '');
-                            } else {
-                              updateInterpretation(res.id, cleanInterp);
-                            }
-                            setEditingInterpId(null);
-                          }}
-                          className="w-full bg-slate-950 border border-teal-500/50 rounded-xl p-2 text-[10px] text-slate-200 focus:outline-none h-12 resize-none shadow-[0_0_10px_rgba(20,184,166,0.1)]"
-                        />
-                      ) : (
-                        <div
-                          onClick={() => { setEditingInterpId(res.id); setTempInterp(res.interpretation || ''); }}
-                          className="text-[10px] text-slate-500 italic hover:text-teal-400 transition-colors cursor-pointer line-clamp-2 bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/5"
-                        >
-                          {res.interpretation || 'Añadir observación técnica...'}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border inline-flex items-center space-x-1 ${
-                        res.status === 'VALIDADO_TEC'
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                          : isDesvalidado
-                          ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse'
-                          : isOut
-                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
-                          : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                      }`}>
-                        {isDesvalidado && <XCircle className="w-3 h-3 text-rose-400 shrink-0" />}
-                        <span>{isDesvalidado ? 'DESVALIDADO' : res.status.split('_')[0]}</span>
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-right pr-8">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedTrendResultId(res.id);
-                            setShowTrendWidget(true);
-                          }}
-                          title="Ver Tendencia de Resultados (Delta Check)"
-                          className="p-2 bg-teal-500/10 border border-teal-500/30 text-teal-300 rounded-lg hover:bg-teal-500/20 transition-all cursor-pointer"
-                        >
-                          <TrendingUp className="w-4 h-4 text-teal-400" />
-                        </button>
-                        {canDo('RESULT_HISTORY_VIEW') && (
-                          <button
-                            onClick={() => {
-                              setSelectedAuditId(res.id);
-                              setShowAuditSidebar(true);
-                            }}
-                            title="Bitácora de Trazabilidad ISO 15189"
-                            className="p-2 bg-slate-800 rounded-lg hover:text-amber-400 transition-all cursor-pointer"
-                          >
-                            <History className="w-4 h-4" />
-                          </button>
-                        )}
-                        {res.status === 'VALIDADO_TEC' ? (
-                          canDo('RESULT_UNVALIDATE') && (
-                            <button
-                              onClick={() => {
-                                const reason = prompt('Ingrese motivo obligatorio de desvalidación (ISO 15189):');
-                                if (reason) {
-                                  unvalidateResult(res.id, reason);
-                                  showToast(`↺ Parámetro ${res.parameterName} marcado como DESVALIDADO.`);
-                                }
-                              }}
-                              title="Desvalidar Individual"
-                              className="p-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 rounded-lg transition-all cursor-pointer"
-                            >
-                              <XCircle className="w-4 h-4 text-rose-400" />
-                            </button>
-                          )
-                        ) : isDesvalidado ? (
-                          canDo('RESULT_VALIDATE_TECH') && (
-                            <button
-                              onClick={() => {
-                                validateResult(res.id, currentUser?.name || 'Sistema');
-                                showToast(`✓ Parámetro ${res.parameterName} re-validado.`);
-                              }}
-                              title="Re-validar Parámetro"
-                              className="p-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg transition-all cursor-pointer"
-                            >
-                              <Check className="w-4 h-4 text-emerald-400" />
-                            </button>
-                          )
-                        ) : (
-                          canDo('RESULT_VALIDATE_TECH') && (
-                            <button
-                              onClick={() => {
-                                validateResult(res.id, currentUser?.name || 'Sistema');
-                                showToast(`✓ Parámetro ${res.parameterName} validado técnicamente.`);
-                              }}
-                              title="Validación Técnica Individual"
-                              className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-all cursor-pointer"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                          )
-                        )}
-                        <button
-                          onClick={() => onOpenPdf(order.id)}
-                          title="Vista Previa Reporte PDF"
-                          className="p-2 bg-slate-800 rounded-lg hover:text-sky-400 transition-all cursor-pointer"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 3. Global Floating Action Bar (Interactive Buttons) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center bg-[#020617]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] px-6 py-4 shadow-[0_25px_60px_rgba(0,0,0,0.9)] z-[100] gap-4 sm:gap-6 border-b-4 border-b-teal-500/30">
-        {[
-          {
-            icon: Save,
-            label: 'Guardar',
-            color: 'bg-emerald-500',
-            text: 'text-slate-950',
-            action: handleSave
-          },
-          {
-            icon: Plus,
-            label: '+ Pruebas',
-            color: 'bg-teal-500',
-            text: 'text-slate-950',
-            action: () => setActiveModal('ADD_TESTS')
-          },
-          {
-            icon: RotateCcw,
-            label: 'Retorno',
-            color: 'bg-indigo-500/90',
-            text: 'text-white',
-            action: () => {
-              setReworkTests(selectedResults);
-              setActiveModal('REWORK');
-            }
-          },
-          {
-            icon: Trash2,
-            label: 'Rechazo',
-            color: 'bg-rose-500',
-            text: 'text-white',
-            action: () => setActiveModal('REJECT')
-          },
-          {
-            icon: MessageSquare,
-            label: 'Notas',
-            color: 'bg-blue-400',
-            text: 'text-slate-950',
-            action: () => setActiveModal('NOTES')
-          },
-          {
-            icon: Paperclip,
-            label: 'Adjuntos',
-            color: 'bg-cyan-500',
-            text: 'text-slate-950',
-            action: () => setActiveModal('ATTACHMENTS')
-          },
-          {
-            icon: TrendingUp,
-            label: 'Tendencia',
-            color: 'bg-teal-400',
-            text: 'text-slate-950',
-            action: () => setShowTrendWidget(prev => !prev)
-          },
-          {
-            icon: CheckCircle2,
-            label: 'Validar',
-            color: 'bg-emerald-400',
-            text: 'text-slate-950',
-            action: handleBulkValidate
-          },
-          {
-            icon: XCircle,
-            label: 'Desvalidar',
-            color: 'bg-amber-400',
-            text: 'text-slate-950',
-            action: handleBulkUnvalidate
-          },
-          {
-            icon: Printer,
-            label: 'Imprimir',
-            color: 'bg-slate-700',
-            text: 'text-white',
-            action: () => onOpenPdf(order.id)
-          },
-          {
-            icon: Barcode,
-            label: 'Etiquetas',
-            color: 'bg-slate-200',
-            text: 'text-slate-950',
-            action: () => setActiveModal('LABELS')
-          },
-          {
-            icon: MessageSquare,
-            label: 'Inter-Sedes',
-            color: 'bg-gradient-to-r from-indigo-500 to-blue-600',
-            text: 'text-white font-bold',
-            action: () => setShowChatWidget(prev => !prev)
-          }
-        ].filter(btn => {
-          if (btn.label === 'Validar') return canDo('RESULT_VALIDATE_TECH');
-          if (btn.label === 'Desvalidar') return canDo('RESULT_UNVALIDATE');
-          if (btn.label === 'Rechazo') return canDo('ORDER_CANCEL');
-          if (btn.label === '+ Pruebas') return canDo('ORDER_CREATE');
-          if (btn.label === 'Guardar') return canDo('RESULT_ENTRY');
-          return true;
-        }).map((btn, i) => (
-          <button
-            key={i}
-            onClick={btn.action}
-            className="flex flex-col items-center group transition-all cursor-pointer"
-          >
-            <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full ${btn.color} ${btn.text} flex items-center justify-center shadow-xl transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-300 ring-4 ring-slate-900 group-hover:ring-white/20`}>
-              <btn.icon className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 mt-2.5 group-hover:text-teal-400 transition-colors whitespace-nowrap">
-              {btn.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* MODAL 1: ADD TESTS */}
-      {activeModal === 'ADD_TESTS' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-teal-400">
-                <Plus className="w-5 h-5" />
-                <h3 className="font-bold text-base text-white">Agregar Pruebas a la Orden #{order.orderNumber}</h3>
-              </div>
-              <button onClick={() => setActiveModal('NONE')} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Seleccione pruebas del catálogo institucional para incluirlas inmediatamente en la mesa de trabajo:
-            </p>
-
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o código de examen..."
-                value={testSearchQuery}
-                onChange={(e) => setTestSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-teal-500 font-medium"
-              />
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {[
-                { code: 'GLU', name: 'Glucosa en Ayunas', category: 'QUÍMICA', tube: 'SUERO ROJO' },
-                { code: 'LIP', name: 'Perfil Lipídico Completo (Col, Trig, HDL, LDL)', category: 'QUÍMICA', tube: 'SUERO ROJO' },
-                { code: 'TROP', name: 'Troponina I Alta Sensibilidad', category: 'CARDIOLOGÍA', tube: 'HEPARINA VERDE' },
-                { code: 'TSH', name: 'Hormona Estimulante de Tiroides (TSH)', category: 'INMUNOLOGÍA', tube: 'SUERO ROJO' },
-                { code: 'PCR', name: 'Proteína C Reactiva Ultra Sensible', category: 'INMUNOLOGÍA', tube: 'SUERO ROJO' },
-                { code: 'ELECT', name: 'Electrólitos Séricos (Na, K, Cl)', category: 'QUÍMICA', tube: 'SUERO ROJO' },
-                { code: 'TPT', name: 'Tiempo de Tromboplastina (TPT)', category: 'COAGULACIÓN', tube: 'CITRATO AZUL' }
-              ]
-                .filter(t => t.name.toLowerCase().includes(testSearchQuery.toLowerCase()) || t.code.toLowerCase().includes(testSearchQuery.toLowerCase()))
-                .map((test) => {
-                  const isChecked = selectedCatalogTests.includes(test.code);
-                  return (
-                    <div
-                      key={test.code}
-                      onClick={() => {
-                        setSelectedCatalogTests(prev =>
-                          prev.includes(test.code) ? prev.filter(c => c !== test.code) : [...prev, test.code]
-                        );
-                      }}
-                      className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
-                        isChecked ? 'bg-teal-500/10 border-teal-500/50' : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="space-y-0.5">
-                        <div className="font-bold text-xs text-white flex items-center gap-2">
-                          <span>{test.name}</span>
-                          <span className="px-1.5 py-0.5 bg-slate-800 text-teal-400 font-mono text-[9px] rounded font-bold">{test.code}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          {test.category} • Tubo: {test.tube}
-                        </div>
-                      </div>
-
-                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center border ${isChecked ? 'bg-teal-500 border-teal-400 text-slate-950' : 'border-slate-700'}`}>
-                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
-              <button
-                onClick={() => setActiveModal('NONE')}
-                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmAddTests}
-                className="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-teal-500/20 cursor-pointer"
-              >
-                Agregar {selectedCatalogTests.length} Pruebas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: REWORK / RETORNO */}
-      {activeModal === 'REWORK' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-indigo-400">
-                <RotateCcw className="w-5 h-5" />
-                <h3 className="font-bold text-base text-white">Retorno / Repetición Técnica</h3>
-              </div>
-              <button onClick={() => setActiveModal('NONE')} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Esta acción retornará las pruebas seleccionadas a estado <strong className="text-indigo-400">EN_PROCESO</strong> para su re-análisis o confirmación por duplicado:
-            </p>
-
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-300">Motivo de Repetición / Retorno:</label>
-              <select
-                value={reworkReason}
-                onChange={(e) => setReworkReason(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-indigo-500"
-              >
-                <option value="Verificación de valor crítico fuera de rango">Verificación de valor crítico fuera de rango</option>
-                <option value="Confirmación técnica por duplicado (Control QC)">Confirmación técnica por duplicado (Control QC)</option>
-                <option value="Interferencia por suero lipémico / ictérico">Interferencia por suero lipémico / ictérico</option>
-                <option value="Calibración / Recalibración del analizador">Calibración / Recalibración del analizador</option>
-                <option value="Solicitud directa de Bioquímico / Jefe de Lab">Solicitud directa de Bioquímico / Jefe de Lab</option>
-              </select>
-            </div>
-
-            <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-[11px] text-indigo-200">
-              Se enviará una orden de re-procesamiento a la cola del Middleware ASTM para re-corrida automática.
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
-              <button
-                onClick={() => setActiveModal('NONE')}
-                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmRework}
-                className="px-5 py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-500/20 cursor-pointer"
-              >
-                Confirmar Repetición
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: REJECTION / RECHAZO CON WIZARD Y WHATSAPP */}
-      {activeModal === 'REJECT' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-4xl w-full my-8">
-            <RejectedSampleWizard
-              embeddedMode={true}
-              initialBarcode={order.specimenId || `BAR-${order.orderNumber}`}
-              onComplete={() => {
-                showToast(`Muestra #${order.specimenId || order.orderNumber} rechazada. Notificaciones enviadas a Recepción y Paciente vía WhatsApp.`);
-                setActiveModal('NONE');
-              }}
-              onClose={() => setActiveModal('NONE')}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: CLINICAL NOTES */}
-      {activeModal === 'NOTES' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-blue-400">
-                <MessageSquare className="w-5 h-5" />
-                <h3 className="font-bold text-base text-white">Bitácora de Notas e Observaciones</h3>
-              </div>
-              <button onClick={() => setActiveModal('NONE')} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
-            </div>
-
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {notesList.map((n) => (
-                <div key={n.id} className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-blue-400">{n.author}</span>
-                    <span className="text-slate-500 font-mono">{n.time}</span>
-                  </div>
-                  <p className="text-xs text-slate-200">{n.text}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-slate-800">
-              <div className="flex gap-2">
+          {!isSidebarCollapsed && (
+            <div className="space-y-3">
+              {/* Functional Bar: Search & Filter */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
                 <input
                   type="text"
-                  placeholder="Escriba una observación técnica..."
-                  value={newNoteText}
-                  onChange={(e) => setNewNoteText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  placeholder="Buscar paciente u orden..."
+                  value={orderSearchQuery}
+                  onChange={(e) => setOrderSearchQuery(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-[10px] text-white placeholder:text-slate-600 focus:border-teal-500/50 outline-none transition-all"
                 />
-                <button
-                  onClick={handleAddNote}
-                  className="px-4 py-2 bg-blue-500 text-slate-950 font-black rounded-xl text-xs hover:bg-blue-400 transition cursor-pointer flex items-center space-x-1"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Añadir</span>
-                </button>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end pt-2">
-              <button
-                onClick={() => setActiveModal('NONE')}
-                className="px-4 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 5: ATTACHMENTS */}
-      {activeModal === 'ATTACHMENTS' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-cyan-400">
-                <Paperclip className="w-5 h-5" />
-                <h3 className="font-bold text-base text-white">Documentos Adjuntos & Trazas</h3>
-              </div>
-              <button onClick={() => setActiveModal('NONE')} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
-            </div>
-
-            <div className="space-y-2">
-              {attachmentsList.map((att) => (
-                <div key={att.id} className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-cyan-400" />
-                    <div>
-                      <div className="font-bold text-xs text-white">{att.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{att.size} • {att.date}</div>
-                    </div>
-                  </div>
+              <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/5">
+                {(['all', 'pending', 'validated'] as const).map((status) => (
                   <button
-                    onClick={() => showToast(`Descargando ${att.name}...`)}
-                    className="p-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl transition cursor-pointer"
+                    key={status}
+                    onClick={() => setOrderStatusFilter(status)}
+                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${
+                      orderStatusFilter === status ? 'bg-teal-500 text-slate-950' : 'text-slate-500 hover:text-slate-300'
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    {status === 'all' ? 'Todo' : status === 'pending' ? 'Pend.' : 'Val.'}
                   </button>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={handleSimulateUpload}
-              className="w-full border-2 border-dashed border-slate-700 hover:border-cyan-500 p-4 rounded-2xl text-center text-xs text-slate-400 hover:text-cyan-300 transition cursor-pointer flex flex-col items-center justify-center space-y-1"
-            >
-              <Upload className="w-5 h-5 text-cyan-400" />
-              <span>Adjuntar nuevo archivo (PDF, Imagen, Traza ASTM)</span>
-            </button>
-
-            <div className="flex items-center justify-end pt-2">
-              <button
-                onClick={() => setActiveModal('NONE')}
-                className="px-4 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 6: BARCODE LABELS */}
-      {activeModal === 'LABELS' && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-slate-200">
-                <Barcode className="w-5 h-5 text-teal-400" />
-                <h3 className="font-bold text-base text-white">Impresión de Etiquetas ZEBRA / TSC</h3>
-              </div>
-              <button onClick={() => setActiveModal('NONE')} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
-            </div>
-
-            {/* Live Thermal Label Preview */}
-            <div className="bg-white text-slate-950 rounded-2xl p-4 shadow-xl border-2 border-slate-300 space-y-2 font-sans relative overflow-hidden">
-              <div className="flex justify-between items-start border-b border-slate-300 pb-1.5">
-                <div>
-                  <div className="font-black text-xs uppercase tracking-tight">{patient.firstName} {patient.lastName}</div>
-                  <div className="text-[10px] font-mono font-bold text-slate-700">CÉDULA: {patient.nationalId}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-mono font-black text-xs text-teal-800">{order.orderNumber}</div>
-                  <div className="text-[9px] font-bold text-slate-600">SEDE CENTRAL</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-800">
-                  SANGRE TOTAL (EDTA MORADO)
-                </span>
-                <span className="text-[9px] font-mono text-slate-500">11/08/2026 21:38</span>
-              </div>
-
-              {/* Graphic Barcode rendering */}
-              <div className="pt-2 text-center space-y-1">
-                <div className="h-10 bg-slate-950 rounded flex items-center justify-center p-1 space-x-1">
-                  {/* Simulated barcode lines */}
-                  {Array.from({ length: 38 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`h-full bg-white ${
-                        idx % 3 === 0 ? 'w-1.5' : idx % 2 === 0 ? 'w-1' : 'w-0.5'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <div className="font-mono text-[10px] font-bold tracking-widest text-slate-900">
-                  *BC-{order.orderNumber.replace(/[^0-9]/g, '')}*
-                </div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-              <span>Cantidad de Copias:</span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setLabelQuantity(Math.max(1, labelQuantity - 1))}
-                  className="w-7 h-7 bg-slate-800 rounded-lg text-white font-black hover:bg-slate-700 cursor-pointer"
-                >
-                  -
-                </button>
-                <span className="font-mono text-white text-sm w-6 text-center">{labelQuantity}</span>
-                <button
-                  onClick={() => setLabelQuantity(labelQuantity + 1)}
-                  className="w-7 h-7 bg-slate-800 rounded-lg text-white font-black hover:bg-slate-700 cursor-pointer"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
-              <button
-                onClick={() => setActiveModal('NONE')}
-                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handlePrintLabels}
-                disabled={isPrintingLabel}
-                className="px-5 py-2 bg-slate-200 hover:bg-white text-slate-950 font-black rounded-xl text-xs shadow-lg transition cursor-pointer flex items-center space-x-2 disabled:opacity-50"
-              >
-                <Printer className={`w-4 h-4 ${isPrintingLabel ? 'animate-bounce' : ''}`} />
-                <span>{isPrintingLabel ? 'Imprimiendo...' : 'Imprimir Etiquetas'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Clinical Traceability Sidebar (ISO 15189 Audit Trail) */}
-      {showAuditSidebar && selectedAuditId && (
-        <>
-          <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-[2px] z-[120]" onClick={() => setShowAuditSidebar(false)}></div>
-          <div className="fixed top-0 right-0 h-full w-[400px] bg-slate-900 border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-[130] p-8 space-y-8 animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center space-x-2">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Bitácora Auditoría ISO 15189</span>
-                </div>
-                <h3 className="text-lg font-black text-white uppercase italic">Historial de Analito</h3>
-              </div>
-              <button onClick={() => setShowAuditSidebar(false)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"><X className="w-5 h-5" /></button>
-            </div>
-
-            {(() => {
-              const res = results.find(r => r.id === selectedAuditId);
-              if (!res) return null;
-              return (
-                <div className="space-y-6">
-                  <div className="bg-slate-950 p-5 rounded-2xl border border-white/5 space-y-1">
-                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Parámetro Seleccionado</div>
-                    <div className="text-sm font-black text-white">{res.parameterName}</div>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <span className="text-2xl font-mono font-black text-teal-400">{res.value}</span>
-                      <span className="text-xs text-slate-500 font-mono">{res.unit}</span>
-                      <span className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[10px] text-slate-400 font-bold">V{res.version}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Línea de Tiempo de Versiones</span>
-                    </div>
-
-                    <div className="relative pl-6 space-y-8 border-l border-white/10 ml-2 pt-2">
-                      {res.history?.slice().reverse().map((entry, idx) => (
-                        <div key={entry.id} className="relative">
-                          <div className={`absolute -left-[31px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 shadow-xl ${
-                            entry.action === 'CREACION' ? 'bg-teal-500 shadow-teal-500/20' :
-                            entry.action === 'EDICION' ? 'bg-amber-500 shadow-amber-500/20' :
-                            entry.action === 'VALIDACION_TEC' ? 'bg-emerald-500 shadow-emerald-500/20' :
-                            'bg-rose-500 shadow-rose-500/20'
-                          }`}></div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black text-white uppercase tracking-tight">{entry.action}</span>
-                              <span className="text-[9px] text-slate-500 font-mono">{new Date(entry.timestamp).toLocaleString()}</span>
-                            </div>
-                            <div className="bg-slate-950 p-4 rounded-2xl border border-white/5 space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-teal-400">
-                                  {entry.author.charAt(0)}
-                                </div>
-                                <span className="text-[11px] font-bold text-slate-300">{entry.author}</span>
-                              </div>
-
-                              {entry.previousValue && (
-                                <div className="grid grid-cols-2 gap-2 mt-1">
-                                  <div className="p-2 bg-rose-500/5 rounded-lg border border-rose-500/10">
-                                    <div className="text-[8px] text-rose-500 uppercase font-bold">Anterior</div>
-                                    <div className="text-xs font-mono font-bold text-slate-500">{entry.previousValue}</div>
-                                  </div>
-                                  <div className="p-2 bg-teal-500/5 rounded-lg border border-teal-500/10">
-                                    <div className="text-[8px] text-teal-500 uppercase font-bold">Nuevo</div>
-                                    <div className="text-xs font-mono font-bold text-white">{entry.newValue}</div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {entry.reason && (entry.action === 'DESVALIDACION' || entry.action === 'EDICION') && (
-                                <div className="text-[10px] text-amber-400 italic bg-amber-400/5 p-2 rounded-lg border border-amber-400/10">
-                                  Motivo: {entry.reason}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-1">
+             {filteredOrders.map(o => (
+               <button
+                 key={o.id}
+                 onClick={() => setActiveOrderId(o.id)}
+                 className={`w-full text-left rounded-2xl border transition-all duration-300 ${
+                   o.id === activeOrderId
+                     ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/40' : 'bg-teal-500 text-slate-950 border-teal-400 shadow-lg shadow-teal-500/20')
+                     : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500/10 border-rose-500/40 hover:bg-rose-500/30' : 'bg-slate-900/50 border-white/5 hover:bg-slate-900')
+                 } ${isSidebarCollapsed ? 'p-2 flex flex-col items-center gap-1' : 'p-4'}`}
+               >
+                  {isSidebarCollapsed ? (
+                    <>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[12px] shadow-inner transition-colors ${
+                        o.id === activeOrderId
+                          ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/20 text-white' : 'bg-black/10 text-slate-900')
+                          : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800/50 text-slate-400')
+                      }`}>
+                        {o.patientName.charAt(0)}
+                      </div>
+                      <span className={`text-[9px] font-mono font-black truncate w-full text-center tracking-tighter ${
+                        o.id === activeOrderId
+                          ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-900')
+                          : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-500' : 'text-slate-600')
+                      }`}>
+                        {o.orderNumber.slice(-4)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-start mb-1">
+                        <div className={`text-[9px] font-mono font-black italic flex items-center gap-1 ${
+                          o.id === activeOrderId
+                            ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-900/60')
+                            : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-400' : 'text-slate-500')
+                        }`}>
+                          {o.priority === 'STAT' || o.priority === 'URGENTE' ? <Zap className="w-3 h-3 fill-current" /> : null}
+                          {o.orderNumber}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+                        {results.filter(r => r.orderId === o.id).some(r => r.flag?.includes('CRITICO')) && (
+                          <ShieldAlert className={`w-3.5 h-3.5 animate-pulse ${
+                            o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-rose-900') : 'text-rose-500'
+                          }`} />
+                        )}
+                      </div>
+                      <div className={`text-[11px] font-black uppercase truncate leading-tight flex items-center gap-2 ${
+                        o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-slate-200'
+                      }`}>
+                        {o.patientName}
+                        {(o.priority === 'STAT' || o.priority === 'URGENTE') && (
+                          <span className={`text-[7px] px-1 rounded-sm font-black ${
+                            o.id === activeOrderId ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
+                          }`}>STAT</span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className={`h-1 flex-1 rounded-full overflow-hidden ${
+                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/20' : 'bg-black/10') : 'bg-black/20'
+                        }`}>
+                          <div
+                            className={`h-full ${
+                              o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white' : 'bg-slate-900') : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500' : 'bg-teal-500/50')
+                            }`}
+                            style={{
+                              width: `${(() => {
+                                const orderResults = results.filter(r => r.orderId === o.id);
+                                const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
+                                const validatedCount = uniqueParams.filter(pId =>
+                                  orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED'))
+                                ).length;
+                                return (validatedCount / Math.max(1, uniqueParams.length)) * 100;
+                              })()}%`
+                            }}
+                          ></div>
+                        </div>
+                        <span className={`text-[8px] font-black tracking-tighter ${
+                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white/80' : 'text-slate-900/60') : 'text-slate-500'
+                        }`}>
+                          {(() => {
+                            const orderResults = results.filter(r => r.orderId === o.id);
+                            const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
+                            const validatedCount = uniqueParams.filter(pId =>
+                              orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED'))
+                            ).length;
+                            return `${validatedCount}/${uniqueParams.length} VAL.`;
+                          })()}
+                        </span>
+                      </div>
+                    </>
+                  )}
+               </button>
+             ))}
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
-      {/* SECURE INTERNAL MESSAGING WIDGET OVERLAY */}
-      {showChatWidget && (
-        <SecureInternalMessagingWidget
-          initialOpen={true}
-          activeSampleContext={{
-            barcode: order.specimenId || `BAR-${order.orderNumber}`,
-            orderNumber: order.orderNumber,
-            patientName: `${patient.firstName} ${patient.lastName}`,
-            testName: patientResults[0]?.parameterName || 'Consulta de Resultado',
-            value: patientResults[0]?.value,
-            status: 'DUDOSA'
-          }}
-          onClose={() => setShowChatWidget(false)}
-        />
-      )}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="px-6 py-3 bg-slate-950/40 border-b border-white/5 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-teal-500/30 flex items-center justify-center text-teal-400"><UserCircle className="w-7 h-7" /></div>
+              <div>
+                 <h2 className="text-lg font-black text-white uppercase italic">{currentPatient.firstName} {currentPatient.lastName}</h2>
+                 <div className="flex gap-3 text-[10px] text-slate-500 font-bold uppercase"><span className="flex items-center gap-1"><Fingerprint className="w-3 h-3 text-teal-500" />{currentPatient.nationalId}</span><span>{currentOrder.orderNumber}</span></div>
+              </div>
+           </div>
+           <div className="flex items-center gap-4">
+              <button onClick={() => setIsAuditFilterActive(!isAuditFilterActive)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${isAuditFilterActive ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-slate-900 border-white/5 text-slate-500'}`}>
+                 <Timer className={`w-3.5 h-3.5 inline mr-2 ${isAuditFilterActive ? 'animate-pulse' : ''}`} />
+                 {isAuditFilterActive ? 'Filtro Auditoría Activo' : 'Ver Todos'}
+              </button>
+              <div className="text-right"><div className="text-[9px] font-black text-slate-600 uppercase">Estado Conexión</div><div className="text-[10px] font-black text-emerald-500 flex items-center gap-2"><RefreshCw className="w-3 h-3 animate-spin" /> Middleware Activo</div></div>
+           </div>
+        </div>
 
+        <div className="flex-1 overflow-y-auto p-6">
+           <div className="bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+              <table className="w-full text-left text-xs border-collapse">
+                 <thead className="bg-slate-950 text-slate-500 font-black uppercase text-[8px] tracking-widest border-b border-white/5 sticky top-0 z-20">
+                    <tr>
+                      <th className="p-4 w-12 text-center">
+                        <button
+                          onClick={toggleSelectAll}
+                          className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
+                            selectedResults.length > 0 && selectedResults.length === patientResults.length
+                              ? 'bg-teal-500 border-teal-500 text-slate-950'
+                              : selectedResults.length > 0
+                              ? 'bg-teal-500/20 border-teal-500 text-teal-500'
+                              : 'bg-slate-950 border-slate-800 text-transparent hover:border-slate-600'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
+                      <th className="p-4">Analito</th>
+                      <th className="p-4 text-center">Resultado</th>
+                      <th className="p-4">Unidad</th>
+                      <th className="p-4">Rango</th>
+                      <th className="p-4 text-center">TAT</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-white/5">
+                    {patientResults.map(res => {
+                      const { text, isLate } = getTimeAgoData(res.createdAt);
+                      const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+                      const isNoteExpanded = expandingNotesId === res.id;
+
+                      const toggleSelectAll = () => {
+    const allIds = patientResults.map(r => r.id);
+    if (selectedResults.length === allIds.length) {
+      setSelectedResults([]);
+    } else {
+      setSelectedResults(allIds);
+    }
+  };
+
+  return (
+                        <React.Fragment key={res.id}>
+                        <tr
+                          onClick={() => setActiveTraceabilityId(res.id)}
+                          className={`group/row cursor-pointer transition-all border-l-2 ${
+                            selectedResults.includes(res.id) ? 'bg-teal-500/5 shadow-inner' : 'hover:bg-white/[0.02]'
+                          } ${res.flag?.includes('CRITICO') ? 'border-l-rose-500' : 'border-l-transparent'} ${isValidated ? 'bg-emerald-500/[0.03]' : ''}`}
+                        >
+                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
+                                className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center mx-auto ${
+                                  selectedResults.includes(res.id)
+                                    ? 'bg-teal-500 border-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
+                                    : 'bg-slate-950 border-slate-800 text-transparent group-hover/row:border-teal-500/50'
+                                }`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </button>
+                           </td>
+                           <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                {isValidated && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" title="Resultado Validado" />}
+                                <div className={`font-black uppercase ${isValidated ? 'text-slate-400' : 'text-slate-200'}`}>{res.parameterName}</div>
+                                {res.isExtra && (
+                                  <span className="bg-amber-500 text-slate-950 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-lg shadow-amber-500/20">EXTRA</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <div className="text-[9px] text-slate-600 font-mono tracking-tight">{res.parameterCode}</div>
+                                <div className="h-2.5 w-px bg-white/5"></div>
+                                {res.source?.includes('MIDDLEWARE') ? (
+                                  <div className="flex items-center gap-1 text-[8px] text-teal-500 font-bold" title={`Recibido de: ${res.analyzerName || 'Analizador LIS'}`}>
+                                    <Cpu className="w-2.5 h-2.5" /> <span className="uppercase tracking-tighter">{res.analyzerName || 'ASTM-HUB'}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-[8px] text-indigo-400 font-bold" title="Ingresado Manualmente">
+                                    <PencilLine className="w-2.5 h-2.5" /> <span className="uppercase tracking-tighter">MANUAL</span>
+                                  </div>
+                                )}
+                              </div>
+                           </td>
+                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              {editingId === res.id ?
+                                <input autoFocus value={tempValue} onChange={e => setTempValue(e.target.value)} onBlur={() => { onUpdateResultValue(res.id, tempValue, res); setEditingId(null); }} onKeyDown={e => e.key === 'Enter' && (onUpdateResultValue(res.id, tempValue, res), setEditingId(null))} className="bg-slate-950 border border-teal-500 rounded text-center text-teal-400 font-mono w-24 p-1 shadow-[0_0_15px_rgba(20,184,166,0.2)]" /> :
+                                <div className="flex items-center justify-center gap-3">
+                                  <div className="flex flex-col items-center gap-0.5 min-w-[12px]">
+                                     {res.flag?.includes('ALTO') && <ArrowUp className={`w-3.5 h-3.5 ${res.flag.includes('CRITICO') ? 'text-rose-500 animate-bounce' : 'text-amber-500'}`} />}
+                                     {res.flag?.includes('BAJO') && <ArrowDown className={`w-3.5 h-3.5 ${res.flag.includes('CRITICO') ? 'text-rose-500 animate-bounce' : 'text-blue-400'}`} />}
+                                  </div>
+
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <button
+                                      disabled={isValidated}
+                                      onClick={() => { setEditingId(res.id); setTempValue(res.value); }}
+                                      className={`px-4 py-1.5 rounded-lg font-mono font-black text-sm border transition-all ${isValidated ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500 cursor-default' : 'border-transparent hover:border-white/10 ' + getFlagStyle(res.flag)}`}
+                                    >
+                                      {res.value}
+                                    </button>
+                                    {res.interpretation && (
+                                      <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${res.interpretation.includes('POSITIVO') ? 'text-amber-500' : 'text-slate-500 opacity-60'}`}>
+                                        {res.interpretation}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 min-w-[40px]" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => {
+                                        setExpandingNotesId(isNoteExpanded ? null : res.id);
+                                        setTempNote(res.interpretation || '');
+                                      }}
+                                      className={`p-1.5 rounded-lg transition-all ${res.interpretation ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-700 hover:text-slate-400 hover:bg-white/5'}`}
+                                      title="Ver/Editar Interpretación Técnica"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                    </button>
+                                    {res.flag?.includes('CRITICO') && <span className="text-[9px] font-black text-rose-500 animate-pulse uppercase">!!!</span>}
+                                    {isValidated && <Fingerprint className="w-3.5 h-3.5 text-emerald-500/50" title="Validado con firma digital" />}
+                                  </div>
+                                </div>
+                              }
+                           </td>
+                           <td className="p-4 text-slate-500 font-mono text-[10px] uppercase tracking-tighter">{res.unit}</td>
+                           <td className="p-4 text-slate-400 font-mono text-[10px] italic">{res.refRangeText}</td>
+                           <td className="p-4 text-center">
+                              {res.source?.includes('MIDDLEWARE') && !isValidated && (
+                                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${isLate ? 'border-amber-500/40 bg-amber-500/5 text-amber-400' : 'border-white/5 bg-slate-950 text-teal-400'}`}>
+                                   <Timer className={`w-3 h-3 ${isLate ? 'animate-pulse' : ''}`} /><span className="text-[9px] font-black">{text}</span>
+                                </div>
+                              )}
+                              {isValidated && (
+                                <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">OK</span>
+                              )}
+                           </td>
+                        </tr>
+                        {isNoteExpanded && (
+                          <tr className="bg-slate-900/60 border-b border-white/5">
+                            <td colSpan={6} className="p-4">
+                               <div className="flex gap-4 items-start animate-in slide-in-from-top-2 duration-300">
+                                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0"><MessageSquare className="w-5 h-5" /></div>
+                                  <div className="flex-1 space-y-3">
+                                     <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interpretación Clínica / Hallazgos del Analizador</span>
+                                        <div className="flex gap-2">
+                                           <button onClick={() => { onUpdateInterpretation(res.id, tempNote); setExpandingNotesId(null); }} className="px-3 py-1 bg-indigo-500 text-white text-[9px] font-black rounded-lg uppercase shadow-lg shadow-indigo-500/20">Guardar Nota</button>
+                                           <button onClick={() => setExpandingNotesId(null)} className="px-3 py-1 bg-white/5 text-slate-400 text-[9px] font-black rounded-lg uppercase">Cerrar</button>
+                                        </div>
+                                     </div>
+                                     <textarea
+                                       disabled={isValidated}
+                                       value={tempNote}
+                                       onChange={(e) => setTempNote(e.target.value)}
+                                       className="w-full bg-slate-950/80 border border-white/5 rounded-2xl p-4 text-xs text-slate-300 min-h-[80px] focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-800"
+                                       placeholder="Ingrese observaciones técnicas, comentarios sobre la muestra o hallazgos instrumentales..."
+                                     />
+                                  </div>
+                               </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
+                      )
+                    })}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+
+        <div className="h-24 flex items-center justify-center shrink-0 px-6">
+          <div className="bg-[#020617]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-2 flex items-center gap-1 shadow-2xl">
+
+             {/* Grupo 1: Alertas & Comunicación */}
+             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
+                <button
+                  title="PROTOCOLO DE PÁNICO: Notificar Crítico vía SMS/Push"
+                  onClick={() => {
+                    const criticals = selectedResults.filter(id => results.find(r => r.id === id)?.flag?.includes('CRITICO'));
+                    if (criticals.length === 0) { alert('Esta función requiere analitos con flag CRÍTICO seleccionados.'); return; }
+                    alert(`Alerta de Pánico enviada para ${criticals.length} resultados.`);
+                  }}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all group ${
+                    selectedResults.some(id => results.find(r => r.id === id)?.flag?.includes('CRITICO'))
+                    ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30 animate-pulse'
+                    : 'bg-slate-800/20 text-slate-700'
+                  }`}
+                >
+                  <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+
+                <button
+                  title="WHATSAPP CLOUD: Enviar reporte parcial al paciente"
+                  onClick={() => {
+                    alert('Reporte enviado exitosamente vía WhatsApp.');
+                  }}
+                  className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all group"
+                >
+                  <PhoneCall className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+             </div>
+
+             {/* Grupo 2: Herramientas de Cálculo & Trazado */}
+             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
+                <button
+                  title="DILUCIONES: Aplicar factor de dilución al resultado"
+                  onClick={() => {
+                    if (selectedResults.length === 0) return;
+                    const factor = prompt('Ingrese el factor de dilución (ej: 2, 5, 10):');
+                    if (factor && !isNaN(Number(factor))) {
+                       selectedResults.forEach(id => {
+                         const res = results.find(r => r.id === id);
+                         if (res && res.numericValue) {
+                           onUpdateResultValue(id, (res.numericValue * Number(factor)).toString(), res);
+                         }
+                       });
+                       alert(`Factor x${factor} aplicado.`);
+                    }
+                  }}
+                  className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center hover:bg-amber-500 hover:text-slate-950 transition-all group"
+                >
+                  <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+                <button
+                  title="ZEBRA SPOOLER: Re-imprimir etiquetas de código de barras"
+                  onClick={() => {
+                    alert('Etiquetas enviadas a la impresora térmica de la sede.');
+                  }}
+                  className="w-12 h-12 rounded-2xl bg-slate-800/40 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition-all group"
+                >
+                  <Barcode className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+             </div>
+
+             {/* Grupo 3: Trazabilidad & Revocación */}
+             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
+                <button title="AUDIT TRAIL: Ver historial completo de modificaciones" onClick={() => setShowAuditLog(true)} className="w-12 h-12 rounded-2xl bg-slate-800/40 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition-all group">
+                  <RotateCcw className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+                <button title="TREND ANALYTICS: Gráficas de evolución histórica" onClick={() => setShowTrendViewer(true)} className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center hover:bg-teal-500 hover:text-white transition-all group text-teal-400">
+                  <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+                <button
+                  title="REVOCAR: Desvalidar resultados seleccionados (Acceso Súper-Admin)"
+                  disabled={!selectedResults.some(id => {
+                    const res = results.find(r => r.id === id);
+                    const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
+                    const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                    return isValidated && canUnvalidate;
+                  })}
+                  onClick={() => {
+                    const toRevokeIds = selectedResults.filter(id => {
+                      const res = results.find(r => r.id === id);
+                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
+                      const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                      return isValidated && canUnvalidate;
+                    });
+
+                    if (toRevokeIds.length === 0) {
+                      alert('Seleccione resultados validados para revocar.');
+                      return;
+                    }
+
+                    setUnvalidateReason('');
+                    setShowUnvalidateModal(true);
+                  }}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all group ${
+                    selectedResults.some(id => {
+                      const res = results.find(r => r.id === id);
+                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
+                      const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                      return isValidated && canUnvalidate;
+                    })
+                    ? 'bg-amber-500 text-slate-950 border border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                    : 'bg-slate-800/40 text-slate-700 opacity-40 cursor-not-allowed'
+                  }`}
+                >
+                  <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                </button>
+             </div>
+
+             {/* Grupo 4: Orden & PDF */}
+             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
+                <button title="MASTER CATALOG: Añadir analitos extra a la orden" onClick={() => onUpdateOrderTests?.(currentOrder.id, currentOrder.expandedTestIds)} className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all group">
+                  <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+                <button title="REPORT PREVIEW: Generar PDF oficial" onClick={() => onOpenPdf(currentOrder.id)} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all group">
+                  <Printer className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+             </div>
+
+             {/* Acción Principal Maestría */}
+             <div className="pl-6 pr-3">
+                <button
+                  onClick={() => {
+                    const toValidate = selectedResults.filter(id => {
+                      const res = results.find(r => r.id === id);
+                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
+                    });
+                    if (toValidate.length === 0) return;
+
+                    toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+                    setSelectedResults([]);
+                  }}
+                  className={`h-14 px-10 font-black rounded-full flex items-center gap-8 transition-all active:scale-95 group disabled:opacity-30 disabled:grayscale shadow-2xl ${
+                    selectedResults.some(id => {
+                      const res = results.find(r => r.id === id);
+                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
+                    })
+                    ? 'bg-[#10b981] text-slate-950 hover:bg-[#059669] hover:scale-[1.02] shadow-emerald-500/20'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+                  }`}
+                  disabled={!selectedResults.some(id => {
+                    const res = results.find(r => r.id === id);
+                    return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
+                  })}
+                >
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[15px] tracking-tighter font-black uppercase">VALIDAR RESULTADOS</span>
+                  </div>
+                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    selectedResults.some(id => {
+                      const res = results.find(r => r.id === id);
+                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
+                    })
+                    ? 'border-slate-950/20 group-hover:border-slate-950/40'
+                    : 'border-slate-700'
+                  }`}>
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                </button>
+             </div>
+          </div>
+        </div>
+
+        {/* Modal / Overlays for Advanced Functions */}
+        {showTrendViewer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md p-10">
+            <div className="bg-slate-900 border border-white/10 rounded-[3rem] w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300">
+               <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-black text-white italic">Análisis de Tendencias</h3>
+                    <p className="text-teal-400 font-bold uppercase text-[10px] tracking-widest mt-1">Histórico Clínico: {currentPatient.firstName} {currentPatient.lastName}</p>
+                  </div>
+                  <button onClick={() => setShowTrendViewer(false)} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+               </div>
+               <div className="flex-1 p-10 flex flex-col items-center justify-center">
+                  {isTrendsLoading ? (
+                    <div className="text-center space-y-4">
+                      <TrendingUp className="w-20 h-20 text-teal-500/20 mx-auto animate-pulse" />
+                      <p className="text-slate-500 font-black uppercase tracking-[0.3em] animate-pulse">Cargando Motor de Gráficas High-End...</p>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col space-y-6">
+                      <div className="flex justify-between items-end">
+                        <div className="flex gap-4">
+                           {['6 Meses', '1 Año', 'Todo'].map(t => (
+                             <button key={t} className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">{t}</button>
+                           ))}
+                        </div>
+                        <div className="text-right">
+                           <span className="text-[10px] text-slate-500 font-black uppercase block">Último Valor</span>
+                           <span className="text-3xl font-black text-teal-400 italic">14.5 <span className="text-xs not-italic text-slate-500">x10^3/µL</span></span>
+                        </div>
+                      </div>
+
+                      {/* MOCK CHART AREA - High Visibility Neon Design */}
+                      <div className="flex-1 bg-black/40 rounded-[2.5rem] border border-white/5 relative overflow-hidden flex items-end p-12 gap-6 shadow-inner">
+                         {/* Grid Lines */}
+                         <div className="absolute inset-0 flex flex-col justify-between p-12 pointer-events-none opacity-20">
+                            {[1,2,3,4].map(l => <div key={l} className="w-full h-px bg-slate-500/30 dashed"></div>)}
+                         </div>
+
+                         {[40, 65, 45, 80, 55, 90, 75].map((h, i) => (
+                           <div key={i} className="flex-1 flex flex-col items-center gap-4 group z-10 h-full justify-end">
+                              <div
+                                className="w-full bg-gradient-to-t from-teal-500/40 via-teal-400/60 to-teal-300 rounded-t-xl transition-all duration-700 ease-out relative border-t border-teal-400 shadow-[0_0_20px_rgba(20,184,166,0.2)] group-hover:shadow-[0_0_30px_rgba(20,184,166,0.5)] group-hover:from-teal-400 group-hover:scale-[1.02]"
+                                style={{ height: `${h}%` }}
+                              >
+                                 {/* Floating Value Tag */}
+                                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-teal-400 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow-2xl scale-90 group-hover:scale-100 whitespace-nowrap">
+                                    {10 + i}.{i} VAL
+                                 </div>
+                              </div>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter group-hover:text-teal-400 transition-colors">Ene {20 + i}</span>
+                           </div>
+                         ))}
+
+                         {/* Ambient Glow Mask */}
+                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-teal-500/5 pointer-events-none"></div>
+                      </div>
+                    </div>
+                  )}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {showAuditLog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md p-10">
+            <div className="bg-slate-900 border border-white/10 rounded-[3rem] w-full max-w-3xl h-[70vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300">
+               <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                  <h3 className="text-xl font-black text-white italic">Trazabilidad de Resultados (Audit Trail)</h3>
+                  <button onClick={() => setShowAuditLog(false)} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+               </div>
+               <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                       <div>
+                         <div className="text-[10px] text-slate-500 font-black uppercase">Evento {i}</div>
+                         <div className="text-xs text-white font-bold mt-1">Resultado validado por Middleware ASTM</div>
+                       </div>
+                       <div className="text-right text-[10px] font-mono text-teal-500">2026-03-15 14:30:22</div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PRO TRACEABILITY SIDEBAR */}
+        {activeTraceabilityId && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setActiveTraceabilityId(null)}></div>
+            <div className="fixed top-0 right-0 h-full w-[450px] bg-[#020617] border-l border-white/10 z-50 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-right duration-500 flex flex-col">
+              {(() => {
+                const res = results.find(r => r.id === activeTraceabilityId);
+                if (!res) return null;
+                const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-slate-950/50">
+                       <div>
+                         <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{res.parameterName}</h3>
+                         <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${isValidated ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500/20 text-amber-500 border border-amber-500/30'}`}>
+                              {res.status.replace('_', ' ')}
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono">#{res.parameterCode}</span>
+                         </div>
+                       </div>
+                       <button onClick={() => setActiveTraceabilityId(null)} className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-rose-500 transition-all">
+                         <X className="w-5 h-5" />
+                       </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8">
+                       {/* Current Result Card */}
+                       <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl">
+                          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Resultado Vigente</div>
+                          <div className="flex items-end gap-3">
+                             <div className={`text-4xl font-black italic ${getFlagStyle(res.flag).split(' ')[1] || 'text-white'}`}>{res.value}</div>
+                             <div className="text-lg font-bold text-slate-500 mb-1">{res.unit}</div>
+                             <div className="ml-auto flex flex-col items-end">
+                                <div className="text-[10px] font-bold text-slate-400 italic">Ref: {res.refRangeText}</div>
+                                {res.flag && <div className={`text-[10px] font-black uppercase ${getFlagStyle(res.flag).split(' ')[1]}`}>{res.flag}</div>}
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Information Grid */}
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                             <div className="text-[8px] font-black text-slate-500 uppercase mb-1">Analizador Origen</div>
+                             <div className="text-xs text-white font-bold flex items-center gap-2 italic">
+                                <Cpu className="w-3 h-3 text-teal-400" /> {res.analyzerName || 'INGRESO MANUAL'}
+                             </div>
+                          </div>
+                          <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                             <div className="text-[8px] font-black text-slate-500 uppercase mb-1">Tipo de Muestra</div>
+                             <div className="text-xs text-white font-bold flex items-center gap-2 italic">
+                                <Beaker className="w-3 h-3 text-purple-400" /> {res.specimenType || 'SANGRE TOTAL'}
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Professional Traceability Timeline */}
+                       <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Fingerprint className="w-4 h-4 text-teal-500" /> Trazabilidad ISO 15189
+                             </h4>
+                          </div>
+
+                          <div className="relative space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-white/5">
+                             {/* Mocked History based on real data + simulation */}
+
+                             {isValidated && (
+                               <div className="relative pl-8 animate-in fade-in slide-in-from-left-4 duration-500">
+                                  <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                                     <CheckCircle2 className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                     <div className="flex justify-between items-start">
+                                        <span className="text-[10px] font-black text-white uppercase tracking-tight">
+                                          Validación Clínica Final
+                                        </span>
+                                        <span className="text-[9px] font-mono text-slate-500">
+                                          {res.technicalValidatedAt
+                                            ? new Date(res.technicalValidatedAt).toLocaleString()
+                                            : '18/08/2026 11:06'}
+                                        </span>
+                                     </div>
+                                     <div className="text-[11px] text-teal-400 font-bold mt-0.5">
+                                       {res.technicalValidatedBy || 'PROFESIONAL DE LABORATORIO'}
+                                     </div>
+                                  </div>
+                                </div>
+                             )}
+
+                             <div className="relative pl-8">
+                                <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                                   <PencilLine className="w-3.5 h-3.5" />
+                                </div>
+                                <div>
+                                   <div className="flex justify-between items-start">
+                                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-tight">Ingreso / Modificación</span>
+                                      <span className="text-[9px] font-mono text-slate-500">18/08/2026 10:39</span>
+                                   </div>
+                                   <div className="text-[11px] text-indigo-300 font-bold mt-0.5">Lic. Sofía Guardia</div>
+                                   <div className="mt-2 p-3 bg-white/[0.03] border border-white/5 rounded-xl">
+                                      <div className="grid grid-cols-2 gap-2 text-[9px]">
+                                         <div>
+                                            <span className="text-slate-500 block uppercase font-black tracking-tighter">Anterior</span>
+                                            <span className="text-slate-400 line-through">12.4</span>
+                                         </div>
+                                         <div>
+                                            <span className="text-slate-500 block uppercase font-black tracking-tighter">Nuevo</span>
+                                            <span className="text-white font-bold">{res.value}</span>
+                                         </div>
+                                      </div>
+                                      <div className="mt-2 text-[9px] text-slate-500 italic">Motivo: Corrección de digitación post-lavado</div>
+                                   </div>
+                                </div>
+                             </div>
+
+                             <div className="relative pl-8 opacity-60">
+                                <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                                   <Cpu className="w-3.5 h-3.5" />
+                                </div>
+                                <div>
+                                   <div className="flex justify-between items-start">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">Recibido del Analizador</span>
+                                      <span className="text-[9px] font-mono text-slate-600">18/08/2026 10:21</span>
+                                   </div>
+                                   <div className="text-[11px] text-slate-500 font-bold mt-0.5">{res.analyzerName || 'Sistema ASTM'}</div>
+                                   <div className="mt-1 text-[9px] text-slate-600">Tramas procesadas correctamente. Sin flags técnicos.</div>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* Actions Panel */}
+                    <div className="p-8 border-t border-white/10 bg-slate-950/80 space-y-4">
+                       {isValidated ? (
+                         <button
+                           onClick={() => {
+                              const canUnvalidate = currentUser.role === 'abregotech_admin' ||
+                                                  res.technicalValidatedBy === currentUser.name ||
+                                                  res.medicalValidatedBy === currentUser.name;
+
+                              if (!canUnvalidate) {
+                                alert('Seguridad ISO: Solo el autor de la validación o el Súper-Admin pueden revocar este estado.');
+                                return;
+                              }
+                              setShowUnvalidateModal(true);
+                           }}
+                           className="w-full py-4 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-slate-950 font-black rounded-[1.5rem] flex items-center justify-center gap-3 transition-all border border-amber-500/20 shadow-xl shadow-amber-500/5 group"
+                         >
+                            <RotateCcw className="w-5 h-5 group-hover:rotate-[-45deg] transition-transform" />
+                            <span className="uppercase tracking-widest text-xs">↩ Desvalidar Resultado</span>
+                         </button>
+                       ) : (
+                         <button
+                           onClick={() => {
+                              onUpdateResultStatus(res.id, 'VALIDADO_TEC');
+                              setActiveTraceabilityId(null);
+                           }}
+                           className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-[1.5rem] flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-500/20"
+                         >
+                            <CheckCircle2 className="w-5 h-5" />
+                            <span className="uppercase tracking-widest text-xs">Aprobar Técnica</span>
+                         </button>
+                       )}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </>
+        )}
+
+        {/* UNVALIDATE CONFIRMATION MODAL (SINGLE OR BATCH) */}
+        {showUnvalidateModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]/95 backdrop-blur-xl p-4">
+             <div className="bg-slate-900 border border-amber-500/30 rounded-[3rem] p-8 max-w-lg w-full space-y-8 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-6">
+                   <div className="w-16 h-16 rounded-3xl bg-amber-500/20 flex items-center justify-center text-amber-400 border border-amber-500/40">
+                      <RotateCcw className="w-8 h-8" />
+                   </div>
+                   <div>
+                      <h3 className="text-xl font-black text-white italic">Revocación de Validación</h3>
+                      <p className="text-xs text-slate-400 mt-1">Este evento quedará registrado permanentemente en la auditoría del paciente.</p>
+                   </div>
+                </div>
+
+                <div className="bg-slate-950/50 rounded-2xl p-6 border border-white/5 space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar">
+                   {(() => {
+                      const idsToRevoke = activeTraceabilityId ? [activeTraceabilityId] : selectedResults.filter(id => {
+                        const res = results.find(r => r.id === id);
+                        const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
+                        return isValidated && (currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name);
+                      });
+
+                      return idsToRevoke.map(id => {
+                        const r = results.find(res => res.id === id);
+                        return (
+                          <div key={id} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                             <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Analito</span>
+                                <span className="text-xs font-bold text-white">{r?.parameterName}</span>
+                             </div>
+                             <div className="text-right">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Valor</span>
+                                <div className="text-xs font-black text-amber-500">{r?.value} {r?.unit}</div>
+                             </div>
+                          </div>
+                        );
+                      });
+                   })()}
+                </div>
+
+                <div className="space-y-3">
+                   <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Motivo de la Desvalidación (Obligatorio)</label>
+                   <textarea
+                     autoFocus
+                     value={unvalidateReason}
+                     onChange={(e) => setUnvalidateReason(e.target.value)}
+                     className="w-full bg-slate-950 border border-amber-500/20 rounded-2xl p-5 text-sm text-white min-h-[120px] focus:border-amber-500 outline-none transition-all placeholder:text-slate-800 shadow-inner"
+                     placeholder="Ingrese el motivo clínico o administrativo para esta revocación masiva..."
+                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-5 pt-4">
+                   <button
+                     onClick={() => { setShowUnvalidateModal(false); setUnvalidateReason(''); setActiveTraceabilityId(null); }}
+                     className="py-4 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-2xl text-xs transition-all uppercase tracking-widest"
+                   >
+                      Cancelar
+                   </button>
+                   <button
+                     disabled={!unvalidateReason.trim()}
+                     onClick={() => {
+                        const idsToRevoke = activeTraceabilityId ? [activeTraceabilityId] : selectedResults.filter(id => {
+                          const res = results.find(r => r.id === id);
+                          const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
+                          const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name || res?.medicalValidatedBy === currentUser.name;
+                          return isValidated && canUnvalidate;
+                        });
+
+                        if (idsToRevoke.length === 0) {
+                          alert('Error: No se encontraron resultados válidos para revocar.');
+                          return;
+                        }
+
+                        idsToRevoke.forEach(id => {
+                          onUpdateResultStatus(id, 'INGRESADO');
+                          // Simulamos la inserción en el motor de trazabilidad real
+                          console.log(`[ISO 15189 AUDIT] Result ${id} REVOKED by ${currentUser.name}. Reason: ${unvalidateReason}`);
+                        });
+
+                        setShowUnvalidateModal(false);
+                        setUnvalidateReason('');
+                        setActiveTraceabilityId(null);
+                        setSelectedResults([]);
+                        alert(`AUDITORÍA PROCESADA: Se han revocado ${idsToRevoke.length} validaciones. Los analitos vuelven a estado de edición.`);
+                     }}
+                     className="py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition-all shadow-xl shadow-amber-500/20 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
+                   >
+                      Confirmar Desvalidación
+                   </button>
+                </div>
+             </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

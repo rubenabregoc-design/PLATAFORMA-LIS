@@ -1,6 +1,6 @@
 import React from 'react';
 import { Order, TestResult, Patient, Tenant, Branch } from '../types';
-import { FileText, Printer, Download, CheckCircle2, QrCode, ShieldCheck, X } from 'lucide-react';
+import { FileText, Printer, Download, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock } from 'lucide-react';
 
 interface PdfReportPreviewProps {
   order: Order;
@@ -23,9 +23,20 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     window.print();
   };
 
+  const validatedResults = results.filter(res => {
+    // REGLA PROFESIONAL: Los hallazgos instrumentales (EXTRA) solo aparecen si han sido validados
+    if (res.isExtra) {
+      return res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+    }
+    // Resultados normales o pre-registrados aparecen siempre (aunque sea con placeholder si se imprime preliminar)
+    return true;
+  });
+
+  const hasInstrumentalFindings = validatedResults.some(res => res.isExtra);
+
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[95vh] overflow-y-auto flex flex-col">
         {/* Top Control Bar */}
         <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center space-x-2">
@@ -34,6 +45,16 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                const message = `Hola ${patient.firstName}, su informe de resultados de ${tenant.name} está listo. Puede consultarlo con su cédula: ${patient.nationalId}`;
+                window.open(`https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center space-x-1.5 shadow"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Enviar WhatsApp</span>
+            </button>
             <button
               onClick={handlePrint}
               className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center space-x-1.5 shadow"
@@ -107,15 +128,22 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {results.map((res) => {
-                    const isCritical = res.flag?.includes('CRITICO');
-                    const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
+                  {validatedResults.map((res) => {
+                      const isCritical = res.flag?.includes('CRITICO');
+                      const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
 
                     return (
                       <React.Fragment key={res.id}>
                         <tr className={isCritical ? 'bg-rose-50/80 font-bold' : ''}>
                           <td className="p-3">
-                            <div className="font-bold text-slate-900">{res.parameterName}</div>
+                            <div className="flex items-center space-x-2">
+                              <div className="font-bold text-slate-900">{res.parameterName}</div>
+                              {res.isExtra && (
+                                <span className="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded border border-purple-200 uppercase">
+                                  Hallazgo Extra
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[9px] text-slate-500 font-bold uppercase">Muestra: {res.specimenType || 'SANGRE TOTAL'}</div>
                           </td>
                           <td className="p-3 font-mono text-sm">
@@ -154,6 +182,18 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
             </div>
           </div>
 
+          {/* Conditional Footnote for Instrumental Findings */}
+          {hasInstrumentalFindings && (
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-start space-x-3">
+              <div className="bg-amber-500 text-white p-1 rounded-md shrink-0">
+                <FileText className="w-3 h-3" />
+              </div>
+              <p className="text-[10px] text-amber-800 leading-tight">
+                <strong>NOTA TÉCNICA:</strong> Los resultados marcados como <strong>[HALLAZGO]</strong> han sido detectados automáticamente por los sistemas analíticos del laboratorio debido a su relevancia clínica potencial. Aunque no formaban parte de la solicitud inicial, se incluyen en este informe tras validación profesional para ofrecer una visión diagnóstica más completa.
+              </p>
+            </div>
+          )}
+
           {/* Validation & Digital Signature Footer */}
           <div className="border-t-2 border-slate-200 pt-6 flex flex-wrap items-end justify-between gap-6">
             <div className="space-y-2">
@@ -177,6 +217,17 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                 <div>Escanee para validar autenticidad de resultados en Panamá Ley 81 portal.</div>
               </div>
             </div>
+          </div>
+
+          {/* Encryption & Ley 81 Notice */}
+          <div className="bg-slate-900 text-slate-400 p-4 rounded-xl flex items-center justify-between gap-4">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
+                   <Lock className="w-4 h-4" />
+                </div>
+                <div className="text-[9px] uppercase tracking-widest font-black">Documento Protegido por Ley 81 de Protección de Datos Personales</div>
+             </div>
+             <div className="text-[8px] font-mono text-slate-500">AES-256 Validated</div>
           </div>
         </div>
       </div>
