@@ -367,21 +367,21 @@ export default function App() {
   const pdfPatient = patients.find((p) => p.id === pdfOrder.patientId) || patients[0];
   const pdfResults = results.filter((r) => r.orderId === pdfOrder.id);
 
-  // If not authenticated, present the real Login Portal
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
   const allowedTabsForRole = ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
 
-  // Auto-redirect unauthorized tab to user's primary default tab
+  // Auto-redirect unauthorized tab to user's primary default tab (Must be placed before any conditional returns to obey React Rules of Hooks)
   useEffect(() => {
     if (isAuthenticated && !isTabAuthorized) {
       const defaultTab = allowedTabsForRole[0] || 'dashboard';
       setActiveTab(defaultTab);
     }
   }, [isAuthenticated, isTabAuthorized, currentRole]);
+
+  // If not authenticated, present the real Login Portal
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
