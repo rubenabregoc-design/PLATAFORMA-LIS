@@ -207,6 +207,9 @@ export default function App() {
 
   // Actions
   const handleLogin = (user: User, tenant: Tenant, branch: Branch) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_auth_active', 'true');
+    }
     setCurrentUser(user);
     setCurrentRole(user.role);
     setCurrentTenantId(tenant.id);
@@ -229,6 +232,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lis_auth_active');
+    }
     logout();
   };
 

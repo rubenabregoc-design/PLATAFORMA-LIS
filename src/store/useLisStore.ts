@@ -68,7 +68,7 @@ export const useLisStore = create<LisState>()(
       currentRole: 'owner',
       currentTenant: MOCK_TENANTS[0],
       currentBranch: MOCK_TENANTS[0].branches[0],
-      isAuthenticated: false,
+      isAuthenticated: typeof window !== 'undefined' ? localStorage.getItem('lis_auth_active') === 'true' : false,
 
       orders: MOCK_ORDERS,
       results: MOCK_RESULTS,
@@ -194,7 +194,12 @@ export const useLisStore = create<LisState>()(
         }
       },
 
-      logout: () => set({ isAuthenticated: false, currentUser: null }),
+      logout: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('lis_auth_active');
+        }
+        set({ isAuthenticated: false, currentUser: null });
+      },
 
       setSessionLock: (locked) => set({ isSessionLocked: locked }),
 
@@ -206,7 +211,13 @@ export const useLisStore = create<LisState>()(
       setCurrentRole: (role) => set({ currentRole: role }),
       setCurrentTenant: (tenant) => set({ currentTenant: tenant }),
       setCurrentBranch: (branch) => set({ currentBranch: branch }),
-      setIsAuthenticated: (auth) => set({ isAuthenticated: auth }),
+      setIsAuthenticated: (auth) => {
+        if (typeof window !== 'undefined') {
+          if (auth) localStorage.setItem('lis_auth_active', 'true');
+          else localStorage.removeItem('lis_auth_active');
+        }
+        set({ isAuthenticated: auth });
+      },
       setOrders: (orders) => set((state) => ({ orders: typeof orders === 'function' ? orders(state.orders) : orders })),
       setResults: (results) => set((state) => ({ results: typeof results === 'function' ? results(state.results) : results })),
       setPatients: (patients) => set((state) => ({ patients: typeof patients === 'function' ? patients(state.patients) : patients })),
