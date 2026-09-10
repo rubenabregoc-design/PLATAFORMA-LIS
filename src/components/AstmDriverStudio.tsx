@@ -112,7 +112,7 @@ pause`;
 
     // Generar y Descargar
     const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, \`AbregoTech_ACE_Daemon_\${os.toUpperCase()}.zip\`);
+    saveAs(content, `AbregoTech_ACE_Daemon_${os.toUpperCase()}.zip`);
     setIsOsSelectorOpen(false);
   };
 
