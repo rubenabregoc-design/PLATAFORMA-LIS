@@ -113,32 +113,32 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
-  // Grand Domain Categories Definition
+  // Grand Domain Categories Definition (Concise single-line labels)
   const DOMAIN_CATEGORIES = [
     {
       id: 'lis',
-      label: 'Laboratorio LIS',
+      label: 'Laboratorio',
       icon: Microscope,
       badge: '10 Módulos',
       tabs: ['validation', 'tm_workbench', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'phlebotomy', 'pathology', 'batch_reporting']
     },
     {
       id: 'his',
-      label: 'Suite HIS',
+      label: 'Hospital HIS',
       icon: Activity,
       badge: 'Hospital',
       tabs: ['patient_results', 'shifts', 'routing', 'fhir']
     },
     {
       id: 'bloodbank',
-      label: 'Banco de Sangre',
+      label: 'Banco Sangre',
       icon: Droplets,
       badge: 'Transfusional',
       tabs: ['bloodbank', 'label_studio']
     },
     {
       id: 'bi',
-      label: 'Gestión & BI',
+      label: 'Gestión',
       icon: BrainCircuit,
       badge: 'Gerencial',
       tabs: ['billing', 'inventory', 'executive', 'minsa', 'audit', 'cmms', 'eqa', 'whatsapp', 'accreditation', 'schema']
@@ -188,15 +188,15 @@ export const Header: React.FC<HeaderProps> = ({
               <div key={category.id} className="relative">
                 <button
                   onClick={() => setActiveCategoryMenu(isOpen ? null : category.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryActive
                       ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <CategoryIcon className={`w-3.5 h-3.5 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
-                  <span className="uppercase tracking-wider">{category.label}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <span className="uppercase tracking-wider whitespace-nowrap">{category.label}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Ultra-Sleek Glassmorphic Category Menu */}
