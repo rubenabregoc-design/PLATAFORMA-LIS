@@ -55,8 +55,21 @@ export const DATABASE_MODE: DatabaseMode = (import.meta.env.VITE_DATABASE_MODE a
 export const isLocalConfigured = Boolean(localUrl && !localUrl.includes('placeholder'));
 export const isCloudConfigured = Boolean(cloudUrl && !cloudUrl.includes('placeholder'));
 
-export const supabaseLocal = createClient<Database>(localUrl, localKey);
-export const supabaseCloud = createClient<Database>(cloudUrl, cloudKey);
+export const supabaseLocal = createClient<Database>(localUrl, localKey, {
+  auth: {
+    storageKey: 'sb-local-lis-auth-token',
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+export const supabaseCloud = createClient<Database>(cloudUrl, cloudKey, {
+  auth: {
+    storageKey: 'sb-cloud-lis-auth-token',
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
 
 export async function testDatabaseConnections(): Promise<DatabaseHealthStatus> {
   let local = false;
@@ -105,6 +118,13 @@ if (typeof globalThis.WebSocket === 'undefined' && typeof window === 'undefined'
  */
 export const supabase = createClient<Database>(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      storageKey: 'sb-main-lis-auth-token',
+      persistSession: true,
+      autoRefreshToken: true,
+    }
+  }
 );
 

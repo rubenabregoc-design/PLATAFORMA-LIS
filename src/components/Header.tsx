@@ -129,8 +129,8 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-black tracking-tighter text-lg sm:text-xl">LIS<span className="text-teal-400">CORE</span></span>
         </div>
 
-        {/* Complete & Rich Navigation Bar with Horizontal Scroll Support */}
-        <nav className="hidden lg:flex items-center space-x-1 flex-1 overflow-x-auto no-scrollbar py-1">
+        {/* Complete & Rich Navigation Bar with 3D Glassmorphism */}
+        <nav className="hidden lg:flex items-center space-x-1.5 flex-1 overflow-x-auto no-scrollbar py-1">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -140,11 +140,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-teal-500/15 text-teal-300 shadow-md border border-teal-500/30'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-gradient-to-b from-teal-500/25 via-teal-500/15 to-teal-950/40 text-teal-300 border border-teal-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_15px_rgba(20,184,166,0.2)]'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 hover:border-slate-700/60 border border-transparent'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-400' : ''}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]' : ''}`} />
                 <span className="uppercase tracking-wider">{getTabLabel(tab)}</span>
               </button>
             );
@@ -156,19 +156,19 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
                 className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   secondaryTabs.some(t => t.id === activeTab)
-                    ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-gradient-to-b from-teal-500/25 via-teal-500/15 to-teal-950/40 text-teal-300 border border-teal-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_15px_rgba(20,184,166,0.2)]'
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-teal-300 border border-teal-500/30 shadow-md'
                 }`}
               >
                 <MoreHorizontal className="w-3.5 h-3.5 text-teal-400" />
                 <span className="uppercase tracking-wider">Más Módulos ({secondaryTabs.length})</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-teal-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2 w-[440px] max-h-[420px] overflow-y-auto no-scrollbar bg-slate-950/95 backdrop-blur-3xl border border-teal-500/30 rounded-2xl p-3 shadow-2xl z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-0 mt-2.5 w-[480px] max-h-[440px] overflow-y-auto no-scrollbar bg-slate-950/95 backdrop-blur-3xl border border-teal-500/30 rounded-3xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.9)] ring-1 ring-teal-500/20 z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                     {secondaryTabs.map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
@@ -176,10 +176,10 @@ export const Header: React.FC<HeaderProps> = ({
                         <button
                           key={tab.id}
                           onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
-                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                          className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border ${
                             isActive
-                              ? 'bg-teal-500 text-slate-950 font-black shadow-md'
-                              : 'text-slate-300 hover:text-white hover:bg-white/10'
+                              ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black border-teal-300 shadow-md shadow-teal-500/20'
+                              : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-teal-500/40'
                           }`}
                         >
                           <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
