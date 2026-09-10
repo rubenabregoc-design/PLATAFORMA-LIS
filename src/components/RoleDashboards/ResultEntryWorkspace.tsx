@@ -316,59 +316,49 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
-           {/* High-Glow Vibrant Metric Cards */}
-           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-              <div className="p-4 bg-gradient-to-br from-teal-500/25 via-slate-900 to-teal-950/60 border-2 border-teal-400/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(20,184,166,0.25)]">
+           {/* Minimalist Ultra-Luxury Integrated Metrics Ribbon (Enterprise System Caro) */}
+           <div className="p-2 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-2xl flex items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)]">
+
+              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <div className="text-[10px] font-black text-teal-300 uppercase tracking-wider">Pendientes Validar</div>
-                    <div className="text-2xl font-black text-white mt-0.5">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-teal-300/60 font-medium">/ {patientResults.length}</span></div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Pendientes</span>
+                    <span className="text-lg font-black text-cyan-300">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-500">/ {patientResults.length}</span></span>
                  </div>
-                 <div className="w-11 h-11 rounded-xl bg-teal-400 text-slate-950 font-black flex items-center justify-center shadow-md">
-                    <Microscope className="w-6 h-6" />
+                 <div className="w-8 h-8 rounded-lg bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
+                    <Microscope className="w-4 h-4" />
                  </div>
               </div>
 
-              <div className="p-4 bg-gradient-to-br from-rose-500/25 via-slate-900 to-rose-950/60 border-2 border-rose-500/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(244,63,94,0.25)]">
+              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-rose-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <div className="text-[10px] font-black text-rose-300 uppercase tracking-wider flex items-center gap-1">
-                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400 animate-pulse" /> Alertas Críticas
-                    </div>
-                    <div className="text-2xl font-black text-rose-300 mt-0.5">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60 font-medium">Pánicos</span></div>
+                    <span className="text-[10px] font-bold text-rose-300 uppercase tracking-widest block">Alertas Pánico</span>
+                    <span className="text-lg font-black text-rose-400">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60">Críticos</span></span>
                  </div>
-                 <div className="w-11 h-11 rounded-xl bg-rose-500 text-white font-black flex items-center justify-center shadow-md animate-bounce">
-                    <AlertTriangle className="w-6 h-6" />
+                 <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                    <ShieldAlert className="w-4 h-4 animate-pulse" />
                  </div>
               </div>
 
-              <div className={`p-4 rounded-2xl flex items-center justify-between shadow-lg border-2 ${
-                currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE'
-                  ? 'bg-gradient-to-br from-amber-500/30 via-slate-900 to-rose-950/80 border-amber-400 shadow-[0_10px_25px_rgba(245,158,11,0.3)] animate-pulse'
-                  : 'bg-gradient-to-br from-indigo-500/20 via-slate-900 to-indigo-950/60 border-indigo-500/40 shadow-[0_10px_25px_rgba(99,102,241,0.2)]'
-              }`}>
+              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-amber-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <div className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                       <Zap className="w-3.5 h-3.5 text-amber-400" /> Prioridad Orden
-                    </div>
-                    <div className="text-xl font-black text-white mt-0.5">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA'}</div>
+                    <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block">Prioridad Orden</span>
+                    <span className="text-base font-black text-amber-300">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA'}</span>
                  </div>
-                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black ${
-                   currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE'
-                     ? 'bg-amber-400 text-slate-950 shadow-md animate-pulse'
-                     : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                 }`}>
-                    <Zap className="w-6 h-6 fill-current" />
+                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
+                    <Zap className="w-4 h-4" />
                  </div>
               </div>
 
-              <div className="p-4 bg-gradient-to-br from-cyan-500/25 via-slate-900 to-cyan-950/60 border-2 border-cyan-400/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(6,182,212,0.25)]">
+              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <div className="text-[10px] font-black text-cyan-300 uppercase tracking-wider">TAT Estimado</div>
-                    <div className="text-2xl font-black text-white mt-0.5">18 <span className="text-xs text-cyan-300/70 font-medium">min</span></div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">TAT Restante</span>
+                    <span className="text-lg font-black text-cyan-300">18 <span className="text-xs text-slate-400 font-medium">min</span></span>
                  </div>
-                 <div className="w-11 h-11 rounded-xl bg-cyan-400 text-slate-950 font-black flex items-center justify-center shadow-md">
-                    <Timer className="w-6 h-6" />
+                 <div className="w-8 h-8 rounded-lg bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
+                    <Timer className="w-4 h-4" />
                  </div>
               </div>
+
            </div>
 
            {/* 3D Glassmorphic Table Container */}
