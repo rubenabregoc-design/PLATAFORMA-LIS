@@ -113,12 +113,12 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
-  // Show 4 primary operational tabs directly + "Más Módulos" dropdown with scroll & grid for the rest
-  const mainTabs = visibleTabs.slice(0, 4);
-  const secondaryTabs = visibleTabs.slice(4);
+  // Show 3 high-priority tabs directly + "Más Módulos" dropdown containing all LIS, HIS, Banco de Sangre & BI modules
+  const mainTabs = visibleTabs.slice(0, 3);
+  const secondaryTabs = visibleTabs.slice(3);
 
   return (
-    <header className="bg-[#03091e]/85 backdrop-blur-3xl text-white border-b border-cyan-500/25 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+    <header className="bg-[#03091e]/90 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4 sm:gap-6">
 
         {/* Brand Logo */}
@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Complete & Rich Navigation Bar with 3D Glassmorphism */}
-        <nav className="hidden lg:flex items-center space-x-1.5 flex-1 overflow-x-auto no-scrollbar py-1">
+        <nav className="hidden lg:flex items-center space-x-2 flex-1 overflow-x-auto no-scrollbar py-1">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
                     : 'text-slate-300 hover:text-white hover:bg-slate-900/80 hover:border-slate-700/60 border border-transparent'
@@ -154,21 +154,21 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative shrink-0">
               <button
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
-                className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   secondaryTabs.some(t => t.id === activeTab)
                     ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
                     : 'bg-[#040c29]/90 hover:bg-[#07133f] text-cyan-300 border border-cyan-500/40 shadow-md'
                 }`}
               >
-                <MoreHorizontal className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="uppercase tracking-wider">Más Módulos ({secondaryTabs.length})</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
+                <MoreHorizontal className="w-4 h-4 text-cyan-400" />
+                <span className="uppercase tracking-wider">Módulos LIS / HIS / Banco de Sangre ({secondaryTabs.length})</span>
+                <ChevronDown className={`w-4 h-4 text-cyan-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2.5 w-[480px] max-h-[440px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border border-cyan-500/40 rounded-3xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-0 mt-2.5 w-[520px] max-h-[460px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 grid grid-cols-2 gap-2 animate-in fade-in zoom-in-95 duration-200">
                     {secondaryTabs.map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <button
                           key={tab.id}
                           onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
-                          className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border ${
+                          className={`flex items-center space-x-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
                             isActive
                               ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
                               : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
