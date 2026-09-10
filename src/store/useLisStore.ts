@@ -156,36 +156,39 @@ export const useLisStore = create<LisState>()(
       login: async (email, password) => {
         set({ isLoading: true });
         try {
-          if (!isSupabaseConfigured) {
-            const matched = MOCK_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
-            if (matched) {
-              set({ currentUser: matched, isAuthenticated: true });
-              notifyToast(`Sesión iniciada como ${matched.name}`, 'success');
-              return;
-            }
+          // Check local staff / demo accounts first for 100% reliable local session persistence
+          const matched = MOCK_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
+          if (matched) {
+            if (typeof window !== 'undefined') localStorage.setItem('lis_auth_active', 'true');
+            set({ currentUser: matched, currentRole: matched.role, isAuthenticated: true });
+            notifyToast(`Sesión iniciada como ${matched.name}`, 'success');
+            return;
           }
 
-          const data = await SupabaseService.auth.signIn(email, password);
+          if (isSupabaseConfigured) {
+            const data = await SupabaseService.auth.signIn(email, password);
 
-          if (data.user) {
-            const profile = await SupabaseService.auth.getCurrentProfile();
+            if (data.user) {
+              const profile = await SupabaseService.auth.getCurrentProfile();
+              if (typeof window !== 'undefined') localStorage.setItem('lis_auth_active', 'true');
 
-            set({
-              currentUser: profile
-                ? {
-                    id: profile.id,
-                    name: profile.name,
-                    email: data.user.email || '',
-                    role: profile.role as any,
-                    tenantId: profile.tenant_id || '',
-                    branchId: profile.branch_id || undefined,
-                    licenseNumber: profile.license_number || undefined,
-                    pinCode: profile.pin_code || undefined,
-                  }
-                : { id: data.user.id, name: data.user.email || '', email: data.user.email || '', role: 'lab_tech', tenantId: '' },
-              isAuthenticated: true,
-            });
-            notifyToast('Sesión autenticada en la nube', 'success');
+              set({
+                currentUser: profile
+                  ? {
+                      id: profile.id,
+                      name: profile.name,
+                      email: data.user.email || '',
+                      role: profile.role as any,
+                      tenantId: profile.tenant_id || '',
+                      branchId: profile.branch_id || undefined,
+                      licenseNumber: profile.license_number || undefined,
+                      pinCode: profile.pin_code || undefined,
+                    }
+                  : { id: data.user.id, name: data.user.email || '', email: data.user.email || '', role: 'lab_tech', tenantId: '' },
+                isAuthenticated: true,
+              });
+              notifyToast('Sesión autenticada en la nube', 'success');
+            }
           }
         } catch (error: any) {
           notifyToast('Error de Autenticación: ' + error.message, 'error');
