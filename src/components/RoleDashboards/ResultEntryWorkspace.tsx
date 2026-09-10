@@ -6,7 +6,8 @@ import {
   PencilLine, Cpu, Mic, Calculator, MessageSquare, TrendingUp,
   Smartphone, Trash2, RotateCcw, Beaker, CheckCircle2, Printer,
   Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
-  ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown
+  ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
+  Microscope, AlertTriangle
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
@@ -283,10 +284,59 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-           <div className="bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+           {/* Senior Operational Metrics Summary Dashboard Cards */}
+           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-teal-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+                 <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pendientes Validar</div>
+                    <div className="text-xl font-black text-teal-300 mt-0.5">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-500 font-medium">/ {patientResults.length}</span></div>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-400 flex items-center justify-center">
+                    <Microscope className="w-5 h-5" />
+                 </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-rose-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+                 <div>
+                    <div className="text-[10px] font-black text-rose-300 uppercase tracking-wider flex items-center gap-1">
+                       <ShieldAlert className="w-3 h-3 text-rose-400 animate-pulse" /> Alertas Críticas
+                    </div>
+                    <div className="text-xl font-black text-rose-400 mt-0.5">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60 font-medium">Pánicos</span></div>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center animate-pulse">
+                    <AlertTriangle className="w-5 h-5" />
+                 </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-amber-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+                 <div>
+                    <div className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                       <Zap className="w-3 h-3 text-amber-400" /> Prioridad STAT
+                    </div>
+                    <div className="text-xl font-black text-amber-300 mt-0.5">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? 'URGENTE' : 'RUTINA'}</div>
+                 </div>
+                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : 'bg-slate-800 text-slate-500'}`}>
+                    <Zap className="w-5 h-5" />
+                 </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+                 <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">TAT Promedio</div>
+                    <div className="text-xl font-black text-cyan-300 mt-0.5">18 <span className="text-xs text-slate-400 font-medium">min</span></div>
+                 </div>
+                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+                    <Timer className="w-5 h-5" />
+                 </div>
+              </div>
+           </div>
+
+           {/* 3D Glassmorphic Table Container */}
+           <div className="bg-slate-950/80 backdrop-blur-2xl border border-teal-500/30 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-teal-500/20">
               <table className="w-full text-left text-xs border-collapse">
-                 <thead className="bg-slate-950 text-slate-500 font-black uppercase text-[8px] tracking-widest border-b border-white/5 sticky top-0 z-20">
+                 <thead className="bg-slate-950/90 text-slate-400 font-black uppercase text-[9px] tracking-widest border-b border-teal-500/20 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
                       <th className="p-4 w-12 text-center">
                         <button
@@ -302,11 +352,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       </th>
-                      <th className="p-4">Analito</th>
-                      <th className="p-4 text-center">Resultado</th>
+                      <th className="p-4">Analito / Parámetro</th>
+                      <th className="p-4 text-center">Resultado Clínico</th>
                       <th className="p-4">Unidad</th>
-                      <th className="p-4">Rango</th>
-                      <th className="p-4 text-center">TAT</th>
+                      <th className="p-4">Valor Referencia</th>
+                      <th className="p-4 text-center">TAT / Origen</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-white/5">
