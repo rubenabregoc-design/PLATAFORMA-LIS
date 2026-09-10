@@ -316,49 +316,57 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
-           {/* Senior Operational Metrics Summary Dashboard Cards */}
-           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-teal-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+           {/* High-Glow Vibrant Metric Cards */}
+           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              <div className="p-4 bg-gradient-to-br from-teal-500/25 via-slate-900 to-teal-950/60 border-2 border-teal-400/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(20,184,166,0.25)]">
                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pendientes Validar</div>
-                    <div className="text-xl font-black text-teal-300 mt-0.5">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-500 font-medium">/ {patientResults.length}</span></div>
+                    <div className="text-[10px] font-black text-teal-300 uppercase tracking-wider">Pendientes Validar</div>
+                    <div className="text-2xl font-black text-white mt-0.5">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-teal-300/60 font-medium">/ {patientResults.length}</span></div>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-400 flex items-center justify-center">
-                    <Microscope className="w-5 h-5" />
+                 <div className="w-11 h-11 rounded-xl bg-teal-400 text-slate-950 font-black flex items-center justify-center shadow-md">
+                    <Microscope className="w-6 h-6" />
                  </div>
               </div>
 
-              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-rose-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+              <div className="p-4 bg-gradient-to-br from-rose-500/25 via-slate-900 to-rose-950/60 border-2 border-rose-500/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(244,63,94,0.25)]">
                  <div>
                     <div className="text-[10px] font-black text-rose-300 uppercase tracking-wider flex items-center gap-1">
-                       <ShieldAlert className="w-3 h-3 text-rose-400 animate-pulse" /> Alertas Críticas
+                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400 animate-pulse" /> Alertas Críticas
                     </div>
-                    <div className="text-xl font-black text-rose-400 mt-0.5">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60 font-medium">Pánicos</span></div>
+                    <div className="text-2xl font-black text-rose-300 mt-0.5">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60 font-medium">Pánicos</span></div>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center animate-pulse">
-                    <AlertTriangle className="w-5 h-5" />
+                 <div className="w-11 h-11 rounded-xl bg-rose-500 text-white font-black flex items-center justify-center shadow-md animate-bounce">
+                    <AlertTriangle className="w-6 h-6" />
                  </div>
               </div>
 
-              <div className="p-3.5 bg-slate-900/60 backdrop-blur-xl border border-amber-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+              <div className={`p-4 rounded-2xl flex items-center justify-between shadow-lg border-2 ${
+                currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE'
+                  ? 'bg-gradient-to-br from-amber-500/30 via-slate-900 to-rose-950/80 border-amber-400 shadow-[0_10px_25px_rgba(245,158,11,0.3)] animate-pulse'
+                  : 'bg-gradient-to-br from-indigo-500/20 via-slate-900 to-indigo-950/60 border-indigo-500/40 shadow-[0_10px_25px_rgba(99,102,241,0.2)]'
+              }`}>
                  <div>
                     <div className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                       <Zap className="w-3 h-3 text-amber-400" /> Prioridad STAT
+                       <Zap className="w-3.5 h-3.5 text-amber-400" /> Prioridad Orden
                     </div>
-                    <div className="text-xl font-black text-amber-300 mt-0.5">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? 'URGENTE' : 'RUTINA'}</div>
+                    <div className="text-xl font-black text-white mt-0.5">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA'}</div>
                  </div>
-                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : 'bg-slate-800 text-slate-500'}`}>
-                    <Zap className="w-5 h-5" />
+                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black ${
+                   currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE'
+                     ? 'bg-amber-400 text-slate-950 shadow-md animate-pulse'
+                     : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                 }`}>
+                    <Zap className="w-6 h-6 fill-current" />
                  </div>
               </div>
 
-              <div className="p-3.5 bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 rounded-2xl flex items-center justify-between shadow-lg">
+              <div className="p-4 bg-gradient-to-br from-cyan-500/25 via-slate-900 to-cyan-950/60 border-2 border-cyan-400/60 rounded-2xl flex items-center justify-between shadow-[0_10px_25px_rgba(6,182,212,0.25)]">
                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">TAT Promedio</div>
-                    <div className="text-xl font-black text-cyan-300 mt-0.5">18 <span className="text-xs text-slate-400 font-medium">min</span></div>
+                    <div className="text-[10px] font-black text-cyan-300 uppercase tracking-wider">TAT Estimado</div>
+                    <div className="text-2xl font-black text-white mt-0.5">18 <span className="text-xs text-cyan-300/70 font-medium">min</span></div>
                  </div>
-                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
-                    <Timer className="w-5 h-5" />
+                 <div className="w-11 h-11 rounded-xl bg-cyan-400 text-slate-950 font-black flex items-center justify-center shadow-md">
+                    <Timer className="w-6 h-6" />
                  </div>
               </div>
            </div>
@@ -394,23 +402,24 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       const { text, isLate } = getTimeAgoData(res.createdAt);
                       const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
                       const isNoteExpanded = expandingNotesId === res.id;
+                      const isHigh = res.flag === 'ALTO';
+                      const isCritical = res.flag?.includes('CRITICO');
 
-                      const toggleSelectAll = () => {
-    const allIds = patientResults.map(r => r.id);
-    if (selectedResults.length === allIds.length) {
-      setSelectedResults([]);
-    } else {
-      setSelectedResults(allIds);
-    }
-  };
-
-  return (
+                      return (
                         <React.Fragment key={res.id}>
                         <tr
                           onClick={() => setActiveTraceabilityId(res.id)}
-                          className={`group/row cursor-pointer transition-all border-l-2 ${
-                            selectedResults.includes(res.id) ? 'bg-teal-500/5 shadow-inner' : 'hover:bg-white/[0.02]'
-                          } ${res.flag?.includes('CRITICO') ? 'border-l-rose-500' : 'border-l-transparent'} ${isValidated ? 'bg-emerald-500/[0.03]' : ''}`}
+                          className={`group/row cursor-pointer transition-all border-l-4 ${
+                            isCritical
+                              ? 'bg-rose-500/20 border-l-rose-500 border-y border-rose-500/30 animate-pulse'
+                              : isHigh
+                              ? 'bg-amber-500/15 border-l-amber-400 border-y border-amber-500/30'
+                              : selectedResults.includes(res.id)
+                              ? 'bg-teal-500/10 border-l-teal-400 shadow-inner'
+                              : isValidated
+                              ? 'bg-emerald-500/[0.04] border-l-emerald-500/50'
+                              : 'border-l-transparent hover:bg-slate-900/60'
+                          }`}
                         >
                            <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button
@@ -700,8 +709,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
              </div>
 
              {/* Acción Principal Maestría */}
-             <div className="pl-6 pr-3">
+             <div className="pl-4 pr-3">
                 <button
+                  disabled={!selectedResults.some(id => {
+                    const res = results.find(r => r.id === id);
+                    return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
+                  })}
                   onClick={() => {
                     const toValidate = selectedResults.filter(id => {
                       const res = results.find(r => r.id === id);
@@ -712,32 +725,17 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
                     setSelectedResults([]);
                   }}
-                  className={`h-14 px-10 font-black rounded-full flex items-center gap-8 transition-all active:scale-95 group disabled:opacity-30 disabled:grayscale shadow-2xl ${
+                  className={`h-14 px-8 font-black rounded-2xl flex items-center gap-3 transition-all cursor-pointer shadow-xl text-xs uppercase tracking-widest ${
                     selectedResults.some(id => {
                       const res = results.find(r => r.id === id);
                       return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
                     })
-                    ? 'bg-[#10b981] text-slate-950 hover:bg-[#059669] hover:scale-[1.02] shadow-emerald-500/20'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+                    ? 'bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-400 text-slate-950 shadow-[0_10px_25px_rgba(20,184,166,0.35)] hover:brightness-110 hover:scale-105'
+                    : 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/50'
                   }`}
-                  disabled={!selectedResults.some(id => {
-                    const res = results.find(r => r.id === id);
-                    return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
-                  })}
                 >
-                  <div className="flex flex-col items-start leading-tight">
-                    <span className="text-[15px] tracking-tighter font-black uppercase">VALIDAR RESULTADOS</span>
-                  </div>
-                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    selectedResults.some(id => {
-                      const res = results.find(r => r.id === id);
-                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
-                    })
-                    ? 'border-slate-950/20 group-hover:border-slate-950/40'
-                    : 'border-slate-700'
-                  }`}>
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
+                  <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                  <span>VALIDAR RESULTADOS ({selectedResults.filter(id => results.find(r => r.id === id && r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED')).length})</span>
                 </button>
              </div>
           </div>
