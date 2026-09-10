@@ -3,6 +3,7 @@ import { Role, User, Tenant, Branch } from '../types';
 import { MOCK_TENANTS, MOCK_USERS, MOCK_PATIENTS } from '../data/mockData';
 import { useLisStore } from '../store/useLisStore';
 import { ROLE_LABELS } from './Header';
+import loginBg from '@/login-bg.png';
 import {
   ShieldCheck, Building2, Lock, CheckCircle2, Activity,
   Users, LogIn, Eye, EyeOff, AlertTriangle, Key, Sparkles, HelpCircle,
@@ -163,349 +164,253 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0b1329] text-slate-100 flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 relative overflow-y-auto font-sans">
-      {/* Soft Background Glow Effects */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-[140px] pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none"></div>
-
-      {/* Main Login Box */}
-      <div className="w-full max-w-lg bg-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-5 my-auto">
-        
-        {/* Header */}
-        <div className="text-center space-y-1 border-b border-slate-800/80 pb-4">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-400 to-emerald-400 p-0.5 shadow-lg shadow-teal-500/20 mb-1">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-              <Activity className="w-6 h-6 text-teal-400" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            AbregoTech LIS
-          </h1>
-          <p className="text-xs text-slate-400">
-            Portal de Acceso por Perfil Sanitario
-          </p>
+    <div
+      className="h-screen w-screen max-h-screen max-w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-2.5 sm:p-3.5 lg:p-4 relative overflow-hidden font-sans select-none bg-cover bg-no-repeat"
+      style={{ backgroundImage: `url(${loginBg})`, backgroundPosition: 'center 25%' }}
+    >
+      {/* TOP BAR */}
+      <div className="relative z-10 flex items-center justify-end w-full shrink-0">
+        {/* Right Language Selector */}
+        <div className="px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-200 text-xs font-bold flex items-center space-x-1.5 cursor-pointer hover:border-slate-500 backdrop-blur-md transition">
+          <span className="text-xs">🇵🇦</span>
+          <span>ES</span>
+          <span className="text-[9px] text-slate-400">▼</span>
         </div>
+      </div>
 
-        {/* Category Portal Selector (Laboratorio vs Médicos vs Súper Admin) */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-            <span>Tipo de Usuario / Portal Staff</span>
-            <span className="text-[10px] text-teal-400 font-mono">Seleccione su área</span>
-          </label>
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('lab')}
-              className={`py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                portalCategory === 'lab'
-                  ? 'bg-teal-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Microscope className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Laboratorio</span>
-            </button>
+      {/* MAIN CONTENT: Clean Background View + Right Login Card */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center my-auto w-full max-w-7xl mx-auto flex-1 py-1">
 
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('doctor')}
-              className={`py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                portalCategory === 'doctor'
-                  ? 'bg-indigo-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Stethoscope className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Médicos</span>
-            </button>
+        {/* LEFT COLUMN: Empty area revealing pristine background image artwork */}
+        <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 h-full" />
 
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('admin')}
-              className={`py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                portalCategory === 'admin'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-slate-950" />
-              <span className="truncate">Súper Admin</span>
-            </button>
-          </div>
-        </div>
+        {/* RIGHT COLUMN: Glassmorphic Translucent Login Box - Harmonized with Sky & Sunset Colors */}
+        <div className="lg:col-span-5 xl:col-span-5 flex justify-center lg:justify-end h-full items-center">
+          <div className="w-full max-w-[430px] max-h-[calc(100vh-4.5rem)] bg-slate-950/65 backdrop-blur-xl border border-cyan-400/30 rounded-3xl p-4 sm:p-5 lg:p-6 shadow-[0_30px_70px_rgba(0,0,0,0.85)] ring-1 ring-cyan-400/20 relative z-10 flex flex-col justify-between space-y-2.5 sm:space-y-3 overflow-y-auto no-scrollbar">
 
-        {/* Main Authentication Form */}
-        <form onSubmit={handleAuthenticate} className="space-y-4">
-          
-          {/* 1. Sede Selection */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span className="flex items-center space-x-1.5">
-                <Building2 className="w-3.5 h-3.5 text-teal-400" />
-                <span>1. Sede o Centro Clínico</span>
-              </span>
-            </label>
-            <select
-              value={selectedTenantId}
-              onChange={(e) => handleTenantSelect(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-teal-400 cursor-pointer"
-            >
-              {MOCK_TENANTS.map((t) => (
-                <option key={t.id} value={t.id} className="bg-slate-900 text-white">
-                  {t.name} ({t.branches[0]?.name || 'Central'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 2. User Filter & Selector */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
-                <Users className="w-3.5 h-3.5 text-emerald-400" />
-                <span>2. Usuario ({filteredUsers.length})</span>
-              </label>
+            {/* Card Header (Enlarged Typography) */}
+            <div className="text-center space-y-1 border-b border-cyan-500/20 pb-2">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Bienvenido
+              </h2>
+              <p className="text-xs text-slate-300 font-medium">
+                Inicia sesión para acceder a tu cuenta
+              </p>
             </div>
 
-            {/* Sub-Role Chips (Flex Wrap - No Horizontal Clipping) */}
-            {portalCategory === 'lab' && (
-              <div className="flex flex-wrap gap-1 py-0.5">
-                {LAB_ROLES.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setSelectedRoleFilter(r.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                      selectedRoleFilter === r.id
-                        ? 'bg-teal-500 text-slate-950 shadow'
-                        : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
-                    }`}
+            {/* Form Controls */}
+            <form onSubmit={handleAuthenticate} className="space-y-2.5">
+
+              {/* Sede */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Sede / Centro Clínico</span>
+                </label>
+                <select
+                  value={selectedTenantId}
+                  onChange={(e) => handleTenantSelect(e.target.value)}
+                  className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-3 py-2 text-xs text-slate-100 font-semibold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                >
+                  {MOCK_TENANTS.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                      {t.name} ({t.branches[0]?.name || 'Central'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Usuario */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Usuario ({filteredUsers.length})</span>
+                  </label>
+
+                  {portalCategory === 'lab' && (
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-[200px]">
+                      {LAB_ROLES.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setSelectedRoleFilter(r.id)}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition shrink-0 cursor-pointer ${
+                            selectedRoleFilter === r.id
+                              ? 'bg-cyan-400 text-slate-950 font-black'
+                              : 'bg-slate-950/80 text-slate-300 border border-slate-700'
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Filtrar..."
+                      className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl pl-7 pr-4 py-2 text-xs text-white font-medium placeholder-slate-400 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <select
+                    value={selectedUser?.id || ''}
+                    onChange={(e) => {
+                      const u = MOCK_USERS.find((usr) => usr.id === e.target.value);
+                      if (u) handleUserSelect(u);
+                    }}
+                    className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-2.5 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
                   >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre o idoneidad..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-2 text-slate-500 hover:text-slate-300 text-xs font-bold"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown User Selector */}
-            <select
-              value={selectedUser?.id || ''}
-              onChange={(e) => {
-                const u = MOCK_USERS.find((usr) => usr.id === e.target.value);
-                if (u) handleUserSelect(u);
-              }}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer"
-            >
-              {filteredUsers.length === 0 ? (
-                <option value="" disabled className="text-slate-500">
-                  Sin usuarios coincidentes
-                </option>
-              ) : (
-                filteredUsers.map((u) => (
-                  <option key={u.id} value={u.id} className="bg-slate-900 text-white">
-                    {u.name} — {ROLE_LABELS[u.role].title} {u.licenseNumber ? `(${u.licenseNumber})` : ''}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {/* Selected User Badge */}
-          {selectedUser && (
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-              <div>
-                <div className="font-bold text-white flex items-center space-x-1.5">
-                  <span>{selectedUser.name}</span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                </div>
-                <div className="text-[11px] text-teal-400 font-medium">
-                  {ROLE_LABELS[selectedUser.role].title} {selectedUser.licenseNumber && `• ${selectedUser.licenseNumber}`}
+                    {filteredUsers.map((u) => (
+                      <option key={u.id} value={u.id} className="bg-slate-900 text-white">
+                        {u.name} — {ROLE_LABELS[u.role].title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <span className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded font-mono">
-                {currentBranch.code}
-              </span>
-            </div>
-          )}
 
-          {/* 3. Password Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span className="flex items-center space-x-1.5">
-                <Lock className="w-3.5 h-3.5 text-teal-400" />
-                <span>3. Contraseña</span>
-              </span>
+              {/* Contraseña & PIN 2FA */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-cyan-300 flex items-center justify-between">
+                    <span className="flex items-center space-x-1">
+                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Contraseña</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasswordInput(selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456');
+                        setPinInput(selectedUser?.pinCode || '1234');
+                      }}
+                      className="text-[10px] text-cyan-300 hover:text-white font-bold flex items-center space-x-0.5 bg-cyan-500/20 px-1.5 py-0.2 rounded border border-cyan-400/30"
+                      title="Auto-completar credenciales demo"
+                    >
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>Auto</span>
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold"
+                      required
+                      disabled={isAuthenticating}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-cyan-300 flex items-center justify-between">
+                    <span className="flex items-center space-x-1">
+                      <Key className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>PIN 2FA</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {selectedUser?.twoFactorEnabled ? 'Req.' : 'Opc.'}
+                    </span>
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-3 py-2 text-xs text-white text-center font-mono font-bold tracking-widest focus:outline-none focus:border-emerald-400"
+                    required={selectedUser?.twoFactorEnabled}
+                    disabled={isAuthenticating}
+                  />
+                </div>
+              </div>
+
+              {/* Error Banner */}
+              {errorMessage && (
+                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Main Glowing Cyan Pill Button */}
               <button
-                type="button"
-                onClick={() => setShowDemoHelp(!showDemoHelp)}
-                className="text-[11px] text-teal-400 hover:underline flex items-center space-x-1"
-              >
-                <HelpCircle className="w-3 h-3" />
-                <span>{showDemoHelp ? 'Ocultar datos' : 'Ver datos prueba'}</span>
-              </button>
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Ingresa tu contraseña"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-teal-400 font-mono"
-                required
+                type="submit"
                 disabled={isAuthenticating}
-              />
+                className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-cyan-400 via-teal-400 to-cyan-400 hover:brightness-110 text-slate-950 font-black rounded-full text-xs sm:text-sm tracking-wide uppercase transition shadow-lg shadow-cyan-500/30 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-1"
+              >
+                {isAuthenticating ? (
+                  <span>Autenticando...</span>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 stroke-[3]" />
+                    <span>Iniciar sesión</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Quick Links Row (SaaS Demo + Patient Access) */}
+            <div className="pt-2 border-t border-cyan-500/20 flex items-center justify-between text-xs font-bold gap-1">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                onClick={() => {
+                  setDemoMode(true);
+                  const demoUser = MOCK_USERS.find(u => u.role === 'owner') || MOCK_USERS[0];
+                  onLogin(demoUser, MOCK_TENANTS[0], MOCK_TENANTS[0].branches[0]);
+                }}
+                className="text-indigo-300 hover:text-indigo-200 flex items-center space-x-1 cursor-pointer transition"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <Play className="w-3.5 h-3.5 fill-current text-indigo-400" />
+                <span>SaaS Demo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPatientLookupError(null);
+                  setIsPatientModalOpen(true);
+                }}
+                className="text-cyan-300 hover:text-cyan-200 flex items-center space-x-1 cursor-pointer transition"
+              >
+                <Search className="w-3.5 h-3.5 text-cyan-400" />
+                <span>¿Paciente? Ver Resultados</span>
               </button>
             </div>
-          </div>
 
-          {/* 4. PIN 2FA Input (Only if required/enabled) */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span className="flex items-center space-x-1.5">
-                <Key className="w-3.5 h-3.5 text-emerald-400" />
-                <span>PIN de Seguridad 2FA (4 dígitos)</span>
-              </span>
-              <span className="text-[10px] text-slate-500">
-                {selectedUser?.twoFactorEnabled ? 'Requerido' : 'Opcional'}
-              </span>
-            </label>
-            <input
-              type="password"
-              maxLength={4}
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-              placeholder="••••"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-emerald-400"
-              required={selectedUser?.twoFactorEnabled}
-              disabled={isAuthenticating}
-            />
-          </div>
-
-          {/* Demo Helper Box */}
-          {showDemoHelp && (
-            <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-xl text-[11px] text-teal-300 space-y-1.5">
-              <div className="font-bold flex items-center justify-between">
-                <span className="flex items-center space-x-1">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Credenciales sugeridas:</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPasswordInput(selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456');
-                    setPinInput(selectedUser?.pinCode || '1234');
-                  }}
-                  className="px-2 py-0.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 border border-teal-400/30 rounded text-[10px] font-bold cursor-pointer transition"
-                >
-                  ⚡ Auto-completar
-                </button>
-              </div>
-              <p>Contraseña: <strong className="text-white font-mono">{selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456'}</strong></p>
-              <p>PIN 2FA: <strong className="text-white font-mono">{selectedUser?.pinCode || '1234'}</strong></p>
-            </div>
-          )}
-
-          {/* Error Banner */}
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isAuthenticating}
-            className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50"
-          >
-            {isAuthenticating ? (
-              <span>Autenticando usuario...</span>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4" />
-                <span>Ingresar al Sistema LIS</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setDemoMode(true);
-              const demoUser = MOCK_USERS.find(u => u.role === 'owner') || MOCK_USERS[0];
-              onLogin(demoUser, MOCK_TENANTS[0], MOCK_TENANTS[0].branches[0]);
-            }}
-            className="w-full py-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-black rounded-xl text-[10px] uppercase tracking-[0.2em] transition flex items-center justify-center space-x-2 shadow-inner"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Exploración Rápida (SaaS Demo)</span>
-          </button>
-        </form>
-
-        {/* Patient Direct Access Banner */}
-        <div className="pt-2 border-t border-slate-800/80">
-          <div className="p-3.5 bg-slate-950/90 border border-teal-500/30 rounded-2xl flex items-center justify-between gap-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center shrink-0">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="font-bold text-xs text-white flex items-center space-x-1.5">
-                  <span>¿Eres Paciente?</span>
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[9px] font-mono">
-                    Acceso Libre
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400">Consulta y descarga tus resultados clínicos con Cédula y Orden.</p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPatientLookupError(null);
-                setIsPatientModalOpen(true);
-              }}
-              className="px-3 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-md shadow-teal-500/20 flex items-center space-x-1 cursor-pointer shrink-0"
-            >
-              <Search className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Ver Resultados</span>
-            </button>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="pt-2 text-center text-[11px] text-slate-500 flex items-center justify-center space-x-1.5 border-t border-slate-800/80">
-          <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-          <span>AbregoTech LIS • Acceso Cifrado Ley 81</span>
+      </div>
+
+      {/* BOTTOM FOOTER BAR (High contrast white text) */}
+      <div className="relative z-10 flex items-center justify-between w-full pt-1.5 shrink-0">
+        <div className="flex items-center space-x-2 bg-slate-950/70 border border-teal-500/30 px-3.5 py-1 rounded-full backdrop-blur-md shadow-md">
+          <ShieldCheck className="w-4 h-4 text-cyan-300 drop-shadow" />
+          <span className="text-xs font-bold text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+            Cumplimiento normativo | MINSA – CSS – Estándares internacionales
+          </span>
+        </div>
+
+        <div className="flex items-center space-x-1.5 bg-slate-950/70 border border-slate-700/80 px-3.5 py-1 rounded-full backdrop-blur-md shadow-md text-xs font-black text-white">
+          <span className="text-sm">🇵🇦</span>
+          <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">Panamá</span>
         </div>
       </div>
 

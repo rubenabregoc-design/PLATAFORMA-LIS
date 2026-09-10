@@ -1,0 +1,106 @@
+# ==============================================================================
+# AbregoTech LIS/HIS — Servidor Local de Base de Datos (100% On-Premises)
+# ==============================================================================
+# Uso:
+#   docker compose -f docker-compose.supabase-local.yml up -d
+#
+# Acceso:
+#   - Supabase Studio (Panel Gráfico): http://localhost:8000 (o http://192.168.1.X:8000)
+#   - PostgreSQL Directo: localhost:5432 (Usuario: postgres, Clave: postgres)
+#   - API REST: http://localhost:8000/rest/v1/
+#   - WebSockets Realtime: http://localhost:8000/realtime/v1/
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # 1. Base de Datos PostgreSQL 15 para Laboratorio Clínico
+  db:
+    image: supabase/postgres:15.1.1.78
+    container_name: abregotech-lis-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_abregotech_2026}
+      POSTGRES_DB: postgres
+    volumes:
+      - abregotech_postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 2. API PostgREST (Conector REST de alta velocidad)
+  rest:
+    image: postgrest/postgrest:v12.0.1
+    container_name: abregotech-lis-rest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD:-postgres_abregotech_2026}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+
+  # 3. WebSockets en Tiempo Real (Notificaciones de Analizadores en < 2 ms)
+  realtime:
+    image: supabase/realtime:v2.28.32
+    container_name: abregotech-lis-realtime
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres_abregotech_2026}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+
+  # 4. Almacenamiento Local de Archivos (PDFs con Firma Digital)
+  storage:
+    image: supabase/storage-api:v1.0.6
+    container_name: abregotech-lis-storage
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: ${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-key}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-service-key}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres_abregotech_2026}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+    volumes:
+      - abregotech_storage_data:/var/lib/storage
+
+  # 5. Kong API Gateway (Unificador de Puertos en el puerto 8000)
+  kong:
+    image: kong:2.8.1
+    container_name: abregotech-lis-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    volumes:
+      - ./supabase/.temp/kong.yml:/var/lib/kong/kong.yml:ro
+
+volumes:
+  abregotech_postgres_data:
+    name: abregotech_postgres_data
+  abregotech_storage_data:
+    name: abregotech_storage_data

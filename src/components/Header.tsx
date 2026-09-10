@@ -30,33 +30,33 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
 
 export const NAVIGATION_TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'batch_reporting', label: 'Batch Reporting', icon: Files },
-  { id: 'test_catalog', label: 'Catálogo LIS', icon: BookOpen },
-  { id: 'patient_results', label: 'Expedientes', icon: FileText },
   { id: 'validation', label: 'Resultados', icon: Microscope },
-  { id: 'tm_workbench', label: 'Estación TM', icon: Microscope },
-  { id: 'productivity', label: 'Productividad LIS', icon: BarChart3 },
-  { id: 'label_studio', label: 'Impresora Etiquetas', icon: Printer },
+  { id: 'tm_workbench', label: 'Estación TM', icon: Activity },
+  { id: 'patient_results', label: 'Expedientes', icon: FileText },
+  { id: 'billing', label: 'Facturación POS', icon: Receipt },
+  { id: 'inventory', label: 'Inventario', icon: Package },
+  { id: 'test_catalog', label: 'Catálogo LIS', icon: BookOpen },
+  { id: 'batch_reporting', label: 'Batch Reporting', icon: Files },
+  { id: 'productivity', label: 'Productividad', icon: BarChart3 },
+  { id: 'qc', label: 'Control Calidad', icon: SlidersHorizontal },
+  { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck },
+  { id: 'bloodbank', label: 'Banco Sangre', icon: Droplets },
+  { id: 'pathology', label: 'Patología', icon: Microscope },
+  { id: 'whatsapp', label: 'WhatsApp LIS', icon: MessageSquare },
+  { id: 'label_studio', label: 'Etiquetas', icon: Printer },
   { id: 'shifts', label: 'Turnos', icon: Calendar },
   { id: 'eqa', label: 'PEEC / EQA', icon: Target },
   { id: 'cmms', label: 'CMMS Equipos', icon: Wrench },
-  { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck },
-  { id: 'pathology', label: 'Patología', icon: Microscope },
-  { id: 'whatsapp', label: 'WhatsApp LIS', icon: MessageSquare },
-  { id: 'bloodbank', label: 'Banco Sangre', icon: Droplets },
-  { id: 'homologation', label: 'Analizadores', icon: SlidersHorizontal },
-  { id: 'billing', label: 'Facturación', icon: Receipt },
-  { id: 'inventory', label: 'Inventario', icon: Package },
-  { id: 'qc', label: 'Calidad', icon: Activity },
   { id: 'middleware', label: 'Middleware', icon: Sparkles },
-  { id: 'drivers', label: 'Drivers', icon: Cpu },
-  { id: 'delta', label: 'Alertas', icon: AlertTriangle },
-  { id: 'minsa', label: 'MINSA', icon: FileCheck2 },
-  { id: 'executive', label: 'Analítica', icon: BrainCircuit },
-  { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
-  { id: 'routing', label: 'Ruteo', icon: Truck },
-  { id: 'fhir', label: 'FHIR', icon: Globe },
-  { id: 'ha_dr', label: 'HA/Cluster', icon: Server },
+  { id: 'homologation', label: 'Analizadores', icon: SlidersHorizontal },
+  { id: 'drivers', label: 'Drivers ASTM', icon: Cpu },
+  { id: 'delta', label: 'Alertas Delta', icon: AlertTriangle },
+  { id: 'minsa', label: 'Reportes MINSA', icon: FileCheck2 },
+  { id: 'executive', label: 'Analítica BI', icon: BrainCircuit },
+  { id: 'audit', label: 'Auditoría Ley 81', icon: ShieldCheck },
+  { id: 'routing', label: 'Ruteo Sedes', icon: Truck },
+  { id: 'fhir', label: 'FHIR Interop', icon: Globe },
+  { id: 'ha_dr', label: 'HA / Cluster', icon: Server },
   { id: 'accreditation', label: 'ISO 15189', icon: Award },
   { id: 'schema', label: 'Base de Datos', icon: Database },
 ];
@@ -96,24 +96,24 @@ export const Header: React.FC<HeaderProps> = ({
 
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
-  // High-priority tabs to show directly
-  const mainTabs = visibleTabs.slice(0, 3);
-  const secondaryTabs = visibleTabs.slice(3);
+  // High-priority operational tabs to show directly (top 6-7 modules)
+  const mainTabs = visibleTabs.slice(0, 6);
+  const secondaryTabs = visibleTabs.slice(6);
 
   return (
-    <header className="bg-[#020617]/60 backdrop-blur-2xl text-white border-b border-white/5 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+    <header className="bg-[#020617]/70 backdrop-blur-2xl text-white border-b border-white/10 sticky top-0 z-40">
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4 sm:gap-6">
 
-        {/* Brand Logo - More minimal */}
-        <div className="flex items-center space-x-3 shrink-0">
-          <div className="w-10 h-10 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
-            <Activity className="w-6 h-6 text-slate-950 -rotate-3" />
+        {/* Brand Logo */}
+        <div className="flex items-center space-x-2.5 shrink-0">
+          <div className="w-9 h-9 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
+            <Activity className="w-5 h-5 text-slate-950 -rotate-3" />
           </div>
-          <span className="font-black tracking-tighter text-xl">LIS<span className="text-teal-400">CORE</span></span>
+          <span className="font-black tracking-tighter text-lg sm:text-xl">LIS<span className="text-teal-400">CORE</span></span>
         </div>
 
-        {/* Professional Navigation */}
-        <nav className="hidden lg:flex items-center space-x-1 flex-1">
+        {/* Complete & Rich Navigation Bar */}
+        <nav className="hidden lg:flex items-center space-x-1 flex-1 overflow-hidden">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -121,57 +121,55 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all duration-300 ${
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-white/5 text-teal-400 shadow-xl border border-white/5'
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    ? 'bg-teal-500/15 text-teal-300 shadow-md border border-teal-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
-                <span className="uppercase tracking-widest">{tab.label}</span>
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-400' : ''}`} />
+                <span className="uppercase tracking-wider">{tab.label}</span>
               </button>
             );
           })}
 
           {secondaryTabs.length > 0 && (
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
-                className={`flex items-center space-x-2.5 px-5 py-2.5 rounded-2xl text-[13px] font-black transition-all ${
+                className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   secondaryTabs.some(t => t.id === activeTab)
-                    ? 'bg-white/5 text-teal-400 border border-white/5'
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <MoreHorizontal className="w-4 h-4" />
-                <span className="uppercase tracking-widest">Módulos</span>
+                <MoreHorizontal className="w-3.5 h-3.5 text-teal-400" />
+                <span className="uppercase tracking-wider">Más Módulos ({secondaryTabs.length})</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-3 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="grid grid-cols-1 gap-1">
-                      {secondaryTabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                          <button
-                            key={tab.id}
-                            onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
-                              isActive
-                                ? 'bg-teal-500 text-slate-950'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span>{tab.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="absolute top-full left-0 mt-2 w-[440px] max-h-[420px] overflow-y-auto no-scrollbar bg-slate-950/95 backdrop-blur-3xl border border-teal-500/30 rounded-2xl p-3 shadow-2xl z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                    {secondaryTabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
+                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                            isActive
+                              ? 'bg-teal-500 text-slate-950 font-black shadow-md'
+                              : 'text-slate-300 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
+                          <span className="truncate">{tab.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}

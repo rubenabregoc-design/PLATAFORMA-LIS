@@ -1,0 +1,58 @@
+[
+  {
+    "id": "an-sysmex-01",
+    "name": "Sysmex XN-1000",
+    "port": 5100,
+    "protocol": "ASTM_E1381",
+    "category": "HEMATOLOGIA",
+    "ackDelayMs": 0
+  },
+  {
+    "id": "an-vitros-01",
+    "name": "Ortho Vitros 4600",
+    "port": 5101,
+    "protocol": "ASTM_E1381",
+    "category": "QUIMICA",
+    "ackDelayMs": 20
+  },
+  {
+    "id": "an-cobas-01",
+    "name": "Roche Cobas 6000",
+    "port": 5102,
+    "protocol": "HL7_V2",
+    "category": "QUIMICA",
+    "ackDelayMs": 10
+  },
+  {
+    "id": "an-alinity-01",
+    "name": "Abbott Alinity ci",
+    "port": 5103,
+    "protocol": "HL7_V2",
+    "category": "INMUNOLOGIA",
+    "ackDelayMs": 15
+  },
+  {
+    "id": "an-mindray-01",
+    "name": "Mindray BC-5390",
+    "port": 5104,
+    "protocol": "ASTM_E1381",
+    "category": "HEMATOLOGIA",
+    "ackDelayMs": 5
+  },
+  {
+    "id": "an-stago-01",
+    "name": "Stago STA Compact Max",
+    "port": 5105,
+    "protocol": "ASTM_E1381",
+    "category": "COAGULACION",
+    "ackDelayMs": 50
+  },
+  {
+    "id": "an-biorad-01",
+    "name": "Bio-Rad D-100",
+    "port": 5106,
+    "protocol": "ASTM_E1381",
+    "category": "ESPECIALES",
+    "ackDelayMs": 10
+  }
+]
