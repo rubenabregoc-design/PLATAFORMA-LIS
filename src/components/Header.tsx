@@ -237,40 +237,42 @@ export const Header: React.FC<HeaderProps> = ({
           })}
         </nav>
 
-        {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout (Compact & Shrink-0) */}
+        <div className="flex items-center space-x-2 shrink-0">
           
           {isDemoMode && (
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse mr-2">
+            <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
                <Sparkles className="w-3 h-3 text-amber-400" />
-               <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Demo Mode</span>
+               <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Demo</span>
             </div>
           )}
 
           {isSyncing && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-teal-500/10 border border-teal-500/20 rounded-full animate-pulse">
-               <RefreshCw className="w-3 h-3 text-teal-400 animate-spin" />
-               <span className="text-[10px] font-black text-teal-400 uppercase tracking-tighter">Syncing Cloud</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
+               <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
+               <span className="text-[9px] font-black text-cyan-400 uppercase tracking-tighter">Sync</span>
             </div>
           )}
 
-          {/* Offline Data Sync & Local Storage Persistence Indicator */}
+          {/* Offline Data Sync Indicator */}
           <OfflineSyncIndicator />
 
-          {/* Session Inactivity Countdown & Progress Bar (5 Min Auto-Lock) */}
+          {/* Session Inactivity Countdown */}
           <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
 
-          <div className="h-7 w-px bg-white/10 hidden sm:block"></div>
+          <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
 
-          <div className="hidden sm:flex items-center bg-slate-900/80 border border-slate-700/60 rounded-2xl px-3 py-1.5 gap-2.5 shadow-md">
-            <div className="flex flex-col text-right max-w-[140px]">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate" title={currentUser?.name}>{currentUser?.name}</span>
-              <div className="mt-1 flex items-center justify-end space-x-1">
-                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                 <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[110px]">{currentBranch?.name}</span>
-              </div>
+          {/* Compact User Profile Badge Pill */}
+          <div className="hidden sm:flex items-center bg-[#02071a]/90 border border-cyan-500/40 rounded-full px-3 py-1.5 gap-2 shadow-lg shrink-0">
+            <div className="flex flex-col text-right">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[120px]" title={currentUser?.name}>
+                {currentUser?.name || 'Lic. Sofía Guardia'}
+              </span>
+              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[110px]">
+                {currentBranch?.name || 'Sede Vía España'}
+              </span>
             </div>
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
               {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>

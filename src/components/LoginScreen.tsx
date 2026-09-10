@@ -182,7 +182,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       <button
                         key={r.id}
                         type="button"
-                        onClick={() => setSelectedRoleFilter(r.id)}
+                        onClick={() => {
+                          setSelectedRoleFilter(r.id);
+                          const matched = MOCK_USERS.filter((u) => {
+                            const matchesTenant = u.tenantId === selectedTenantId || u.role === 'abregotech_admin';
+                            const matchesRole = r.id === 'all' || u.role === r.id;
+                            return matchesTenant && matchesRole;
+                          });
+                          if (matched.length > 0) {
+                            setSelectedUser(matched[0]);
+                            setPasswordInput('123456');
+                            setPinInput(matched[0].pinCode || '1234');
+                            setErrorMessage(null);
+                          }
+                        }}
                         className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition shrink-0 cursor-pointer ${
                           selectedRoleFilter === r.id
                             ? 'bg-amber-400 text-slate-950 font-black shadow-md'
