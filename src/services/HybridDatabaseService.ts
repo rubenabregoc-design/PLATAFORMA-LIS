@@ -212,14 +212,18 @@ class HybridDatabaseService {
       const decrypted = await decryptPatientPII(data);
       return {
         id: decrypted.id,
+        tenantId: decrypted.tenant_id || 'lab-san-jose',
+        idType: (decrypted.id_type as any) || 'CEDULA',
         firstName: decrypted.firstName,
         lastName: decrypted.lastName,
         nationalId: decrypted.nationalId,
-        dob: decrypted.birth_date,
-        gender: decrypted.gender,
-        phone: decrypted.phone,
-        email: decrypted.email,
-        insuranceProvider: decrypted.insurance_provider
+        dob: decrypted.birth_date || '1990-01-01',
+        gender: decrypted.gender || 'M',
+        phone: decrypted.phone || '',
+        email: decrypted.email || '',
+        address: decrypted.address || '',
+        insuranceProvider: decrypted.insurance_provider,
+        dataConsentLey81: true
       };
     } catch (err) {
       console.error('[HybridDatabaseService] Error en búsqueda por Blind Index:', err);

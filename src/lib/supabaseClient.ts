@@ -35,6 +35,60 @@ export const isSupabaseConfigured = Boolean(
   !supabaseUrl.includes('placeholder')
 );
 
+// Hybrid Database Support (PostgreSQL / PostgREST Local + Cloud Supabase)
+export type DatabaseMode = 'LOCAL_FIRST' | 'CLOUD_ONLY' | 'HYBRID' | 'MOCK';
+
+export interface DatabaseHealthStatus {
+  local: boolean;
+  cloud: boolean;
+  latencyLocalMs: number | null;
+  latencyCloudMs: number | null;
+}
+
+const localUrl = import.meta.env.VITE_SUPABASE_LOCAL_URL || 'http://localhost:8000';
+const localKey = import.meta.env.VITE_SUPABASE_LOCAL_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-placeholder';
+
+const cloudUrl = import.meta.env.VITE_SUPABASE_CLOUD_URL || supabaseUrl || 'https://placeholder.supabase.co';
+const cloudKey = import.meta.env.VITE_SUPABASE_CLOUD_ANON_KEY || supabaseAnonKey || 'placeholder-key';
+
+export const DATABASE_MODE: DatabaseMode = (import.meta.env.VITE_DATABASE_MODE as DatabaseMode) || 'HYBRID';
+export const isLocalConfigured = Boolean(localUrl && !localUrl.includes('placeholder'));
+export const isCloudConfigured = Boolean(cloudUrl && !cloudUrl.includes('placeholder'));
+
+export const supabaseLocal = createClient<Database>(localUrl, localKey);
+export const supabaseCloud = createClient<Database>(cloudUrl, cloudKey);
+
+export async function testDatabaseConnections(): Promise<DatabaseHealthStatus> {
+  let local = false;
+  let cloud = false;
+  let latencyLocalMs: number | null = null;
+  let latencyCloudMs: number | null = null;
+
+  try {
+    const t0 = performance.now();
+    const res = await fetch(`${localUrl}`, { method: 'HEAD', signal: AbortSignal.timeout(2000) }).catch(() => null);
+    if (res && res.status < 500) {
+      local = true;
+      latencyLocalMs = Math.round(performance.now() - t0);
+    }
+  } catch {
+    local = false;
+  }
+
+  try {
+    const t0 = performance.now();
+    const { error } = await supabaseCloud.from('tenants').select('id').limit(1).abortSignal(AbortSignal.timeout(3000));
+    if (!error) {
+      cloud = true;
+      latencyCloudMs = Math.round(performance.now() - t0);
+    }
+  } catch {
+    cloud = false;
+  }
+
+  return { local, cloud, latencyLocalMs, latencyCloudMs };
+}
+
 // Polyfill global WebSocket for Node.js test environments where native WebSocket is absent
 if (typeof globalThis.WebSocket === 'undefined' && typeof window === 'undefined') {
   (globalThis as any).WebSocket = class DummyWebSocket {
@@ -53,3 +107,4 @@ export const supabase = createClient<Database>(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key'
 );
+

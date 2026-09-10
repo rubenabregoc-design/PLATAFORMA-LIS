@@ -190,8 +190,11 @@ export interface TestResult {
   technicalValidatedAt?: string;
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
-  /** DB-aligned status (lifecycle enforced by trigger + license check) */
-  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO';
+  /** Lifecycle status: UI and DB aligned */
+  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DUDOSA';
+  isExtra?: boolean;
+  parameterCode?: string;
+  testCode?: string;
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
   version: number;
@@ -459,6 +462,113 @@ export interface PatientImmediateNotificationRecord {
   recipientName?: string;
   recipientContact?: string;
   outcome?: string;
+  notes?: string;
+}
+
+// ---------------------------------------------------------------------------
+// HIS / HOSPITAL MANAGEMENT TYPES (Panama CSS / MINSA / ISO 15189)
+// ---------------------------------------------------------------------------
+
+export type BedStatus = 'DISPONIBLE' | 'OCUPADA' | 'RESERVADA' | 'EN_LIMPIEZA' | 'MANTENIMIENTO';
+
+export interface HospitalBed {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  ward: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD';
+  roomNumber: string;
+  bedNumber: string;
+  status: BedStatus;
+  patientId?: string;
+  admissionId?: string;
+  currentPatientName?: string;
+  currentPatientCedula?: string;
+  lastSanitizedAt?: string;
+}
+
+export type TriagePriority = 
+  | 'NIVEL_1_ROJO'     // Reanimación inmediata
+  | 'NIVEL_2_NARANJA'  // Emergencia (10-15 min)
+  | 'NIVEL_3_AMARILLO' // Urgencia (30-60 min)
+  | 'NIVEL_4_VERDE'    // Menor urgencia (120 min)
+  | 'NIVEL_5_AZUL';    // No urgente (180-240 min)
+
+export interface VitalSigns {
+  systolic: number;
+  diastolic: number;
+  heartRate: number;
+  respiratoryRate: number;
+  temperature: number;
+  spo2: number;
+  glasgow?: number;
+  glucose?: number;
+}
+
+export interface TriageRecord {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  patientId: string;
+  patientName: string;
+  patientCedula: string;
+  triageTime: string;
+  chiefComplaint: string;
+  allergies?: string;
+  priority: TriagePriority;
+  vitalSigns: VitalSigns;
+  evaluatedBy: string;
+  status: 'EVALUADO' | 'EN_ESPERA' | 'ASIGNADO_CAMA' | 'ATENDIDO' | 'ALTA';
+  assignedBedId?: string;
+}
+
+export interface HospitalAdmission {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  patientId: string;
+  patientName: string;
+  patientCedula: string;
+  bedId: string;
+  bedLabel: string;
+  admittedAt: string;
+  dischargedAt?: string;
+  admittingDiagnosis: string;
+  admittingDoctor: string;
+  status: 'ACTIVA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';
+}
+
+export interface SoapNote {
+  id: string;
+  admissionId: string;
+  patientId: string;
+  authorName: string;
+  authorRole: string;
+  createdAt: string;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
+export interface MedicationOrder {
+  id: string;
+  admissionId: string;
+  patientId: string;
+  medicationName: string;
+  dose: string;
+  route: 'ORAL' | 'IV' | 'IM' | 'SC' | 'INHALATORIA' | 'TOPICA';
+  frequency: string;
+  prescribedBy: string;
+  prescribedAt: string;
+  status: 'ACTIVA' | 'SUSPENDIDA' | 'COMPLETADA';
+}
+
+export interface KardexAdministrationRecord {
+  id: string;
+  orderId: string;
+  administeredAt: string;
+  administeredBy: string;
+  status: 'ADMINISTRADO' | 'OMITIDO' | 'RECHAZADO';
   notes?: string;
 }
 

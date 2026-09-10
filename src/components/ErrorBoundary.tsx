@@ -15,13 +15,9 @@ interface State {
  * Prevents the entire LIS from crashing due to a single component failure.
  * Essential for High Availability clinical systems.
  */
-export class GlobalErrorBoundary extends (Component as any) {
-  public state: State;
-  public props: Props;
-
+export class GlobalErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.props = props;
     this.state = {
       hasError: false,
       error: null

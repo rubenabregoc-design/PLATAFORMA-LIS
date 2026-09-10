@@ -424,7 +424,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
                 />
                 <YAxis
                   stroke="#64748b"
-                  tick={{ fontSize: 11, fill: '#94a3b8', fontMono: true }}
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'monospace' }}
                   domain={['auto', 'auto']}
                 />
                 <Tooltip
