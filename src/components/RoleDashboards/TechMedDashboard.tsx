@@ -6,6 +6,9 @@ interface TechMedDashboardProps {
   results: TestResult[];
   orders: Order[];
   analyzers: Analyzer[];
+  patients?: import('../../types').Patient[];
+  onValidateTechnical?: (resultId: string) => void;
+  onValidateTechnicalBulk?: (resultIds: string[]) => void;
 }
 
 export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({ results, orders, analyzers }) => {

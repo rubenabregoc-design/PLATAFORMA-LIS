@@ -110,7 +110,11 @@ export const EmergencyTriageModule: React.FC = () => {
       admittingDoctor,
       doctorLicense,
       admissionDiagnosis,
-      selectedTriageForAdmission.allergies
+      Array.isArray(selectedTriageForAdmission.allergies)
+        ? selectedTriageForAdmission.allergies
+        : selectedTriageForAdmission.allergies
+          ? [selectedTriageForAdmission.allergies]
+          : []
     );
 
     alert(`Paciente ${selectedTriageForAdmission.patientName} ingresado a la cama ${beds.find((b) => b.id === targetBedId)?.bedNumber}.`);

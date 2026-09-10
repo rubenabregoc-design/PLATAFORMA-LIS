@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { useHisStore } from '../../store/useHisStore';
 import { useLisStore } from '../../store/useLisStore';
-import { HospitalWard, BedStatus, HospitalBed } from '../../types';
+import { BedStatus, HospitalBed } from '../../types';
+type HospitalWard = HospitalBed['ward'];
 
 interface BedCensusProps {
   onNavigateToEhr?: (admissionId: string) => void;

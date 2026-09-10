@@ -140,6 +140,7 @@ export interface Order {
   totalAmount: number;
   paymentStatus: 'PAGADO' | 'PENDIENTE' | 'ASEGURADORA';
   insuranceName?: string;
+  serviceOrigin?: string; // e.g. "URGENCIAS - Cama 01" (desde HIS)
   specimens: Specimen[];
   testIds: string[];
   expandedTestIds?: string[];
@@ -497,16 +498,19 @@ export type TriagePriority =
   | 'NIVEL_5_AZUL';    // No urgente (180-240 min)
 
 export interface VitalSigns {
-  systolic: number;
-  systolicBp?: number; // Alias for compatibility
-  diastolic: number;
+  systolic?: number;
+  systolicBp?: number;         // Alias for compatibility
+  diastolic?: number;
   diastolicBp?: number;
   heartRate: number;
   respiratoryRate: number;
   temperature: number;
-  spo2: number;
+  spo2?: number;               // SpO2 (field from some components)
+  oxygenSaturation?: number;  // Alias used by EmergencyTriage/mock data
   glasgow?: number;
+  glasgowScale?: number;       // Alias used by EmergencyTriage/mock data
   glucose?: number;
+  capillaryGlucose?: number;  // Alias used by EmergencyTriage/mock data
 }
 
 export interface TriageRecord {
@@ -515,13 +519,16 @@ export interface TriageRecord {
   branchId: string;
   patientId: string;
   patientName: string;
-  patientCedula: string;
-  triageTime: string;
+  patientCedula?: string;       // Cédula (campo original)
+  patientNationalId?: string;  // Alias usado por EmergencyTriage y mock data
+  triageTime?: string;          // Campo opcional (algunos flujos no lo usan)
   chiefComplaint: string;
   allergies?: string | string[];
   priority: TriagePriority;
   vitalSigns: VitalSigns;
-  evaluatedBy: string;
+  evaluatedBy?: string;         // Campo original
+  assessedBy?: string;          // Alias usado por EmergencyTriage
+  assessedAt?: string;          // Fecha/hora de evaluación
   status: 'EVALUADO' | 'EN_ESPERA' | 'ASIGNADO_CAMA' | 'ATENDIDO' | 'ALTA' | 'INGRESADO';
   assignedBedId?: string;
 }
@@ -537,12 +544,16 @@ export interface HospitalAdmission {
   bedId: string;
   bedLabel?: string;
   ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
-  admittedAt: string;
+  admittedAt?: string;                  // Timestamp de ingreso (campo original)
+  admissionDate?: string;               // Alias usado por mock data y store
   dischargedAt?: string;
   dischargeDate?: string;
-  admittingDiagnosis: string;
-  admittingDoctor: string;
-  admittingDoctorName?: string; // Alias
+  admittingDiagnosis?: string;           // Diagnóstico al ingreso (campo original)
+  admittingDoctor?: string;             // Nombre del médico (campo original)
+  admittingDoctorName?: string;         // Alias usado por componentes
+  admittingDoctorLicense?: string;      // Número de idoneidad del médico
+  primaryDiagnosisIcd10?: string;       // Código diagnóstico ICD-10
+  allergies?: string[];                  // Alergias conocidas del paciente
   status: 'ACTIVA' | 'ALTA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';
 }
 
@@ -551,25 +562,33 @@ export interface SoapNote {
   admissionId: string;
   patientId: string;
   doctorId?: string;
-  authorName: string;
-  authorRole: string;
-  createdAt: string;
+  authorName?: string;          // Nombre del autor (campo original)
+  authorRole?: string;          // Rol del autor
+  doctorName?: string;          // Alias usado por componentes y mock data
+  doctorLicense?: string;       // Número de idoneidad del médico
+  createdAt?: string;           // Fecha de creación (campo original)
+  timestamp?: string;           // Alias usado por componentes
   subjective: string;
   objective: string;
   assessment: string;
   plan: string;
+  vitalSigns?: VitalSigns;      // Signos vitales registrados en la nota (usado por mock data)
 }
 
 export interface MedicationOrder {
   id: string;
   admissionId: string;
   patientId: string;
-  medicationName: string;
+  medicationName?: string;       // Nombre del medicamento (campo original)
+  drugName?: string;             // Alias usado por componentes y mock data
   dose: string;
   route: 'ORAL' | 'IV' | 'IM' | 'SC' | 'INHALATORIA' | 'TOPICA' | 'SUBCUTANEA' | 'INTRAVENOSA';
   frequency: string;
-  prescribedBy: string;
-  prescribedAt: string;
+  prescribedBy?: string;        // Campo original
+  orderedBy?: string;           // Alias usado por componentes y mock data
+  prescribedAt?: string;        // Timestamp de prescripción (campo original)
+  startDate?: string;           // Alias usado por mock data
+  notes?: string;               // Notas adicionales
   status: 'ACTIVA' | 'SUSPENDIDA' | 'COMPLETADA';
 }
 
@@ -583,7 +602,7 @@ export interface KardexAdministrationRecord {
   administeredAt?: string;
   administeredTime?: string;
   administeredBy?: string;
-  status: 'ADMINISTRADO' | 'ADMINISTRADA' | 'OMITIDO' | 'RECHAZADO' | 'PROGRAMADA';
+  status: 'ADMINISTRADO' | 'ADMINISTRADA' | 'OMITIDO' | 'OMITIDA' | 'RECHAZADO' | 'PROGRAMADA';
   notes?: string;
 }
 

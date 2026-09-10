@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, AlertTriangle, ChevronRight, BookOpen, ExternalLink, Activity, Terminal, ShieldAlert, Cpu, Wrench, FileCode, Zap } from 'lucide-react';
+import { Search, AlertTriangle, ChevronRight, BookOpen, ExternalLink, Activity, Terminal, ShieldAlert, Cpu, Wrench, FileCode, Zap, XCircle } from 'lucide-react';
 
 interface ErrorEntry {
     code: string;

@@ -473,7 +473,15 @@ export default function App() {
               <ResultEntryWorkspace
                 order={orders.find((o) => o.id === activeOrderId) || orders[0]}
                 patient={patients.find((p) => p.id === (orders.find((o) => o.id === activeOrderId) || orders[0])?.patientId) || patients[0]}
+                results={results.filter((r) => r.orderId === (activeOrderId || orders[0]?.id))}
+                analyzers={MOCK_ANALYZERS}
+                currentUser={currentUser}
+                onUpdateResultValue={handleUpdateResultValue}
+                onUpdateInterpretation={handleUpdateInterpretation}
+                onUpdateResultStatus={(resultId, status) => setResults((prev) => prev.map((r) => r.id === resultId ? { ...r, status } : r))}
                 onOpenPdf={setPreviewOrderId}
+                allOrders={orders}
+                allPatients={patients}
               />
             )}
 
@@ -498,7 +506,7 @@ export default function App() {
             {activeTab === 'homologation' && <AnalyzerHomologation currentUser={currentUser} currentRole={currentRole} analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} mappings={analyzerMappings} onAddMapping={handleAddAnalyzerMapping} onUpdateMapping={handleUpdateAnalyzerMapping} onDeleteMapping={handleDeleteAnalyzerMapping} />}
             {activeTab === 'middleware' && <MiddlewareSimulator analyzers={MOCK_ANALYZERS} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
             {activeTab === 'qc' && <WestgardQC controls={MOCK_WESTGARD_QC} />}
-            {activeTab === 'drivers' && <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} />}
+            {activeTab === 'drivers' && <AstmDriverStudio analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} logs={middlewareLogs} />}
             {activeTab === 'billing' && <BillingPOS orders={orders} patients={patients} testCatalog={MOCK_TEST_CATALOG} tenant={currentTenant} branch={currentBranch} onOrderPaid={handleOrderPaid} />}
             {activeTab === 'delta' && <DeltaPanicAlerts orders={orders} results={results} patients={patients} />}
             {activeTab === 'minsa' && <MinsaEpidemiology orders={orders} results={results} patients={patients} />}

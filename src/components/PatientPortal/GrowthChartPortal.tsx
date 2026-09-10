@@ -99,7 +99,7 @@ const GrowthChartPortal: React.FC<GrowthChartPortalProps> = ({ patient, onClose 
 
                     {/* Patient Position */}
                     {patientValue && (
-                       <ReferenceDot x={ageMonths} y={patientValue} r={6} fill="#0f172a" stroke="#fff" strokeWidth={2} isFront={true} label={{ position: 'top', value: 'Hoy', fill: '#0f172a', fontSize: 10, fontWeight: 'black' }} />
+                       <ReferenceDot x={ageMonths} y={patientValue} r={6} fill="#0f172a" stroke="#fff" strokeWidth={2} label={{ position: 'top', value: 'Hoy', fill: '#0f172a', fontSize: 10, fontWeight: 'black' }} />
                     )}
                     <Legend verticalAlign="top" height={36}/>
                  </LineChart>

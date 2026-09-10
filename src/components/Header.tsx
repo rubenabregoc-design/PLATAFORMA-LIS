@@ -61,15 +61,23 @@ export const NAVIGATION_TABS = [
   { id: 'schema', label: 'Base de Datos', icon: Database },
 ];
 
+const ALL_MODULE_TABS = [
+  'dashboard', 'validation', 'tm_workbench', 'patient_results', 'billing', 'inventory',
+  'test_catalog', 'batch_reporting', 'productivity', 'qc', 'phlebotomy', 'bloodbank',
+  'pathology', 'whatsapp', 'label_studio', 'shifts', 'eqa', 'cmms', 'middleware',
+  'homologation', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing',
+  'fhir', 'ha_dr', 'accreditation', 'schema'
+];
+
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
-  owner: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'executive', 'billing', 'inventory', 'schema', 'routing', 'audit', 'ha_dr'],
-  lab_chief: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'qc', 'middleware', 'delta', 'minsa', 'accreditation', 'audit'],
-  tech_med: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'middleware', 'drivers', 'qc', 'delta', 'inventory'],
-  lab_tech: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'phlebotomy', 'inventory'],
-  receptionist: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'productivity', 'label_studio', 'shifts', 'phlebotomy', 'whatsapp', 'billing', 'inventory'],
-  ext_doctor: ['dashboard', 'validation', 'patient_results'],
-  patient: ['dashboard'],
-  abregotech_admin: ['dashboard', 'validation', 'batch_reporting', 'test_catalog', 'patient_results', 'tm_workbench', 'productivity', 'label_studio', 'shifts', 'eqa', 'cmms', 'phlebotomy', 'pathology', 'whatsapp', 'bloodbank', 'homologation', 'billing', 'inventory', 'qc', 'middleware', 'drivers', 'delta', 'minsa', 'executive', 'audit', 'routing', 'fhir', 'ha_dr', 'accreditation', 'schema']
+  owner: ALL_MODULE_TABS,
+  lab_chief: ALL_MODULE_TABS,
+  tech_med: ALL_MODULE_TABS,
+  lab_tech: ALL_MODULE_TABS,
+  receptionist: ALL_MODULE_TABS,
+  ext_doctor: ALL_MODULE_TABS,
+  patient: ALL_MODULE_TABS,
+  abregotech_admin: ALL_MODULE_TABS
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -96,9 +104,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
-  // High-priority operational tabs to show directly (top 6-7 modules)
-  const mainTabs = visibleTabs.slice(0, 6);
-  const secondaryTabs = visibleTabs.slice(6);
+  const getTabLabel = (tab: { id: string; label: string }) => {
+    if (tab.id === 'patient_results') {
+      if (currentRole === 'receptionist') return 'Órdenes del día';
+      if (currentRole === 'lab_tech') return 'Mis muestras';
+      if (currentRole === 'tech_med' || currentRole === 'lab_chief') return 'Resultados de Pacientes';
+    }
+    return tab.label;
+  };
+
+  // Show 4 primary operational tabs directly + "Más Módulos" dropdown with scroll & grid for the rest
+  const mainTabs = visibleTabs.slice(0, 4);
+  const secondaryTabs = visibleTabs.slice(4);
 
   return (
     <header className="bg-[#020617]/70 backdrop-blur-2xl text-white border-b border-white/10 sticky top-0 z-40">
@@ -112,8 +129,8 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-black tracking-tighter text-lg sm:text-xl">LIS<span className="text-teal-400">CORE</span></span>
         </div>
 
-        {/* Complete & Rich Navigation Bar */}
-        <nav className="hidden lg:flex items-center space-x-1 flex-1 overflow-hidden">
+        {/* Complete & Rich Navigation Bar with Horizontal Scroll Support */}
+        <nav className="hidden lg:flex items-center space-x-1 flex-1 overflow-x-auto no-scrollbar py-1">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -128,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-400' : ''}`} />
-                <span className="uppercase tracking-wider">{tab.label}</span>
+                <span className="uppercase tracking-wider">{getTabLabel(tab)}</span>
               </button>
             );
           })}
@@ -166,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }`}
                         >
                           <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
-                          <span className="truncate">{tab.label}</span>
+                          <span className="truncate">{getTabLabel(tab)}</span>
                         </button>
                       );
                     })}

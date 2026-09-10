@@ -382,7 +382,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                 <select
                   multiple
                   value={selectedTestIds}
-                  onChange={(e) => setSelectedTestIds(Array.from(e.target.selectedOptions, (option) => option.value))}
+                  onChange={(e) => setSelectedTestIds(Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white h-28 focus:outline-none focus:border-teal-500"
                 >
                   {MOCK_TEST_CATALOG.map((item) => (
