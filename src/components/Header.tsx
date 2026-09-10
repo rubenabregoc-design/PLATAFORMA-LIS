@@ -173,30 +173,30 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4 sm:gap-6">
+      <div className="w-full px-3 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-3">
 
         {/* Brand Logo */}
-        <div className="flex items-center space-x-2.5 shrink-0">
-          <div className="w-9 h-9 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)] rotate-3">
-            <Activity className="w-5 h-5 text-slate-950 -rotate-3" />
+        <div className="flex items-center space-x-2 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)] rotate-3">
+            <Activity className="w-4.5 h-4.5 text-slate-950 -rotate-3" />
           </div>
-          <span className="font-black tracking-tighter text-lg sm:text-xl text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
+          <span className="font-black tracking-tighter text-base sm:text-lg text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
         {/* Floating Luxury Glass Capsule Navigation Bar (Sistema Caro / High-End Enterprise) */}
-        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)]">
+        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)] shrink-0">
 
           {/* Dashboard Direct Capsule Pill */}
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <LayoutDashboard className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider">Dashboard</span>
+            <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
+            <span className="uppercase tracking-wider whitespace-nowrap">Dashboard</span>
           </button>
 
           {/* Domain Category Capsule Pills */}
@@ -209,10 +209,10 @@ export const Header: React.FC<HeaderProps> = ({
             if (categoryTabObjects.length === 0) return null;
 
             return (
-              <div key={category.id} className="relative">
+              <div key={category.id} className="relative shrink-0">
                 <button
                   onClick={() => setActiveCategoryMenu(isOpen ? null : category.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryActive
                       ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -227,13 +227,13 @@ export const Header: React.FC<HeaderProps> = ({
                 {isOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setActiveCategoryMenu(null)}></div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[340px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="px-3 py-1.5 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 w-[320px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-3 py-1 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
                         <span>Plataforma {category.label}</span>
                         <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px] font-mono">{categoryTabObjects.length} Módulos</span>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-1 max-h-[360px] overflow-y-auto no-scrollbar">
+                      <div className="grid grid-cols-1 gap-1 max-h-[340px] overflow-y-auto no-scrollbar">
                         {categoryTabObjects.map((tab) => {
                           const SubIcon = tab.icon;
                           const isSubActive = activeTab === tab.id;
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
                             <button
                               key={tab.id}
                               onClick={() => { setActiveTab(tab.id); setActiveCategoryMenu(null); }}
-                              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
+                              className={`flex items-center space-x-3 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
                                 isSubActive
                                   ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
                                   : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
@@ -287,16 +287,16 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
 
           {/* Compact User Profile Badge Pill */}
-          <div className="hidden sm:flex items-center bg-[#02071a]/90 border border-cyan-500/40 rounded-full px-3 py-1.5 gap-2 shadow-lg shrink-0">
+          <div className="hidden sm:flex items-center bg-[#02071a]/90 border border-cyan-500/40 rounded-full px-2.5 py-1 gap-2 shadow-lg shrink-0">
             <div className="flex flex-col text-right">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[120px]" title={currentUser?.name}>
+              <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px]" title={currentUser?.name}>
                 {currentUser?.name || 'Lic. Sofía Guardia'}
               </span>
-              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[110px]">
+              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[95px]">
                 {currentBranch?.name || 'Sede Vía España'}
               </span>
             </div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+            <div className="w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[10px] flex items-center justify-center shadow-md shrink-0">
               {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>
