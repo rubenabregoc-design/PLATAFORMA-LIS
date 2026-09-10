@@ -118,15 +118,15 @@ export const Header: React.FC<HeaderProps> = ({
   const secondaryTabs = visibleTabs.slice(4);
 
   return (
-    <header className="bg-[#020617]/70 backdrop-blur-2xl text-white border-b border-white/10 sticky top-0 z-40">
+    <header className="bg-[#03091e]/85 backdrop-blur-3xl text-white border-b border-cyan-500/25 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4 sm:gap-6">
 
         {/* Brand Logo */}
         <div className="flex items-center space-x-2.5 shrink-0">
-          <div className="w-9 h-9 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 rotate-3">
+          <div className="w-9 h-9 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)] rotate-3">
             <Activity className="w-5 h-5 text-slate-950 -rotate-3" />
           </div>
-          <span className="font-black tracking-tighter text-lg sm:text-xl">LIS<span className="text-teal-400">CORE</span></span>
+          <span className="font-black tracking-tighter text-lg sm:text-xl text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
         {/* Complete & Rich Navigation Bar with 3D Glassmorphism */}
@@ -140,11 +140,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-b from-teal-500/25 via-teal-500/15 to-teal-950/40 text-teal-300 border border-teal-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_15px_rgba(20,184,166,0.2)]'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 hover:border-slate-700/60 border border-transparent'
+                    ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900/80 hover:border-slate-700/60 border border-transparent'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]' : ''}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.6)]' : ''}`} />
                 <span className="uppercase tracking-wider">{getTabLabel(tab)}</span>
               </button>
             );
@@ -156,19 +156,19 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
                 className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   secondaryTabs.some(t => t.id === activeTab)
-                    ? 'bg-gradient-to-b from-teal-500/25 via-teal-500/15 to-teal-950/40 text-teal-300 border border-teal-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_15px_rgba(20,184,166,0.2)]'
-                    : 'bg-slate-900/80 hover:bg-slate-800 text-teal-300 border border-teal-500/30 shadow-md'
+                    ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
+                    : 'bg-[#040c29]/90 hover:bg-[#07133f] text-cyan-300 border border-cyan-500/40 shadow-md'
                 }`}
               >
-                <MoreHorizontal className="w-3.5 h-3.5 text-teal-400" />
+                <MoreHorizontal className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="uppercase tracking-wider">Más Módulos ({secondaryTabs.length})</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-teal-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2.5 w-[480px] max-h-[440px] overflow-y-auto no-scrollbar bg-slate-950/95 backdrop-blur-3xl border border-teal-500/30 rounded-3xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.9)] ring-1 ring-teal-500/20 z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-0 mt-2.5 w-[480px] max-h-[440px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border border-cyan-500/40 rounded-3xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 grid grid-cols-2 gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                     {secondaryTabs.map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
@@ -178,11 +178,11 @@ export const Header: React.FC<HeaderProps> = ({
                           onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
                           className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border ${
                             isActive
-                              ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black border-teal-300 shadow-md shadow-teal-500/20'
-                              : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-teal-500/40'
+                              ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
+                              : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
                           }`}
                         >
-                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
+                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-cyan-400'}`} />
                           <span className="truncate">{getTabLabel(tab)}</span>
                         </button>
                       );

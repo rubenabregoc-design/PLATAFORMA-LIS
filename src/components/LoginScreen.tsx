@@ -133,17 +133,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* LEFT COLUMN: Empty area revealing pristine background image artwork */}
         <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 h-full" />
 
-        {/* RIGHT COLUMN: Glassmorphic Login Box - Expanded Vertically */}
+        {/* RIGHT COLUMN: Glassmorphic Login Box Harmonized with Background Palette */}
         <div className="lg:col-span-5 xl:col-span-5 flex justify-center lg:justify-end h-full items-center">
-          <div className="w-full max-w-[430px] h-[83vh] max-h-[740px] min-h-[580px] bg-slate-950/85 backdrop-blur-2xl border border-cyan-500/35 rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] ring-1 ring-cyan-500/30 relative z-10 flex flex-col justify-between">
+          <div className="w-full max-w-[430px] h-[83vh] max-h-[740px] min-h-[580px] bg-[#040a21]/90 backdrop-blur-2xl border-2 border-cyan-400/40 rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_-10px_rgba(0,240,255,0.2)] ring-1 ring-cyan-500/30 relative z-10 flex flex-col justify-between">
 
-            {/* Card Header */}
-            <div className="text-center space-y-1 border-b border-cyan-500/20 pb-2">
+            {/* Card Header with Golden Sunset Accent */}
+            <div className="text-center space-y-1 border-b border-cyan-500/25 pb-2">
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Bienvenido
+                Bienvenido <span className="text-amber-400">.</span>
               </h2>
-              <p className="text-xs text-slate-300 font-medium">
-                Inicia sesión para acceder a tu cuenta
+              <p className="text-xs text-cyan-200/80 font-medium">
+                Inicia sesión para acceder a tu cuenta LIS / HIS
               </p>
             </div>
 
@@ -159,7 +159,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <select
                   value={selectedTenantId}
                   onChange={(e) => handleTenantSelect(e.target.value)}
-                  className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer shadow-inner"
                 >
                   {MOCK_TENANTS.map((t) => (
                     <option key={t.id} value={t.id} className="bg-slate-900 text-white">
@@ -173,7 +173,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <Users className="w-3.5 h-3.5 text-amber-400" />
                     <span>Usuario ({filteredUsers.length})</span>
                   </label>
 
@@ -185,8 +185,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         onClick={() => setSelectedRoleFilter(r.id)}
                         className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition shrink-0 cursor-pointer ${
                           selectedRoleFilter === r.id
-                            ? 'bg-cyan-400 text-slate-950 font-black'
-                            : 'bg-slate-950/80 text-slate-300 border border-slate-700'
+                            ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                            : 'bg-[#020718] text-slate-300 border border-slate-700'
                         }`}
                       >
                         {r.label}
@@ -197,13 +197,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-cyan-400/60 absolute left-2.5 top-2.5" />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Filtrar..."
-                      className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl pl-7 pr-4 py-2 text-xs text-white font-medium placeholder-slate-400 focus:outline-none focus:border-cyan-400"
+                      className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl pl-7 pr-4 py-2 text-xs text-white font-medium placeholder-slate-400 focus:outline-none focus:border-cyan-400 shadow-inner"
                     />
                   </div>
 
@@ -213,7 +213,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       const u = MOCK_USERS.find((usr) => usr.id === e.target.value);
                       if (u) handleUserSelect(u);
                     }}
-                    className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-2.5 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
+                    className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-2.5 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer truncate shadow-inner"
                   >
                     {filteredUsers.map((u) => (
                       <option key={u.id} value={u.id} className="bg-slate-900 text-white">
@@ -238,10 +238,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         setPasswordInput(selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456');
                         setPinInput(selectedUser?.pinCode || '1234');
                       }}
-                      className="text-[10px] text-cyan-300 hover:text-white font-bold flex items-center space-x-0.5 bg-cyan-500/20 px-1.5 py-0.2 rounded border border-cyan-400/30"
+                      className="text-[10px] text-amber-300 hover:text-white font-bold flex items-center space-x-0.5 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-400/40"
                       title="Auto-completar credenciales demo"
                     >
-                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <Sparkles className="w-3 h-3 text-amber-400" />
                       <span>Auto</span>
                     </button>
                   </label>
@@ -251,7 +251,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold"
+                      className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold shadow-inner"
                       required
                       disabled={isAuthenticating}
                     />
@@ -268,7 +268,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-cyan-300 flex items-center justify-between">
                     <span className="flex items-center space-x-1">
-                      <Key className="w-3.5 h-3.5 text-emerald-400" />
+                      <Key className="w-3.5 h-3.5 text-amber-400" />
                       <span>PIN 2FA</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium">
@@ -281,7 +281,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                     placeholder="••••"
-                    className="w-full bg-slate-950/90 border border-cyan-500/35 rounded-xl px-3 py-2 text-xs text-white text-center font-mono font-bold tracking-widest focus:outline-none focus:border-emerald-400"
+                    className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-3 py-2 text-xs text-amber-300 text-center font-mono font-bold tracking-widest focus:outline-none focus:border-amber-400 shadow-inner"
                     required={selectedUser?.twoFactorEnabled}
                     disabled={isAuthenticating}
                   />
@@ -290,17 +290,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
               {/* Error Banner */}
               {errorMessage && (
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center space-x-2">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
-              {/* Main Glowing Cyan Pill Button */}
+              {/* Vibrant Electric Hospital Blue / Cyan Gradient Button */}
               <button
                 type="submit"
                 disabled={isAuthenticating}
-                className="w-full py-3 bg-gradient-to-r from-cyan-400 via-teal-400 to-cyan-400 hover:brightness-110 text-slate-950 font-black rounded-full text-xs sm:text-sm tracking-wide uppercase transition shadow-lg shadow-cyan-500/30 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-1"
+                className="w-full py-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black rounded-full text-xs sm:text-sm tracking-wider uppercase transition shadow-[0_10px_25px_rgba(0,240,255,0.35)] cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-1"
               >
                 {isAuthenticating ? (
                   <span>Autenticando...</span>
@@ -314,16 +314,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             </form>
 
             {/* Quick Links Row (SaaS Demo + Patient Access) */}
-            <div className="pt-2 border-t border-cyan-500/20 flex items-center justify-between text-xs font-bold gap-1">
+            <div className="pt-2 border-t border-cyan-500/25 flex items-center justify-between text-xs font-bold gap-1">
               <button
                 type="button"
                 onClick={() => {
                   const demoUser = MOCK_USERS.find(u => u.role === 'owner') || MOCK_USERS[0];
                   onLogin(demoUser, MOCK_TENANTS[0], MOCK_TENANTS[0].branches[0]);
                 }}
-                className="text-indigo-300 hover:text-indigo-200 flex items-center space-x-1 cursor-pointer transition"
+                className="text-amber-300 hover:text-amber-200 flex items-center space-x-1 cursor-pointer transition"
               >
-                <Play className="w-3.5 h-3.5 fill-current text-indigo-400" />
+                <Play className="w-3.5 h-3.5 fill-current text-amber-400" />
                 <span>SaaS Demo</span>
               </button>
 
