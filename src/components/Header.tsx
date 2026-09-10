@@ -113,12 +113,42 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
-  // Show 3 high-priority tabs directly + "Más Módulos" dropdown containing all LIS, HIS, Banco de Sangre & BI modules
-  const mainTabs = visibleTabs.slice(0, 3);
-  const secondaryTabs = visibleTabs.slice(3);
+  // Grand Domain Categories Definition
+  const DOMAIN_CATEGORIES = [
+    {
+      id: 'lis',
+      label: 'Laboratorio LIS',
+      icon: Microscope,
+      badge: '10 Módulos',
+      tabs: ['validation', 'tm_workbench', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'phlebotomy', 'pathology', 'batch_reporting']
+    },
+    {
+      id: 'his',
+      label: 'Suite HIS',
+      icon: Activity,
+      badge: 'Hospital',
+      tabs: ['patient_results', 'shifts', 'routing', 'fhir']
+    },
+    {
+      id: 'bloodbank',
+      label: 'Banco de Sangre',
+      icon: Droplets,
+      badge: 'Transfusional',
+      tabs: ['bloodbank', 'label_studio']
+    },
+    {
+      id: 'bi',
+      label: 'Gestión & BI',
+      icon: BrainCircuit,
+      badge: 'Gerencial',
+      tabs: ['billing', 'inventory', 'executive', 'minsa', 'audit', 'cmms', 'eqa', 'whatsapp', 'accreditation', 'schema']
+    }
+  ];
+
+  const [activeCategoryMenu, setActiveCategoryMenu] = useState<string | null>(null);
 
   return (
-    <header className="bg-[#03091e]/90 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
+    <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4 sm:gap-6">
 
         {/* Brand Logo */}
@@ -129,69 +159,82 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-black tracking-tighter text-lg sm:text-xl text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
-        {/* Complete & Rich Navigation Bar with 3D Glassmorphism */}
-        <nav className="hidden lg:flex items-center space-x-2 flex-1 overflow-x-auto no-scrollbar py-1">
-          {mainTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+        {/* Category Navigation Header (Zero Overflow, Direct Grand Category Access) */}
+        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center py-1">
+
+          {/* Dashboard Direct Button */}
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30'
+                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+            }`}
+          >
+            <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
+            <span className="uppercase tracking-wider">Dashboard</span>
+          </button>
+
+          {/* Domain Category Dropdowns */}
+          {DOMAIN_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
+            const categoryTabObjects = NAVIGATION_TABS.filter(t => category.tabs.includes(t.id) && visibleTabs.some(v => v.id === t.id));
+            const isCategoryActive = categoryTabObjects.some(t => t.id === activeTab);
+            const isOpen = activeCategoryMenu === category.id;
+
+            if (categoryTabObjects.length === 0) return null;
+
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900/80 hover:border-slate-700/60 border border-transparent'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.6)]' : ''}`} />
-                <span className="uppercase tracking-wider">{getTabLabel(tab)}</span>
-              </button>
+              <div key={category.id} className="relative">
+                <button
+                  onClick={() => setActiveCategoryMenu(isOpen ? null : category.id)}
+                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                    isCategoryActive
+                      ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border-2 border-cyan-400/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+                  }`}
+                >
+                  <CategoryIcon className={`w-4 h-4 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <span className="uppercase tracking-wider">{category.label}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Glassmorphic Category Dropdown Panel */}
+                {isOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setActiveCategoryMenu(null)}></div>
+                    <div className="absolute top-full left-0 mt-2.5 w-[360px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-3 py-1.5 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
+                        <span>Módulos de {category.label}</span>
+                        <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px]">{categoryTabObjects.length}</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-1 max-h-[360px] overflow-y-auto no-scrollbar">
+                        {categoryTabObjects.map((tab) => {
+                          const SubIcon = tab.icon;
+                          const isSubActive = activeTab === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              onClick={() => { setActiveTab(tab.id); setActiveCategoryMenu(null); }}
+                              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
+                                isSubActive
+                                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
+                                  : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
+                              }`}
+                            >
+                              <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-slate-950' : 'text-cyan-400'}`} />
+                              <span className="truncate">{getTabLabel(tab)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })}
-
-          {secondaryTabs.length > 0 && (
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setIsMoreOpen(!isMoreOpen)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  secondaryTabs.some(t => t.id === activeTab)
-                    ? 'bg-gradient-to-b from-cyan-500/30 via-cyan-500/15 to-blue-950/50 text-cyan-200 border border-cyan-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,240,255,0.25)]'
-                    : 'bg-[#040c29]/90 hover:bg-[#07133f] text-cyan-300 border border-cyan-500/40 shadow-md'
-                }`}
-              >
-                <MoreHorizontal className="w-4 h-4 text-cyan-400" />
-                <span className="uppercase tracking-wider">Módulos LIS / HIS / Banco de Sangre ({secondaryTabs.length})</span>
-                <ChevronDown className={`w-4 h-4 text-cyan-400 transition-transform duration-300 ${isMoreOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isMoreOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsMoreOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-2.5 w-[520px] max-h-[460px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 grid grid-cols-2 gap-2 animate-in fade-in zoom-in-95 duration-200">
-                    {secondaryTabs.map((tab) => {
-                      const Icon = tab.icon;
-                      const isActive = activeTab === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => { setActiveTab(tab.id); setIsMoreOpen(false); }}
-                          className={`flex items-center space-x-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
-                            isActive
-                              ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
-                              : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
-                          }`}
-                        >
-                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-cyan-400'}`} />
-                          <span className="truncate">{getTabLabel(tab)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </nav>
 
         {/* Right Section: Profile, Offline Sync, Inactivity Tracker & Logout */}

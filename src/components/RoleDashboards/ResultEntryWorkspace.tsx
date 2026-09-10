@@ -685,23 +685,29 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
                 <button
-                  title="REVOCAR: Desvalidar resultados seleccionados (Acceso Súper-Admin)"
+                  title="REVOCAR: Desvalidar resultados seleccionados (Solo Dueño, Jefe o TM Propietario)"
                   disabled={!selectedResults.some(id => {
                     const res = results.find(r => r.id === id);
-                    const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
-                    const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                    const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
+                    const canUnvalidate = currentUser.role === 'owner' ||
+                                         currentUser.role === 'abregotech_admin' ||
+                                         currentUser.role === 'lab_chief' ||
+                                         (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
                     return isValidated && canUnvalidate;
                   })}
                   onClick={() => {
                     const toRevokeIds = selectedResults.filter(id => {
                       const res = results.find(r => r.id === id);
-                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
-                      const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
+                      const canUnvalidate = currentUser.role === 'owner' ||
+                                           currentUser.role === 'abregotech_admin' ||
+                                           currentUser.role === 'lab_chief' ||
+                                           (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
                       return isValidated && canUnvalidate;
                     });
 
                     if (toRevokeIds.length === 0) {
-                      alert('Seleccione resultados validados para revocar.');
+                      alert('Seleccione resultados validados que le pertenezcan (o inicie sesión como Jefe/Dueño para revocar).');
                       return;
                     }
 
@@ -711,11 +717,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all group ${
                     selectedResults.some(id => {
                       const res = results.find(r => r.id === id);
-                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
-                      const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name;
+                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
+                      const canUnvalidate = currentUser.role === 'owner' ||
+                                           currentUser.role === 'abregotech_admin' ||
+                                           currentUser.role === 'lab_chief' ||
+                                           (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
                       return isValidated && canUnvalidate;
                     })
-                    ? 'bg-amber-500 text-slate-950 border border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                    ? 'bg-amber-500 text-slate-950 border border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer'
                     : 'bg-slate-800/40 text-slate-700 opacity-40 cursor-not-allowed'
                   }`}
                 >
