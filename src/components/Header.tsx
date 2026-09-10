@@ -223,32 +223,49 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Glassmorphic Suite Dropdown Panel */}
+                {/* Glassmorphic Suite Dropdown Panel with Tooltips, Descriptions & Examples */}
                 {isOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setActiveCategoryMenu(null)}></div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 w-[340px] bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 w-[500px] max-h-[480px] overflow-y-auto no-scrollbar bg-[#02081f]/95 backdrop-blur-3xl border-2 border-cyan-400/40 rounded-3xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-cyan-500/30 z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200">
                       <div className="px-3 py-1.5 border-b border-cyan-500/20 text-[10px] font-black text-cyan-300 uppercase tracking-widest flex items-center justify-between">
                         <span>Plataforma Independiente {category.label}</span>
-                        <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[9px] font-mono">{categoryTabObjects.length} Módulos</span>
+                        <span className="bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold">{categoryTabObjects.length} Módulos Especializados</span>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-1 max-h-[360px] overflow-y-auto no-scrollbar">
-                        {categoryTabObjects.map((tab) => {
+                      <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto no-scrollbar p-0.5">
+                        {categoryTabObjects.map((tab: any) => {
                           const SubIcon = tab.icon;
                           const isSubActive = activeTab === tab.id;
                           return (
                             <button
                               key={tab.id}
+                              title={`${tab.label}: ${tab.desc || ''} (${tab.example || ''})`}
                               onClick={() => { setActiveTab(tab.id); setActiveCategoryMenu(null); }}
-                              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer border ${
+                              className={`p-2.5 rounded-2xl border transition-all text-left cursor-pointer group flex flex-col justify-between space-y-1 ${
                                 isSubActive
-                                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
-                                  : 'bg-slate-900/70 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
+                                  ? 'bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30'
+                                  : 'bg-slate-900/80 border-slate-800 text-slate-200 hover:text-white hover:bg-slate-850 hover:border-cyan-500/50'
                               }`}
                             >
-                              <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-slate-950' : 'text-cyan-400'}`} />
-                              <span className="truncate">{getTabLabel(tab)}</span>
+                              <div className="flex items-center space-x-2">
+                                <div className={`p-1.5 rounded-xl shrink-0 ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-cyan-500/20 text-cyan-400'}`}>
+                                  <SubIcon className="w-4 h-4" />
+                                </div>
+                                <span className="text-xs font-bold truncate leading-tight">{getTabLabel(tab)}</span>
+                              </div>
+
+                              {tab.desc && (
+                                <p className={`text-[10px] line-clamp-2 leading-tight font-medium ${isSubActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                                  {tab.desc}
+                                </p>
+                              )}
+
+                              {tab.example && (
+                                <span className={`text-[9px] font-mono font-bold tracking-tighter truncate ${isSubActive ? 'text-slate-950' : 'text-amber-400'}`}>
+                                  {tab.example}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
