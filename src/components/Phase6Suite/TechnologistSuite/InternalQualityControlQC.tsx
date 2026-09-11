@@ -122,12 +122,27 @@ export const InternalQualityControlQC: React.FC = () => {
     }
   };
 
-  const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
+  const DEFAULT_QC_PROFILE = {
+    id: 'default-qc',
+    analyte: 'Glucosa HK',
+    level: 'Nivel 1 (Normal)',
+    analyzerName: 'Cobas 6000 c501',
+    lotNumber: 'QC-GLU-2026',
+    expirationDate: '2026-12-31',
+    targetMean: 95.0,
+    targetSd: 2.5,
+    unit: 'mg/dL',
+    status: 'OPTIMO' as const,
+    activeViolation: null,
+    points: []
+  };
 
-  const count = activeProfile?.points.length || 0;
-  const currentMean = count > 0 ? activeProfile.points.reduce((acc, p) => acc + p.value, 0) / count : activeProfile?.targetMean || 0;
+  const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0] || DEFAULT_QC_PROFILE;
+
+  const count = activeProfile?.points?.length || 0;
+  const currentMean = count > 0 ? activeProfile.points.reduce((acc, p) => acc + p.value, 0) / count : activeProfile?.targetMean || 95;
   const variance = count > 1 ? activeProfile.points.reduce((acc, p) => acc + Math.pow(p.value - currentMean, 2), 0) / (count - 1) : 0;
-  const currentSd = Math.sqrt(variance) || activeProfile?.targetSd || 0;
+  const currentSd = Math.sqrt(variance) || activeProfile?.targetSd || 2.5;
   const currentCv = currentMean > 0 ? (currentSd / currentMean) * 100 : 0;
 
   const handleAddQcPoint = async () => {
@@ -251,18 +266,18 @@ className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow
         {/* Status Badge */}
         <div className="flex items-center space-x-3 relative z-10">
           <span className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center space-x-2 border shadow-lg ${
-            activeProfile.status === 'BLOQUEADO_RECHAZO'
+            activeProfile?.status === 'BLOQUEADO_RECHAZO'
               ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-              : activeProfile.status === 'ALERTA_1_2S'
+              : activeProfile?.status === 'ALERTA_1_2S'
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
               : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
           }`}>
-            {activeProfile.status === 'BLOQUEADO_RECHAZO' ? (
+            {activeProfile?.status === 'BLOQUEADO_RECHAZO' ? (
               <>
                 <Lock className="w-4 h-4 text-rose-400" />
                 <span>BLOQUEADO: Fallo Westgard</span>
               </>
-            ) : activeProfile.status === 'ALERTA_1_2S' ? (
+            ) : activeProfile?.status === 'ALERTA_1_2S' ? (
               <>
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span>ALERTA: Regla 1_2s</span>
@@ -313,7 +328,7 @@ className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow
       </div>
 
       {/* ACTIVE LOCKOUT WARNING BANNER (IF BLOCKED) */}
-      {activeProfile.status === 'BLOQUEADO_RECHAZO' && (
+      {activeProfile?.status === 'BLOQUEADO_RECHAZO' && (
         <div className="bg-rose-950/40 border-2 border-rose-500/60 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 animate-pulse">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-rose-500/20 rounded-2xl text-rose-400 border border-rose-500/40">
@@ -325,7 +340,7 @@ className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow
                 <span className="bg-rose-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">ISO 15189 §7.3.7</span>
               </div>
               <p className="text-xs text-rose-200 mt-1">
-                {activeProfile.activeViolation || 'Violación de regla crítica de Westgard detectada. Los resultados de pacientes para este analito no podrán ser liberados.'}
+                {activeProfile?.activeViolation || 'Violación de regla crítica de Westgard detectada. Los resultados de pacientes para este analito no podrán ser liberados.'}
               </p>
             </div>
           </div>

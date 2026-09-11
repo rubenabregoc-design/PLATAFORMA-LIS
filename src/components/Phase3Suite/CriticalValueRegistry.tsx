@@ -420,7 +420,7 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-slate-900/90 rounded-2xl p-4 border border-slate-800/80 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search Input */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -429,16 +429,16 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
             placeholder="Buscar por paciente, cédula, código ISO, médico, tecnólogo o examen..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs font-medium focus:outline-none focus:border-red-500 focus:bg-white transition"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition"
           />
         </div>
 
         {/* Tab Filters */}
-        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl text-xs font-bold border border-slate-800">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-              statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              statusFilter === 'ALL' ? 'bg-cyan-400 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
             Todos ({metrics.total})
@@ -448,8 +448,8 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
             onClick={() => setStatusFilter('ACKNOWLEDGED')}
             className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
               statusFilter === 'ACKNOWLEDGED'
-                ? 'bg-emerald-600 text-white font-extrabold shadow-sm'
-                : 'text-emerald-700 hover:bg-emerald-100'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                : 'text-emerald-400 hover:bg-emerald-500/20'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -460,8 +460,8 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
             onClick={() => setStatusFilter('PENDING')}
             className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
               statusFilter === 'PENDING'
-                ? 'bg-rose-600 text-white font-extrabold shadow-sm'
-                : 'text-rose-700 hover:bg-rose-100'
+                ? 'bg-rose-500 text-white font-black shadow-md'
+                : 'text-rose-400 hover:bg-rose-500/20'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -471,7 +471,7 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
           <button
             onClick={() => setStatusFilter('SLA_EXCEEDED')}
             className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-              statusFilter === 'SLA_EXCEEDED' ? 'bg-amber-600 text-white shadow-sm' : 'text-amber-800 hover:bg-amber-100'
+              statusFilter === 'SLA_EXCEEDED' ? 'bg-amber-500 text-slate-950 font-black shadow-md' : 'text-amber-400 hover:bg-amber-500/20'
             }`}
           >
             SLA Excedido
@@ -480,10 +480,10 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900 text-slate-300 uppercase text-[10px] font-black tracking-wider">
+            <thead className="bg-slate-950 text-slate-300 uppercase text-[10px] font-black tracking-wider border-b border-slate-800">
               <tr>
                 <th className="p-3.5 pl-5">Código ISO / Orden</th>
                 <th className="p-3.5">Paciente & Cédula</th>
@@ -497,11 +497,10 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
                 <th className="p-3.5 text-right pr-5">Acción</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+            <tbody className="divide-y divide-slate-800/60 font-medium text-slate-200">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-slate-500 font-bold">
+                  <td colSpan={10} className="p-8 text-center text-slate-400 font-bold">
                     No hay registros de valores críticos con los criterios seleccionados.
                   </td>
                 </tr>
@@ -511,80 +510,80 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
                   return (
                     <tr
                       key={log.id}
-                      className={`hover:bg-slate-50/80 transition ${
-                        isPending ? 'bg-rose-50/50' : log.slaStatus === 'EXCEDIDO' ? 'bg-amber-50/40' : ''
+                      className={`hover:bg-slate-800/80 transition ${
+                        isPending ? 'bg-rose-950/20' : log.slaStatus === 'EXCEDIDO' ? 'bg-amber-950/20' : ''
                       }`}
                     >
                       {/* Code & Order */}
                       <td className="p-3.5 pl-5">
-                        <div className="font-mono font-black text-slate-900 text-[11px]">
+                        <div className="font-mono font-black text-white text-[11px]">
                           {log.isoComplianceCode}
                         </div>
-                        <div className="text-[10px] font-mono text-slate-500">{log.orderNumber}</div>
+                        <div className="text-[10px] font-mono text-cyan-400">{log.orderNumber}</div>
                       </td>
 
                       {/* Patient */}
                       <td className="p-3.5">
-                        <div className="font-extrabold text-slate-900">{log.patientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">{log.patientNationalId}</div>
+                        <div className="font-extrabold text-white">{log.patientName}</div>
+                        <div className="text-[10px] font-mono text-slate-400">{log.patientNationalId}</div>
                       </td>
 
                       {/* Test */}
                       <td className="p-3.5">
-                        <div className="font-bold text-slate-800">{log.testName}</div>
-                        <div className="text-[10px] text-slate-500">Ref: {log.referenceRange}</div>
+                        <div className="font-bold text-slate-200">{log.testName}</div>
+                        <div className="text-[10px] text-slate-400">Ref: {log.referenceRange}</div>
                       </td>
 
                       {/* Critical Value */}
                       <td className="p-3.5 text-center">
-                        <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-900 font-mono font-black border border-rose-300 inline-block shadow-sm">
+                        <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 font-mono font-black border border-rose-500/40 inline-block shadow-sm">
                           {log.criticalValue} <span className="text-[10px]">{log.unit}</span>
                         </span>
                       </td>
 
                       {/* Doctor */}
                       <td className="p-3.5">
-                        <div className="font-bold text-slate-900">{log.acknowledgedByDoctor}</div>
-                        <div className="text-[10px] font-mono text-emerald-700 flex items-center space-x-1">
-                          <PhoneCall className="w-3 h-3 text-emerald-600 inline mr-0.5" />
+                        <div className="font-bold text-slate-200">{log.acknowledgedByDoctor}</div>
+                        <div className="text-[10px] font-mono text-emerald-400 flex items-center space-x-1">
+                          <PhoneCall className="w-3 h-3 text-emerald-400 inline mr-0.5" />
                           <span>{log.doctorPhone}</span>
                         </div>
                       </td>
 
                       {/* Tech */}
                       <td className="p-3.5">
-                        <div className="font-semibold text-slate-800">{log.acknowledgedByTech}</div>
-                        <div className="text-[10px] font-mono text-slate-500">Lic. {log.techLicenseNumber}</div>
+                        <div className="font-semibold text-slate-300">{log.acknowledgedByTech}</div>
+                        <div className="text-[10px] font-mono text-slate-400">Lic. {log.techLicenseNumber}</div>
                       </td>
 
                       {/* Read-Back Confirmed */}
                       <td className="p-3.5 text-center">
                         {log.readbackConfirmed ? (
-                          <span className="inline-flex items-center space-x-1 bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full text-[10px] border border-emerald-300">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span className="inline-flex items-center space-x-1 bg-emerald-500/20 text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-500/40">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             <span>Confirmado</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center space-x-1 bg-rose-100 text-rose-800 font-extrabold px-2 py-0.5 rounded-full text-[10px] border border-rose-300">
-                            <XCircle className="w-3 h-3 text-rose-600" />
+                          <span className="inline-flex items-center space-x-1 bg-rose-500/20 text-rose-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-rose-500/40">
+                            <XCircle className="w-3 h-3 text-rose-400" />
                             <span>Pendiente</span>
                           </span>
                         )}
                       </td>
 
                       {/* TAT */}
-                      <td className="p-3.5 text-center font-mono font-extrabold text-slate-800">
+                      <td className="p-3.5 text-center font-mono font-extrabold text-cyan-300">
                         {log.turnaroundTimeMinutes} min
                       </td>
 
                       {/* SLA Status */}
                       <td className="p-3.5 text-center">
                         {log.acknowledged ? (
-                          <span className="bg-emerald-100 text-emerald-800 font-black px-2.5 py-1 rounded-full text-[10px] border border-emerald-300 uppercase">
+                          <span className="bg-emerald-500/20 text-emerald-300 font-black px-2.5 py-1 rounded-full text-[10px] border border-emerald-500/40 uppercase">
                             ISO COMPLIANT
                           </span>
                         ) : (
-                          <span className="bg-rose-600 text-white font-black px-2.5 py-1 rounded-full text-[10px] shadow animate-pulse uppercase">
+                          <span className="bg-rose-500 text-slate-950 font-black px-2.5 py-1 rounded-full text-[10px] shadow animate-pulse uppercase">
                             REQUERIDO
                           </span>
                         )}
@@ -596,7 +595,7 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
                           {isPending && (
                             <button
                               onClick={() => handleQuickAcknowledge(log.id)}
-                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-extrabold text-[10px] rounded-lg transition shadow cursor-pointer"
+                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[10px] rounded-lg transition shadow cursor-pointer"
                               title="Registrar llamada y Read-Back"
                             >
                               Confirmar
@@ -605,7 +604,7 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
 
                           <button
                             onClick={() => setSelectedLogForDetail(log)}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition cursor-pointer"
                             title="Ver detalle completo de auditoría"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -624,18 +623,18 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
       {/* Modal: Register Manual Acknowledgment */}
       {showLogModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-5 animate-in zoom-in-95 duration-200 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2.5">
-                <div className="p-2.5 bg-red-100 text-red-600 rounded-2xl">
+                <div className="p-2.5 bg-rose-500/20 text-rose-400 rounded-2xl border border-rose-500/40">
                   <ShieldAlert className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Registro de Notificación ISO 15189</h3>
-                  <p className="text-slate-500 text-xs">Acreditación de lectura verbal de valor de pánico (Read-Back)</p>
+                  <h3 className="font-black text-white text-base">Registro de Notificación ISO 15189</h3>
+                  <p className="text-slate-400 text-xs">Acreditación de lectura verbal de valor de pánico (Read-Back)</p>
                 </div>
               </div>
-              <button onClick={() => setShowLogModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowLogModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
@@ -643,117 +642,117 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
             <form onSubmit={handleCreateAckLog} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Número de Orden</label>
+                  <label className="text-xs font-extrabold text-slate-300">Número de Orden</label>
                   <input
                     type="text"
                     required
                     value={newOrder}
                     onChange={(e) => setNewOrder(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Paciente & Cédula</label>
+                  <label className="text-xs font-extrabold text-slate-300">Paciente & Cédula</label>
                   <input
                     type="text"
                     required
                     value={newPatient}
                     onChange={(e) => setNewPatient(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Examen Crítico</label>
+                  <label className="text-xs font-extrabold text-slate-300">Examen Crítico</label>
                   <input
                     type="text"
                     required
                     value={newTest}
                     onChange={(e) => setNewTest(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Valor Obtenido</label>
+                  <label className="text-xs font-extrabold text-slate-300">Valor Obtenido</label>
                   <input
                     type="text"
                     required
                     value={newValue}
                     onChange={(e) => setNewValue(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-black text-red-600"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono font-black text-rose-400"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Unidad</label>
+                  <label className="text-xs font-extrabold text-slate-300">Unidad</label>
                   <input
                     type="text"
                     required
                     value={newUnit}
                     onChange={(e) => setNewUnit(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Médico Tratante Notificado</label>
+                  <label className="text-xs font-extrabold text-slate-300">Médico Tratante Notificado</label>
                   <input
                     type="text"
                     required
                     value={newDoctor}
                     onChange={(e) => setNewDoctor(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Teléfono Contacto Médico</label>
+                  <label className="text-xs font-extrabold text-slate-300">Teléfono Contacto Médico</label>
                   <input
                     type="text"
                     required
                     value={newDoctorPhone}
                     onChange={(e) => setNewDoctorPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">Tecnólogo Médico Responsable</label>
+                  <label className="text-xs font-extrabold text-slate-300">Tecnólogo Médico Responsable</label>
                   <input
                     type="text"
                     required
                     value={newTech}
                     onChange={(e) => setNewTech(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700">N° de Licencia TM</label>
+                  <label className="text-xs font-extrabold text-slate-300">N° de Licencia TM</label>
                   <input
                     type="text"
                     required
                     value={newTechLic}
                     onChange={(e) => setNewTechLic(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-extrabold text-slate-700">Método de Comunicación</label>
+                <label className="text-xs font-extrabold text-slate-300">Método de Comunicación</label>
                 <select
                   value={newMethod}
                   onChange={(e: any) => setNewMethod(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                 >
                   <option value="LLAMADA_READBACK">Llamada Telefónica con Lectura de Retorno (Read-Back)</option>
                   <option value="PORTAL_MEDICO_ACK">Portal Médico con Acuse Digital</option>
@@ -763,27 +762,27 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-extrabold text-slate-700">Bitácora / Notas de Auditoría ISO 15189</label>
+                <label className="text-xs font-extrabold text-slate-300">Bitácora / Notas de Auditoría ISO 15189</label>
                 <textarea
                   rows={3}
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-sans"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-sans text-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowLogModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 rounded-xl cursor-pointer"
                 >
                   Cancelar
                 </button>
 
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer"
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer"
                 >
                   Guardar en Bitácora Auditable
                 </button>
@@ -796,58 +795,58 @@ export const CriticalValueRegistry: React.FC<CriticalValueRegistryProps> = ({
       {/* Modal: Detailed View for Inspection */}
       {selectedLogForDetail && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-6 animate-in zoom-in-95 duration-200 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-black font-mono text-red-600 uppercase tracking-widest block">
+                <span className="text-[10px] font-black font-mono text-rose-400 uppercase tracking-widest block">
                   {selectedLogForDetail.isoComplianceCode}
                 </span>
-                <h3 className="font-black text-slate-900 text-lg">Hoja de Registro de Valor Crítico ISO 15189</h3>
+                <h3 className="font-black text-white text-lg">Hoja de Registro de Valor Crítico ISO 15189</h3>
               </div>
-              <button onClick={() => setSelectedLogForDetail(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setSelectedLogForDetail(null)} className="text-slate-400 hover:text-white cursor-pointer">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2">
-                <div>Paciente: <strong className="text-slate-900 block">{selectedLogForDetail.patientName}</strong></div>
-                <div>Cédula: <strong className="text-slate-900 block font-mono">{selectedLogForDetail.patientNationalId}</strong></div>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-800 pb-2">
+                <div>Paciente: <strong className="text-white block">{selectedLogForDetail.patientName}</strong></div>
+                <div>Cédula: <strong className="text-white block font-mono">{selectedLogForDetail.patientNationalId}</strong></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2">
-                <div>Examen: <strong className="text-slate-900 block">{selectedLogForDetail.testName}</strong></div>
-                <div>Resultado: <strong className="text-red-600 text-sm font-mono block font-black">{selectedLogForDetail.criticalValue} {selectedLogForDetail.unit}</strong></div>
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-800 pb-2">
+                <div>Examen: <strong className="text-white block">{selectedLogForDetail.testName}</strong></div>
+                <div>Resultado: <strong className="text-rose-400 text-sm font-mono block font-black">{selectedLogForDetail.criticalValue} {selectedLogForDetail.unit}</strong></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2">
-                <div>Médico Notificado: <strong className="text-slate-900 block">{selectedLogForDetail.acknowledgedByDoctor}</strong></div>
-                <div>Teléfono: <strong className="text-emerald-700 block font-mono">{selectedLogForDetail.doctorPhone}</strong></div>
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-800 pb-2">
+                <div>Médico Notificado: <strong className="text-white block">{selectedLogForDetail.acknowledgedByDoctor}</strong></div>
+                <div>Teléfono: <strong className="text-emerald-400 block font-mono">{selectedLogForDetail.doctorPhone}</strong></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2">
-                <div>Tecnólogo Responsable: <strong className="text-slate-900 block">{selectedLogForDetail.acknowledgedByTech}</strong></div>
-                <div>Licencia TM: <strong className="text-slate-900 block font-mono">{selectedLogForDetail.techLicenseNumber}</strong></div>
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-800 pb-2">
+                <div>Tecnólogo Responsable: <strong className="text-white block">{selectedLogForDetail.acknowledgedByTech}</strong></div>
+                <div>Licencia TM: <strong className="text-white block font-mono">{selectedLogForDetail.techLicenseNumber}</strong></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-2">
-                <div>Fecha Detección: <span className="text-slate-800 font-mono block font-semibold">{selectedLogForDetail.detectedAt}</span></div>
-                <div>Fecha Notificación: <span className="text-emerald-700 font-mono block font-bold">{selectedLogForDetail.acknowledgedAt || 'Pendiente'}</span></div>
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-800 pb-2">
+                <div>Fecha Detección: <span className="text-slate-300 font-mono block font-semibold">{selectedLogForDetail.detectedAt}</span></div>
+                <div>Fecha Notificación: <span className="text-emerald-400 font-mono block font-bold">{selectedLogForDetail.acknowledgedAt || 'Pendiente'}</span></div>
               </div>
 
               <div>
-                <span className="font-extrabold text-slate-700 block mb-1">Notas del Protocolo Read-Back:</span>
-                <p className="bg-white p-3 rounded-xl border border-slate-200 text-slate-800 font-medium leading-relaxed">
+                <span className="font-extrabold text-slate-300 block mb-1">Notas del Protocolo Read-Back:</span>
+                <p className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-slate-200 font-medium leading-relaxed">
                   {selectedLogForDetail.isoAuditNotes}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
               <span className="font-mono">Cumplimiento ISO 15189 §7.4.1.5</span>
               <button
                 onClick={() => setSelectedLogForDetail(null)}
-                className="px-5 py-2 bg-slate-900 text-white font-extrabold rounded-xl"
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-extrabold rounded-xl transition cursor-pointer"
               >
                 Cerrar Hoja de Auditoría
               </button>

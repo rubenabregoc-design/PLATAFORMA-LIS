@@ -221,34 +221,52 @@ export const OfflineSyncIndicator: React.FC = () => {
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="flex items-center space-x-2">
                   {!isOnline ? <WifiOff className="w-4 h-4 text-rose-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
-                  <span>Enlace con Servidor Middleware:</span>
+                  <span>Enlace Middleware & Sockets:</span>
                 </span>
                 <span className="font-mono uppercase font-black">
-                  {!isOnline ? '🔴 Desconectado (Modo Local)' : '🟢 Conexión Activa (Socket 3000)'}
+                  {!isOnline ? '🔴 Desconectado (Modo Local)' : '🟢 CONEXIÓN ACTIVA (SOCKET 3000)'}
                 </span>
               </div>
               <p className="text-[11px] opacity-85 leading-relaxed">
                 {!isOnline
-                  ? 'Los tecnólogos pueden continuar validando frotis, escaneando tubos y registrando órdenes. Todas las operaciones se guardan de forma segura en el almacenamiento local del navegador.'
-                  : 'El enlace con el analizador y base de datos central está sincronizado en tiempo real.'}
+                  ? 'Los tecnólogos pueden continuar procesando analitos y escaneando tubos. Se guardan en el buffer criptográfico IndexedDB hasta restablecer el servidor central.'
+                  : 'El enlace con los analizadores ASTM/HL7 y el servidor PostgreSQL local está sincronizado en tiempo real.'}
               </p>
             </div>
 
-            {/* Storage Engine & Quota Badge */}
-            <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-teal-500/20">
-              <div className="flex items-center space-x-2">
-                <Database className="w-3.5 h-3.5 text-teal-400" />
-                <span className="text-[11px] text-slate-300 font-medium">Motor de Persistencia:</span>
+            {/* Persistence Architecture Badge (PostgreSQL 15 Local + IndexedDB) */}
+            <div className="space-y-2">
+              <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
+                Arquitectura Híbrida de Persistencia (On-Premises):
               </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-500/40">
-                  {storageEngine === 'IndexedDB' ? '🗄️ IndexedDB Enterprise' : '💾 localStorage'}
+
+              {/* Layer 1: PostgreSQL 15 Local */}
+              <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-blue-500/30">
+                <div className="flex items-center space-x-2">
+                  <Database className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-[11px] text-slate-200 font-bold">Base de Datos Central:</span>
+                </div>
+                <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-500/40">
+                  🐘 PostgreSQL 15 (Port 5432)
                 </span>
-                {storageQuota && (
-                  <span className="text-[9px] font-mono text-slate-400">
-                    ({storageQuota.usageMb}MB / {storageQuota.quotaMb}MB)
+              </div>
+
+              {/* Layer 2: IndexedDB Browser Buffer */}
+              <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-teal-500/30">
+                <div className="flex items-center space-x-2">
+                  <HardDrive className="w-3.5 h-3.5 text-teal-400" />
+                  <span className="text-[11px] text-slate-200 font-bold">Buffer Cliente Offline:</span>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-500/40">
+                    {storageEngine === 'IndexedDB' ? '🗄️ IndexedDB Enterprise' : '💾 localStorage'}
                   </span>
-                )}
+                  {storageQuota && (
+                    <span className="text-[9px] font-mono text-slate-400">
+                      ({storageQuota.usageMb}MB)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

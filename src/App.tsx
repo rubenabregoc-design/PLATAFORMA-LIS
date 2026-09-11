@@ -14,8 +14,8 @@ import {
 } from './data/mockData';
 
 import { useLisStore } from './store/useLisStore';
-import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE } from './components/Header';
-import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
+import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets } from 'lucide-react';
 import { LoginScreen } from './components/LoginScreen';
 import { BranchSelectionModal } from './components/BranchSelectionModal';
 import { DatabaseSchemaViewer } from './components/DatabaseSchemaViewer';
@@ -49,7 +49,14 @@ import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWork
 import { BatchReportingStudio } from './components/Phase6Suite/BatchReportingStudio';
 
 import { EmergencyTriageModule } from './components/HospitalSuite/EmergencyTriageModule';
+import { HospitalCommandCenter } from './components/HospitalSuite/HospitalCommandCenter';
 import { BedCensusManagement } from './components/HospitalSuite/BedCensusManagement';
+import { CpoeCdsModule } from './components/HospitalSuite/CpoeCdsModule';
+import { DischargeManagementModule } from './components/HospitalSuite/DischargeManagementModule';
+import { IcuCriticalCareModule } from './components/HospitalSuite/IcuCriticalCareModule';
+import { SerologyNatScreening } from './components/Phase6Suite/TechnologistSuite/SerologyNatScreening';
+import { SmartBedsideTransfusion } from './components/Phase6Suite/TechnologistSuite/SmartBedsideTransfusion';
+import StaffPunchClock from './components/Phase6Suite/TechnologistSuite/StaffPunchClock';
 import { ElectronicHealthRecordEHR } from './components/HospitalSuite/ElectronicHealthRecordEHR';
 import { KardexNursingModule } from './components/HospitalSuite/KardexNursingModule';
 import { OperatingRoomManagement } from './components/HospitalSuite/OperatingRoomManagement';
@@ -69,6 +76,11 @@ import HemovigilanceAnalytics from './components/Phase6Suite/TechnologistSuite/H
 import BiohazardWasteManager from './components/Phase6Suite/TechnologistSuite/BiohazardWasteManager';
 import { AnalyticalValidationWorkstation } from './components/Phase6Suite/TechnologistSuite/AnalyticalValidationWorkstation';
 import HISIntegrationConsole from './components/Phase6Suite/TechnologistSuite/HISIntegrationConsole';
+
+import ChemicalWasteManager from './components/Phase6Suite/TechnologistSuite/ChemicalWasteManager';
+import DisposalManifestPDF from './components/Phase6Suite/TechnologistSuite/DisposalManifestPDF';
+import { ReagentsHilPreanalytics } from './components/Phase6Suite/TechnologistSuite/ReagentsHilPreanalytics';
+import { CriticalValueRegistry } from './components/Phase3Suite/CriticalValueRegistry';
 
 import { ResultsAlertsCenter } from './components/RoleDashboards/ResultsAlertsCenter';
 import { ResultsClinicalCalculator } from './components/RoleDashboards/ResultsClinicalCalculator';
@@ -130,6 +142,7 @@ export default function App() {
   // Navigation & View State
   const [showAllModules, setShowAllModules] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [dashboardSubMode, setDashboardSubMode] = useState<'LIS' | 'HIS' | 'BLOODBANK'>('LIS');
 
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
@@ -243,7 +256,7 @@ export default function App() {
     setCurrentBranchId(branch.id);
     setSelectedBranchId(branch.id);
     setIsAuthenticated(true);
-    setIsBranchModalOpen(true);
+    // Modal eliminated upon login because user ALREADY selected branch on Login Screen
 
     // Default to the first allowed tab for the user's specific role
     const allowed = ALLOWED_TABS_PER_ROLE[user.role] || ['dashboard'];
@@ -439,6 +452,68 @@ export default function App() {
         setShowAllModules={setShowAllModules}
       />
 
+      {/* 🌟 Suite Platform Visual Separation Sub-Header Context Banner */}
+      {(() => {
+        const currentTabObj = NAVIGATION_TABS.find(t => t.id === activeTab) || NAVIGATION_TABS[0];
+        const activePlatformCategory = currentTabObj.category || 'lis';
+
+        return (
+          <div className={`border-b backdrop-blur-xl px-4 py-2 sm:py-2.5 transition-all relative z-20 ${
+            activePlatformCategory === 'lis'
+              ? 'bg-gradient-to-r from-cyan-950/70 via-slate-950 to-slate-950 border-cyan-500/30 text-cyan-200'
+              : activePlatformCategory === 'his'
+              ? 'bg-gradient-to-r from-indigo-950/70 via-slate-950 to-slate-950 border-indigo-500/30 text-indigo-200'
+              : activePlatformCategory === 'bloodbank'
+              ? 'bg-gradient-to-r from-rose-950/70 via-slate-950 to-slate-950 border-rose-500/30 text-rose-200'
+              : 'bg-gradient-to-r from-amber-950/70 via-slate-950 to-slate-950 border-amber-500/30 text-amber-200'
+          }`}>
+            <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+
+              {/* Platform Badge & Current Module Name */}
+              <div className="flex items-center space-x-2.5">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wider border shadow-md flex items-center space-x-1.5 ${
+                  activePlatformCategory === 'lis'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-cyan-500/10'
+                    : activePlatformCategory === 'his'
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/50 shadow-indigo-500/10'
+                    : activePlatformCategory === 'bloodbank'
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-400/50 shadow-rose-500/10'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-amber-500/10'
+                }`}>
+                  <span>
+                    {activePlatformCategory === 'lis' && '🔬 PLATAFORMA LIS'}
+                    {activePlatformCategory === 'his' && '🏥 PLATAFORMA HIS'}
+                    {activePlatformCategory === 'bloodbank' && '🩸 BANCO DE SANGRE'}
+                    {activePlatformCategory === 'bi' && '💼 GESTIÓN & BI'}
+                  </span>
+                </span>
+
+                <span className="text-slate-600 font-bold">•</span>
+
+                <span className="font-extrabold text-white text-xs truncate">
+                  <span className="text-slate-400 font-medium">Módulo: </span>
+                  <span className="text-white underline decoration-cyan-500/40 underline-offset-4">{currentTabObj.label}</span>
+                </span>
+              </div>
+
+              {/* Platform Descriptor & Active Branch */}
+              <div className="text-[11px] font-mono text-slate-400 flex items-center space-x-3">
+                <span className="hidden md:inline">
+                  {activePlatformCategory === 'lis' && 'Laboratorio Clínico • Middleware ASTM/HL7 • ISO 15189'}
+                  {activePlatformCategory === 'his' && 'Expediente EHR • Triage Urgencias • Quirófanos & Camas'}
+                  {activePlatformCategory === 'bloodbank' && 'Medicina Transfusional • Serología & ISBT 128'}
+                  {activePlatformCategory === 'bi' && 'Facturación DGI POS • Inventario FEFO • Analítica BI'}
+                </span>
+                <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[10px]">
+                  {currentBranch?.name || 'Sede Vía España'}
+                </span>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Main Body */}
       <main className="flex-1 pb-16 relative z-10">
         {isLoading ? (
@@ -474,23 +549,79 @@ export default function App() {
         ) : (
           <div className="max-w-7xl mx-auto p-4 sm:p-8">
             {activeTab === 'dashboard' && (
-              <>
-                {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
-                {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
-                {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} patients={patients} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} />}
-                {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} results={results} patients={patients} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} onOpenPdf={setPreviewOrderId} />}
-                {currentRole === 'receptionist' && (
-                  <ReceptionDashboard
-                    patients={patients}
-                    testCatalog={MOCK_TEST_CATALOG}
-                    orders={orders}
-                    results={results}
-                    onCreateOrder={handleCreateOrder}
-                    onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
-                  />
+              <div className="space-y-6">
+                {/* 🌟 Suite Dashboard Mode Switcher Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/90 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-xl overflow-x-auto no-scrollbar">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setDashboardSubMode('LIS')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition cursor-pointer shrink-0 ${
+                        dashboardSubMode === 'LIS'
+                          ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 font-black'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      <Microscope className="w-4 h-4 text-slate-950 shrink-0" />
+                      <span>Dashboard LIS (Laboratorio)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setDashboardSubMode('HIS')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition cursor-pointer shrink-0 ${
+                        dashboardSubMode === 'HIS'
+                          ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 font-black'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4 text-indigo-300 shrink-0" />
+                      <span>Dashboard HIS (Hospital)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setDashboardSubMode('BLOODBANK')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition cursor-pointer shrink-0 ${
+                        dashboardSubMode === 'BLOODBANK'
+                          ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      <Droplets className="w-4 h-4 text-rose-300 shrink-0" />
+                      <span>Dashboard Banco de Sangre</span>
+                    </button>
+                  </div>
+
+                  <span className="text-[11px] font-mono text-slate-400 hidden xl:inline px-2">
+                    {dashboardSubMode === 'LIS' && 'Métricas Clínicas de Pacientes, Analitos y Demografía'}
+                    {dashboardSubMode === 'HIS' && 'Centro de Mando Hospitalario, Camas & Triage Urgencias'}
+                    {dashboardSubMode === 'BLOODBANK' && 'Medicina Transfusional, Donantes & Hemovigilancia'}
+                  </span>
+                </div>
+
+                {/* Render Selected Suite Dashboard */}
+                {dashboardSubMode === 'HIS' ? (
+                  <HospitalCommandCenter onNavigateTab={(tab) => setActiveTab(tab)} />
+                ) : dashboardSubMode === 'BLOODBANK' ? (
+                  <BloodBankModule />
+                ) : (
+                  <>
+                    {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
+                    {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
+                    {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} patients={patients} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} />}
+                    {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} results={results} patients={patients} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} onOpenPdf={setPreviewOrderId} />}
+                    {currentRole === 'receptionist' && (
+                      <ReceptionDashboard
+                        patients={patients}
+                        testCatalog={MOCK_TEST_CATALOG}
+                        orders={orders}
+                        results={results}
+                        onCreateOrder={handleCreateOrder}
+                        onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
+                      />
+                    )}
+                    {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
+                  </>
                 )}
-                {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
-              </>
+              </div>
             )}
 
             {activeTab === 'batch_reporting' && (
@@ -533,14 +664,20 @@ export default function App() {
             {activeTab === 'his_triage' && <EmergencyTriageModule />}
             {activeTab === 'his_beds' && <BedCensusManagement />}
             {activeTab === 'his_ehr' && <ElectronicHealthRecordEHR />}
+            {activeTab === 'his_cpoe' && <CpoeCdsModule />}
             {activeTab === 'his_kardex' && <KardexNursingModule />}
+            {activeTab === 'his_icu' && <IcuCriticalCareModule />}
             {activeTab === 'his_operating' && <OperatingRoomManagement />}
             {activeTab === 'his_maternity' && <MaternityNeonatalModule />}
             {activeTab === 'his_ris_pacs' && <RisPacsRadiologyStudio />}
             {activeTab === 'his_pharmacy' && <HospitalPharmacyDispensing />}
+            {activeTab === 'his_discharge' && <DischargeManagementModule />}
             {activeTab === 'his_console' && <HISIntegrationConsole />}
+            {activeTab === 'shifts' && <StaffPunchClock />}
+            {activeTab === 'punch_clock' && <StaffPunchClock />}
 
             {/* Blood Bank Sub-Modules */}
+            {activeTab === 'bloodbank' && <BloodBankCenter />}
             {activeTab === 'blood_donors' && <DonorScreeningForm />}
             {activeTab === 'blood_deferral' && <DonorDeferralDashboard />}
             {activeTab === 'blood_apheresis' && <ApheresisDonationModule />}
@@ -549,12 +686,24 @@ export default function App() {
             {activeTab === 'blood_cold_chain' && <ColdChainMonitor />}
             {activeTab === 'blood_logistics' && <BloodLogisticsManager />}
             {activeTab === 'blood_crossmatch' && <CrossmatchWorkflow />}
+            {activeTab === 'blood_serology' && <SerologyNatScreening />}
+            {activeTab === 'blood_bedside' && <SmartBedsideTransfusion />}
             {activeTab === 'blood_hemovigilance' && <HemovigilanceAnalytics />}
             {activeTab === 'blood_waste' && <BiohazardWasteManager />}
+            {activeTab === 'blood_chemical_waste' && <ChemicalWasteManager />}
+            {activeTab === 'blood_manifest' && <DisposalManifestPDF />}
+            {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={MOCK_TENANTS[0].branches || []} />}
+            {activeTab === 'lis_referrals' && <MultiBranchRouting tenant={currentTenant} branches={MOCK_TENANTS[0].branches || []} />}
 
             {/* LIS & Workstation Sub-Modules */}
             {activeTab === 'lis_workstation' && (
               <AnalyticalValidationWorkstation />
+            )}
+            {activeTab === 'lis_panic' && (
+              <CriticalValueRegistry />
+            )}
+            {activeTab === 'lis_hil' && (
+              <ReagentsHilPreanalytics />
             )}
             {activeTab === 'lis_alerts_center' && (
               <ResultsAlertsCenter

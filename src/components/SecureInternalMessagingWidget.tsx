@@ -272,8 +272,8 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   // CONTAINER LAYOUT
   const containerClasses = embeddedMode
     ? 'w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[650px]'
-    : `fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[95vw] sm:w-[540px] md:w-[620px] bg-slate-900 border border-slate-700/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col transition-all ${
-        isMinimized ? 'h-16' : 'h-[620px]'
+    : `fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-50 w-[calc(100vw-1.5rem)] sm:w-[500px] md:w-[560px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-2rem)] bg-slate-900 border border-slate-700/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col transition-all ${
+        isMinimized ? 'h-16' : 'h-[min(600px,85vh)]'
       }`;
 
   return (
@@ -435,11 +435,11 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                       className={`flex flex-col space-y-1 ${isMe ? 'items-end' : 'items-start'}`}
                     >
                       {/* SENDER INFO HEADER */}
-                      <div className="flex items-center space-x-2 text-[10px] font-mono text-slate-400 px-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-mono text-slate-400 px-1 max-w-full">
                         <span className="font-bold text-white">{msg.senderName}</span>
                         <span className="text-indigo-400">({msg.senderRole})</span>
-                        <span>• {msg.senderBranch}</span>
-                        <span>• {msg.timestamp}</span>
+                        <span className="truncate max-w-[140px]">• {msg.senderBranch}</span>
+                        <span className="shrink-0">• {msg.timestamp}</span>
                       </div>
 
                       {/* MESSAGE BUBBLE */}

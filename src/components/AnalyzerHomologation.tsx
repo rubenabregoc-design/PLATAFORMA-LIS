@@ -333,7 +333,25 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-white font-bold text-sm cursor-pointer p-1">✕</button>
             </div>
             <form onSubmit={handleSaveMapping} className="space-y-4 text-xs">
-              <div className="space-y-1"><label className="font-bold text-slate-300">Analito LIS Core:</label><select value={formData.lisTestCode} onChange={e => setFormData({...formData, lisTestCode: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-teal-300 font-bold outline-none cursor-pointer">{testCatalog.map(t => t.parameters.map(p => <option key={p.id} value={p.astmParamCode} className="bg-slate-900 text-white">{p.astmParamCode} — {p.name}</option>))}</select></div>
+              <div className="space-y-1">
+                <label className="font-bold text-slate-300">Analito LIS Core:</label>
+                <select
+                  value={formData.lisTestCode}
+                  onChange={e => setFormData({...formData, lisTestCode: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-teal-300 font-bold outline-none cursor-pointer"
+                >
+                  <option value="" disabled className="bg-slate-900 text-slate-400">
+                    Seleccione un analito del catálogo LIS...
+                  </option>
+                  {testCatalog.map(t =>
+                    t.parameters.map(p => (
+                      <option key={p.id} value={p.astmParamCode || p.id} className="bg-slate-900 text-white">
+                        {p.astmParamCode || p.id} — {p.name} ({t.name})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
               <div className="space-y-1"><label className="font-bold text-slate-300">Target Code ASTM/HL7:</label><input type="text" required value={formData.astmAnalyzerCode} onChange={e => setFormData({ ...formData, astmAnalyzerCode: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold outline-none focus:border-teal-400" placeholder="Ej. W_BC_2" /></div>
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-800"><button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold transition">Cancelar</button><button type="submit" className="px-5 py-2 bg-teal-500 text-slate-950 font-black rounded-xl transition shadow-lg shadow-teal-500/20">Guardar</button></div>
             </form>

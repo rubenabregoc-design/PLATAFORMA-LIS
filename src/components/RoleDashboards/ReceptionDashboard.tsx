@@ -730,30 +730,275 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
               {foundPatient && !isRegistering ? (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="text-center pb-6 border-b border-white/5">
-                    <div className="w-16 h-16 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-teal-500/20 text-slate-950 font-black text-xl">{foundPatient.firstName[0]}{foundPatient.lastName[0]}</div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-tight">{foundPatient.firstName} {foundPatient.lastName}</h3>
+                  <div className="text-center pb-6 border-b border-white/10">
+                    <div className="w-16 h-16 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-teal-500/20 text-slate-950 font-black text-xl">
+                      {foundPatient.firstName[0]}{foundPatient.lastName[0]}
+                    </div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-tight">
+                      {foundPatient.firstName} {foundPatient.lastName}
+                    </h3>
                     <p className="text-[10px] text-teal-400 font-mono font-bold mt-1">CÉDULA: {foundPatient.nationalId}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-[10px]">
-                    <div className="bg-slate-950 p-3 rounded-2xl border border-white/5"><span className="text-slate-600 font-black block text-[8px] uppercase">Edad</span><span className="text-slate-200 font-bold">{calculateAge(foundPatient.dob)}</span></div>
-                    <div className="bg-slate-950 p-3 rounded-2xl border border-white/5"><span className="text-slate-600 font-black block text-[8px] uppercase">Sexo</span><span className="text-slate-200 font-bold">{foundPatient.gender === 'M' ? 'Masculino' : 'Femenino'}</span></div>
+
+                  <div className="grid grid-cols-2 gap-2.5 text-[10px]">
+                    <div className="bg-slate-950 p-2.5 rounded-2xl border border-white/10">
+                      <span className="text-slate-500 font-black block text-[8px] uppercase">Edad / Nacimiento</span>
+                      <span className="text-slate-200 font-bold">{calculateAge(foundPatient.dob)} ({foundPatient.dob})</span>
+                    </div>
+                    <div className="bg-slate-950 p-2.5 rounded-2xl border border-white/10">
+                      <span className="text-slate-500 font-black block text-[8px] uppercase">Sexo Biológico</span>
+                      <span className="text-slate-200 font-bold">{foundPatient.gender === 'M' ? '👨 Masculino' : '👩 Femenino'}</span>
+                    </div>
+                    <div className="bg-slate-950 p-2.5 rounded-2xl border border-white/10">
+                      <span className="text-slate-500 font-black block text-[8px] uppercase">Teléfono</span>
+                      <span className="text-cyan-300 font-mono font-bold">{foundPatient.phone || '+507 6612-9988'}</span>
+                    </div>
+                    <div className="bg-slate-950 p-2.5 rounded-2xl border border-white/10">
+                      <span className="text-slate-500 font-black block text-[8px] uppercase">Aseguradora</span>
+                      <span className="text-emerald-300 font-bold">{foundPatient.insuranceProvider || 'Particular / CSS'}</span>
+                    </div>
                   </div>
-                  <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-2xl flex items-center justify-between text-teal-300 text-[10px] font-bold">
-                    <div className="flex items-center space-x-2"><ShieldCheck className="w-4 h-4 text-teal-400" /><span>Ley 81 Panamá: Consentimiento OK</span></div>
+
+                  <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-2xl flex items-center justify-between text-teal-300 text-[10px] font-bold">
+                    <div className="flex items-center space-x-2">
+                      <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                      <span>Ley 81 Protección Datos: Consentimiento OK</span>
+                    </div>
                   </div>
                 </div>
               ) : (
+                /* 📝 COMPREHENSIVE ENTERPRISE DEMOGRAPHIC REGISTRATION FORM WITH 1-CLICK AUTO-FILL */
                 <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3"><span className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Nuevo Paciente</span><button onClick={() => { setIsRegistering(false); setFoundPatient(patients[0]); }} className="text-[9px] text-slate-500 hover:text-white uppercase font-bold">Cancelar</button></div>
-                  <div className="space-y-3 text-xs">
-                    <div><label className="text-[8px] font-black text-slate-500 uppercase">Nombre</label><input type="text" value={newPatientData.firstName} onChange={e => setNewPatientData({ ...newPatientData, firstName: e.target.value })} className={`w-full bg-slate-950 border rounded-xl px-3 py-2 text-[10px] text-white outline-none ${formErrors.firstName ? 'border-rose-500' : 'border-white/10'}`} /></div>
-                    <div><label className="text-[8px] font-black text-slate-500 uppercase">Apellido</label><input type="text" value={newPatientData.lastName} onChange={e => setNewPatientData({ ...newPatientData, lastName: e.target.value })} className={`w-full bg-slate-950 border rounded-xl px-3 py-2 text-[10px] text-white outline-none ${formErrors.lastName ? 'border-rose-500' : 'border-white/10'}`} /></div>
-                    <div><label className="text-[8px] font-black text-slate-500 uppercase">Cédula / Pasaporte</label><input type="text" value={newPatientData.nationalId} onChange={e => setNewPatientData({ ...newPatientData, nationalId: e.target.value })} className={`w-full bg-slate-950 border rounded-xl px-3 py-2 text-[10px] text-white font-mono outline-none ${formErrors.nationalId ? 'border-rose-500' : 'border-white/10'}`} /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><label className="text-[8px] font-black text-slate-500 uppercase">F. Nacimiento</label><input type="date" value={newPatientData.dob} onChange={e => setNewPatientData({ ...newPatientData, dob: e.target.value })} className="w-full bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-[10px] text-white outline-none" /></div>
-                      <div><label className="text-[8px] font-black text-slate-500 uppercase">Sexo</label><select value={newPatientData.gender} onChange={e => setNewPatientData({ ...newPatientData, gender: e.target.value as any })} className="w-full bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-[10px] text-white outline-none"><option value="M">M</option><option value="F">F</option></select></div>
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <UserPlus className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Nuevo Registro de Paciente</span>
+                    </span>
+                    <button
+                      onClick={() => { setIsRegistering(false); setFoundPatient(patients[0]); }}
+                      className="text-[9px] text-slate-400 hover:text-white uppercase font-bold cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+
+                  {/* ⚡ 1-CLICK AUTO-FILL & CEDULA QR READER BUTTON */}
+                  <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-amber-500/20 via-teal-500/20 to-cyan-500/20 p-2.5 rounded-2xl border border-amber-500/40 shadow">
+                    <div className="flex items-center space-x-1.5 text-[10px] font-bold text-amber-300">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Cédula QR / Llenado Rápido</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewPatientData({
+                          firstName: 'Elena María',
+                          lastName: 'Icaza Guardia',
+                          nationalId: '8-812-4432',
+                          gender: 'F',
+                          dob: '1990-04-12',
+                          phone: '+507 6612-9988',
+                          email: 'elena.icaza@gmail.com',
+                          address: 'San Francisco, Calle 50, PH Titanium',
+                          isPregnant: false,
+                          clinicalNotes: 'Sin alergias registradas',
+                          weight: '62 kg',
+                          height: '165 cm',
+                          bloodType: 'O+',
+                          emergencyContact: 'Carlos Icaza (+507 6511-2233)',
+                          insuranceProvider: 'CSS Panamá',
+                          nationality: 'Panameña'
+                        });
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: { message: '✨ Datos del paciente autocompletados desde Cédula QR.', type: 'success', duration: 2500 }
+                          })
+                        );
+                      }}
+                      className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[10px] transition shadow cursor-pointer flex items-center space-x-1"
+                    >
+                      <QrCode className="w-3 h-3 text-slate-950" />
+                      <span>Auto-Llenar (1-Clic)</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-[55vh] overflow-y-auto no-scrollbar pr-1 text-xs">
+
+                    {/* SECTION 1: Essential Personal Identifiers */}
+                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-cyan-500/30">
+                      <span className="text-[9px] font-black text-cyan-400 uppercase block tracking-wider">
+                        1. Identificación Principal
+                      </span>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Nombre(s)</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Elena María"
+                            value={newPatientData.firstName}
+                            onChange={e => setNewPatientData({ ...newPatientData, firstName: e.target.value })}
+                            className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none ${formErrors.firstName ? 'border-rose-500' : 'border-white/10'}`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Apellido(s)</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Icaza Guardia"
+                            value={newPatientData.lastName}
+                            onChange={e => setNewPatientData({ ...newPatientData, lastName: e.target.value })}
+                            className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none ${formErrors.lastName ? 'border-rose-500' : 'border-white/10'}`}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Cédula / Pasaporte / Documento</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej. 8-812-4432"
+                          value={newPatientData.nationalId}
+                          onChange={e => setNewPatientData({ ...newPatientData, nationalId: e.target.value })}
+                          className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white font-mono outline-none ${formErrors.nationalId ? 'border-rose-500' : 'border-white/10'}`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Fecha Nacimiento</label>
+                          <input
+                            type="date"
+                            value={newPatientData.dob}
+                            onChange={e => setNewPatientData({ ...newPatientData, dob: e.target.value })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Sexo Biológico</label>
+                          <select
+                            value={newPatientData.gender}
+                            onChange={e => setNewPatientData({ ...newPatientData, gender: e.target.value as any })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                          >
+                            <option value="M">👨 Masculino</option>
+                            <option value="F">👩 Femenino</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: Contact & Electronic Notification */}
+                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-indigo-500/30">
+                      <span className="text-[9px] font-black text-indigo-400 uppercase block tracking-wider">
+                        2. Contacto & Envíos de Resultados
+                      </span>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Teléfono Móvil (WhatsApp PDF)</label>
+                        <input
+                          type="text"
+                          placeholder="+507 6612-9988"
+                          value={newPatientData.phone}
+                          onChange={e => setNewPatientData({ ...newPatientData, phone: e.target.value })}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white font-mono outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Correo Electrónico (Notificación Ley 81)</label>
+                        <input
+                          type="email"
+                          placeholder="elena.icaza@gmail.com"
+                          value={newPatientData.email}
+                          onChange={e => setNewPatientData({ ...newPatientData, email: e.target.value })}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Dirección Residencial / Corregimiento</label>
+                        <input
+                          type="text"
+                          placeholder="San Francisco, Calle 50, PH Titanium"
+                          value={newPatientData.address}
+                          onChange={e => setNewPatientData({ ...newPatientData, address: e.target.value })}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: Health Insurance & Clinical Background */}
+                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-emerald-500/30">
+                      <span className="text-[9px] font-black text-emerald-400 uppercase block tracking-wider">
+                        3. Cobertura de Seguro & Datos Clínicos
+                      </span>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Aseguradora</label>
+                          <select
+                            value={newPatientData.insuranceProvider}
+                            onChange={e => setNewPatientData({ ...newPatientData, insuranceProvider: e.target.value })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                          >
+                            <option value="PARTICULAR">Particular (100%)</option>
+                            <option value="CSS">Caja de Seguro Social (CSS)</option>
+                            <option value="PALIG">Pan-American Life (Palig)</option>
+                            <option value="ASSA">ASSA Compañía de Seguros</option>
+                            <option value="MAPFRE">Mapfre Panamá</option>
+                            <option value="CLARIA">Claria Life</option>
+                            <option value="SAGICOR">Sagicor Panamá</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[8px] font-black text-slate-400 uppercase">Grupo Sanguíneo ABO/Rh</label>
+                          <select
+                            value={newPatientData.bloodType}
+                            onChange={e => setNewPatientData({ ...newPatientData, bloodType: e.target.value })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                          >
+                            <option value="O+">O Positivo (O+)</option>
+                            <option value="O-">O Negativo (O-)</option>
+                            <option value="A+">A Positivo (A+)</option>
+                            <option value="A-">A Negativo (A-)</option>
+                            <option value="B+">B Positivo (B+)</option>
+                            <option value="B-">B Negativo (B-)</option>
+                            <option value="AB+">AB Positivo (AB+)</option>
+                            <option value="AB-">AB Negativo (AB-)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Alergias Conocidas / Medicamentos</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. Penicilina, AINEs, Ninguna"
+                          value={newPatientData.clinicalNotes}
+                          onChange={e => setNewPatientData({ ...newPatientData, clinicalNotes: e.target.value })}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-black text-slate-400 uppercase">Contacto de Emergencia (Nombre & Teléfono)</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. Carlos Icaza (+507 6511-2233)"
+                          value={newPatientData.emergencyContact}
+                          onChange={e => setNewPatientData({ ...newPatientData, emergencyContact: e.target.value })}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}
@@ -778,17 +1023,23 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                 </div>
 
                 <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
-                  {['HEMATOLOGIA', 'QUIMICA', 'INMUNOLOGIA', 'URINALISIS', 'COAGULACION'].map(cat => (
+                  {[
+                    { id: 'HEMATOLOGIA', label: 'Hematología', color: 'bg-rose-500 text-white shadow-rose-500/30' },
+                    { id: 'QUIMICA', label: 'Química', color: 'bg-cyan-400 text-slate-950 shadow-cyan-500/30 font-black' },
+                    { id: 'INMUNOLOGIA', label: 'Inmunología', color: 'bg-indigo-500 text-white shadow-indigo-500/30' },
+                    { id: 'URINALISIS', label: 'Urinalisis', color: 'bg-amber-400 text-slate-950 shadow-amber-500/30 font-black' },
+                    { id: 'COAGULACION', label: 'Coagulación', color: 'bg-emerald-400 text-slate-950 shadow-emerald-500/30 font-black' },
+                  ].map(cat => (
                     <button
-                      key={cat}
-                      onClick={() => { setActiveCategory(cat); setTestSearchTerm(''); }}
+                      key={cat.id}
+                      onClick={() => { setActiveCategory(cat.id); setTestSearchTerm(''); }}
                       className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition cursor-pointer whitespace-nowrap ${
-                        activeCategory === cat && !testSearchTerm
-                          ? 'bg-teal-500 text-slate-950 shadow'
+                        activeCategory === cat.id && !testSearchTerm
+                          ? `${cat.color} shadow-lg font-black`
                           : 'bg-slate-950 text-slate-400 hover:text-white border border-white/5'
                       }`}
                     >
-                      {cat}
+                      {cat.label}
                     </button>
                   ))}
                 </div>

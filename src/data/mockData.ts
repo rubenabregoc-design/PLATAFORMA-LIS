@@ -29,6 +29,70 @@ export const MOCK_TENANTS: Tenant[] = [
 ];
 
 export const MOCK_USERS: User[] = [
+  // 🔬 Jefe de Laboratorio / Director Médico
+  {
+    id: 'usr-chief-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Dr. Roberto Icaza Villalaz',
+    email: 'roberto.icaza@labsanjose.com',
+    role: 'lab_chief',
+    licenseNumber: 'TM-1840-PA',
+    password: '123456',
+    pinCode: '1840',
+    twoFactorEnabled: true
+  },
+  // 🔬 Tecnólogos Médicos
+  {
+    id: 'usr-tech-med-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Lic. Sofía Guardia Franco',
+    email: 'sofia.guardia@labsanjose.com',
+    role: 'tech_med',
+    licenseNumber: 'TM-5920-PA',
+    password: '123456',
+    pinCode: '5920',
+    twoFactorEnabled: false
+  },
+  {
+    id: 'usr-tech-med-2',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-david',
+    name: 'Lic. Carlos E. Mendoza',
+    email: 'carlos.mendoza@labsanjose.com',
+    role: 'tech_med',
+    licenseNumber: 'TM-6140-PA',
+    password: '123456',
+    pinCode: '6140',
+    twoFactorEnabled: false
+  },
+  // 🧪 Técnicos de Laboratorio / Flebotomistas
+  {
+    id: 'usr-lab-tech-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Téc. Pedro Luis Navarro',
+    email: 'pedro.navarro@labsanjose.com',
+    role: 'lab_tech',
+    licenseNumber: 'TEC-3310-MINSA',
+    password: '123456',
+    pinCode: '3310',
+    twoFactorEnabled: false
+  },
+  {
+    id: 'usr-lab-tech-2',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-david',
+    name: 'Téc. Carmen Rosa Castillo',
+    email: 'carmen.castillo@labsanjose.com',
+    role: 'lab_tech',
+    licenseNumber: 'TEC-4180-MINSA',
+    password: '123456',
+    pinCode: '4180',
+    twoFactorEnabled: false
+  },
+  // 💼 Dueño / Gerencia
   {
     id: 'usr-owner-1',
     tenantId: 'lab-san-jose',
@@ -41,28 +105,54 @@ export const MOCK_USERS: User[] = [
     pinCode: '4821',
     twoFactorEnabled: true
   },
+  // 💼 Recepcionista / Admisión POS
   {
     id: 'usr-reception-1',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    name: 'Ana Lucía Morales',
+    name: 'Licda. Ana Lucía Morales',
     email: 'ana.morales@labsanjose.com',
     role: 'receptionist',
     password: '123456',
     pinCode: '1234',
     twoFactorEnabled: false
   },
+  // 🩺 Médico Referente
   {
-    id: 'usr-tech-med-1',
+    id: 'usr-ext-doctor-1',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    name: 'Lic. Sofía Guardia',
-    email: 'sofia.guardia@labsanjose.com',
-    role: 'tech_med',
-    licenseNumber: 'TM-5920-PA',
+    name: 'Dr. Fernando Arosemena Boyd',
+    email: 'dr.arosemena@hospitalclinico.pa',
+    role: 'ext_doctor',
+    licenseNumber: 'M-9812-MINSA',
     password: '123456',
-    pinCode: '5920',
+    pinCode: '9812',
     twoFactorEnabled: false
+  },
+  // 👤 Paciente
+  {
+    id: 'usr-patient-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Sr. Gonzalo A. Ríos',
+    email: 'gonzalo.rios@gmail.com',
+    role: 'patient',
+    password: '123456',
+    pinCode: '4432',
+    twoFactorEnabled: false
+  },
+  // ⚙️ Súper Admin
+  {
+    id: 'usr-admin-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Ing. Gabriel Abrego (AbregoTech Systems)',
+    email: 'admin@abregotech.com',
+    role: 'abregotech_admin',
+    password: 'admin123',
+    pinCode: '9999',
+    twoFactorEnabled: true
   }
 ];
 

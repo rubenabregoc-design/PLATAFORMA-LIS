@@ -37,16 +37,19 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
 
-      {/* US Letter Printable Page Media Styles */}
+      {/* US Letter Printable Page Media Styles (Fast Instant Render & Direct Letter Dimensions) */}
       <style>{`
         @media print {
           @page {
-            size: letter portrait;
+            size: letter;
             margin: 8mm 10mm;
           }
-          body {
-            background: white !important;
-            color: black !important;
+          html, body {
+            width: 8.5in;
+            background: #ffffff !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .no-print {
             display: none !important;
@@ -55,6 +58,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
             padding: 0 !important;
             margin: 0 !important;
             width: 100% !important;
+            max-width: 100% !important;
             box-shadow: none !important;
             border: none !important;
           }
@@ -183,11 +187,11 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                               <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
                                 isCritical ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
                               }`}>
-                                {res.flag}
+                                {res.flag === 'CRITICO_ALTO' ? '⚠️ CRÍTICO ALTO' : res.flag === 'CRITICO_BAJO' ? '⚠️ CRÍTICO BAJO' : res.flag === 'ALTO' ? '⬆ ALTO' : res.flag === 'BAJO' ? '⬇ BAJO' : res.flag.replace(/_/g, ' ')}
                               </span>
                             ) : (
                               <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
-                                NORMAL
+                                ✓ NORMAL
                               </span>
                             )}
                           </td>
