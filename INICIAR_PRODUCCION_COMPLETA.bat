@@ -17,8 +17,9 @@ start "AbregoTech LISCORE" cmd /k "cd /d "%~dp0" && npm run dev -- --host"
 
 echo ============================================================
 echo   ¡PRODUCCION LOCAL COMPLETA ACTIVA EN 1-CLIC!
-echo   - Servidor LISCORE: http://localhost:3000
+echo   - Acceso Red LAN:     http://192.168.0.8:3000
+echo   - Acceso Servidor:    http://localhost:3000
 echo ============================================================
 echo.
 timeout /t 4 >nul
-start http://localhost:3000
+start http://192.168.0.8:3000
