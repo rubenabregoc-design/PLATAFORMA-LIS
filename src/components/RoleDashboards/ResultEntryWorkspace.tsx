@@ -124,15 +124,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] bg-[#020617] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl relative">
-      {/* Sidebar: Órdenes - Collapsible */}
-      <div className={`${isSidebarCollapsed ? 'w-20' : 'w-80'} bg-slate-950/50 border-r border-white/5 flex flex-col transition-all duration-500 ease-in-out relative group`}>
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-100px)] bg-[#020617] rounded-3xl overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
+      {/* Sidebar: Órdenes - Responsive Collapsible */}
+      <div className={`${isSidebarCollapsed ? 'w-full lg:w-20' : 'w-full lg:w-80'} bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col transition-all duration-300 relative group shrink-0`}>
         {/* Collapse Toggle */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -right-3 top-10 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-teal-500/20 z-10 hover:scale-110 transition-transform"
+          className="hidden lg:flex absolute -right-3 top-10 w-6 h-6 bg-cyan-400 rounded-full items-center justify-center shadow-lg shadow-cyan-500/20 z-10 hover:scale-110 transition-transform cursor-pointer"
         >
-          <ChevronRight className={`w-4 h-4 text-slate-950 transition-transform duration-500 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
+          <ChevronRight className={`w-4 h-4 text-slate-950 transition-transform duration-300 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
         </button>
 
         <div className={`p-4 space-y-4 flex flex-col h-full ${isSidebarCollapsed ? 'items-center' : ''}`}>
@@ -609,8 +609,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
         </div>
 
-        <div className="h-24 flex items-center justify-center shrink-0 px-6">
-          <div className="bg-[#020617]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-2 flex items-center gap-1 shadow-2xl">
+        <div className="py-3 px-3 sm:px-6 shrink-0 border-t border-slate-800/80 bg-[#02071a]/95 backdrop-blur-3xl">
+          <div className="bg-[#020617]/80 border border-slate-800 rounded-3xl p-2 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-2xl overflow-x-auto no-scrollbar">
 
              {/* Grupo 1: Alertas & Comunicación */}
              <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
