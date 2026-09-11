@@ -368,8 +368,86 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
            </div>
 
-           {/* 3D Glassmorphic Table Container */}
-           <div className="bg-slate-950/80 backdrop-blur-2xl border border-teal-500/30 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-teal-500/20">
+           {/* Mobile Card View (< md) */}
+           <div className="block md:hidden space-y-3">
+              {patientResults.map(res => {
+                 const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
+                 const isHigh = res.flag === 'ALTO';
+                 const isCritical = res.flag?.includes('CRITICO');
+
+                 return (
+                    <div
+                      key={res.id}
+                      onClick={() => setActiveTraceabilityId(res.id)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
+                        isCritical
+                          ? 'bg-rose-950/30 border-2 border-rose-500 shadow-lg shadow-rose-500/20'
+                          : isHigh
+                          ? 'bg-amber-950/20 border-2 border-amber-500/60 shadow-md'
+                          : selectedResults.includes(res.id)
+                          ? 'bg-teal-500/10 border-teal-400'
+                          : 'bg-slate-900/80 border-slate-800'
+                      }`}
+                    >
+                       {/* Mobile Card Header */}
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                             <button
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id]);
+                               }}
+                               className={`w-5 h-5 rounded-lg border flex items-center justify-center ${
+                                 selectedResults.includes(res.id)
+                                   ? 'bg-teal-500 border-teal-500 text-slate-950 font-black'
+                                   : 'bg-slate-950 border-slate-800 text-transparent'
+                               }`}
+                             >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                             </button>
+                             <span className="font-black text-white text-xs uppercase">{res.parameterName}</span>
+                          </div>
+
+                          {isValidated ? (
+                            <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-black uppercase rounded-full">
+                              VALIDADO
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-black uppercase rounded-full">
+                              PENDIENTE
+                            </span>
+                          )}
+                       </div>
+
+                       {/* Mobile Value Display */}
+                       <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                          <div>
+                             <span className="text-[9px] text-slate-500 font-bold uppercase block">Resultado</span>
+                             <span className={`text-lg font-black font-mono ${isCritical ? 'text-rose-400 animate-pulse' : isHigh ? 'text-amber-300' : 'text-emerald-400'}`}>
+                                {res.value} <span className="text-xs text-slate-400 font-normal">{res.unit}</span>
+                             </span>
+                          </div>
+
+                          <div className="text-right">
+                             <span className="text-[9px] text-slate-500 font-bold uppercase block">Valor Referencia</span>
+                             <span className="text-xs text-slate-300 font-mono italic">{res.refRangeText}</span>
+                          </div>
+                       </div>
+
+                       {/* Mobile Alert Banner if High/Critical */}
+                       {(isHigh || isCritical) && (
+                          <div className={`p-2.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 ${isCritical ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' : 'bg-amber-500/20 border-amber-500/40 text-amber-300'}`}>
+                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                             <span>{isCritical ? '🚨 VALOR CRÍTICO DE PÁNICO — Notificación obligatoria.' : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el valor máximo.`}</span>
+                          </div>
+                       )}
+                    </div>
+                 );
+              })}
+           </div>
+
+           {/* Desktop 3D Glassmorphic Table Container (>= md) */}
+           <div className="hidden md:block bg-slate-950/80 backdrop-blur-2xl border border-teal-500/30 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-teal-500/20 overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                  <thead className="bg-slate-950/90 text-slate-400 font-black uppercase text-[9px] tracking-widest border-b border-teal-500/20 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
