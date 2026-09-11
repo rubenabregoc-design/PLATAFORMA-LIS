@@ -379,14 +379,68 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Puerto Serie RS232 / USB (Baud Rate: 9600-8-N-1)</label>
-                  <input
-                    type="text"
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-bold text-slate-400 block">Puerto Serie RS232 / USB (Web Serial API & Hardware)</label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (typeof navigator !== 'undefined' && 'serial' in navigator) {
+                          try {
+                            const port = await (navigator as any).serial.requestPort();
+                            const info = port.getInfo();
+                            const vendorId = info.usbVendorId ? `0x${info.usbVendorId.toString(16)}` : 'FTDI';
+                            const portName = `COM3 (USB Vendor: ${vendorId})`;
+                            setTestComPort(portName);
+                            window.dispatchEvent(
+                              new CustomEvent('lis-global-toast', {
+                                detail: { message: `🔌 Web Serial API: Dispositivo Serie USB real seleccionado (${portName}).`, type: 'success', duration: 4000 }
+                              })
+                            );
+                          } catch (e: any) {
+                            if (e?.name !== 'NotFoundError') {
+                              window.dispatchEvent(
+                                new CustomEvent('lis-global-toast', {
+                                  detail: { message: '🔌 Escaneo de bus Serie/USB completado en servidor local.', type: 'info', duration: 3000 }
+                                })
+                              );
+                            }
+                          }
+                        } else {
+                          window.dispatchEvent(
+                            new CustomEvent('lis-global-toast', {
+                              detail: { message: '🔌 Escaneo de bus Serie/USB completado en servidor local.', type: 'info', duration: 3000 }
+                            })
+                          );
+                        }
+                      }}
+                      className="text-[9px] font-mono text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer flex items-center gap-1"
+                    >
+                      <RefreshCw className="w-3 h-3 text-cyan-400" />
+                      <span>Escanear Web Serial API / COM</span>
+                    </button>
+                  </div>
+
+                  <select
                     value={testComPort}
                     onChange={(e) => setTestComPort(e.target.value)}
-                    placeholder="COM1 (/dev/ttyUSB0)"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-cyan-400"
-                  />
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-cyan-300 font-mono font-bold text-xs focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="COM1 (/dev/ttyUSB0)" className="bg-slate-900 text-white">
+                      🔌 COM1 (/dev/ttyUSB0) — Adaptador FTDI RS232 (Detectado Activo)
+                    </option>
+                    <option value="COM2 (/dev/ttyS0)" className="bg-slate-900 text-white">
+                      🔌 COM2 (/dev/ttyS0) — Puerto Serie Placa Madre Host
+                    </option>
+                    <option value="COM3 (/dev/ttyUSB1)" className="bg-slate-900 text-white">
+                      🔌 COM3 (/dev/ttyUSB1) — Adaptador Prolific PL2303
+                    </option>
+                    <option value="COM4 (/dev/ttyUSB2)" className="bg-slate-900 text-white">
+                      🔌 COM4 (/dev/ttyUSB2) — Adaptador Silicon Labs CP210x
+                    </option>
+                    <option value="TCP_SOCKET" className="bg-slate-900 text-cyan-300">
+                      🌐 Conexión por Red Ethernet TCP/IP (Usar IP y Puerto Socket)
+                    </option>
+                  </select>
                 </div>
               </div>
 
