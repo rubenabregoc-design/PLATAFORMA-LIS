@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Order, TestResult, Patient, Analyzer, User } from '../../types';
-import { MOCK_TEST_CATALOG } from '../../data/mockData';
+import { MOCK_TEST_CATALOG, MOCK_ANALYZERS } from '../../data/mockData';
+import { ResultsAlertsCenter } from './ResultsAlertsCenter';
+import { ResultsClinicalCalculator } from './ResultsClinicalCalculator';
+import { ResultsTelemetryDashboard } from './ResultsTelemetryDashboard';
 import {
   UserCircle, RefreshCw, Disc, Timer, Layers, Search, X, Zap,
   PencilLine, Cpu, Mic, Calculator, MessageSquare, TrendingUp,
@@ -23,7 +26,7 @@ interface ResultEntryWorkspaceProps {
 }
 
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
-  order: initialOrder, patient: initialPatient, results, currentUser,
+  order: initialOrder, patient: initialPatient, results, analyzers = MOCK_ANALYZERS, currentUser,
   onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
   onConsultInterBranch, onUpdateOrderTests, allOrders = [], allPatients = []
 }) => {
@@ -53,6 +56,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [activeTraceabilityId, setActiveTraceabilityId] = useState<string | null>(null);
   const [unvalidateReason, setUnvalidateReason] = useState('');
   const [showUnvalidateModal, setShowUnvalidateModal] = useState(false);
+
+  const [showAlertsCenterModal, setShowAlertsCenterModal] = useState(false);
+  const [showClinicalCalcModal, setShowClinicalCalcModal] = useState(false);
+  const [showTelemetryModal, setShowTelemetryModal] = useState(false);
 
   const [tempValue, setTempValue] = useState<string>('');
   const [tempNote, setTempNote] = useState<string>('');
@@ -608,16 +615,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
              {/* Grupo 1: Alertas & Comunicación */}
              <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
                 <button
-                  title="PROTOCOLO DE PÁNICO: Notificar Crítico vía SMS/Push"
-                  onClick={() => {
-                    const criticals = selectedResults.filter(id => results.find(r => r.id === id)?.flag?.includes('CRITICO'));
-                    if (criticals.length === 0) { alert('Esta función requiere analitos con flag CRÍTICO seleccionados.'); return; }
-                    alert(`Alerta de Pánico enviada para ${criticals.length} resultados.`);
-                  }}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all group ${
+                  title="CENTRO DE ALERTAS Y PÁNICOS: Gestionar valores críticos y pánicos"
+                  onClick={() => setShowAlertsCenterModal(true)}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer group ${
                     selectedResults.some(id => results.find(r => r.id === id)?.flag?.includes('CRITICO'))
                     ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30 animate-pulse'
-                    : 'bg-slate-800/20 text-slate-700'
+                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-slate-950'
                   }`}
                 >
                   <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -637,21 +640,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
              {/* Grupo 2: Herramientas de Cálculo & Trazado */}
              <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
                 <button
-                  title="DILUCIONES: Aplicar factor de dilución al resultado"
-                  onClick={() => {
-                    if (selectedResults.length === 0) return;
-                    const factor = prompt('Ingrese el factor de dilución (ej: 2, 5, 10):');
-                    if (factor && !isNaN(Number(factor))) {
-                       selectedResults.forEach(id => {
-                         const res = results.find(r => r.id === id);
-                         if (res && res.numericValue) {
-                           onUpdateResultValue(id, (res.numericValue * Number(factor)).toString(), res);
-                         }
-                       });
-                       alert(`Factor x${factor} aplicado.`);
-                    }
-                  }}
-                  className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center hover:bg-amber-500 hover:text-slate-950 transition-all group"
+                  title="SUITE DE CALCULADORAS CLÍNICAS: eGFR, LDL, HOMA-IR, De Ritis, Calcio Corregido"
+                  onClick={() => setShowClinicalCalcModal(true)}
+                  className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center hover:bg-amber-500 hover:text-slate-950 transition-all group cursor-pointer"
                 >
                   <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
@@ -671,7 +662,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 <button title="AUDIT TRAIL: Ver historial completo de modificaciones" onClick={() => setShowAuditLog(true)} className="w-12 h-12 rounded-2xl bg-slate-800/40 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition-all group">
                   <RotateCcw className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
-                <button title="TREND ANALYTICS: Gráficas de evolución histórica" onClick={() => setShowTrendViewer(true)} className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center hover:bg-teal-500 hover:text-white transition-all group text-teal-400">
+                <button title="TELEMETRÍA & TENDENCIAS: Gráficas de evolución histórica del paciente" onClick={() => setShowTelemetryModal(true)} className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center hover:bg-teal-500 hover:text-white transition-all group text-teal-400 cursor-pointer">
                   <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
                 <button
@@ -1079,7 +1070,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 <div className="grid grid-cols-2 gap-5 pt-4">
                    <button
                      onClick={() => { setShowUnvalidateModal(false); setUnvalidateReason(''); setActiveTraceabilityId(null); }}
-                     className="py-4 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-2xl text-xs transition-all uppercase tracking-widest"
+                     className="py-4 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-2xl text-xs transition-all uppercase tracking-widest cursor-pointer"
                    >
                       Cancelar
                    </button>
@@ -1100,7 +1091,6 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                         idsToRevoke.forEach(id => {
                           onUpdateResultStatus(id, 'INGRESADO');
-                          // Simulamos la inserción en el motor de trazabilidad real
                           console.log(`[ISO 15189 AUDIT] Result ${id} REVOKED by ${currentUser.name}. Reason: ${unvalidateReason}`);
                         });
 
@@ -1110,11 +1100,56 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                         setSelectedResults([]);
                         alert(`AUDITORÍA PROCESADA: Se han revocado ${idsToRevoke.length} validaciones. Los analitos vuelven a estado de edición.`);
                      }}
-                     className="py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition-all shadow-xl shadow-amber-500/20 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
+                     className="py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition-all shadow-xl shadow-amber-500/20 uppercase tracking-widest disabled:opacity-30 disabled:grayscale cursor-pointer"
                    >
                       Confirmar Desvalidación
                    </button>
                 </div>
+             </div>
+          </div>
+        )}
+
+        {/* Modals for Pulled GitHub Suites */}
+        {showAlertsCenterModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+             <div className="bg-slate-900 border border-rose-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                <button onClick={() => setShowAlertsCenterModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
+                <ResultsAlertsCenter
+                  order={currentOrder}
+                  patient={currentPatient}
+                  results={patientResults}
+                  currentUser={currentUser}
+                  onUpdateInterpretation={onUpdateInterpretation}
+                  onUpdateResultStatus={onUpdateResultStatus}
+                />
+             </div>
+          </div>
+        )}
+
+        {showClinicalCalcModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+             <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                <button onClick={() => setShowClinicalCalcModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
+                <ResultsClinicalCalculator
+                  order={currentOrder}
+                  patient={currentPatient}
+                  results={patientResults}
+                  onUpdateResultValue={onUpdateResultValue}
+                />
+             </div>
+          </div>
+        )}
+
+        {showTelemetryModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+             <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                <button onClick={() => setShowTelemetryModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
+                <ResultsTelemetryDashboard
+                  order={currentOrder}
+                  patient={currentPatient}
+                  results={patientResults}
+                  analyzers={analyzers}
+                />
              </div>
           </div>
         )}
