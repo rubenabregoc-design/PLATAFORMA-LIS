@@ -1,10 +1,10 @@
 @echo off
-title AbregoTech LIS/HIS - Lanzador Unificado de Produccion On-Premises
+title AbregoTech LIS/HIS - Lanzador Unificado de Produccion On-Premises (HTTPS SSL)
 color 0B
 cd /d "%~dp0"
 
 echo ============================================================
-echo   AbregoTech LIS/HIS - Lanzamiento de Produccion Local 1-Clic
+echo   AbregoTech LIS/HIS - Produccion Local HTTPS Cifrada (1-Clic)
 echo ============================================================
 echo   [1/3] Iniciando Servidor de Base de Datos PostgreSQL 15...
 start "AbregoTech BD" /min cmd /k "cd /d "%~dp0" && iniciar-bd.bat"
@@ -12,14 +12,14 @@ start "AbregoTech BD" /min cmd /k "cd /d "%~dp0" && iniciar-bd.bat"
 echo   [2/3] Levantando Middleware ACE Daemon y Puertos de Equipos...
 start "AbregoTech ACE" /min cmd /k "cd /d "%~dp0" && START_ACE_DAEMON.bat"
 
-echo   [3/3] Activando Servidor LISCORE en Red LAN...
+echo   [3/3] Activando Servidor LISCORE con Certificado SSL HTTPS...
 start "AbregoTech LISCORE" cmd /k "cd /d "%~dp0" && npm run dev -- --host"
 
 echo ============================================================
-echo   ¡PRODUCCION LOCAL COMPLETA ACTIVA EN 1-CLIC!
-echo   - Acceso Red LAN:     http://192.168.0.8:3000
-echo   - Acceso Servidor:    http://localhost:3000
+echo   ¡PRODUCCION LOCAL HTTPS SSL ACTIVA EN 1-CLIC!
+echo   - URL Cifrada HTTPS:   https://192.168.0.8:3000
+echo   - URL Cifrada Local:   https://localhost:3000
 echo ============================================================
 echo.
 timeout /t 4 >nul
-start http://192.168.0.8:3000
+start https://localhost:3000
