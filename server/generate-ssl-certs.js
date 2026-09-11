@@ -29,8 +29,9 @@ async function main() {
       {
         name: 'subjectAltName',
         altNames: [
-          { type: 2, value: 'localhost' },
+          { type: 2, value: 'his.local' },
           { type: 2, value: 'lis.local' },
+          { type: 2, value: 'localhost' },
           { type: 7, value: '127.0.0.1' },
           { type: 7, value: '192.168.0.8' }
         ]
