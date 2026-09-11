@@ -285,7 +285,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     <h2 className="text-lg font-black text-white uppercase italic tracking-tight">{currentPatient.firstName} {currentPatient.lastName}</h2>
                     {currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? (
                        <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
-                          <Zap className="w-3 h-3 fill-current" /> STAT URGENTE
+                          <Zap className="w-3 h-3 fill-current" /> URGENTE
                        </span>
                     ) : (
                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">

@@ -1172,7 +1172,7 @@ ${statHeader}${aliquotHeader}^BY2,2,60
               </label>
 
               <label className="flex items-center justify-between text-slate-300 cursor-pointer">
-                <span>Mostrar Franja Urgencia STAT</span>
+                <span>Mostrar Franja de Urgente</span>
                 <input
                   type="checkbox"
                   checked={!!activeTemplate.isStatUrgent}

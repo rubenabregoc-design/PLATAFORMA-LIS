@@ -64,8 +64,32 @@ interface LisState {
 export const useLisStore = create<LisState>()(
   persist(
     (set, get) => ({
-      currentUser: MOCK_USERS[0], // Default for dev
-      currentRole: 'owner',
+      currentUser: (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('abregotech_lis_store_v1');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed?.state?.currentUser) return parsed.state.currentUser;
+            }
+          } catch (e) {}
+        }
+        return MOCK_USERS[0];
+      })(),
+
+      currentRole: (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('abregotech_lis_store_v1');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed?.state?.currentRole) return parsed.state.currentRole;
+            }
+          } catch (e) {}
+        }
+        return 'owner';
+      })(),
+
       currentTenant: MOCK_TENANTS[0],
       currentBranch: MOCK_TENANTS[0].branches[0],
       isAuthenticated: typeof window !== 'undefined' ? localStorage.getItem('lis_auth_active') === 'true' : false,
@@ -75,7 +99,19 @@ export const useLisStore = create<LisState>()(
       patients: MOCK_PATIENTS,
 
       activeOrderId: MOCK_ORDERS[0].id,
-      activeTab: 'dashboard',
+
+      activeTab: (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('abregotech_lis_store_v1');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed?.state?.activeTab) return parsed.state.activeTab;
+            }
+          } catch (e) {}
+        }
+        return 'dashboard';
+      })(),
       isLoading: false,
       isSyncing: false,
       isDemoMode: false,

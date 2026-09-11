@@ -111,7 +111,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       status: 'NOTIFICADO',
       criticalReason: 'Orden STAT prioritaria de urgencia con panel completo.',
       criticalParameters: [
-        { parameterName: 'Prioridad de Servicio', value: 'STAT URGENTE', unit: 'MinSA', refRangeText: 'Rutina', flag: 'ALTO', specimenType: 'Sangre Total' }
+        { parameterName: 'Prioridad de Servicio', value: 'URGENTE', unit: 'MinSA', refRangeText: 'Rutina', flag: 'ALTO', specimenType: 'Sangre Total' }
       ],
       history: [
         {
@@ -477,24 +477,24 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
           patientPhone: patientToUse.phone || '+507 6332-9900',
           doctorName: newOrder.doctorName,
           flaggedAt: new Date().toISOString(),
-          flaggedBy: 'Admisión Recepción (Urgencia STAT)',
+          flaggedBy: 'Admisión Recepción (Urgente)',
           urgencyLevel: 'ALTA_PRIORIDAD',
           status: 'PENDIENTE',
-          criticalReason: 'Ingreso urgente STAT marcado para notificación prioritaria inmediata.',
+          criticalReason: 'Ingreso urgente marcado para notificación prioritaria inmediata.',
           criticalParameters: [
-            { parameterName: 'Urgencia de Ingreso', value: 'STAT Prioritario', unit: 'MinSA', refRangeText: 'Rutina', flag: 'ALTO' }
+            { parameterName: 'Urgencia de Ingreso', value: 'Urgente Prioritario', unit: 'MinSA', refRangeText: 'Rutina', flag: 'ALTO' }
           ],
           history: [
             {
               id: `log-${Date.now()}`,
               timestamp: new Date().toISOString(),
-              action: 'Pre-Marcado Urgencia STAT',
+              action: 'Pre-Marcado Urgente',
               user: 'Recepcionista (Ventanilla 1)',
               channel: 'TELEFONO',
               recipientType: 'PACIENTE_DIRECTO',
               recipientName: newOrder.patientName,
               recipientContact: patientToUse.phone || '+507 6332-9900',
-              outcome: 'Orden STAT registrada; preparada para notificación inmediata de resultados.'
+              outcome: 'Orden urgente registrada; preparada para notificación inmediata de resultados.'
             }
           ]
         }
@@ -1133,7 +1133,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     <div className="flex items-center space-x-2.5">
                       <Zap className={`w-4 h-4 ${isStat ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`} />
                       <div className="text-left">
-                        <span className={`text-[9px] font-black uppercase tracking-widest block ${isStat ? 'text-rose-400' : 'text-slate-500'}`}>Urgencia STAT</span>
+                        <span className={`text-[9px] font-black uppercase tracking-widest block ${isStat ? 'text-rose-400' : 'text-slate-500'}`}>Urgente</span>
                         {isStat && <span className="text-[8px] text-rose-300 font-mono">🚨 Alerta Crítica Activada</span>}
                       </div>
                     </div>

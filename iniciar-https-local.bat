@@ -1,12 +1,11 @@
 @echo off
-title AbregoTech LIS - HTTPS SSL Local Proxy (Caddy)
+title AbregoTech LIS - Servidor Local Node.js
 color 0B
 echo ============================================================
-echo   AbregoTech LIS - Servidor HTTPS SSL Local Cifrado
+echo   AbregoTech LIS - Servidor Local On-Premises
 echo ============================================================
-echo   - URL HTTPS Cifrada:   https://192.168.0.8
-echo   - Candado SSL Activo:  HTTPS Cifrado de Extremo a Extremo
+echo   - Acceso Red LAN: http://192.168.0.8:3000
 echo ============================================================
 echo.
-caddy run --config Caddyfile
+node server/local-https-proxy.js
 pause
