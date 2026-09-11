@@ -1,18 +1,22 @@
 @echo off
-title AbregoTech LIS/HIS - Lanzador Unificado de Produccion On-Premises (HTTPS SSL)
+title AbregoTech LIS/HIS - Lanzador Unificado de Produccion On-Premises (HTTPS SSL Confiable)
 color 0B
 cd /d "%~dp0"
 
 echo ============================================================
-echo   AbregoTech LIS/HIS - Produccion Local HTTPS Cifrada (1-Clic)
+echo   AbregoTech LIS/HIS - Produccion Local HTTPS SSL (1-Clic)
 echo ============================================================
-echo   [1/3] Iniciando Servidor de Base de Datos PostgreSQL 15...
+echo   [1/4] Verificando e Instalando Certificado SSL Confiable en Windows...
+powershell -ExecutionPolicy Bypass -File "%~dp0server\install-trusted-ssl.ps1"
+
+echo.
+echo   [2/4] Iniciando Servidor de Base de Datos PostgreSQL 15...
 start "AbregoTech BD" /min cmd /k "cd /d "%~dp0" && iniciar-bd.bat"
 
-echo   [2/3] Levantando Middleware ACE Daemon y Puertos de Equipos...
+echo   [3/4] Levantando Middleware ACE Daemon y Puertos de Equipos...
 start "AbregoTech ACE" /min cmd /k "cd /d "%~dp0" && START_ACE_DAEMON.bat"
 
-echo   [3/3] Activando Servidor LISCORE con Certificado SSL HTTPS...
+echo   [4/4] Activando Servidor LISCORE con Certificado SSL HTTPS...
 start "AbregoTech LISCORE" cmd /k "cd /d "%~dp0" && npm run dev -- --host"
 
 echo ============================================================
