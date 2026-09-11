@@ -70,6 +70,10 @@ import BiohazardWasteManager from './components/Phase6Suite/TechnologistSuite/Bi
 import { AnalyticalValidationWorkstation } from './components/Phase6Suite/TechnologistSuite/AnalyticalValidationWorkstation';
 import HISIntegrationConsole from './components/Phase6Suite/TechnologistSuite/HISIntegrationConsole';
 
+import { ResultsAlertsCenter } from './components/RoleDashboards/ResultsAlertsCenter';
+import { ResultsClinicalCalculator } from './components/RoleDashboards/ResultsClinicalCalculator';
+import { ResultsTelemetryDashboard } from './components/RoleDashboards/ResultsTelemetryDashboard';
+
 import { SecureInternalMessagingWidget } from './components/SecureInternalMessagingWidget';
 import { MasterTestCatalogManager } from './components/MasterTestCatalogManager';
 
@@ -551,6 +555,32 @@ export default function App() {
             {/* LIS & Workstation Sub-Modules */}
             {activeTab === 'lis_workstation' && (
               <AnalyticalValidationWorkstation />
+            )}
+            {activeTab === 'lis_alerts_center' && (
+              <ResultsAlertsCenter
+                order={orders[0]}
+                patient={patients[0]}
+                results={results}
+                currentUser={currentUser}
+                onUpdateInterpretation={handleUpdateInterpretation}
+                onUpdateResultStatus={(id, status) => setResults(prev => prev.map(r => r.id === id ? { ...r, status } : r))}
+              />
+            )}
+            {activeTab === 'lis_calculators' && (
+              <ResultsClinicalCalculator
+                order={orders[0]}
+                patient={patients[0]}
+                results={results}
+                onUpdateResultValue={handleUpdateResultValue}
+              />
+            )}
+            {activeTab === 'lis_telemetry' && (
+              <ResultsTelemetryDashboard
+                order={orders[0]}
+                patient={patients[0]}
+                results={results}
+                analyzers={MOCK_ANALYZERS}
+              />
             )}
 
             {/* Other modules */}

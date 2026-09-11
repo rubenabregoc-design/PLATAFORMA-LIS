@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
@@ -43,8 +43,11 @@ export const NAVIGATION_TABS = [
   { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck },
   { id: 'pathology', label: 'Patología Anatómica', icon: Microscope },
   { id: 'batch_reporting', label: 'Batch Reporting PDF', icon: Files },
-  { id: 'lis_hil', label: 'Preanalítica HIL', icon: Droplets },
-  { id: 'lis_panic', label: 'Registro de Pánicos', icon: AlertTriangle },
+  { id: 'lis_hil', label: 'Preanalítica HIL', icon: Droplets, desc: 'Evaluación de índices de Hemólisis, Ictericia y Lipemia.', example: 'Ej: Muestra Lipémica 2+ requiere blanco de suero' },
+  { id: 'lis_panic', label: 'Registro de Pánicos', icon: AlertTriangle, desc: 'Bitácora obligatoria de notificación telefónica de valores críticos.', example: 'Ej: Notificado a Dr. Arosemena (Troponina I > 1.5)' },
+  { id: 'lis_alerts_center', label: 'Centro de Alertas & Pánicos', icon: ShieldCheck, desc: 'Consola unificada de gestión de pánicos y notificaciones ISO 15189.', example: 'Ej: Gestión de alertas de pánico' },
+  { id: 'lis_calculators', label: 'Suite Calculadoras Clínicas', icon: Calculator, desc: 'Calculadoras para eGFR, LDL Martin-Hopkins, HOMA-IR y De Ritis.', example: 'Ej: eGFR 85 mL/min/1.73m²' },
+  { id: 'lis_telemetry', label: 'Telemetría de Analizadores', icon: BrainCircuit, desc: 'Monitoreo de telemetría de equipos y gráficas de evolución.', example: 'Ej: Gráfica de tendencia histórica' },
 
   // 🏥 HIS (Suite Hospitalaria - 10 Módulos)
   { id: 'his_triage', label: 'Urgencias & Triage', icon: Activity },
@@ -137,14 +140,14 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
-  // Grand Domain Categories Definition (Explicitly mapping all 55 modules)
+  // Grand Domain Categories Definition (Explicitly mapping all 58 modules)
   const DOMAIN_CATEGORIES = [
     {
       id: 'lis',
       label: 'Laboratorio',
       icon: Microscope,
-      badge: '15 Módulos',
-      tabs: ['validation', 'tm_workbench', 'lis_workstation', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy', 'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_specialized']
+      badge: '18 Módulos',
+      tabs: ['validation', 'tm_workbench', 'lis_workstation', 'patient_results', 'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy', 'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_specialized', 'lis_alerts_center', 'lis_calculators', 'lis_telemetry']
     },
     {
       id: 'his',
