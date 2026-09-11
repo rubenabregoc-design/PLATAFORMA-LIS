@@ -39,6 +39,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const { language, setLanguage } = useLisStore();
+
   // Live ticking clock state for official Panama date & time
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -158,10 +160,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     >
       {/* TOP BAR */}
       <div className="relative z-10 flex items-center justify-end w-full shrink-0">
-        <div className="px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-200 text-xs font-bold flex items-center space-x-1.5 cursor-pointer hover:border-slate-500 backdrop-blur-md transition shadow-md">
-          <span className="text-xs">🇵🇦</span>
-          <span>ES</span>
-          <span className="text-[9px] text-slate-400">▼</span>
+        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-cyan-500/40 text-slate-100 text-xs font-bold backdrop-blur-md shadow-md hover:border-cyan-300 transition-colors">
+          <span>{language === 'ES' ? '🇵🇦' : '🇺🇸'}</span>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as 'ES' | 'EN')}
+            className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer"
+          >
+            <option value="ES" className="bg-slate-900 text-white">ES — Español</option>
+            <option value="EN" className="bg-slate-900 text-white">EN — English</option>
+          </select>
         </div>
       </div>
 

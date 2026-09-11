@@ -30,6 +30,7 @@ interface LisState {
   isSyncing: boolean;
   isDemoMode: boolean;
   isSessionLocked: boolean;
+  language: 'ES' | 'EN';
 
   // --- Actions ---
   canDo: (permission: Permission) => boolean;
@@ -40,6 +41,7 @@ interface LisState {
   setSessionLock: (locked: boolean) => void;
   setActiveTab: (tab: string) => void;
   setActiveOrder: (orderId: string) => void;
+  setLanguage: (lang: 'ES' | 'EN') => void;
 
   // --- Domain Actions ---
   setCurrentUser: (user: User | null) => void;
@@ -116,6 +118,9 @@ export const useLisStore = create<LisState>()(
       isSyncing: false,
       isDemoMode: false,
       isSessionLocked: false,
+      language: 'ES',
+
+      setLanguage: (lang) => set({ language: lang }),
 
       canDo: (permission) => {
         const role = get().currentRole;
@@ -628,6 +633,7 @@ export const useLisStore = create<LisState>()(
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
         currentRole: state.currentRole,
+        language: state.language,
         activeTab: state.activeTab,
         activeOrderId: state.activeOrderId,
         orders: state.orders,

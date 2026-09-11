@@ -161,7 +161,9 @@ export const Header: React.FC<HeaderProps> = ({
     setActiveTab,
     logout,
     isSyncing,
-    isDemoMode
+    isDemoMode,
+    language,
+    setLanguage
   } = useLisStore();
 
   const allowedTabIds = showAllModules
@@ -354,6 +356,31 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Offline Sync */}
           <OfflineSyncIndicator />
+
+          {/* Interactive Language Selector Dropdown (ES / EN) */}
+          <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-2.5 py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
+            <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => {
+                const newLang = e.target.value as 'ES' | 'EN';
+                setLanguage(newLang);
+                window.dispatchEvent(
+                  new CustomEvent('lis-global-toast', {
+                    detail: {
+                      message: newLang === 'ES' ? '🇪🇸 Idioma cambiado a Español (Panamá).' : '🇺🇸 Language switched to English (US).',
+                      type: 'info',
+                      duration: 3000
+                    }
+                  })
+                );
+              }}
+              className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="ES" className="bg-slate-900 text-white">🇵🇦 ES</option>
+              <option value="EN" className="bg-slate-900 text-white">🇺🇸 EN</option>
+            </select>
+          </div>
 
           {/* Quick Punch Clock / Marcaje Turno Button (ALL ROLES) */}
           <button
