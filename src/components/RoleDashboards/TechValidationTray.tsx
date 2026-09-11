@@ -65,9 +65,9 @@ export const TechValidationTray: React.FC<TechValidationTrayProps> = ({
       </div>
 
       {/* Main Validation Workspace */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-xl">
+      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[1000px]">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-950/50 text-slate-500 border-b border-slate-800 font-black uppercase tracking-[0.15em] text-[10px]">
                 <th className="px-6 py-5">Paciente / Orden</th>

@@ -116,7 +116,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
             </div>
 
             <div className="overflow-x-auto border border-slate-200/80 rounded-2xl">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="bg-slate-50 text-slate-700 border-b font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="p-3">N° Orden</th>

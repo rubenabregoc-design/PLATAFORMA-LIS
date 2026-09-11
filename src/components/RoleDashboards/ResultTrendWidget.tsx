@@ -31,11 +31,13 @@ import {
 } from 'recharts';
 
 interface ResultTrendWidgetProps {
-  order: Order;
+  order?: Order;
   patient: Patient;
   results: TestResult[];
   selectedResultId?: string | null;
   onSelectResultId?: (resultId: string) => void;
+  initialAnalyte?: string;
+  onClose?: () => void;
 }
 
 export interface HistoricalPoint {
@@ -58,11 +60,28 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
   patient,
   results,
   selectedResultId,
-  onSelectResultId
+  onSelectResultId,
+  initialAnalyte,
+  onClose
 }) => {
+  const targetInitialResult = initialAnalyte
+    ? results.find(r => r.parameterName.toLowerCase() === initialAnalyte.toLowerCase())
+    : null;
+
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(
+    targetInitialResult?.id || selectedResultId || (results.length > 0 ? results[0].id : null)
+  );
+
   // If no selected result, default to the first result in the list
-  const activeResultId = selectedResultId || (results.length > 0 ? results[0].id : null);
+  const activeResultId = internalSelectedId || selectedResultId || (results.length > 0 ? results[0].id : null);
   const activeResult = results.find(r => r.id === activeResultId) || results[0];
+
+  const handleSelectAnalyte = (id: string) => {
+    setInternalSelectedId(id);
+    if (onSelectResultId) {
+      onSelectResultId(id);
+    }
+  };
 
   const [viewMode, setViewMode] = useState<'GRAFICO' | 'DETALLE'>('GRAFICO');
 
@@ -181,7 +200,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
     const curDelta = ((curValNum - roundVal(h1Val)) / roundVal(h1Val)) * 100;
     const currentPoint: HistoricalPoint = {
       id: activeResult.id,
-      orderNumber: order.orderNumber,
+      orderNumber: order?.orderNumber || 'ORD-ACTUAL',
       date: 'Hoy (11/08/2026)',
       time: '21:38',
       value: curValNum,
@@ -201,7 +220,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
     };
 
     return [p3, p2, p1, currentPoint];
-  }, [activeResult, order.orderNumber, refMinMax]);
+  }, [activeResult, order?.orderNumber, refMinMax]);
 
   // Delta Check Analysis calculation vs immediate previous (Histórico 1)
   const currentPoint = historicalSeries[historicalSeries.length - 1];
@@ -277,7 +296,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
             return (
               <button
                 key={r.id}
-                onClick={() => onSelectResultId && onSelectResultId(r.id)}
+                onClick={() => handleSelectAnalyte(r.id)}
                 className={`px-4 py-2 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center space-x-2 border ${
                   isSelected
                     ? 'bg-teal-500/20 border-teal-500 text-teal-300 ring-2 ring-teal-500/30 shadow-lg'

@@ -497,7 +497,7 @@ export const BatchReportingStudio: React.FC<BatchReportingStudioProps> = ({
       {/* Orders Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[800px]">
             <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-extrabold text-[10px] border-b border-slate-800">
               <tr>
                 <th className="py-4 px-4 w-10 text-center">
