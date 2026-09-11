@@ -46,7 +46,8 @@ export default defineConfig(() => {
     server: {
       host: true, // Listen on all network interfaces (0.0.0.0) so LAN IP (e.g. 192.168.0.8:3000) works
       port: 3000,
-      https: hasCustomCert ? {
+      https: (fs.existsSync(path.resolve(__dirname, 'server/cert.pem')) && fs.existsSync(path.resolve(__dirname, 'server/key.pem'))) ? {
+        key: fs.readFileSync(path.resolve(__dirname, 'server/key.pem')),
         cert: fs.readFileSync(path.resolve(__dirname, 'server/cert.pem')),
       } : true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
