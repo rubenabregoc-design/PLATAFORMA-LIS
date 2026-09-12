@@ -506,7 +506,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-white/5">
-                    {patientResults.map(res => {
+                    {patientResults.map((res, index) => {
                       const { text, isLate } = getTimeAgoData(res.createdAt);
                       const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
                       const isNoteExpanded = expandingNotesId === res.id;
@@ -514,8 +514,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       const isCritical = res.flag?.includes('CRITICO');
 
                       return (
-                        <React.Fragment key={res.id}>
+                        <React.Fragment key={`frag-${res.id}-${index}`}>
                         <tr
+                          key={`tr-main-${res.id}-${index}`}
                           onClick={() => setActiveTraceabilityId(res.id)}
                           className={`group/row cursor-pointer transition-all border-l-4 ${
                             isCritical
@@ -701,7 +702,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                         {/* Inline Clinical Alert Card for High or Critical Values */}
                         {(res.flag === 'ALTO' || res.flag?.includes('CRITICO')) && (
-                          <tr className={res.flag?.includes('CRITICO') ? 'bg-rose-500/10 border-b border-rose-500/20' : 'bg-amber-500/10 border-b border-amber-500/20'}>
+                          <tr key={`tr-alert-${res.id}-${index}`} className={res.flag?.includes('CRITICO') ? 'bg-rose-500/10 border-b border-rose-500/20' : 'bg-amber-500/10 border-b border-amber-500/20'}>
                             <td colSpan={6} className="px-4 py-2">
                                <div className="flex items-center gap-2 text-[10px] font-bold">
                                   <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${res.flag?.includes('CRITICO') ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
@@ -716,7 +717,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           </tr>
                         )}
                         {isNoteExpanded && (
-                          <tr className="bg-slate-900/60 border-b border-white/5">
+                          <tr key={`tr-note-${res.id}-${index}`} className="bg-slate-900/60 border-b border-white/5">
                             <td colSpan={6} className="p-4">
                                <div className="flex gap-4 items-start animate-in slide-in-from-top-2 duration-300">
                                   <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0"><MessageSquare className="w-5 h-5" /></div>
