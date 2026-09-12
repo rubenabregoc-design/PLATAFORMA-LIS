@@ -825,6 +825,18 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       <span>Ley 81 Protección Datos: Consentimiento OK</span>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSubTab('MANAGEMENT');
+                      setManagementSearchTerm(foundPatient.nationalId);
+                    }}
+                    className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-teal-500/40 text-teal-300 font-extrabold text-[10px] uppercase tracking-wider rounded-2xl transition shadow cursor-pointer flex items-center justify-center space-x-2"
+                  >
+                    <ClipboardList className="w-4 h-4 text-teal-400" />
+                    <span>Ver Historial de Órdenes ({orders.filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id).length})</span>
+                  </button>
                 </div>
               ) : (
                 /* 📝 COMPREHENSIVE ENTERPRISE DEMOGRAPHIC REGISTRATION FORM WITH 1-CLICK AUTO-FILL */
