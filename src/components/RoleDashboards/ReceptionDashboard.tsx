@@ -220,6 +220,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   const [selectedTestIds, setSelectedTestIds] = useState<string[]>([]);
   const [isStat, setIsStat] = useState<boolean>(false);
   const [isFasting, setIsFasting] = useState<boolean>(true);
+  const [isPregnant, setIsPregnant] = useState<boolean>(false);
   const [printSearchTerm, setPrintSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState<string | null>(null);
@@ -851,7 +852,24 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                         .map((ord) => {
                           const ordTests = testCatalog.filter((t) => ord.testIds?.includes(t.id));
                           return (
-                            <div key={ord.id} className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+                            <div
+                              key={ord.id}
+                              onClick={() => {
+                                setSelectedTestIds(ord.testIds || []);
+                                setIsStat(ord.priority === 'STAT' || ord.priority === 'URGENTE');
+                                window.dispatchEvent(
+                                  new CustomEvent('lis-global-toast', {
+                                    detail: {
+                                      message: `✏️ Orden ${ord.orderNumber} cargada en caja. Puede añadir nuevos exámenes o eliminar los existentes.`,
+                                      type: 'info',
+                                      duration: 3500
+                                    }
+                                  })
+                                );
+                              }}
+                              className="p-3 bg-slate-950 hover:bg-slate-900/90 border border-slate-800 hover:border-teal-400 rounded-2xl space-y-1.5 text-xs transition cursor-pointer group shadow-sm"
+                              title="Click para cargar exámenes de esta orden en caja para añadir o eliminar pruebas"
+                            >
                               <div className="flex items-center justify-between">
                                 <span className="font-mono font-black text-cyan-300 text-xs">{ord.orderNumber}</span>
                                 <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-black ${ord.priority === 'STAT' || ord.priority === 'URGENTE' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}`}>
@@ -1033,11 +1051,68 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       </div>
                     </div>
 
-                    {/* SECTION 3: Health Insurance & Clinical Background */}
+                    {/* SECTION 3: Physician, Patient Origin, Insurance & Obstetrics */}
                     <div className="space-y-2.5 bg-slate-950/80 p-3.5 rounded-2xl border border-emerald-500/30">
                       <span className="text-xs font-black text-emerald-300 uppercase block tracking-wider">
-                        3. Cobertura de Seguro & Datos Clínicos
+                        3. Médico Tratante, Procedencia & Cobertura
                       </span>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Médico Tratante / Remitente</label>
+                          <input
+                            type="text"
+                            placeholder="Dr. Fernando Arosemena Boyd"
+                            value={newPatientData.attendingDoctor}
+                            onChange={e => setNewPatientData({ ...newPatientData, attendingDoctor: e.target.value })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Procedencia / Origen</label>
+                          <select
+                            value={newPatientData.patientOrigin}
+                            onChange={e => setNewPatientData({ ...newPatientData, patientOrigin: e.target.value })}
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none font-bold"
+                          >
+                            <option value="Consulta Externa">Consulta Externa</option>
+                            <option value="Urgencias">Urgencias Hospital</option>
+                            <option value="Hospitalización / Sala">Hospitalización / Sala</option>
+                            <option value="Quirófano / CIPA">Quirófano / CIPA</option>
+                            <option value="Chequeo Ejecutivo / Empresa">Chequeo Ejecutivo / Empresa</option>
+                            <option value="Domicilio / Flebotomía">Domicilio / Flebotomía</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Obstetrics / Gestational Weeks (Condition: Only shown if Female) */}
+                      {newPatientData.gender === 'F' && (
+                        <div className="p-2.5 bg-pink-500/10 border border-pink-500/30 rounded-xl space-y-2">
+                          <label className="flex items-center space-x-2 text-xs font-bold text-pink-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={newPatientData.isPregnant}
+                              onChange={e => setNewPatientData({ ...newPatientData, isPregnant: e.target.checked })}
+                              className="rounded border-pink-500 text-pink-500 focus:ring-pink-500"
+                            />
+                            <span>🤰 Paciente Embarazada / Gestante</span>
+                          </label>
+
+                          {newPatientData.isPregnant && (
+                            <div>
+                              <label className="text-[9px] font-black text-pink-300 uppercase block mb-1">Semanas de Gestación</label>
+                              <input
+                                type="text"
+                                placeholder="Ej. 12 Semanas (Primer Trimestre)"
+                                value={newPatientData.gestationalWeeks}
+                                onChange={e => setNewPatientData({ ...newPatientData, gestationalWeeks: e.target.value })}
+                                className="w-full bg-slate-900 border border-pink-500/40 rounded-xl px-3 py-1.5 text-xs text-pink-200 font-bold outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-2.5">
                         <div>
@@ -1053,16 +1128,15 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                             <option value="ASSA">ASSA Compañía de Seguros</option>
                             <option value="MAPFRE">Mapfre Panamá</option>
                             <option value="CLARIA">Claria Life</option>
-                            <option value="SAGICOR">Sagicor Panamá</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Grupo Sanguíneo ABO/Rh</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Grupo Sanguíneo ABO/Rh</label>
                           <select
                             value={newPatientData.bloodType}
                             onChange={e => setNewPatientData({ ...newPatientData, bloodType: e.target.value })}
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none font-bold"
                           >
                             <option value="O+">O Positivo (O+)</option>
                             <option value="O-">O Negativo (O-)</option>
@@ -1077,15 +1151,16 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       </div>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Alergias Conocidas / Medicamentos</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Alergias Conocidas / Medicamentos</label>
                         <input
                           type="text"
                           placeholder="Ej. Penicilina, AINEs, Ninguna"
                           value={newPatientData.clinicalNotes}
                           onChange={e => setNewPatientData({ ...newPatientData, clinicalNotes: e.target.value })}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                         />
                       </div>
+                    </div>
 
                       <div>
                         <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Contacto de Emergencia (Nombre & Teléfono)</label>
@@ -1276,6 +1351,21 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isFasting ? 'left-4' : 'left-0.5'}`}></div>
                     </div>
                   </button>
+
+                  {((foundPatient?.gender === 'F') || (newPatientData.gender === 'F')) && (
+                    <button onClick={() => setIsPregnant(!isPregnant)} className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${isPregnant ? 'bg-pink-500/15 border-pink-500/50 shadow-lg' : 'bg-slate-950 border-white/5'}`}>
+                      <div className="flex items-center space-x-2.5">
+                        <Baby className={`w-4 h-4 ${isPregnant ? 'text-pink-400 animate-pulse' : 'text-slate-600'}`} />
+                        <div className="text-left">
+                          <span className={`text-[9px] font-black uppercase tracking-widest block ${isPregnant ? 'text-pink-300' : 'text-slate-500'}`}>Paciente Embarazada</span>
+                          {isPregnant && <span className="text-[8px] text-pink-300 font-mono">🤰 Rangos Obstétricos Activos</span>}
+                        </div>
+                      </div>
+                      <div className={`w-8 h-4 rounded-full relative transition-colors ${isPregnant ? 'bg-pink-500' : 'bg-slate-800'}`}>
+                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isPregnant ? 'left-4' : 'left-0.5'}`}></div>
+                      </div>
+                    </button>
+                  )}
                 </div>
 
                 {/* Auto-Print Feature Badge */}
@@ -1778,10 +1868,10 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             </div>
 
             <div>
-              <span className="px-3 py-1 rounded-full text-[9px] font-mono font-black bg-teal-500/20 text-teal-300 border border-teal-500/40 uppercase">
-                {createdOrderSummary.orderNumber}
-              </span>
-              <h2 className="text-2xl font-black text-white tracking-tight uppercase mt-2">
+              <div className="inline-flex items-center justify-center px-5 py-2 rounded-2xl bg-slate-950 border-2 border-teal-400 text-teal-300 font-mono font-black text-lg sm:text-xl shadow-lg shadow-teal-500/20 tracking-wider">
+                <span>{createdOrderSummary.orderNumber}</span>
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight uppercase mt-3">
                 Ingreso de Paciente Exitoso
               </h2>
               <p className="text-slate-400 text-xs font-bold mt-1">

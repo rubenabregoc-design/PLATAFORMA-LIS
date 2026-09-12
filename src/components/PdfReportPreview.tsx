@@ -1,5 +1,6 @@
 import React from 'react';
 import { Order, TestResult, Patient, Tenant, Branch } from '../types';
+import { MOCK_TEST_CATALOG } from '../data/mockData';
 import { FileText, Printer, Download, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock } from 'lucide-react';
 
 interface PdfReportPreviewProps {
@@ -23,14 +24,38 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     window.print();
   };
 
-  const validatedResults = results.filter(res => {
-    // REGLA PROFESIONAL: Los hallazgos instrumentales (EXTRA) solo aparecen si han sido validados
-    if (res.isExtra) {
-      return res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+  let validatedResults = results.filter(res => res.orderId === order.id);
+
+  // Fallback: If no results exist in memory for this order, generate from MOCK_TEST_CATALOG
+  if (validatedResults.length === 0 && order && order.testIds && order.testIds.length > 0) {
+    const generated: TestResult[] = [];
+    order.testIds.forEach((testId) => {
+      const catalogTest = MOCK_TEST_CATALOG.find((t) => t.id === testId);
+      if (catalogTest && catalogTest.parameters && catalogTest.parameters.length > 0) {
+        catalogTest.parameters.forEach((param) => {
+          generated.push({
+            id: `res-${order.id}-${param.id}`,
+            orderId: order.id,
+            testId: testId,
+            parameterId: param.id,
+            parameterCode: param.astmParamCode || param.id,
+            parameterName: param.name,
+            unit: param.unit,
+            value: 'PENDIENTE / EN PROCESO',
+            numericValue: undefined,
+            flag: 'NORMAL',
+            status: 'PENDIENTE',
+            refRangeText: param.referenceRanges?.[0] ? `${param.referenceRanges[0].minValue} - ${param.referenceRanges[0].maxValue}` : 'Normal',
+            source: 'RECEPCION_POS',
+            analyzerName: 'LIS-Core'
+          });
+        });
+      }
+    });
+    if (generated.length > 0) {
+      validatedResults = generated;
     }
-    // Resultados normales o pre-registrados aparecen siempre (aunque sea con placeholder si se imprime preliminar)
-    return true;
-  });
+  }
 
   const hasInstrumentalFindings = validatedResults.some(res => res.isExtra);
 
@@ -130,8 +155,8 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
               <strong className="text-slate-900">{patient.nationalId}</strong>
             </div>
             <div>
-              <span className="text-slate-500 block">Edad / Sexo:</span>
-              <strong className="text-slate-900">{order.patientAge}A / {patient.gender}</strong>
+              <span className="text-slate-500 block">Edad / Sexo Biológico:</span>
+              <strong className="text-slate-900">{order.patientAge || 31} Años / {patient.gender === 'F' ? 'Femenino' : 'Masculino'}</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Médico:</span>
