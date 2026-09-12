@@ -1,15 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import basicSsl from '@vitejs/plugin-basic-ssl';
-import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
-  const certPath = path.resolve(__dirname, 'server/cert.pem');
-  const keyPath = path.resolve(__dirname, 'server/key.pem');
-  const hasCustomCerts = fs.existsSync(certPath) && fs.existsSync(keyPath);
-
   return {
     base: './',
     plugins: [react(), tailwindcss()],
@@ -48,10 +42,6 @@ export default defineConfig(() => {
     server: {
       host: true, // Listen on all network interfaces (0.0.0.0) so LAN IP (e.g. 192.168.0.8:3000) works
       port: 3000,
-      https: hasCustomCerts ? {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-      } : false,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
