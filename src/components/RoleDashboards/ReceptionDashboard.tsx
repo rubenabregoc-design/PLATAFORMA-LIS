@@ -197,7 +197,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
         email: `${nombres.split(' ')[0].toLowerCase()}.${apellidos.split(' ')[0].toLowerCase()}@gmail.com`,
         address: `Panamá, ${lugarNacimiento}`,
         isPregnant: false,
-        clinicalNotes: `Lectura oficial Cédula TE Panamá (Serie: ${documentoSerie})`,
+        clinicalNotes: 'Ninguna / Sin alergias conocidas',
         weight: '70 kg',
         height: '175 cm',
         bloodType: 'O+',
