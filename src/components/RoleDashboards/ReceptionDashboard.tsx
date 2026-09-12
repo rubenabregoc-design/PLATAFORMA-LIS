@@ -9,8 +9,9 @@ import {
   Fingerprint, Info, Smartphone, Globe, BriefcaseMedical, Microscope, Beaker, Droplets, Timer,
   Users, Volume2, Settings2, Sliders, Check, RotateCw, Sparkles, FileCode, Tag,
   AlertTriangle, Flame, BellRing, PhoneCall, MessageSquare, Send, ShieldAlert,
-  Share2, UserCheck, History, ExternalLink, Flag
+  Share2, UserCheck, History, ExternalLink, Flag, Camera
 } from 'lucide-react';
+import { QuickScanCameraModal } from '../Phase6Suite/QuickScanCameraModal';
 import { ReceptionTurnManagement } from './ReceptionTurnManagement';
 import { turnService } from '../../utils/turnService';
 import { printerService, ThermalPrinterDevice, SpecimenTubeLabel } from '../../utils/printerService';
@@ -210,29 +211,6 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       window.dispatchEvent(
         new CustomEvent('lis-global-toast', {
           detail: { message: `✓ Cédula TE Panamá (${cedula}) procesada. Paciente ${nombres} ${apellidos} cargado en el formulario.`, type: 'success', duration: 4000 }
-        })
-      );
-    }
-  };
-        phone: '+507 6612-9988',
-        email: `${nombres.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-        address: 'Panamá, Vía España, Edificio Central',
-        isPregnant: false,
-        clinicalNotes: 'Escaneado directo del plástico de la Cédula TE Panamá',
-        weight: '65 kg',
-        height: '168 cm',
-        bloodType: 'O+',
-        emergencyContact: 'Familiar Directo (+507 6500-1122)',
-        insuranceProvider: 'CSS Panamá',
-        nationality: 'Panameña'
-      });
-
-      setIsRegistering(true);
-      setIsCedulaQrModalOpen(false);
-
-      window.dispatchEvent(
-        new CustomEvent('lis-global-toast', {
-          detail: { message: `✓ Cédula Panameña ${cedula} leída del plástico del documento. Paciente ${nombres} ${apellidos} cargado.`, type: 'success', duration: 4000 }
         })
       );
     }
