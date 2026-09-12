@@ -842,14 +842,6 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       <span>Escanear Cédula QR (1-Clic)</span>
                     </button>
                   </div>
-                        );
-                      }}
-                      className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[10px] transition shadow cursor-pointer flex items-center space-x-1"
-                    >
-                      <QrCode className="w-3 h-3 text-slate-950" />
-                      <span>Auto-Llenar (1-Clic)</span>
-                    </button>
-                  </div>
 
                   <div className="space-y-3 max-h-[55vh] overflow-y-auto no-scrollbar pr-1 text-xs">
 
