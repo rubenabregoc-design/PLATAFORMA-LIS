@@ -173,6 +173,77 @@ export const Header: React.FC<HeaderProps> = ({
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
   const getTabLabel = (tab: { id: string; label: string }) => {
+    if (language === 'EN') {
+      const EN_LABELS: Record<string, string> = {
+        dashboard: 'Main Dashboard',
+        validation: 'Results & Validation',
+        tm_workbench: 'Technical Workbench',
+        lis_workstation: '3D Validation Workstation',
+        patient_results: 'Patient Records & Samples',
+        test_catalog: 'LIS Test Catalog',
+        qc: 'Quality Control QC',
+        middleware: 'ASTM Middleware',
+        homologation: 'Analyzer Mappings',
+        drivers: 'ASTM / HL7 Drivers',
+        phlebotomy: 'GPS Phlebotomy',
+        pathology: 'Anatomical Pathology',
+        batch_reporting: 'Batch PDF Reporting',
+        lis_hil: 'HIL Preanalytics',
+        lis_panic: 'Critical Values Registry',
+        lis_alerts_center: 'Alerts & Panic Center',
+        lis_calculators: 'Clinical Calculators',
+        lis_telemetry: 'Analyzer Telemetry',
+        delta: 'Delta Check & Panics',
+        lis_referrals: 'Sample Referral & Transfers',
+        his_command: 'Hospital Command Center',
+        his_triage: 'ER & Triage',
+        his_beds: 'Bed Census & Map',
+        his_ehr: 'EHR Clinical Record',
+        his_cpoe: 'CPOE & CDS Orders',
+        his_kardex: 'eMAR Nursing Kardex',
+        his_icu: 'ICU / Critical Care',
+        his_operating: 'Operating Rooms AIMS',
+        his_maternity: 'Maternity & Neonatal',
+        his_ris_pacs: 'Radiology RIS / PACS',
+        his_pharmacy: 'Hospital Pharmacy',
+        his_discharge: 'Discharge Management',
+        his_console: 'HL7 / FHIR Integration',
+        shifts: 'Shifts & Appointments',
+        bloodbank: 'Blood Bank Center',
+        blood_donors: 'Donor Questionnaire',
+        blood_deferral: 'Deferral & Ineligibility',
+        blood_apheresis: 'Apheresis & Extraction',
+        blood_drives: 'Extramural Blood Drives',
+        blood_fractionation: 'Component Processing',
+        blood_serology: 'Serology & NAT Screening',
+        blood_cold_chain: 'IoT Cold Chain',
+        blood_logistics: 'Hemocomponent Logistics',
+        blood_crossmatch: 'Immuno & Crossmatch',
+        blood_bedside: 'Smart Bedside Transfusion',
+        blood_hemovigilance: 'Hemovigilance Events',
+        blood_waste: 'Biohazard Waste',
+        blood_chemical_waste: 'Chemical Waste',
+        blood_manifest: 'Disposal Manifest PDF',
+        label_studio: 'ISBT 128 Label Studio',
+        routing: 'Inter-Branch Logistics',
+        billing: 'POS & Tax Invoicing',
+        inventory: 'FEFO Reagent Inventory',
+        executive: 'Executive BI Analytics',
+        productivity: 'Productivity & TAT Metrics',
+        minsa: 'Epidemiology Reports',
+        audit: 'Data Privacy Audit',
+        cmms: 'CMMS Equipment Maintenance',
+        eqa: 'EQA / PEEC Quality Control',
+        whatsapp: 'WhatsApp LIS Engine',
+        fhir: 'FHIR Interoperability',
+        ha_dr: 'HA/DR High Availability',
+        accreditation: 'ISO 15189 Accreditation',
+        schema: 'Database E-R Schema',
+        punch_clock: 'Shift Clock In/Out'
+      };
+      return EN_LABELS[tab.id] || tab.label;
+    }
+
     if (tab.id === 'patient_results') {
       if (currentRole === 'receptionist') return 'Órdenes del día';
       if (currentRole === 'lab_tech') return 'Mis muestras';
@@ -182,10 +253,10 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const DOMAIN_CATEGORIES = [
-    { id: 'lis', label: 'Laboratorio LIS', icon: Microscope, count: visibleTabs.filter(t => t.category === 'lis').length },
-    { id: 'his', label: 'Hospital HIS', icon: Activity, count: visibleTabs.filter(t => t.category === 'his').length },
-    { id: 'bloodbank', label: 'Banco Sangre', icon: Droplets, count: visibleTabs.filter(t => t.category === 'bloodbank').length },
-    { id: 'bi', label: 'Gestión & BI', icon: BrainCircuit, count: visibleTabs.filter(t => t.category === 'bi').length }
+    { id: 'lis', label: language === 'EN' ? 'LIS Laboratory' : 'Laboratorio LIS', icon: Microscope, count: visibleTabs.filter(t => t.category === 'lis').length },
+    { id: 'his', label: language === 'EN' ? 'HIS Hospital' : 'Hospital HIS', icon: Activity, count: visibleTabs.filter(t => t.category === 'his').length },
+    { id: 'bloodbank', label: language === 'EN' ? 'Blood Bank' : 'Banco Sangre', icon: Droplets, count: visibleTabs.filter(t => t.category === 'bloodbank').length },
+    { id: 'bi', label: language === 'EN' ? 'BI & Management' : 'Gestión & BI', icon: BrainCircuit, count: visibleTabs.filter(t => t.category === 'bi').length }
   ];
 
   // Filter modules inside the Mega-Menu Panel based on Category AND Search Query

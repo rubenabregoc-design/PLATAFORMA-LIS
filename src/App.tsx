@@ -110,6 +110,7 @@ export default function App() {
     currentRole,
     activeTab,
     setActiveTab,
+    language,
     isSessionLocked,
     setSessionLock,
     orders,
@@ -486,17 +487,17 @@ export default function App() {
                     : 'bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-amber-500/10'
                 }`}>
                   <span>
-                    {activePlatformCategory === 'lis' && '🔬 PLATAFORMA LIS'}
-                    {activePlatformCategory === 'his' && '🏥 PLATAFORMA HIS'}
-                    {activePlatformCategory === 'bloodbank' && '🩸 BANCO DE SANGRE'}
-                    {activePlatformCategory === 'bi' && '💼 GESTIÓN & BI'}
+                    {activePlatformCategory === 'lis' && (language === 'EN' ? '🔬 LIS PLATFORM' : '🔬 PLATAFORMA LIS')}
+                    {activePlatformCategory === 'his' && (language === 'EN' ? '🏥 HIS PLATFORM' : '🏥 PLATAFORMA HIS')}
+                    {activePlatformCategory === 'bloodbank' && (language === 'EN' ? '🩸 BLOOD BANK' : '🩸 BANCO DE SANGRE')}
+                    {activePlatformCategory === 'bi' && (language === 'EN' ? '💼 BI & MANAGEMENT' : '💼 GESTIÓN & BI')}
                   </span>
                 </span>
 
                 <span className="text-slate-600 font-bold">•</span>
 
                 <span className="font-extrabold text-white text-xs truncate">
-                  <span className="text-slate-400 font-medium">Módulo: </span>
+                  <span className="text-slate-400 font-medium">{language === 'EN' ? 'Module: ' : 'Módulo: '}</span>
                   <span className="text-white underline decoration-cyan-500/40 underline-offset-4">{currentTabObj.label}</span>
                 </span>
               </div>
