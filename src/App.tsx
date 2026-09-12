@@ -605,20 +605,6 @@ export default function App() {
                     {dashboardSubMode === 'BLOODBANK' && (language === 'EN' ? 'Transfusion Medicine & Donors' : 'Medicina Transfusional, Donantes & Hemovigilancia')}
                   </span>
                 </div>
-                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
-                    >
-                      <Droplets className="w-4 h-4 text-rose-300 shrink-0" />
-                      <span>Dashboard Banco de Sangre</span>
-                    </button>
-                  </div>
-
-                  <span className="text-[11px] font-mono text-slate-400 hidden xl:inline px-2">
-                    {dashboardSubMode === 'LIS' && 'Métricas Clínicas de Pacientes, Analitos y Demografía'}
-                    {dashboardSubMode === 'HIS' && 'Centro de Mando Hospitalario, Camas & Triage Urgencias'}
-                    {dashboardSubMode === 'BLOODBANK' && 'Medicina Transfusional, Donantes & Hemovigilancia'}
-                  </span>
-                </div>
 
                 {/* Render Selected Suite Dashboard */}
                 {dashboardSubMode === 'HIS' ? (
