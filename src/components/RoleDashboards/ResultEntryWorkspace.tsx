@@ -79,13 +79,45 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   };
 
   const patientResults = useMemo(() => {
-    let list = results.filter(r => r.orderId === currentOrder.id);
+    let list = results.filter(r => r.orderId === currentOrder?.id);
+
+    // Auto-fallback: if an order has 0 results, generate test parameters from MOCK_TEST_CATALOG
+    if (list.length === 0 && currentOrder && currentOrder.testIds && currentOrder.testIds.length > 0) {
+      const generated: TestResult[] = [];
+      currentOrder.testIds.forEach((testId) => {
+        const catalogTest = MOCK_TEST_CATALOG.find((t) => t.id === testId);
+        if (catalogTest && catalogTest.parameters) {
+          catalogTest.parameters.forEach((param) => {
+            generated.push({
+              id: `res-${currentOrder.id}-${param.id}`,
+              orderId: currentOrder.id,
+              testId: testId,
+              parameterId: param.id,
+              parameterCode: param.astmParamCode || param.id,
+              parameterName: param.name,
+              unit: param.unit,
+              value: '', // Ready for entry
+              numericValue: undefined,
+              flag: 'PENDIENTE',
+              status: 'PENDIENTE',
+              refRangeText: param.referenceRanges?.[0] ? `${param.referenceRanges[0].minValue} - ${param.referenceRanges[0].maxValue}` : 'Normal',
+              source: 'RECEPCION_POS',
+              analyzerName: 'Ingreso Manual / ACE'
+            });
+          });
+        }
+      });
+      if (generated.length > 0) {
+        list = generated;
+      }
+    }
+
     if (isAuditFilterActive) {
       const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
       list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' && (r.createdAt || '') >= oneHourAgo);
     }
     return list;
-  }, [currentOrder.id, results, isAuditFilterActive]);
+  }, [currentOrder, results, isAuditFilterActive]);
 
   const getFlagStyle = (flag?: string) => {
     if (flag?.includes('CRITICO')) return 'bg-rose-500/25 border-2 border-rose-500 text-rose-200 font-black text-sm px-3.5 py-1 rounded-xl shadow-lg shadow-rose-500/30 animate-pulse';

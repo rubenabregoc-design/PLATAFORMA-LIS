@@ -384,7 +384,38 @@ export default function App() {
     if (newPatient) {
       addPatient(newPatient);
     }
+
+    // Instantiate parameter results for all tests included in the new order
+    const generatedResults: TestResult[] = [];
+    (newOrder.testIds || []).forEach((testId) => {
+      const catalogTest = MOCK_TEST_CATALOG.find((t) => t.id === testId);
+      if (catalogTest && catalogTest.parameters) {
+        catalogTest.parameters.forEach((param) => {
+          generatedResults.push({
+            id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            orderId: newOrder.id,
+            testId: testId,
+            parameterId: param.id,
+            parameterCode: param.astmParamCode || param.id,
+            parameterName: param.name,
+            unit: param.unit,
+            value: '', // Ready for entry
+            numericValue: undefined,
+            flag: 'PENDIENTE',
+            status: 'PENDIENTE',
+            refRangeText: param.referenceRanges?.[0] ? `${param.referenceRanges[0].minValue} - ${param.referenceRanges[0].maxValue}` : 'Normal',
+            source: 'RECEPCION_POS',
+            analyzerName: 'Ingreso Manual / ACE'
+          });
+        });
+      }
+    });
+
     addOrder(newOrder);
+
+    if (generatedResults.length > 0) {
+      addResults(generatedResults);
+    }
   };
 
   const handleProvisionTenant = (name: string, ruc: string, dv: string, plan: Tenant['plan']) => {
