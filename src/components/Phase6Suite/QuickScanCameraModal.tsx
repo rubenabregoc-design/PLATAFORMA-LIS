@@ -178,9 +178,19 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
     }
   };
 
+  const lastFrameTime = useRef<number>(0);
+
   // Process live camera frames for barcodes and QR codes
   const processVideoFrame = async () => {
     if (!isScanning) return;
+
+    const now = Date.now();
+    // Throttle to 10 FPS (every 100ms) for high performance without CPU congestion
+    if (now - lastFrameTime.current < 100) {
+      animationFrameId.current = requestAnimationFrame(processVideoFrame);
+      return;
+    }
+    lastFrameTime.current = now;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -188,8 +198,8 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
     if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (ctx) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         let detectedCode: string | null = null;
@@ -201,19 +211,7 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
           try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const barcodeDetector = new (window as any).BarcodeDetector({
-              formats: [
-                'qr_code',
-                'code_128',
-                'code_39',
-                'code_93',
-                'codabar',
-                'ean_13',
-                'ean_8',
-                'itf',
-                'upc_a',
-                'upc_e',
-                'data_matrix'
-              ]
+              formats: ['qr_code', 'code_128', 'code_39', 'data_matrix']
             });
             const barcodes = await barcodeDetector.detect(canvas);
             if (barcodes && barcodes.length > 0) {
@@ -225,7 +223,7 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
           }
         }
 
-        // 2. Try jsQR for robust QR Code detection fallback
+        // 2. Try jsQR on Full Canvas
         if (!detectedCode) {
           try {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -241,11 +239,32 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
           }
         }
 
-        // 3. Handle Detected Barcode / QR Code
+        // 3. Try jsQR on Center Reticle Crop (Focus Area for small Cédula QR)
+        if (!detectedCode) {
+          try {
+            const cropW = Math.floor(canvas.width * 0.65);
+            const cropH = Math.floor(canvas.height * 0.65);
+            const cropX = Math.floor((canvas.width - cropW) / 2);
+            const cropY = Math.floor((canvas.height - cropH) / 2);
+
+            const cropData = ctx.getImageData(cropX, cropY, cropW, cropH);
+            const qrResult = jsQR(cropData.data, cropData.width, cropData.height, {
+              inversionAttempts: 'attemptBoth'
+            });
+            if (qrResult && qrResult.data) {
+              detectedCode = qrResult.data;
+              detectedFormat = 'QR_CODE';
+            }
+          } catch {
+            // Crop parsing skipped
+          }
+        }
+
+        // 4. Handle Recognized Code
         if (detectedCode && detectedCode.trim()) {
           const cleanCode = detectedCode.trim();
           handleRecognizedCode(cleanCode, detectedFormat);
-          return; // Stop scan loop until handled
+          return; // Stop scan loop
         }
       }
     }
