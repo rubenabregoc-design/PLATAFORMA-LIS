@@ -59,7 +59,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [testSearchTerm, setTestSearchTerm] = useState('');
-  const [foundPatient, setFoundPatient] = useState<Patient | null>(patients[0]);
+  const [foundPatient, setFoundPatient] = useState<Patient | null>(null);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [managementSearchTerm, setManagementSearchTerm] = useState('');
 
@@ -355,11 +355,21 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
   const filteredPatientsList = useMemo(() => {
     if (patientSearchTerm.length < 2) return [];
-    return patients.filter(p =>
+    const rawMatches = patients.filter(p =>
       p.firstName.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
       p.lastName.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
       p.nationalId.includes(patientSearchTerm)
     );
+
+    // Deduplicate by nationalId so each unique patient appears EXACTLY ONCE
+    const uniqueMap = new Map<string, Patient>();
+    rawMatches.forEach(p => {
+      const key = p.nationalId.trim() || p.id;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, p);
+      }
+    });
+    return Array.from(uniqueMap.values());
   }, [patientSearchTerm, patients]);
 
   const filteredTestsBySearchAndCategory = useMemo(() => {
@@ -880,7 +890,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : isRegistering ? (
                 /* 📝 COMPREHENSIVE ENTERPRISE DEMOGRAPHIC REGISTRATION FORM WITH 1-CLICK AUTO-FILL */
                 <div className="space-y-4 animate-in fade-in duration-300">
                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -889,7 +899,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       <span>Nuevo Registro de Paciente</span>
                     </span>
                     <button
-                      onClick={() => { setIsRegistering(false); setFoundPatient(patients[0]); }}
+                      onClick={() => { setIsRegistering(false); setFoundPatient(null); }}
                       className="text-[9px] text-slate-400 hover:text-white uppercase font-bold cursor-pointer"
                     >
                       Cancelar
@@ -914,67 +924,67 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
                   <div className="space-y-3 max-h-[55vh] overflow-y-auto no-scrollbar pr-1 text-xs">
 
-                    {/* SECTION 1: Essential Personal Identifiers */}
-                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-cyan-500/30">
-                      <span className="text-[9px] font-black text-cyan-400 uppercase block tracking-wider">
+                    {/* SECTION 1: Essential Personal Identifiers (Stacked Vertical Layout for Full Name Legibility) */}
+                    <div className="space-y-2.5 bg-slate-950/80 p-3.5 rounded-2xl border border-cyan-500/30">
+                      <span className="text-xs font-black text-cyan-300 uppercase block tracking-wider">
                         1. Identificación Principal
                       </span>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2.5">
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Nombre(s)</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Nombre(s)</label>
                           <input
                             type="text"
                             required
-                            placeholder="Elena María"
+                            placeholder="Ruben Eliecer"
                             value={newPatientData.firstName}
                             onChange={e => setNewPatientData({ ...newPatientData, firstName: e.target.value })}
-                            className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none ${formErrors.firstName ? 'border-rose-500' : 'border-white/10'}`}
+                            className={`w-full bg-slate-900 border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-black text-white outline-none ${formErrors.firstName ? 'border-rose-500' : 'border-white/10'}`}
                           />
                         </div>
 
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Apellido(s)</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Apellido(s)</label>
                           <input
                             type="text"
                             required
-                            placeholder="Icaza Guardia"
+                            placeholder="Abrego Castillo"
                             value={newPatientData.lastName}
                             onChange={e => setNewPatientData({ ...newPatientData, lastName: e.target.value })}
-                            className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none ${formErrors.lastName ? 'border-rose-500' : 'border-white/10'}`}
+                            className={`w-full bg-slate-900 border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-black text-white outline-none ${formErrors.lastName ? 'border-rose-500' : 'border-white/10'}`}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Cédula / Pasaporte / Documento</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Cédula / Pasaporte / Documento</label>
                         <input
                           type="text"
                           required
                           placeholder="Ej. 8-812-4432"
                           value={newPatientData.nationalId}
                           onChange={e => setNewPatientData({ ...newPatientData, nationalId: e.target.value })}
-                          className={`w-full bg-slate-900 border rounded-xl px-2.5 py-1.5 text-[10px] text-white font-mono outline-none ${formErrors.nationalId ? 'border-rose-500' : 'border-white/10'}`}
+                          className={`w-full bg-slate-900 border rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-mono font-bold outline-none ${formErrors.nationalId ? 'border-rose-500' : 'border-white/10'}`}
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Fecha Nacimiento</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Fecha Nacimiento</label>
                           <input
                             type="date"
                             value={newPatientData.dob}
                             onChange={e => setNewPatientData({ ...newPatientData, dob: e.target.value })}
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white font-bold outline-none"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Sexo Biológico</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Sexo Biológico</label>
                           <select
                             value={newPatientData.gender}
                             onChange={e => setNewPatientData({ ...newPatientData, gender: e.target.value as any })}
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none font-bold"
                           >
                             <option value="M">👨 Masculino</option>
                             <option value="F">👩 Femenino</option>
@@ -984,58 +994,58 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     </div>
 
                     {/* SECTION 2: Contact & Electronic Notification */}
-                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-indigo-500/30">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase block tracking-wider">
+                    <div className="space-y-2.5 bg-slate-950/80 p-3.5 rounded-2xl border border-indigo-500/30">
+                      <span className="text-xs font-black text-indigo-300 uppercase block tracking-wider">
                         2. Contacto & Envíos de Resultados
                       </span>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Teléfono Móvil (WhatsApp PDF)</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Teléfono Móvil (WhatsApp PDF)</label>
                         <input
                           type="text"
                           placeholder="+507 6612-9988"
                           value={newPatientData.phone}
                           onChange={e => setNewPatientData({ ...newPatientData, phone: e.target.value })}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white font-mono outline-none"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Correo Electrónico (Notificación Ley 81)</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Correo Electrónico (Notificación Ley 81)</label>
                         <input
                           type="email"
                           placeholder="elena.icaza@gmail.com"
                           value={newPatientData.email}
                           onChange={e => setNewPatientData({ ...newPatientData, email: e.target.value })}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Dirección Residencial / Corregimiento</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Dirección Residencial / Corregimiento</label>
                         <input
                           type="text"
                           placeholder="San Francisco, Calle 50, PH Titanium"
                           value={newPatientData.address}
                           onChange={e => setNewPatientData({ ...newPatientData, address: e.target.value })}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                         />
                       </div>
                     </div>
 
                     {/* SECTION 3: Health Insurance & Clinical Background */}
-                    <div className="space-y-2 bg-slate-950/80 p-3 rounded-2xl border border-emerald-500/30">
-                      <span className="text-[9px] font-black text-emerald-400 uppercase block tracking-wider">
+                    <div className="space-y-2.5 bg-slate-950/80 p-3.5 rounded-2xl border border-emerald-500/30">
+                      <span className="text-xs font-black text-emerald-300 uppercase block tracking-wider">
                         3. Cobertura de Seguro & Datos Clínicos
                       </span>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">Aseguradora</label>
+                          <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Aseguradora</label>
                           <select
                             value={newPatientData.insuranceProvider}
                             onChange={e => setNewPatientData({ ...newPatientData, insuranceProvider: e.target.value })}
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-white outline-none font-bold"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none font-bold"
                           >
                             <option value="PARTICULAR">Particular (100%)</option>
                             <option value="CSS">Caja de Seguro Social (CSS)</option>
@@ -1078,18 +1088,43 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       </div>
 
                       <div>
-                        <label className="text-[8px] font-black text-slate-400 uppercase">Contacto de Emergencia (Nombre & Teléfono)</label>
+                        <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Contacto de Emergencia (Nombre & Teléfono)</label>
                         <input
                           type="text"
                           placeholder="Ej. Carlos Icaza (+507 6511-2233)"
                           value={newPatientData.emergencyContact}
                           onChange={e => setNewPatientData({ ...newPatientData, emergencyContact: e.target.value })}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] text-white outline-none"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                         />
                       </div>
                     </div>
 
                   </div>
+                </div>
+              ) : (
+                /* CLEAN INITIAL STATE PROMPT CARD (No patient pre-selected) */
+                <div className="py-10 px-4 text-center space-y-4 animate-in fade-in duration-300">
+                  <div className="w-16 h-16 bg-slate-950 border border-slate-800 text-teal-400 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                    <UserSearch className="w-8 h-8 text-teal-400" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                      Ningún Paciente Seleccionado
+                    </h3>
+                    <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
+                      Busque un paciente por Cédula o Nombre en el buscador superior, o presione el botón <strong className="text-teal-400">+</strong> para registrar un paciente nuevo.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRegistering(true)}
+                    className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-2xl transition shadow-lg shadow-teal-500/20 cursor-pointer flex items-center space-x-1.5 mx-auto"
+                  >
+                    <UserPlus className="w-4 h-4 text-slate-950" />
+                    <span>+ Registrar Paciente Nuevo</span>
+                  </button>
                 </div>
               )}
 
@@ -1154,7 +1189,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       }`}
                     >
                       <div className="flex items-start justify-between">
-                        <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-900 text-teal-300 border border-white/5">
+                        <span className="text-xs sm:text-sm font-mono font-black px-2.5 py-1 rounded-xl bg-slate-900 text-teal-300 border border-teal-500/40 shadow-sm tracking-wider">
                           {test.code}
                         </span>
                         <div className={`w-4 h-4 rounded-md flex items-center justify-center border ${isSelected ? 'bg-teal-500 border-teal-400 text-slate-950' : 'border-white/10'}`}>
@@ -1202,15 +1237,15 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     )}
                   </div>
 
-                  <div className="space-y-1.5 pr-1 max-h-36 overflow-y-auto">
+                  <div className="space-y-1.5 pr-1 max-h-48 overflow-y-auto no-scrollbar">
                     {selectedTests.map(t => (
-                      <div key={t.id} className="flex items-center justify-between p-2 bg-white/[0.03] border border-white/5 rounded-xl animate-in slide-in-from-right-4 transition-all text-xs">
+                      <div key={t.id} className="flex items-center justify-between p-2.5 bg-slate-950/90 border border-slate-800 rounded-xl animate-in slide-in-from-right-4 transition-all">
                         <div className="min-w-0 flex-1 pr-2">
-                          <div className="text-[9px] font-black text-white uppercase truncate">{t.name}</div>
-                          <div className="text-[8px] text-teal-400 font-mono mt-0.5">${t.price.toFixed(2)}</div>
+                          <div className="text-xs sm:text-sm font-black text-white uppercase leading-tight truncate">{t.name}</div>
+                          <div className="text-xs font-mono font-black text-teal-300 mt-0.5">${t.price.toFixed(2)}</div>
                         </div>
-                        <button onClick={() => setSelectedTestIds(prev => prev.filter(id => id !== t.id))} className="w-5 h-5 flex items-center justify-center bg-slate-950 hover:bg-rose-500 text-slate-700 hover:text-white rounded-lg transition-all shadow cursor-pointer">
-                          <X className="w-3 h-3" />
+                        <button onClick={() => setSelectedTestIds(prev => prev.filter(id => id !== t.id))} className="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-rose-500 text-slate-400 hover:text-white rounded-lg transition-all shadow cursor-pointer shrink-0" title="Remover examen">
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
