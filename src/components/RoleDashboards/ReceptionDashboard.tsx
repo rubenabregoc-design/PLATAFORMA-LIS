@@ -140,6 +140,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [isCedulaQrModalOpen, setIsCedulaQrModalOpen] = useState(false);
+  const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
   const [cedulaQrRawInput, setCedulaQrRawInput] = useState('8-897-180|Ruben Eliecer|Abrego Castillo||M|PANAMÁ|19950724|PANAMEÑA|20230921|20380921|A01382541');
 
   const [newPatientData, setNewPatientData] = useState({
@@ -1878,13 +1879,26 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
               <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
                 <span className="text-[10px] font-bold text-amber-300 block">💡 ¿Cómo funciona el escáner de Cédula?</span>
                 <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                  El reverso de la Cédula Panameña posee un código QR estandarizado por el Tribunal Electoral que contiene los datos del ciudadano. <strong>Al escanear el plástico con la pistola USB o cámara, los datos se extraen directamente de la Cédula sin requerir que el paciente esté en la base de datos.</strong>
+                  El reverso de la Cédula Panameña posee un código QR estandarizado por el Tribunal Electoral que contiene los datos del ciudadano. <strong>Al escanear el plástico con la cámara del celular/laptop o la pistola USB, los datos se extraen directamente de la Cédula sin requerir que el paciente esté en la base de datos.</strong>
                 </p>
               </div>
 
-              <div className="space-y-1.5">
+              {/* 📹 LIVE OPTICAL WEBCAM / SMARTPHONE CAMERA SCANNER BUTTON */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCedulaQrModalOpen(false);
+                  setIsCameraScannerOpen(true);
+                }}
+                className="w-full py-3 bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-xs rounded-2xl transition shadow-lg shadow-cyan-500/20 cursor-pointer flex items-center justify-center space-x-2"
+              >
+                <Camera className="w-4 h-4 text-slate-950" />
+                <span>📹 Abrir Cámara del Celular / WebCam (Escáner Óptico en Vivo)</span>
+              </button>
+
+              <div className="space-y-1.5 pt-2 border-t border-slate-800">
                 <label className="text-xs font-extrabold text-slate-300 block">
-                  Escanear con Pistola Lector 2D USB / Entrada de Trama
+                  O Escanear con Pistola Lector 2D USB / Entrada de Trama
                 </label>
                 <input
                   type="text"
@@ -1916,6 +1930,18 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 📹 REAL LIVE OPTICAL WEBCAM / SMARTPHONE CAMERA SCANNER MODAL (jsQR) */}
+      {isCameraScannerOpen && (
+        <QuickScanCameraModal
+          isOpen={isCameraScannerOpen}
+          onClose={() => setIsCameraScannerOpen(false)}
+          onScanSuccess={(scannedCode) => {
+            setIsCameraScannerOpen(false);
+            handleProcessCedulaQr(scannedCode);
+          }}
+        />
       )}
 
     </div>
