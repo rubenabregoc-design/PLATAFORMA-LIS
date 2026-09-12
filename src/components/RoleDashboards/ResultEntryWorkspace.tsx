@@ -568,49 +568,78 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               </div>
                            </td>
                            <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                              {editingId === res.id ?
-                                <input autoFocus value={tempValue} onChange={e => setTempValue(e.target.value)} onBlur={() => { onUpdateResultValue(res.id, tempValue, res); setEditingId(null); }} onKeyDown={e => e.key === 'Enter' && (onUpdateResultValue(res.id, tempValue, res), setEditingId(null))} className="bg-slate-950 border border-teal-500 rounded text-center text-teal-400 font-mono w-24 p-1 shadow-[0_0_15px_rgba(20,184,166,0.2)]" /> :
-                                <div className="flex items-center justify-center gap-3">
-                                  <div className="flex flex-col items-center gap-0.5 min-w-[12px]">
-                                     {res.flag?.includes('ALTO') && <ArrowUp className={`w-3.5 h-3.5 ${res.flag.includes('CRITICO') ? 'text-rose-500 animate-bounce' : 'text-amber-500'}`} />}
-                                     {res.flag?.includes('BAJO') && <ArrowDown className={`w-3.5 h-3.5 ${res.flag.includes('CRITICO') ? 'text-rose-500 animate-bounce' : 'text-blue-400'}`} />}
-                                  </div>
-
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <button
-                                      disabled={isValidated}
-                                      onClick={() => { setEditingId(res.id); setTempValue(res.value); }}
-                                      className={`px-4 py-1.5 rounded-lg font-mono font-black text-sm border transition-all ${isValidated ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500 cursor-default' : 'border-transparent hover:border-white/10 ' + getFlagStyle(res.flag)}`}
-                                    >
-                                      {res.value}
-                                    </button>
-                                    {res.interpretation && (
-                                      <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${res.interpretation.includes('POSITIVO') ? 'text-amber-500' : 'text-slate-500 opacity-60'}`}>
-                                        {res.interpretation}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-1.5 min-w-[40px]" onClick={(e) => e.stopPropagation()}>
+                              {editingId === res.id || !res.value || res.value.trim() === '' ? (
+                                <div className="flex items-center justify-center space-x-1.5">
+                                  <input
+                                    autoFocus={editingId === res.id}
+                                    value={editingId === res.id ? tempValue : res.value}
+                                    onChange={(e) => {
+                                      setEditingId(res.id);
+                                      setTempValue(e.target.value);
+                                    }}
+                                    onBlur={() => {
+                                      if (editingId === res.id) {
+                                        onUpdateResultValue(res.id, tempValue, res);
+                                        setEditingId(null);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        onUpdateResultValue(res.id, tempValue, res);
+                                        setEditingId(null);
+                                      }
+                                    }}
+                                    placeholder="Ingresar..."
+                                    className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 rounded-xl px-3 py-1.5 text-center text-teal-200 font-mono font-black text-sm w-32 shadow-[0_0_15px_rgba(0,240,255,0.25)] outline-none"
+                                  />
+                                  {res.value && (
                                     <button
                                       onClick={() => {
-                                        setExpandingNotesId(isNoteExpanded ? null : res.id);
-                                        setTempNote(res.interpretation || '');
+                                        onUpdateResultValue(res.id, tempValue || res.value, res);
+                                        setEditingId(null);
                                       }}
-                                      className={`p-1.5 rounded-lg transition-all ${res.interpretation ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-700 hover:text-slate-400 hover:bg-white/5'}`}
-                                      title="Ver/Editar Interpretación Técnica"
+                                      className="p-1.5 bg-teal-500 text-slate-950 rounded-xl font-bold text-xs cursor-pointer shadow"
+                                      title="Guardar Resultado"
                                     >
-                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <Check className="w-4 h-4 stroke-[3]" />
                                     </button>
-                                    {res.flag?.includes('CRITICO') && <span className="text-[9px] font-black text-rose-500 animate-pulse uppercase">!!!</span>}
-                                    {isValidated && (
-                                      <span title="Validado con firma digital">
-                                        <Fingerprint className="w-3.5 h-3.5 text-emerald-500/50" />
-                                      </span>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
-                              }
+                              ) : (
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    disabled={isValidated}
+                                    onClick={() => {
+                                      setEditingId(res.id);
+                                      setTempValue(res.value);
+                                    }}
+                                    className={`px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border transition-all cursor-pointer ${
+                                      isValidated
+                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                        : 'border-teal-500/40 bg-slate-900 hover:border-cyan-400 text-cyan-300 shadow-md'
+                                    }`}
+                                    title="Click para editar resultado"
+                                  >
+                                    {res.value}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const nextSource = res.source?.includes('MIDDLEWARE') ? 'INGRESO_MANUAL' : 'MIDDLEWARE_ASTM';
+                                      updateResult(res.id, res.value, { ...res, source: nextSource, analyzerName: nextSource === 'MIDDLEWARE_ASTM' ? 'Mindray BC-6800' : 'Manual' });
+                                    }}
+                                    className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border transition cursor-pointer ${
+                                      res.source?.includes('MIDDLEWARE')
+                                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                        : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                                    }`}
+                                    title="Cambiar vía de origen: Analizador ASTM vs Ingreso Manual"
+                                  >
+                                    {res.source?.includes('MIDDLEWARE') ? '🤖 Analizador' : '✍️ Manual'}
+                                  </button>
+                                </div>
+                              )}
                            </td>
                            <td className="p-4 text-slate-500 font-mono text-[10px] uppercase tracking-tighter">{res.unit}</td>
                            <td className="p-4 text-slate-400 font-mono text-[10px] italic">
