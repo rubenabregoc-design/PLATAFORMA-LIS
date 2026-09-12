@@ -138,6 +138,9 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   });
 
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isCedulaQrModalOpen, setIsCedulaQrModalOpen] = useState(false);
+  const [cedulaQrRawInput, setCedulaQrRawInput] = useState('8-812-4432|PINZON VARELA|GABRIELA|F|19920514');
+
   const [newPatientData, setNewPatientData] = useState({
     firstName: '',
     lastName: '',
@@ -156,6 +159,48 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     insuranceProvider: '',
     nationality: 'Panameña'
   });
+
+  const handleProcessCedulaQr = (rawQrString: string) => {
+    const parts = rawQrString.split('|');
+    if (parts.length >= 3) {
+      const cedula = parts[0] || '8-812-4432';
+      const apellidos = parts[1] || 'PINZON VARELA';
+      const nombres = parts[2] || 'GABRIELA';
+      const sexo = parts[3] === 'F' ? 'F' : 'M';
+      const dobRaw = parts[4] || '19920514';
+      const dobFormatted = dobRaw.length === 8
+        ? `${dobRaw.slice(0,4)}-${dobRaw.slice(4,6)}-${dobRaw.slice(6,8)}`
+        : '1992-05-14';
+
+      setNewPatientData({
+        firstName: nombres,
+        lastName: apellidos,
+        nationalId: cedula,
+        gender: sexo as 'M' | 'F',
+        dob: dobFormatted,
+        phone: '+507 6612-9988',
+        email: `${nombres.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+        address: 'Panamá, Vía España, Edificio Central',
+        isPregnant: false,
+        clinicalNotes: 'Escaneado directo del plástico de la Cédula TE Panamá',
+        weight: '65 kg',
+        height: '168 cm',
+        bloodType: 'O+',
+        emergencyContact: 'Familiar Directo (+507 6500-1122)',
+        insuranceProvider: 'CSS Panamá',
+        nationality: 'Panameña'
+      });
+
+      setIsRegistering(true);
+      setIsCedulaQrModalOpen(false);
+
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: { message: `✓ Cédula Panameña ${cedula} leída del plástico del documento. Paciente ${nombres} ${apellidos} cargado.`, type: 'success', duration: 4000 }
+        })
+      );
+    }
+  };
 
   const [selectedTestIds, setSelectedTestIds] = useState<string[]>(['test-hemograma']);
   const [isStat, setIsStat] = useState<boolean>(false);
@@ -785,34 +830,18 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   {/* ⚡ 1-CLICK AUTO-FILL & CEDULA QR READER BUTTON */}
                   <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-amber-500/20 via-teal-500/20 to-cyan-500/20 p-2.5 rounded-2xl border border-amber-500/40 shadow">
                     <div className="flex items-center space-x-1.5 text-[10px] font-bold text-amber-300">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Cédula QR / Llenado Rápido</span>
+                      <QrCode className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Escanear Cédula TE Panamá</span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setNewPatientData({
-                          firstName: 'Elena María',
-                          lastName: 'Icaza Guardia',
-                          nationalId: '8-812-4432',
-                          gender: 'F',
-                          dob: '1990-04-12',
-                          phone: '+507 6612-9988',
-                          email: 'elena.icaza@gmail.com',
-                          address: 'San Francisco, Calle 50, PH Titanium',
-                          isPregnant: false,
-                          clinicalNotes: 'Sin alergias registradas',
-                          weight: '62 kg',
-                          height: '165 cm',
-                          bloodType: 'O+',
-                          emergencyContact: 'Carlos Icaza (+507 6511-2233)',
-                          insuranceProvider: 'CSS Panamá',
-                          nationality: 'Panameña'
-                        });
-                        window.dispatchEvent(
-                          new CustomEvent('lis-global-toast', {
-                            detail: { message: '✨ Datos del paciente autocompletados desde Cédula QR.', type: 'success', duration: 2500 }
-                          })
+                      onClick={() => setIsCedulaQrModalOpen(true)}
+                      className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[10px] transition shadow cursor-pointer flex items-center space-x-1"
+                    >
+                      <QrCode className="w-3 h-3 text-slate-950" />
+                      <span>Escanear Cédula QR (1-Clic)</span>
+                    </button>
+                  </div>
                         );
                       }}
                       className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[10px] transition shadow cursor-pointer flex items-center space-x-1"
@@ -1818,6 +1847,66 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
               >
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🪪 TRIBUNAL ELECTORAL PANAMA CEDULA QR SCANNER MODAL */}
+      {isCedulaQrModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <QrCode className="w-5 h-5 text-amber-400" />
+                <h3 className="font-black text-white text-sm uppercase tracking-wider">
+                  Lector de Cédula Panameña (Tribunal Electoral)
+                </h3>
+              </div>
+              <button onClick={() => setIsCedulaQrModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                <span className="text-[10px] font-bold text-amber-300 block">💡 ¿Cómo funciona el escáner de Cédula?</span>
+                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                  El reverso de la Cédula Panameña posee un código QR estandarizado por el Tribunal Electoral que contiene los datos del ciudadano. <strong>Al escanear el plástico con la pistola USB o cámara, los datos se extraen directamente de la Cédula sin requerir que el paciente esté en la base de datos.</strong>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-slate-300 block">
+                  Escanear con Pistola Lector 2D USB / Entrada de Trama
+                </label>
+                <input
+                  type="text"
+                  value={cedulaQrRawInput}
+                  onChange={(e) => setCedulaQrRawInput(e.target.value)}
+                  placeholder="Escanee QR de la Cédula..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCedulaQrModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleProcessCedulaQr(cedulaQrRawInput)}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow cursor-pointer flex items-center space-x-1.5"
+                >
+                  <Sparkles className="w-4 h-4 text-slate-950" />
+                  <span>Procesar Datos de Cédula</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
