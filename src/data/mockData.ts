@@ -291,7 +291,15 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 18.50,
     specimenType: 'Sangre Total',
     tatHours: 2,
-    parameters: []
+    parameters: [
+      { id: 'p-wbc', name: 'Leucocitos (WBC)', unit: 'x10^3/µL', astmParamCode: 'WBC', referenceRanges: [{ id: 'rr-wbc', gender: 'TODOS', minValue: 4.5, maxValue: 11.0, unit: 'x10^3/µL' }] },
+      { id: 'p-rbc', name: 'Eritrocitos (RBC)', unit: 'x10^6/µL', astmParamCode: 'RBC', referenceRanges: [{ id: 'rr-rbc', gender: 'TODOS', minValue: 4.2, maxValue: 5.8, unit: 'x10^6/µL' }] },
+      { id: 'p-hgb', name: 'Hemoglobina (HGB)', unit: 'g/dL', astmParamCode: 'HGB', referenceRanges: [{ id: 'rr-hgb', gender: 'TODOS', minValue: 12.0, maxValue: 16.0, unit: 'g/dL' }] },
+      { id: 'p-hct', name: 'Hematocrito (HCT)', unit: '%', astmParamCode: 'HCT', referenceRanges: [{ id: 'rr-hct', gender: 'TODOS', minValue: 37.0, maxValue: 48.0, unit: '%' }] },
+      { id: 'p-plt', name: 'Plaquetas (PLT)', unit: 'x10^3/µL', astmParamCode: 'PLT', referenceRanges: [{ id: 'rr-plt', gender: 'TODOS', minValue: 150, maxValue: 450, unit: 'x10^3/µL' }] },
+      { id: 'p-neu', name: 'Neutrófilos (%)', unit: '%', astmParamCode: 'NEU%', referenceRanges: [{ id: 'rr-neu', gender: 'TODOS', minValue: 40.0, maxValue: 70.0, unit: '%' }] },
+      { id: 'p-lin', name: 'Linfocitos (%)', unit: '%', astmParamCode: 'LYM%', referenceRanges: [{ id: 'rr-lin', gender: 'TODOS', minValue: 20.0, maxValue: 45.0, unit: '%' }] }
+    ]
   },
   {
     id: 'test-vsg',
@@ -303,7 +311,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 5.00,
     specimenType: 'Sangre Total',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-vsg', name: 'Velocidad de Sedimentación Globular', unit: 'mm/h', astmParamCode: 'VSG', referenceRanges: [{ id: 'rr-vsg', gender: 'TODOS', minValue: 0, maxValue: 20, unit: 'mm/h' }] }
+    ]
   },
   {
     id: 'test-retis',
@@ -315,7 +325,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 12.00,
     specimenType: 'Sangre Total',
     tatHours: 4,
-    parameters: []
+    parameters: [
+      { id: 'p-retis', name: 'Reticulocitos Relativos', unit: '%', astmParamCode: 'RET%', referenceRanges: [{ id: 'rr-ret', gender: 'TODOS', minValue: 0.5, maxValue: 2.5, unit: '%' }] }
+    ]
   },
   {
     id: 'test-grupo',
@@ -327,7 +339,10 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 10.00,
     specimenType: 'Sangre Total',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-grupo', name: 'Grupo ABO', unit: 'Texto', astmParamCode: 'ABO', referenceRanges: [] },
+      { id: 'p-rh', name: 'Factor Rh', unit: 'Texto', astmParamCode: 'RH', referenceRanges: [] }
+    ]
   },
 
   // 2. QUÍMICA CLÍNICA
@@ -341,7 +356,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 8.00,
     specimenType: 'Suero',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-glu', name: 'Glucosa Basal en Ayunas', unit: 'mg/dL', astmParamCode: 'GLU', referenceRanges: [{ id: 'rr-glu', gender: 'TODOS', minValue: 70, maxValue: 99, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-creatinina',
@@ -353,7 +370,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 8.50,
     specimenType: 'Suero',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-crea', name: 'Creatinina Sérica', unit: 'mg/dL', astmParamCode: 'CREA', referenceRanges: [{ id: 'rr-crea', gender: 'TODOS', minValue: 0.6, maxValue: 1.2, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-lipidico',
@@ -365,7 +384,12 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 35.00,
     specimenType: 'Suero',
     tatHours: 3,
-    parameters: []
+    parameters: [
+      { id: 'p-chol', name: 'Colesterol Total', unit: 'mg/dL', astmParamCode: 'CHOL', referenceRanges: [{ id: 'rr-chol', gender: 'TODOS', minValue: 100, maxValue: 199, unit: 'mg/dL' }] },
+      { id: 'p-trig', name: 'Triglicéridos', unit: 'mg/dL', astmParamCode: 'TRIG', referenceRanges: [{ id: 'rr-trig', gender: 'TODOS', minValue: 10, maxValue: 149, unit: 'mg/dL' }] },
+      { id: 'p-hdl', name: 'HDL Colesterol', unit: 'mg/dL', astmParamCode: 'HDL', referenceRanges: [{ id: 'rr-hdl', gender: 'TODOS', minValue: 40, maxValue: 80, unit: 'mg/dL' }] },
+      { id: 'p-ldl', name: 'LDL Colesterol', unit: 'mg/dL', astmParamCode: 'LDL', referenceRanges: [{ id: 'rr-ldl', gender: 'TODOS', minValue: 0, maxValue: 99, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-urea',
@@ -377,7 +401,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 8.00,
     specimenType: 'Suero',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-bun', name: 'Nitrógeno de Urea (BUN)', unit: 'mg/dL', astmParamCode: 'BUN', referenceRanges: [{ id: 'rr-bun', gender: 'TODOS', minValue: 7, maxValue: 20, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-acido-urico',
@@ -389,7 +415,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 8.00,
     specimenType: 'Suero',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-auric', name: 'Ácido Úrico Sérico', unit: 'mg/dL', astmParamCode: 'URIC', referenceRanges: [{ id: 'rr-auric', gender: 'TODOS', minValue: 3.5, maxValue: 7.2, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-hepatico',
@@ -401,7 +429,12 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 45.00,
     specimenType: 'Suero',
     tatHours: 3,
-    parameters: []
+    parameters: [
+      { id: 'p-ast', name: 'TGO / AST', unit: 'U/L', astmParamCode: 'AST', referenceRanges: [{ id: 'rr-ast', gender: 'TODOS', minValue: 10, maxValue: 40, unit: 'U/L' }] },
+      { id: 'p-alt', name: 'TGP / ALT', unit: 'U/L', astmParamCode: 'ALT', referenceRanges: [{ id: 'rr-alt', gender: 'TODOS', minValue: 7, maxValue: 56, unit: 'U/L' }] },
+      { id: 'p-ggt', name: 'Gamma GT (GGT)', unit: 'U/L', astmParamCode: 'GGT', referenceRanges: [{ id: 'rr-ggt', gender: 'TODOS', minValue: 8, maxValue: 61, unit: 'U/L' }] },
+      { id: 'p-tbil', name: 'Bilirrubina Total', unit: 'mg/dL', astmParamCode: 'TBIL', referenceRanges: [{ id: 'rr-tbil', gender: 'TODOS', minValue: 0.1, maxValue: 1.2, unit: 'mg/dL' }] }
+    ]
   },
   {
     id: 'test-electrolitos',
@@ -413,7 +446,11 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 25.00,
     specimenType: 'Suero',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-na', name: 'Sodio (Na+)', unit: 'mEq/L', astmParamCode: 'NA', referenceRanges: [{ id: 'rr-na', gender: 'TODOS', minValue: 135, maxValue: 145, unit: 'mEq/L' }] },
+      { id: 'p-k', name: 'Potasio (K+)', unit: 'mEq/L', astmParamCode: 'K', referenceRanges: [{ id: 'rr-k', gender: 'TODOS', minValue: 3.5, maxValue: 5.1, unit: 'mEq/L' }] },
+      { id: 'p-cl', name: 'Cloro (Cl-)', unit: 'mEq/L', astmParamCode: 'CL', referenceRanges: [{ id: 'rr-cl', gender: 'TODOS', minValue: 98, maxValue: 107, unit: 'mEq/L' }] }
+    ]
   },
 
   // 3. INMUNOLOGÍA / ESPECIALES
@@ -427,7 +464,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 25.00,
     specimenType: 'Suero',
     tatHours: 4,
-    parameters: []
+    parameters: [
+      { id: 'p-tsh', name: 'TSH Ultrasensible', unit: 'µIU/mL', astmParamCode: 'TSH', referenceRanges: [{ id: 'rr-tsh', gender: 'TODOS', minValue: 0.4, maxValue: 4.2, unit: 'µIU/mL' }] }
+    ]
   },
   {
     id: 'test-hiv',
@@ -439,7 +478,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 35.00,
     specimenType: 'Suero',
     tatHours: 4,
-    parameters: []
+    parameters: [
+      { id: 'p-hiv', name: 'VIH 1/2 Ag p24 / Ac', unit: 'Ratio', astmParamCode: 'HIV', referenceRanges: [{ id: 'rr-hiv', gender: 'TODOS', minValue: 0, maxValue: 0.99, unit: 'Ratio' }] }
+    ]
   },
   {
     id: 'test-vdrl',
@@ -451,7 +492,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 8.00,
     specimenType: 'Suero',
     tatHours: 2,
-    parameters: []
+    parameters: [
+      { id: 'p-vdrl', name: 'VDRL Cuantitativo', unit: 'Dilusión', astmParamCode: 'VDRL', referenceRanges: [] }
+    ]
   },
   {
     id: 'test-hcg',
@@ -463,7 +506,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 15.00,
     specimenType: 'Suero/Orina',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-hcg', name: 'HCG Subunidad Beta', unit: 'mIU/mL', astmParamCode: 'BHCG', referenceRanges: [{ id: 'rr-hcg', gender: 'TODOS', minValue: 0, maxValue: 5.0, unit: 'mIU/mL' }] }
+    ]
   },
 
   // 4. URANÁLISIS
@@ -477,7 +522,14 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 12.00,
     specimenType: 'Orina',
     tatHours: 2,
-    parameters: []
+    parameters: [
+      { id: 'p-uri-color', name: 'Color & Aspecto', unit: 'Texto', astmParamCode: 'U-COL', referenceRanges: [] },
+      { id: 'p-uri-ph', name: 'pH Urinario', unit: 'pH', astmParamCode: 'U-PH', referenceRanges: [{ id: 'rr-uph', gender: 'TODOS', minValue: 5.0, maxValue: 7.5, unit: 'pH' }] },
+      { id: 'p-uri-sg', name: 'Densidad Específica', unit: 'Ratio', astmParamCode: 'U-SG', referenceRanges: [{ id: 'rr-usg', gender: 'TODOS', minValue: 1.005, maxValue: 1.030, unit: '' }] },
+      { id: 'p-uri-pro', name: 'Proteínas Urinarias', unit: 'mg/dL', astmParamCode: 'U-PRO', referenceRanges: [] },
+      { id: 'p-uri-glu', name: 'Glucosa Urinaria', unit: 'mg/dL', astmParamCode: 'U-GLU', referenceRanges: [] },
+      { id: 'p-uri-leu', name: 'Leucocitos Sedimento', unit: '/campo', astmParamCode: 'U-LEU', referenceRanges: [{ id: 'rr-uleu', gender: 'TODOS', minValue: 0, maxValue: 5, unit: '/campo' }] }
+    ]
   },
 
   // 5. COAGULACIÓN
@@ -491,7 +543,10 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 15.00,
     specimenType: 'Plasma Citratado',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-tp', name: 'Tiempo de Protrombina (TP)', unit: 'segundos', astmParamCode: 'TP', referenceRanges: [{ id: 'rr-tp', gender: 'TODOS', minValue: 11.0, maxValue: 13.5, unit: 'seg' }] },
+      { id: 'p-inr', name: 'INR Coagulación', unit: 'Ratio', astmParamCode: 'INR', referenceRanges: [{ id: 'rr-inr', gender: 'TODOS', minValue: 0.8, maxValue: 1.2, unit: '' }] }
+    ]
   },
   {
     id: 'test-ptt',
@@ -503,7 +558,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 15.00,
     specimenType: 'Plasma Citratado',
     tatHours: 1,
-    parameters: []
+    parameters: [
+      { id: 'p-ttpa', name: 'TTPa Tpo Tromboplastina', unit: 'segundos', astmParamCode: 'TTPA', referenceRanges: [{ id: 'rr-ttpa', gender: 'TODOS', minValue: 25.0, maxValue: 35.0, unit: 'seg' }] }
+    ]
   },
   {
     id: 'test-fibrinogeno',
@@ -515,7 +572,9 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     price: 20.00,
     specimenType: 'Plasma Citratado',
     tatHours: 2,
-    parameters: []
+    parameters: [
+      { id: 'p-fib', name: 'Fibrinógeno Cuantitativo', unit: 'mg/dL', astmParamCode: 'FIB', referenceRanges: [{ id: 'rr-fib', gender: 'TODOS', minValue: 200, maxValue: 400, unit: 'mg/dL' }] }
+    ]
   }
 ];
 
