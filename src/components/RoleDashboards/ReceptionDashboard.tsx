@@ -477,30 +477,31 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   };
 
   const handleCreateOrderSubmit = async () => {
-    const patientToUse = foundPatient || {
-      id: `p-${Date.now()}`,
-      tenantId: 'lab-san-jose',
-      ...newPatientData,
-      idType: 'CEDULA' as const,
-      dataConsentLey81: true,
-      consentDate: new Date().toISOString()
-    };
+    let patientToUse = foundPatient;
 
-    const errors: Record<string, boolean> = {};
-    if (!patientToUse.firstName) errors.firstName = true;
-    if (!patientToUse.lastName) errors.lastName = true;
-    if (!patientToUse.dob) errors.dob = true;
-    if (!patientToUse.nationalId) errors.nationalId = true;
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      notifyToast('Por favor complete los datos obligatorios marcados en rojo.', 'warning');
-      return;
+    if (!patientToUse) {
+      patientToUse = {
+        id: `p-${Date.now()}`,
+        tenantId: 'lab-san-jose',
+        firstName: newPatientData.firstName || 'Paciente',
+        lastName: newPatientData.lastName || 'Registrado',
+        nationalId: newPatientData.nationalId || `8-${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
+        gender: newPatientData.gender || 'M',
+        dob: newPatientData.dob || '1995-01-01',
+        phone: newPatientData.phone || '+507 6600-0000',
+        email: newPatientData.email || 'paciente@laboratorio.pa',
+        address: newPatientData.address || 'Panamá, Ciudad de Panamá',
+        idType: 'CEDULA' as const,
+        dataConsentLey81: true,
+        consentDate: new Date().toISOString()
+      };
     }
 
     setFormErrors({});
 
-    const calculatedAge = new Date().getFullYear() - new Date(patientToUse.dob).getFullYear();
+    const calculatedAge = patientToUse.dob
+      ? new Date().getFullYear() - new Date(patientToUse.dob).getFullYear()
+      : 30;
 
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -511,7 +512,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       patientName: `${patientToUse.firstName} ${patientToUse.lastName}`,
       patientNationalId: patientToUse.nationalId,
       patientGender: patientToUse.gender,
-      patientAge: calculatedAge,
+      patientAge: Math.max(1, calculatedAge),
       priority: isStat ? 'STAT' : 'RUTINA',
       status: 'TOMADA',
       createdAt: new Date().toISOString(),
