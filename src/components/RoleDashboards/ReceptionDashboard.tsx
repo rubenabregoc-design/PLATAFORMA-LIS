@@ -1160,7 +1160,6 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                           className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                         />
                       </div>
-                    </div>
 
                       <div>
                         <label className="text-[10px] font-black text-slate-300 uppercase block mb-1">Contacto de Emergencia (Nombre & Teléfono)</label>
