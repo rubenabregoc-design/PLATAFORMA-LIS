@@ -630,29 +630,6 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                 onSave={onUpdateResultValue}
                               />
                            </td>
-                                    title="Click para editar resultado"
-                                  >
-                                    {res.value}
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const nextSource = res.source?.includes('MIDDLEWARE') ? 'INGRESO_MANUAL' : 'MIDDLEWARE_ASTM';
-                                      updateResult(res.id, res.value, { ...res, source: nextSource, analyzerName: nextSource === 'MIDDLEWARE_ASTM' ? 'Mindray BC-6800' : 'Manual' });
-                                    }}
-                                    className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border transition cursor-pointer ${
-                                      res.source?.includes('MIDDLEWARE')
-                                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                                        : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                                    }`}
-                                    title="Cambiar vía de origen: Analizador ASTM vs Ingreso Manual"
-                                  >
-                                    {res.source?.includes('MIDDLEWARE') ? '🤖 Analizador' : '✍️ Manual'}
-                                  </button>
-                                </div>
-                              )}
-                           </td>
                            <td className="p-4 text-slate-500 font-mono text-[10px] uppercase tracking-tighter">{res.unit}</td>
                            <td className="p-4 text-slate-400 font-mono text-[10px] italic">
                               <div>{res.refRangeText}</div>
