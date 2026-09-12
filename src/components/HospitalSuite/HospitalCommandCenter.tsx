@@ -23,13 +23,19 @@ interface CommandCenterProps {
 }
 
 export const HospitalCommandCenter: React.FC<CommandCenterProps> = ({ onNavigateTab }) => {
-  const { beds, admissions, triageRecords, kardexRecords } = useHisStore();
-  const { orders, results } = useLisStore();
+  const hisStore = useHisStore();
+  const lisStore = useLisStore();
 
-  const totalBeds = beds.length;
-  const occupiedBeds = beds.filter((b) => b.status === 'OCUPADA').length;
-  const availableBeds = beds.filter((b) => b.status === 'DISPONIBLE').length;
-  const disinfectionBeds = beds.filter((b) => b.status === 'DESINFECCION').length;
+  const beds = hisStore?.beds || [];
+  const admissions = hisStore?.admissions || [];
+  const triageRecords = hisStore?.triageRecords || [];
+  const orders = lisStore?.orders || [];
+  const results = lisStore?.results || [];
+
+  const totalBeds = Math.max(1, beds.length);
+  const occupiedBeds = beds.filter((b) => b?.status === 'OCUPADA').length;
+  const availableBeds = beds.filter((b) => b?.status === 'DISPONIBLE').length;
+  const disinfectionBeds = beds.filter((b) => b?.status === 'DESINFECCION').length;
   const occupancyRate = Math.round((occupiedBeds / totalBeds) * 100);
 
   const criticalTriage = triageRecords.filter((t) => t.priority === 'NIVEL_1_ROJO' || t.priority === 'NIVEL_2_NARANJA');

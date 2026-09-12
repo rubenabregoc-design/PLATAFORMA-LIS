@@ -1113,9 +1113,9 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                         <p className="text-[9px] text-slate-500 font-mono mt-0.5">{test.category} • {test.specimenType}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px]">
-                        <span className="font-mono font-black text-teal-400">${test.price.toFixed(2)}</span>
-                        <span className="text-[8px] text-slate-500">TAT: {test.tatHours}h</span>
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <span className="font-mono font-black text-sm sm:text-base text-teal-300 bg-teal-500/20 px-2 py-0.5 rounded-lg border border-teal-500/30 shadow-sm">${test.price.toFixed(2)}</span>
+                        <span className="text-[9px] font-mono text-slate-400">TAT: {test.tatHours}h</span>
                       </div>
                     </div>
                   );
