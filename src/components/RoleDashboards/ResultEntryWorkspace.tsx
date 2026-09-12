@@ -25,6 +25,61 @@ interface ResultEntryWorkspaceProps {
   allOrders?: Order[]; allPatients?: Patient[];
 }
 
+const ResultValueInput: React.FC<{
+  result: TestResult;
+  isValidated: boolean;
+  onSave: (resultId: string, val: string, result: TestResult) => void;
+}> = ({ result, isValidated, onSave }) => {
+  const [val, setVal] = useState(result.value || '');
+
+  useEffect(() => {
+    setVal(result.value || '');
+  }, [result.value]);
+
+  const handleCommit = () => {
+    if (val !== result.value) {
+      onSave(result.id, val, result);
+    }
+  };
+
+  if (isValidated) {
+    return (
+      <span className="px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+        {result.value || 'VALIDADO'}
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="text"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={handleCommit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCommit();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        placeholder="Ingresar..."
+        className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 rounded-xl px-3 py-1.5 text-center text-teal-200 font-mono font-black text-sm w-36 shadow-[0_0_15px_rgba(0,240,255,0.25)] outline-none"
+      />
+      {val !== result.value && (
+        <button
+          type="button"
+          onClick={handleCommit}
+          className="p-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs cursor-pointer shadow active:scale-90 transition-transform"
+          title="Guardar Resultado"
+        >
+          <Check className="w-4 h-4 stroke-[3]" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   order: initialOrder, patient: initialPatient, results, analyzers = MOCK_ANALYZERS, currentUser,
   onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
@@ -402,14 +457,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
            {/* Mobile Card View (< md) */}
            <div className="block md:hidden space-y-3">
-              {patientResults.map(res => {
+              {patientResults.map((res, index) => {
                  const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
                  const isHigh = res.flag === 'ALTO';
                  const isCritical = res.flag?.includes('CRITICO');
 
                  return (
                     <div
-                      key={res.id}
+                      key={`mob-res-${res.id}-${index}`}
                       onClick={() => setActiveTraceabilityId(res.id)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
                         isCritical
@@ -569,56 +624,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               </div>
                            </td>
                            <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                              {editingId === res.id || !res.value || res.value.trim() === '' ? (
-                                <div className="flex items-center justify-center space-x-1.5">
-                                  <input
-                                    autoFocus={editingId === res.id}
-                                    value={editingId === res.id ? tempValue : res.value}
-                                    onChange={(e) => {
-                                      setEditingId(res.id);
-                                      setTempValue(e.target.value);
-                                    }}
-                                    onBlur={() => {
-                                      if (editingId === res.id) {
-                                        onUpdateResultValue(res.id, tempValue, res);
-                                        setEditingId(null);
-                                      }
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        onUpdateResultValue(res.id, tempValue, res);
-                                        setEditingId(null);
-                                      }
-                                    }}
-                                    placeholder="Ingresar..."
-                                    className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 rounded-xl px-3 py-1.5 text-center text-teal-200 font-mono font-black text-sm w-32 shadow-[0_0_15px_rgba(0,240,255,0.25)] outline-none"
-                                  />
-                                  {res.value && (
-                                    <button
-                                      onClick={() => {
-                                        onUpdateResultValue(res.id, tempValue || res.value, res);
-                                        setEditingId(null);
-                                      }}
-                                      className="p-1.5 bg-teal-500 text-slate-950 rounded-xl font-bold text-xs cursor-pointer shadow"
-                                      title="Guardar Resultado"
-                                    >
-                                      <Check className="w-4 h-4 stroke-[3]" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    disabled={isValidated}
-                                    onClick={() => {
-                                      setEditingId(res.id);
-                                      setTempValue(res.value);
-                                    }}
-                                    className={`px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border transition-all cursor-pointer ${
-                                      isValidated
-                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                                        : 'border-teal-500/40 bg-slate-900 hover:border-cyan-400 text-cyan-300 shadow-md'
-                                    }`}
+                              <ResultValueInput
+                                result={res}
+                                isValidated={isValidated}
+                                onSave={onUpdateResultValue}
+                              />
+                           </td>
                                     title="Click para editar resultado"
                                   >
                                     {res.value}
