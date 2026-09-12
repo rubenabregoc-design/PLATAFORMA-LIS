@@ -15,6 +15,7 @@ import {
 
 import { useLisStore } from './store/useLisStore';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
+import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
 import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets } from 'lucide-react';
 import { LoginScreen } from './components/LoginScreen';
 import { BranchSelectionModal } from './components/BranchSelectionModal';
@@ -429,7 +430,11 @@ export default function App() {
 
   // If not authenticated, present the real Login Portal
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return (
+      <ModuleErrorBoundary moduleName="Portal de Inicio de Sesión">
+        <LoginScreen onLogin={handleLogin} />
+      </ModuleErrorBoundary>
+    );
   }
 
   return (
