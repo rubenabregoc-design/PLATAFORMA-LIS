@@ -36,10 +36,9 @@ const ResultValueInput: React.FC<{
     setVal(result.value || '');
   }, [result.value]);
 
-  const handleCommit = () => {
-    if (val !== result.value) {
-      onSave(result.id, val, result);
-    }
+  const handleChange = (newVal: string) => {
+    setVal(newVal);
+    onSave(result.id, newVal, result);
   };
 
   if (isValidated) {
@@ -51,31 +50,14 @@ const ResultValueInput: React.FC<{
   }
 
   return (
-    <div className="flex items-center justify-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
+    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
       <input
         type="text"
         value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={handleCommit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleCommit();
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
+        onChange={(e) => handleChange(e.target.value)}
         placeholder="Ingresar..."
-        className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 rounded-xl px-3 py-1.5 text-center text-teal-200 font-mono font-black text-sm w-36 shadow-[0_0_15px_rgba(0,240,255,0.25)] outline-none"
+        className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 focus:bg-slate-950 rounded-2xl px-4 py-2 text-center text-teal-200 font-mono font-black text-sm sm:text-base w-36 sm:w-40 shadow-[0_0_15px_rgba(0,240,255,0.2)] outline-none transition-all"
       />
-      {val !== result.value && (
-        <button
-          type="button"
-          onClick={handleCommit}
-          className="p-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs cursor-pointer shadow active:scale-90 transition-transform"
-          title="Guardar Resultado"
-        >
-          <Check className="w-4 h-4 stroke-[3]" />
-        </button>
-      )}
     </div>
   );
 };
