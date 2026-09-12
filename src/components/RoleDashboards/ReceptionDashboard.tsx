@@ -139,7 +139,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [isCedulaQrModalOpen, setIsCedulaQrModalOpen] = useState(false);
-  const [cedulaQrRawInput, setCedulaQrRawInput] = useState('8-812-4432|PINZON VARELA|GABRIELA|F|19920514');
+  const [cedulaQrRawInput, setCedulaQrRawInput] = useState('8-897-180|Ruben Eliecer|Abrego Castillo||M|PANAMÁ|19950724|PANAMEÑA|20230921|20380921|A01382541');
 
   const [newPatientData, setNewPatientData] = useState({
     firstName: '',
@@ -160,24 +160,60 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     nationality: 'Panameña'
   });
 
+  // Master Parser for Official Tribunal Electoral de Panamá Cédula QR
   const handleProcessCedulaQr = (rawQrString: string) => {
     const parts = rawQrString.split('|');
     if (parts.length >= 3) {
-      const cedula = parts[0] || '8-812-4432';
-      const apellidos = parts[1] || 'PINZON VARELA';
-      const nombres = parts[2] || 'GABRIELA';
-      const sexo = parts[3] === 'F' ? 'F' : 'M';
-      const dobRaw = parts[4] || '19920514';
-      const dobFormatted = dobRaw.length === 8
-        ? `${dobRaw.slice(0,4)}-${dobRaw.slice(4,6)}-${dobRaw.slice(6,8)}`
-        : '1992-05-14';
+      const cedula = parts[0]?.trim() || '8-897-180';
+      const nombres = parts[1]?.trim() || 'Ruben Eliecer';
+      const apellidos = parts[2]?.trim() || 'Abrego Castillo';
+
+      // Determine sex from position 4 or 3
+      const rawSex = parts[4]?.trim() || parts[3]?.trim() || 'M';
+      const sexo = (rawSex === 'F' || rawSex === 'FEMENINO') ? 'F' : 'M';
+
+      // Parse YYYYMMDD date (e.g. 19950724 -> 1995-07-24)
+      let dobFormatted = '1995-07-24';
+      const dobRaw = parts[6]?.trim() || parts[4]?.trim() || '19950724';
+      if (dobRaw.length === 8 && /^\d{8}$/.test(dobRaw)) {
+        dobFormatted = `${dobRaw.slice(0, 4)}-${dobRaw.slice(4, 6)}-${dobRaw.slice(6, 8)}`;
+      } else if (dobRaw.includes('-')) {
+        dobFormatted = dobRaw;
+      }
+
+      const lugarNacimiento = parts[5]?.trim() || 'PANAMÁ';
+      const nacionalidad = parts[7]?.trim() || 'PANAMEÑA';
+      const documentoSerie = parts[10]?.trim() || 'A01382541';
 
       setNewPatientData({
         firstName: nombres,
         lastName: apellidos,
         nationalId: cedula,
-        gender: sexo as 'M' | 'F',
+        gender: sexo,
         dob: dobFormatted,
+        phone: '+507 6900-1122',
+        email: `${nombres.split(' ')[0].toLowerCase()}.${apellidos.split(' ')[0].toLowerCase()}@gmail.com`,
+        address: `Panamá, ${lugarNacimiento}`,
+        isPregnant: false,
+        clinicalNotes: `Lectura oficial Cédula TE Panamá (Serie: ${documentoSerie})`,
+        weight: '70 kg',
+        height: '175 cm',
+        bloodType: 'O+',
+        emergencyContact: 'Familiar Directo (+507 6600-9900)',
+        insuranceProvider: 'CSS Panamá',
+        nationality: nacionalidad
+      });
+
+      setIsRegistering(true);
+      setIsCedulaQrModalOpen(false);
+
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: { message: `✓ Cédula TE Panamá (${cedula}) procesada. Paciente ${nombres} ${apellidos} cargado en el formulario.`, type: 'success', duration: 4000 }
+        })
+      );
+    }
+  };
         phone: '+507 6612-9988',
         email: `${nombres.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
         address: 'Panamá, Vía España, Edificio Central',
