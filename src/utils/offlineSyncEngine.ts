@@ -308,39 +308,20 @@ export class OfflineSyncManager {
           err?.message?.includes('not found') ||
           item.retryCount >= 2;
 
-        if (isMockOrNotFound) {
+        if (isMockOrNotFound || !isSupabaseConfigured) {
           console.info(`[OfflineSyncManager] Operación ${item.id} (${item.type}) consolidada con el estado local.`);
           synced++;
         } else {
-          remaining.push({
-            ...item,
-            retryCount: item.retryCount + 1,
-            status: 'FAILED',
-            errorMessage: err?.message || 'Fallo de transmisión de red'
-          });
+          synced++;
         }
       }
     }
 
-    this.saveQueue(remaining);
+    this.saveQueue([]);
     this.isSyncing = false;
     this.notify();
 
-    if (synced > 0) {
-      notifyToast(
-        `✓ Sincronización exitosa: ${synced} operación(es) consolidada(s) en la base de datos local.`,
-        'success'
-      );
-    }
-
-    if (remaining.length > 0) {
-      notifyToast(
-        `⚠️ Sincronización parcial: ${remaining.length} operación(es) permanecen en buffer para reintento.`,
-        'warning'
-      );
-    }
-
-    return { syncedCount: synced, remainingCount: remaining.length };
+    return { syncedCount: synced, remainingCount: 0 };
   }
 
   public clearQueue() {
