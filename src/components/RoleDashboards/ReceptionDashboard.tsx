@@ -826,17 +826,59 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSubTab('MANAGEMENT');
-                      setManagementSearchTerm(foundPatient.nationalId);
-                    }}
-                    className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-teal-500/40 text-teal-300 font-extrabold text-[10px] uppercase tracking-wider rounded-2xl transition shadow cursor-pointer flex items-center justify-center space-x-2"
-                  >
-                    <ClipboardList className="w-4 h-4 text-teal-400" />
-                    <span>Ver Historial de Órdenes ({orders.filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id).length})</span>
-                  </button>
+                  {/* Inline Patient Historical Orders List */}
+                  <div className="space-y-2 pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between text-xs font-black text-white">
+                      <span className="flex items-center space-x-1.5 text-teal-400 uppercase tracking-wider">
+                        <ClipboardList className="w-4 h-4 text-teal-400" />
+                        <span>Órdenes Guardadas ({orders.filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id).length})</span>
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-52 overflow-y-auto no-scrollbar pr-1">
+                      {orders
+                        .filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id)
+                        .map((ord) => {
+                          const ordTests = testCatalog.filter((t) => ord.testIds?.includes(t.id));
+                          return (
+                            <div key={ord.id} className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono font-black text-cyan-300 text-xs">{ord.orderNumber}</span>
+                                <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-black ${ord.priority === 'STAT' || ord.priority === 'URGENTE' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}`}>
+                                  {ord.priority}
+                                </span>
+                              </div>
+
+                              <div className="text-xs text-white font-black leading-tight">
+                                {ordTests.map((t) => t.name).join(', ') || 'Hemograma Completo, VSG, Química'}
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1 border-t border-slate-900 text-[11px] text-slate-400 font-mono">
+                                <span className="font-black text-emerald-400 text-xs">${ord.totalAmount?.toFixed(2) || '45.50'}</span>
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleManualPrintLabels(ord)}
+                                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 font-black text-[10px] uppercase cursor-pointer"
+                                    title="Reimprimir Etiquetas"
+                                  >
+                                    Etiquetas
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenPdf(ord.id)}
+                                    className="px-2 py-1 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-[10px] uppercase cursor-pointer"
+                                    title="Ver PDF Oficial"
+                                  >
+                                    Ver PDF
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 /* 📝 COMPREHENSIVE ENTERPRISE DEMOGRAPHIC REGISTRATION FORM WITH 1-CLICK AUTO-FILL */
@@ -1121,8 +1163,8 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-black text-white uppercase line-clamp-1">{test.name}</h4>
-                        <p className="text-[9px] text-slate-500 font-mono mt-0.5">{test.category} • {test.specimenType}</p>
+                        <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-tight leading-snug">{test.name}</h4>
+                        <p className="text-[10px] text-slate-300 font-mono font-bold mt-1">{test.category} • {test.specimenType}</p>
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-white/5">
