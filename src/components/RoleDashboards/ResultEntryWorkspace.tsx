@@ -10,7 +10,7 @@ import {
   Smartphone, Trash2, RotateCcw, Beaker, CheckCircle2, Printer,
   Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
   ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
-  Microscope, AlertTriangle
+  Microscope, AlertTriangle, Check
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
