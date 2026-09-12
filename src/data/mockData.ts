@@ -284,7 +284,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-hemograma',
     tenantId: 'lab-san-jose',
-    code: 'HEM-01',
+    code: '1001',
     name: 'Hemograma Completo',
     category: 'HEMATOLOGIA',
     tubeType: 'EDTA_MORADO',
@@ -304,7 +304,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-vsg',
     tenantId: 'lab-san-jose',
-    code: 'HEM-02',
+    code: '1002',
     name: 'VSG (Eritrosedimentación)',
     category: 'HEMATOLOGIA',
     tubeType: 'EDTA_MORADO',
@@ -318,7 +318,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-retis',
     tenantId: 'lab-san-jose',
-    code: 'HEM-03',
+    code: '1003',
     name: 'Recuento de Reticulocitos',
     category: 'HEMATOLOGIA',
     tubeType: 'EDTA_MORADO',
@@ -332,7 +332,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-grupo',
     tenantId: 'lab-san-jose',
-    code: 'HEM-04',
+    code: '1004',
     name: 'Grupo Sanguíneo y Factor Rh',
     category: 'HEMATOLOGIA',
     tubeType: 'EDTA_MORADO',
@@ -349,7 +349,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-glucosa',
     tenantId: 'lab-san-jose',
-    code: 'QUI-01',
+    code: '3453',
     name: 'Glucosa en Ayunas',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -363,7 +363,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-creatinina',
     tenantId: 'lab-san-jose',
-    code: 'QUI-02',
+    code: '3454',
     name: 'Creatinina Sérica',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -377,7 +377,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-lipidico',
     tenantId: 'lab-san-jose',
-    code: 'QUI-03',
+    code: '3455',
     name: 'Perfil Lipídico Completo',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -394,7 +394,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-urea',
     tenantId: 'lab-san-jose',
-    code: 'QUI-04',
+    code: '3456',
     name: 'Nitrógeno de Urea (BUN)',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -408,7 +408,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-acido-urico',
     tenantId: 'lab-san-jose',
-    code: 'QUI-05',
+    code: '3457',
     name: 'Ácido Úrico',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -422,7 +422,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-hepatico',
     tenantId: 'lab-san-jose',
-    code: 'QUI-06',
+    code: '3458',
     name: 'Perfil Hepático',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -439,7 +439,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-electrolitos',
     tenantId: 'lab-san-jose',
-    code: 'QUI-07',
+    code: '3459',
     name: 'Electrolitos (Na, K, Cl)',
     category: 'QUIMICA',
     tubeType: 'SUERO_ROJO',
@@ -457,7 +457,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-tsh',
     tenantId: 'lab-san-jose',
-    code: 'INM-01',
+    code: '5001',
     name: 'TSH Ultrasensible',
     category: 'INMUNOLOGIA',
     tubeType: 'SUERO_ROJO',
@@ -471,7 +471,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-hiv',
     tenantId: 'lab-san-jose',
-    code: 'INM-02',
+    code: '5002',
     name: 'HIV 1/2 Ag/Ab (4ta Gen)',
     category: 'INMUNOLOGIA',
     tubeType: 'SUERO_ROJO',
@@ -485,7 +485,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-vdrl',
     tenantId: 'lab-san-jose',
-    code: 'INM-03',
+    code: '5003',
     name: 'VDRL / RPR (Sífilis)',
     category: 'INMUNOLOGIA',
     tubeType: 'SUERO_ROJO',
@@ -499,7 +499,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-hcg',
     tenantId: 'lab-san-jose',
-    code: 'INM-04',
+    code: '5004',
     name: 'Prueba de Embarazo (hCG)',
     category: 'INMUNOLOGIA',
     tubeType: 'SUERO_ROJO',
@@ -515,7 +515,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-uri',
     tenantId: 'lab-san-jose',
-    code: 'URA-01',
+    code: '2001',
     name: 'Urianálisis Completo',
     category: 'URINALISIS',
     tubeType: 'ORINA',
@@ -536,7 +536,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-pt',
     tenantId: 'lab-san-jose',
-    code: 'COA-01',
+    code: '4001',
     name: 'Tiempo de Protrombina (PT)',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
@@ -551,7 +551,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-ptt',
     tenantId: 'lab-san-jose',
-    code: 'COA-02',
+    code: '4002',
     name: 'Tiempo de Tromboplastina (PTT)',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
@@ -565,7 +565,7 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
   {
     id: 'test-fibrinogeno',
     tenantId: 'lab-san-jose',
-    code: 'COA-03',
+    code: '4003',
     name: 'Fibrinógeno',
     category: 'COAGULACION',
     tubeType: 'CITRATO_AZUL',
