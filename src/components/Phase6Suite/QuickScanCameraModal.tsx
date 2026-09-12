@@ -108,23 +108,25 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
     setCameraError(null);
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraError('El navegador actual no soporta acceso a la cámara mediante WebRTC.');
+      setCameraError('El navegador restringe el acceso a la cámara en orígenes HTTP por IP (192.168.0.8). Abra por http://localhost:3000 o active HTTPS.');
       return;
     }
 
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: false,
-        video: deviceId
-          ? { deviceId: { exact: deviceId } }
-          : {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-      };
+      let stream: MediaStream;
+      try {
+        const constraints: MediaStreamConstraints = {
+          audio: false,
+          video: deviceId
+            ? { deviceId: { exact: deviceId } }
+            : { facingMode: { ideal: 'environment' } }
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (firstErr) {
+        // Fallback to basic video constraint if environment facingMode fails
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       if (videoRef.current) {
@@ -152,8 +154,8 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
         processVideoFrame();
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al acceder a la cámara.';
-      setCameraError(`No se pudo iniciar la cámara: ${errorMsg}. Asegúrese de permitir los permisos de cámara en el navegador.`);
+      const errorMsg = err instanceof Error ? err.message : 'Permiso de cámara denegado.';
+      setCameraError(`Permiso de cámara: ${errorMsg}. Abra http://localhost:3000 o permita el uso de cámara en la barra del navegador.`);
       setIsCameraActive(false);
     }
   };
@@ -366,21 +368,10 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
               <div className="pt-1 flex flex-wrap gap-2 justify-center">
                 <button
                   onClick={() => startCamera(selectedDeviceId)}
-                  className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
+                  className="px-4 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-md shadow-teal-500/20"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Reintentar Conexión Cámara</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleRecognizedCode('8-897-180|Ruben Eliecer|Abrego Castillo||M|PANAMÁ|19950724|PANAMEÑA|20230921|20380921|A01382541', 'QR_CODE');
-                  }}
-                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer shadow"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>Simular Escaneo Cédula TE (1-Clic)</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Activar Conexión de Cámara</span>
                 </button>
               </div>
             </div>
