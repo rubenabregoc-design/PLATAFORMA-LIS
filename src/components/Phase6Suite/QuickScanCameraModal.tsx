@@ -303,36 +303,36 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[200] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-300">
-      <div className="bg-slate-900 border border-teal-500/30 rounded-[2rem] sm:rounded-[2.5rem] max-w-2xl w-full p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.85)] space-y-5 relative overflow-hidden text-slate-100">
+      <div className="bg-slate-900 border border-teal-500/30 rounded-3xl max-w-xl w-full p-4 sm:p-5 shadow-2xl space-y-3 relative overflow-hidden text-slate-100 max-h-[85vh] overflow-y-auto no-scrollbar my-auto">
         
         {/* Ambient Top Glow */}
         <div className="absolute -top-24 -left-24 w-60 h-60 bg-teal-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4 relative z-10">
+        <div className="flex items-start justify-between border-b border-white/10 pb-3 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-teal-400" />
-                <span>Escáner Óptico de Mesón</span>
+                <span>Escáner Óptico en Vivo (jsQR)</span>
               </span>
               <span className="text-[10px] font-mono text-slate-400">
-                Code 128 / Code 39 / QR / DataMatrix
+                Code 128 / Code 39 / QR TE Panamá
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center space-x-2">
+            <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center space-x-2">
               <Camera className="w-5 h-5 text-teal-400" />
-              <span>Lectura Rápida de Muestra (Quick Scan)</span>
+              <span>Lectura Óptica de Cédula & Etiquetas</span>
             </h2>
-            <p className="text-xs text-slate-300">
-              Enfoque el código de barras o QR de la etiqueta del tubo para abrir inmediatamente la orden.
+            <p className="text-[11px] text-slate-300 leading-tight">
+              Enfoque el código QR del reverso de la Cédula Panameña o la etiqueta del tubo.
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -354,21 +354,35 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
 
           {/* Fallback View when Camera is Inactive or Error */}
           {!isCameraActive && (
-            <div className="p-6 text-center space-y-3 max-w-md">
-              <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-400 flex items-center justify-center mx-auto animate-pulse">
-                <Camera className="w-7 h-7" />
+            <div className="p-4 text-center space-y-2 max-w-md">
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-400 flex items-center justify-center mx-auto animate-pulse">
+                <Camera className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-white">Iniciando Sensor Óptico...</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {cameraError || 'Solicitando permisos de cámara para escaneo de etiquetas de tubos...'}
+              <h3 className="text-xs font-bold text-white">Iniciando Sensor Óptico WebCam / Celular...</h3>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                {cameraError || 'Solicitando permisos de cámara WebRTC para escaneo óptico...'}
               </p>
-              <button
-                onClick={() => startCamera(selectedDeviceId)}
-                className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 mx-auto cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reintentar Conexión de Cámara</span>
-              </button>
+
+              <div className="pt-1 flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={() => startCamera(selectedDeviceId)}
+                  className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reintentar Conexión Cámara</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRecognizedCode('8-897-180|Ruben Eliecer|Abrego Castillo||M|PANAMÁ|19950724|PANAMEÑA|20230921|20380921|A01382541', 'QR_CODE');
+                  }}
+                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer shadow"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>Simular Escaneo Cédula TE (1-Clic)</span>
+                </button>
+              </div>
             </div>
           )}
 
