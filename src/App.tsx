@@ -323,10 +323,38 @@ export default function App() {
     });
   };
 
-  const handleUpdateResultValue = (resultId: string, newValue: string) => {
-    setResults((prev) =>
-      prev.map((r) => (r.id === resultId ? { ...r, value: newValue, numericValue: parseFloat(newValue) || undefined } : r))
-    );
+  const handleUpdateResultValue = (resultId: string, newValue: string, resultData?: TestResult) => {
+    setResults((prev) => {
+      const idx = prev.findIndex((r) => r.id === resultId);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = {
+          ...updated[idx],
+          value: newValue,
+          numericValue: parseFloat(newValue) || undefined,
+          status: 'INGRESADO',
+          source: updated[idx].source || 'INGRESO_MANUAL'
+        };
+        return updated;
+      }
+
+      // If parameter is not yet in results array, append the result object with the new value
+      if (resultData) {
+        return [
+          {
+            ...resultData,
+            id: resultId,
+            value: newValue,
+            numericValue: parseFloat(newValue) || undefined,
+            status: 'INGRESADO',
+            source: 'INGRESO_MANUAL'
+          },
+          ...prev
+        ];
+      }
+
+      return prev;
+    });
   };
 
   const handleUpdateInterpretation = (resultId: string, interpretation: string) => {
@@ -414,7 +442,7 @@ export default function App() {
     addOrder(newOrder);
 
     if (generatedResults.length > 0) {
-      addResults(generatedResults);
+      setResults((prev) => [...prev, ...generatedResults]);
     }
   };
 

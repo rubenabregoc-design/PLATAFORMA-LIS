@@ -396,14 +396,15 @@ export const Header: React.FC<HeaderProps> = ({
               setSearchQuery('');
               setActiveCategoryMenu(isMenuOpen ? null : 'all');
             }}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               isMenuOpen
                 ? 'bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(0,240,255,0.5)]'
                 : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
             }`}
           >
-            <Grid className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="uppercase tracking-wider">❖ Módulos LIS-CORE ({visibleTabs.length})</span>
+            <Grid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="uppercase tracking-wider hidden xl:inline">❖ Módulos LIS-CORE ({visibleTabs.length})</span>
+            <span className="uppercase tracking-wider xl:hidden font-black">❖ Módulos ({visibleTabs.length})</span>
             <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} />
           </button>
         </nav>
@@ -457,10 +458,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setActiveTab('punch_clock')}
             title="Marcaje Digital de Entrada y Salida de Turno (Biométrico / PIN)"
-            className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-md shadow-emerald-500/10"
+            className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-md shadow-emerald-500/10"
           >
-            <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span className="uppercase tracking-wider text-[11px]">Marcaje Turno</span>
+            <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+            <span className="uppercase tracking-wider text-[11px] hidden xl:inline">Marcaje Turno</span>
           </button>
 
           {/* Inactivity Countdown Timer */}
@@ -471,18 +472,18 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Compact Responsive User Profile Badge */}
           <div
             onClick={onOpenBranchModal}
-            className="hidden md:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 py-1 gap-2 shadow-lg shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            className="hidden md:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2 py-1 gap-1.5 shadow-lg shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
             title="Click para cambiar de Sede / Sucursal"
           >
             <div className="flex flex-col text-right min-w-0">
-              <span className="text-xs font-black text-white uppercase tracking-tight leading-none truncate max-w-[90px] lg:max-w-[120px] xl:max-w-[160px]">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[75px] lg:max-w-[95px] xl:max-w-[140px]">
                 {currentUser?.name || 'Lic. Sofía Guardia'}
               </span>
-              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[90px] lg:max-w-[120px] xl:max-w-[160px] mt-0.5">
+              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[75px] lg:max-w-[95px] xl:max-w-[140px] mt-0.5">
                 {currentBranch?.name || 'Sede Vía España'}
               </span>
             </div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[10px] flex items-center justify-center shadow-md shrink-0">
               {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>

@@ -318,7 +318,6 @@ export const useLisStore = create<LisState>()(
               patientName: `${patient.lastName}, ${patient.firstName}`,
               payload
             });
-            notifyToast('Red inestable: Registro de paciente encolado.', 'warning');
           });
         }
       },
@@ -370,7 +369,6 @@ export const useLisStore = create<LisState>()(
                 payment_status: (order.paymentStatus as any) || 'PENDIENTE',
               }
             });
-            notifyToast('Red inestable: Orden encolada para sincronización.', 'warning');
           });
         }
       },
