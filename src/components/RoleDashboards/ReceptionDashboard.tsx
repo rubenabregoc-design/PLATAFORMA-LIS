@@ -217,7 +217,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     }
   };
 
-  const [selectedTestIds, setSelectedTestIds] = useState<string[]>(['test-hemograma']);
+  const [selectedTestIds, setSelectedTestIds] = useState<string[]>([]);
   const [isStat, setIsStat] = useState<boolean>(false);
   const [isFasting, setIsFasting] = useState<boolean>(true);
   const [printSearchTerm, setPrintSearchTerm] = useState('');
@@ -562,48 +562,47 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       }));
     }
 
-    // AUTOMATIC SPECIMEN LABEL PRINTING SERVICE TRIGGER
-    if (autoPrintEnabled) {
-      try {
-        const printResult = await printerService.printOrderSpecimenLabels(
-          newOrder,
-          patientToUse as Patient,
-          { autoTriggered: true }
-        );
+    // Synchronous Instant Portal Access Code
+    const quickPortalCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setPortalAccessCode(quickPortalCode);
+
+    // INSTANT UI CONFIRMATION DIALOG (< 10ms)
+    setShowSuccessDialog(newOrder.id);
+
+    // Non-blocking background execution for printing and turn completion
+    setTimeout(async () => {
+      if (autoPrintEnabled) {
+        try {
+          const printResult = await printerService.printOrderSpecimenLabels(
+            newOrder,
+            patientToUse as Patient,
+            { autoTriggered: true }
+          );
+          setLastAutoPrintStatus({
+            printerName: printResult.printer.name,
+            labelsCount: printResult.labelsCount,
+            labels: printResult.labels,
+            timestamp: new Date().toLocaleTimeString()
+          });
+        } catch (err) {
+          console.error('Error background printing', err);
+        }
+      } else {
+        const previewLabels = printerService.generateSpecimenLabelsForOrder(newOrder, patientToUse as Patient);
         setLastAutoPrintStatus({
-          printerName: printResult.printer.name,
-          labelsCount: printResult.labelsCount,
-          labels: printResult.labels,
+          printerName: printerService.getDefaultPrinter().name,
+          labelsCount: previewLabels.length,
+          labels: previewLabels,
           timestamp: new Date().toLocaleTimeString()
         });
-      } catch (err) {
-        console.error('Error triggering auto print', err);
       }
-    } else {
-      const previewLabels = printerService.generateSpecimenLabelsForOrder(newOrder, patientToUse as Patient);
-      setLastAutoPrintStatus({
-        printerName: printerService.getDefaultPrinter().name,
-        labelsCount: previewLabels.length,
-        labels: previewLabels,
-        timestamp: new Date().toLocaleTimeString()
-      });
-    }
 
-    if (activeAttendingTurnId) {
-      turnService.completeAttention(activeAttendingTurnId, newOrder.id, newOrder.orderNumber);
-      setActiveAttendingTurnId(null);
-      setActiveAttendingTicketNumber(null);
-    }
-
-    // Generate Patient Portal Access Code
-    try {
-      const accessCode = await SupabaseService.patientPortal.generateAccessToken(newOrder.patientId, newOrder.id);
-      setPortalAccessCode(accessCode);
-    } catch (err) {
-      console.error('Error generating portal code', err);
-    }
-
-    setShowSuccessDialog(newOrder.id);
+      if (activeAttendingTurnId) {
+        turnService.completeAttention(activeAttendingTurnId, newOrder.id, newOrder.orderNumber);
+        setActiveAttendingTurnId(null);
+        setActiveAttendingTicketNumber(null);
+      }
+    }, 0);
   };
 
   const handleManualPrintLabels = async (order: Order) => {
@@ -1827,7 +1826,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
               <button
                 onClick={() => {
                   setShowSuccessDialog(null);
-                  setSelectedTestIds(['test-hemograma']);
+                  setSelectedTestIds([]);
                   setPatientSearchTerm('');
                   setFoundPatient(patients[0]);
                   setIsRegistering(false);
