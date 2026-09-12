@@ -670,6 +670,7 @@ export default function App() {
             )}
 
             {/* HIS Hospital Suite Sub-Modules */}
+            {activeTab === 'his_command' && <HospitalCommandCenter onNavigateTab={(tab) => setActiveTab(tab)} />}
             {activeTab === 'his_triage' && <EmergencyTriageModule />}
             {activeTab === 'his_beds' && <BedCensusManagement />}
             {activeTab === 'his_ehr' && <ElectronicHealthRecordEHR />}
