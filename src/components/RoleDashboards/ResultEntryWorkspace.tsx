@@ -209,7 +209,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             </div>
           )}
 
-          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-1">
+          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-1 max-h-[calc(100vh-220px)] min-h-[300px]">
              {filteredOrders.map(o => (
                <button
                  key={o.id}
