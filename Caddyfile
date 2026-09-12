@@ -1,5 +1,0 @@
-# Caddyfile — HTTPS Local para LISCORE On-Premises Panamá
-192.168.0.8, localhost, lis.local {
-    tls internal
-    reverse_proxy localhost:3000
-}
