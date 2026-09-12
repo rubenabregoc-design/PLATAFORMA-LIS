@@ -117,7 +117,20 @@ export const useLisStore = create<LisState>()(
       isLoading: false,
       isSyncing: false,
       isDemoMode: false,
-      isSessionLocked: false,
+      isSessionLocked: (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('lis-storage-v4') || localStorage.getItem('abregotech_lis_store_v1');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (typeof parsed?.state?.isSessionLocked === 'boolean') {
+                return parsed.state.isSessionLocked;
+              }
+            }
+          } catch (e) {}
+        }
+        return false;
+      })(),
       language: 'ES',
 
       setLanguage: (lang) => set({ language: lang }),
@@ -633,6 +646,7 @@ export const useLisStore = create<LisState>()(
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
         currentRole: state.currentRole,
+        isSessionLocked: state.isSessionLocked,
         language: state.language,
         activeTab: state.activeTab,
         activeOrderId: state.activeOrderId,
