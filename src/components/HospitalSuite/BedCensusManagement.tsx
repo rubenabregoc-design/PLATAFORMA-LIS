@@ -34,7 +34,7 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
     dischargePatient,
     setSelectedAdmissionId
   } = useHisStore();
-  const { patients } = useLisStore();
+  const { patients, setActiveTab } = useLisStore();
 
   const [selectedWard, setSelectedWard] = useState<HospitalWard | 'TODAS'>('TODAS');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -85,6 +85,8 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
     setSelectedAdmissionId(admissionId);
     if (onNavigateToEhr) {
       onNavigateToEhr(admissionId);
+    } else {
+      setActiveTab('his_ehr');
     }
   };
 
