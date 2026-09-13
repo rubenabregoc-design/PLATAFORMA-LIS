@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
+import { getTimeBasedGreeting } from '../utils/greeting';
 
 interface HeaderProps {
   onRoleChange: (role: Role) => void;
@@ -29,20 +30,21 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
 };
 
 export const NAVIGATION_TABS = [
-  // 🔬 LIS (Laboratorio Clínico - 18 Módulos)
+  // 🔬 LIS (Laboratorio Clínico)
   { id: 'dashboard', label: 'Dashboard Principal', icon: LayoutDashboard, category: 'lis', desc: 'Vista ejecutiva y métricas en tiempo real.' },
+  { id: 'reception', label: 'Admisión & Recepción', icon: Receipt, category: 'lis', desc: 'Módulo de admisión, registro de pacientes, toma de órdenes y etiquetado.' },
   { id: 'validation', label: 'Resultados & Validación', icon: Microscope, category: 'lis', desc: 'Consola de ingreso y firma técnica/médica de analitos.', example: 'Firma electrónica Ley 81' },
   { id: 'tm_workbench', label: 'Estación TM (Bancada)', icon: Activity, category: 'lis', desc: 'Bancada técnica de trabajo para tecnólogos.' },
-  { id: 'lis_workstation', label: 'Workstation 3D Validación', icon: Sparkles, category: 'lis', desc: 'Validación tridimensional clínica de muestras.' },
+  { id: 'lis_workstation', label: 'Estación 3D de Validación', icon: Sparkles, category: 'lis', desc: 'Validación tridimensional clínica de muestras.' },
   { id: 'patient_results', label: 'Expedientes & Muestras', icon: FileText, category: 'lis', desc: 'Historial completo de muestras y órdenes del paciente.' },
   { id: 'test_catalog', label: 'Catálogo LIS & Pruebas', icon: BookOpen, category: 'lis', desc: 'Definición de pruebas, perfiles, valores de referencia y tubos.' },
   { id: 'qc', label: 'Control Calidad QC', icon: SlidersHorizontal, category: 'lis', desc: 'Gráficas Levey-Jennings y reglas de Westgard.' },
   { id: 'middleware', label: 'Middleware ASTM', icon: Sparkles, category: 'lis', desc: 'Consola de comunicación bidireccional ASTM E1381/E1394.' },
   { id: 'homologation', label: 'Analizadores Clínicos', icon: SlidersHorizontal, category: 'lis', desc: 'Mapeo de códigos de analitos de equipos al catálogo.' },
-  { id: 'drivers', label: 'Drivers ASTM / HL7', icon: Cpu, category: 'lis', desc: 'Controladores de red TCP/IP y RS232 para equipos de lab.' },
+  { id: 'drivers', label: 'Controladores ASTM / HL7', icon: Cpu, category: 'lis', desc: 'Controladores de red TCP/IP y RS232 para equipos de lab.' },
   { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck, category: 'lis', desc: 'Ruteo y toma de muestras a domicilio en tiempo real.' },
   { id: 'pathology', label: 'Patología Anatómica', icon: Microscope, category: 'lis', desc: 'Gestión de biopsias, citología e histopatología.' },
-  { id: 'batch_reporting', label: 'Batch Reporting PDF', icon: Files, category: 'lis', desc: 'Generación e impresión masiva de reportes de laboratorio.' },
+  { id: 'batch_reporting', label: 'Emisión Masiva de Reportes PDF', icon: Files, category: 'lis', desc: 'Generación e impresión masiva de reportes de laboratorio.' },
   { id: 'lis_hil', label: 'Preanalítica HIL', icon: Droplets, category: 'lis', desc: 'Evaluación de índices de Hemólisis, Ictericia y Lipemia.', example: 'Ej: Muestra Lipémica 2+' },
   { id: 'lis_panic', label: 'Registro de Pánicos', icon: AlertTriangle, category: 'lis', desc: 'Bitácora obligatoria de notificación de valores críticos.', example: 'Ej: Notificado a Médico' },
   { id: 'lis_alerts_center', label: 'Centro de Alertas & Pánicos', icon: ShieldCheck, category: 'lis', desc: 'Consola unificada de gestión de pánicos ISO 15189.' },
@@ -52,7 +54,7 @@ export const NAVIGATION_TABS = [
   { id: 'lis_referrals', label: 'Remisión & Derivación de Muestras', icon: Truck, category: 'lis', desc: 'Remisión, valijas térmicas y derivación a Laboratorios de Referencia Externa y Ruteo.', example: 'Ej: Remisiones / Gorgas' },
 
   // 🏥 HIS (Suite Hospitalaria)
-  { id: 'his_command', label: 'Command Center Hospitalario', icon: Building2, category: 'his', desc: 'Centro de mando operativo, ocupación y alertas.' },
+  { id: 'his_command', label: 'Centro de Mando Hospitalario', icon: Building2, category: 'his', desc: 'Centro de mando operativo, ocupación y alertas.' },
   { id: 'his_triage', label: 'Urgencias & Triage', icon: Activity, category: 'his', desc: 'Clasificación Triage Manchester / ESI en urgencias.' },
   { id: 'his_beds', label: 'Censo & Mapa de Camas (ADT)', icon: Building2, category: 'his', desc: 'Gestión visual de camas hospitalarias, traslados e ingresos.' },
   { id: 'his_ehr', label: 'Historia Clínica EHR', icon: FileText, category: 'his', desc: 'Expediente clínico electrónico unificado.' },
@@ -67,7 +69,7 @@ export const NAVIGATION_TABS = [
   { id: 'his_console', label: 'Consola Integración HL7', icon: Server, category: 'his', desc: 'Motor de mensajería HL7 v2.x / v3 / FHIR R4.' },
   { id: 'shifts', label: 'Turnos & Citas', icon: Calendar, category: 'his', desc: 'Agenda médica y gestión de turnos de atención.' },
 
-  // 🩸 BANCO DE SANGRE (Medicina Transfusional - 17 Módulos)
+  // 🩸 BANCO DE SANGRE (Medicina Transfusional)
   { id: 'bloodbank', label: 'Centro Banco de Sangre', icon: Droplets, category: 'bloodbank', desc: 'Panel central de medicina transfusional y serología.' },
   { id: 'blood_donors', label: 'Cuestionario Donantes', icon: FileText, category: 'bloodbank', desc: 'Entrevista, signos vitales y elegibilidad de donantes.' },
   { id: 'blood_deferral', label: 'Diferimiento e Inaptitud', icon: AlertTriangle, category: 'bloodbank', desc: 'Registro de diferimientos temporales y permanentes.' },
@@ -78,7 +80,7 @@ export const NAVIGATION_TABS = [
   { id: 'blood_cold_chain', label: 'Cadena de Frío IoT', icon: Server, category: 'bloodbank', desc: 'Monitoreo de temperatura en tiempo real en congeladores.' },
   { id: 'blood_logistics', label: 'Logística Hemocomponentes', icon: Truck, category: 'bloodbank', desc: 'Despacho, transporte y recepción de unidades.' },
   { id: 'blood_crossmatch', label: 'Inmuno & Crossmatch', icon: Microscope, category: 'bloodbank', desc: 'Pruebas cruzadas, Coombs directo/indirecto y rastreo.' },
-  { id: 'blood_bedside', label: 'Transfusión Smart Bedside', icon: QrCode, category: 'bloodbank', desc: 'Verificación a pie de cama por escaneo triple de código QR.' },
+  { id: 'blood_bedside', label: 'Transfusión a Pie de Cama', icon: QrCode, category: 'bloodbank', desc: 'Verificación a pie de cama por escaneo triple de código QR.' },
   { id: 'blood_hemovigilance', label: 'Hemovigilancia Eventos', icon: ShieldCheck, category: 'bloodbank', desc: 'Notificación de reacciones adversas transfusionales.' },
   { id: 'blood_waste', label: 'Desechos Biológicos', icon: Wrench, category: 'bloodbank', desc: 'Descarte seguro de unidades reactivas o vencidas.' },
   { id: 'blood_chemical_waste', label: 'Desechos Químicos', icon: Wrench, category: 'bloodbank', desc: 'Tratamiento de efluentes y reactivos agotados.' },
@@ -86,7 +88,7 @@ export const NAVIGATION_TABS = [
   { id: 'label_studio', label: 'Etiquetas ISBT 128', icon: Printer, category: 'bloodbank', desc: 'Impresión de códigos de barras ISBT 128 homologados.' },
   { id: 'routing', label: 'Remisión & Ruteo Inter-Sedes', icon: Truck, category: 'bloodbank', desc: 'Remisión de muestras, valijas térmicas y logística inter-sucursales.', example: 'Ej: Remisiones / Traslados' },
 
-  // 💼 GESTIÓN & BI (Administración - 13 Módulos)
+  // 💼 GESTIÓN & BI (Administración)
   { id: 'billing', label: 'Facturación POS & DGI', icon: Receipt, category: 'bi', desc: 'Caja POS, facturación electrónica e integración DGI Panamá.' },
   { id: 'inventory', label: 'Inventario Reactivos FEFO', icon: Package, category: 'bi', desc: 'Kardex de insumos con semaforización FEFO y lotes.' },
   { id: 'executive', label: 'Analítica BI & Ejecutivo', icon: BrainCircuit, category: 'bi', desc: 'Tableros ejecutivos, costos por prueba e ingresos.' },
@@ -95,9 +97,9 @@ export const NAVIGATION_TABS = [
   { id: 'audit', label: 'Auditoría Ley 81', icon: ShieldCheck, category: 'bi', desc: 'Bitácora inalterable de accesos y protección de PII.' },
   { id: 'cmms', label: 'Mantenimiento CMMS', icon: Wrench, category: 'bi', desc: 'Mantenimiento preventivo y correctivo de equipos.' },
   { id: 'eqa', label: 'PEEC / Control Calidad EQA', icon: Target, category: 'bi', desc: 'Evaluación externa de calidad y comparaciones interlaboratorios.' },
-  { id: 'whatsapp', label: 'WhatsApp LIS Engine', icon: MessageSquare, category: 'bi', desc: 'Envío automático de resultados en PDF por WhatsApp.' },
+  { id: 'whatsapp', label: 'Notificaciones WhatsApp', icon: MessageSquare, category: 'bi', desc: 'Envío automático de resultados en PDF por WhatsApp.' },
   { id: 'fhir', label: 'FHIR Interoperabilidad', icon: Globe, category: 'bi', desc: 'Servidor FHIR REST API para integración de datos.' },
-  { id: 'ha_dr', label: 'Alta Disponibilidad HA/DR', icon: Server, category: 'bi', desc: 'Clúster activo-pasivo y réplica de contingencia.' },
+  { id: 'ha_dr', label: 'Alta Disponibilidad & Contingencia (HA/DR)', icon: Server, category: 'bi', desc: 'Clúster activo-pasivo y réplica de contingencia.' },
   { id: 'accreditation', label: 'Acreditación ISO 15189', icon: Award, category: 'bi', desc: 'Gestión documental y evidencias de auditoría ISO.' },
   { id: 'schema', label: 'Base de Datos & Esquemas', icon: Database, category: 'bi', desc: 'Visor de modelos E-R y diccionario de datos PostgreSQL.' },
 ];
@@ -111,7 +113,7 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 
   // 🔬 Tecnólogo Médico (TM): Acceso total a analítica LIS, Banco de Sangre, Validación y Calidad QC
   tech_med: [
-    'dashboard', 'validation', 'tm_workbench', 'lis_workstation', 'patient_results',
+    'dashboard', 'reception', 'validation', 'tm_workbench', 'lis_workstation', 'patient_results',
     'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy',
     'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_alerts_center',
     'lis_calculators', 'lis_telemetry', 'delta', 'lis_referrals',
@@ -124,13 +126,13 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 
   // 🔬 Técnico de Laboratorio / Flebotomista
   lab_tech: [
-    'dashboard', 'patient_results', 'phlebotomy', 'lis_hil', 'lis_panic',
+    'dashboard', 'reception', 'patient_results', 'phlebotomy', 'lis_hil', 'lis_panic',
     'inventory', 'label_studio', 'routing', 'blood_donors', 'shifts'
   ],
 
   // 💼 Recepcionista / Admisión
   receptionist: [
-    'dashboard', 'patient_results', 'billing', 'shifts', 'whatsapp', 'blood_donors'
+    'dashboard', 'reception', 'patient_results', 'billing', 'shifts', 'whatsapp', 'blood_donors'
   ],
 
   // 🩺 Médico Referente
@@ -143,7 +145,6 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
     'dashboard', 'patient_results'
   ]
 };
-
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenBranchModal,
@@ -176,6 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (language === 'EN') {
       const EN_LABELS: Record<string, string> = {
         dashboard: 'Main Dashboard',
+        reception: 'Patient Admission & Reception',
         validation: 'Results & Validation',
         tm_workbench: 'Technical Workbench',
         lis_workstation: '3D Validation Workstation',
@@ -252,14 +254,40 @@ export const Header: React.FC<HeaderProps> = ({
     return tab.label;
   };
 
+  const greeting = getTimeBasedGreeting(language);
+
   const DOMAIN_CATEGORIES = [
-    { id: 'lis', label: language === 'EN' ? 'LIS Laboratory' : 'Laboratorio LIS', icon: Microscope, count: visibleTabs.filter(t => t.category === 'lis').length },
-    { id: 'his', label: language === 'EN' ? 'HIS Hospital' : 'Hospital HIS', icon: Activity, count: visibleTabs.filter(t => t.category === 'his').length },
-    { id: 'bloodbank', label: language === 'EN' ? 'Blood Bank' : 'Banco Sangre', icon: Droplets, count: visibleTabs.filter(t => t.category === 'bloodbank').length },
-    { id: 'bi', label: language === 'EN' ? 'BI & Management' : 'Gestión & BI', icon: BrainCircuit, count: visibleTabs.filter(t => t.category === 'bi').length }
+    {
+      id: 'lis',
+      label: language === 'EN' ? 'LIS Laboratory' : 'Laboratorio LIS',
+      shortLabel: 'LIS',
+      icon: Microscope,
+      count: visibleTabs.filter(t => t.category === 'lis').length
+    },
+    {
+      id: 'his',
+      label: language === 'EN' ? 'HIS Hospital' : 'Hospital HIS',
+      shortLabel: 'HIS',
+      icon: Activity,
+      count: visibleTabs.filter(t => t.category === 'his').length
+    },
+    {
+      id: 'bloodbank',
+      label: language === 'EN' ? 'Blood Bank' : 'Banco Sangre',
+      shortLabel: language === 'EN' ? 'Blood' : 'Sangre',
+      icon: Droplets,
+      count: visibleTabs.filter(t => t.category === 'bloodbank').length
+    },
+    {
+      id: 'bi',
+      label: language === 'EN' ? 'BI & Management' : 'Gestión & BI',
+      shortLabel: language === 'EN' ? 'BI' : 'Gestión',
+      icon: BrainCircuit,
+      count: visibleTabs.filter(t => t.category === 'bi').length
+    }
   ];
 
-  // Filter modules inside the Mega-Menu Panel based on Category AND Search Query
+  // Filter modules based on Category AND Search Query
   const filteredModules = visibleTabs.filter((tab) => {
     const matchesCategory =
       !activeCategoryMenu ||
@@ -304,7 +332,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     if (category === 'lis') {
       return {
-        card: 'bg-gradient-to-br from-[#020e2e]/90 via-[#03133d] to-[#01081a] border-cyan-500/30 hover:border-cyan-400 text-slate-100 hover:shadow-cyan-500/20 hover:shadow-lg',
+        card: 'bg-[#020e2e]/90 hover:bg-[#03133d] border-cyan-500/30 hover:border-cyan-400 text-slate-100 hover:shadow-cyan-500/20 hover:shadow-lg',
         iconBg: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
         badge: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30',
         label: '🔬 LIS'
@@ -312,7 +340,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
     if (category === 'his') {
       return {
-        card: 'bg-gradient-to-br from-[#0c0d36]/90 via-[#12134a] to-[#05061c] border-indigo-500/30 hover:border-indigo-400 text-slate-100 hover:shadow-indigo-500/20 hover:shadow-lg',
+        card: 'bg-[#0c0d36]/90 hover:bg-[#12134a] border-indigo-500/30 hover:border-indigo-400 text-slate-100 hover:shadow-indigo-500/20 hover:shadow-lg',
         iconBg: 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30',
         badge: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30',
         label: '🏥 HIS'
@@ -320,117 +348,158 @@ export const Header: React.FC<HeaderProps> = ({
     }
     if (category === 'bloodbank') {
       return {
-        card: 'bg-gradient-to-br from-[#2a0815]/90 via-[#3b0b1e] to-[#120208] border-rose-500/30 hover:border-rose-400 text-slate-100 hover:shadow-rose-500/20 hover:shadow-lg',
+        card: 'bg-[#2a0815]/90 hover:bg-[#3b0b1e] border-rose-500/30 hover:border-rose-400 text-slate-100 hover:shadow-rose-500/20 hover:shadow-lg',
         iconBg: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
         badge: 'bg-rose-500/15 text-rose-300 border border-rose-500/30',
         label: '🩸 BANCO SANGRE'
       };
     }
     return {
-      card: 'bg-gradient-to-br from-[#261502]/90 via-[#382003] to-[#120a01] border-amber-500/30 hover:border-amber-400 text-slate-100 hover:shadow-amber-500/20 hover:shadow-lg',
+      card: 'bg-[#261502]/90 hover:bg-[#382003] border-amber-500/30 hover:border-amber-400 text-slate-100 hover:shadow-amber-500/20 hover:shadow-lg',
       iconBg: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
       badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
       label: '💼 GESTIÓN & BI'
     };
   };
 
-  return (
-    <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)] w-full">
-      <div className="w-full px-2 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-1.5 sm:gap-2.5 max-w-[1920px] mx-auto">
+  // Keyboard Shortcuts: Escape to close, Ctrl+K or Cmd+K to open search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveCategoryMenu(null);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setActiveCategoryMenu((prev) => (prev ? null : 'all'));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-        {/* Brand Logo */}
+  return (
+    <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)] w-full select-none">
+      {/* Top Navbar Row */}
+      <div className="w-full px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-[1920px] mx-auto">
+
+        {/* Brand Logo & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2 shrink-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)] rotate-3">
-            <Activity className="w-4.5 h-4.5 text-slate-950 -rotate-3" />
+          {/* Mobile Menu Trigger Button (< lg) */}
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setActiveCategoryMenu(isMenuOpen ? null : 'all');
+            }}
+            className="flex lg:hidden items-center justify-center w-8 h-8 rounded-xl bg-slate-900 border border-cyan-500/35 text-cyan-300 hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
+            title="Abrir Menú de Módulos Clínicos"
+          >
+            {isMenuOpen ? <X className="w-4 h-4 text-cyan-300" /> : <Menu className="w-4 h-4 text-cyan-300" />}
+          </button>
+
+          {/* Platform Logo */}
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.4)] rotate-2 shrink-0">
+              <Activity className="w-4 h-4 text-slate-950 -rotate-2" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black tracking-tighter text-sm sm:text-base text-white leading-none">
+                LIS<span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.5)]">CORE</span>
+              </span>
+              <span className="text-[8px] font-mono text-cyan-300 font-bold tracking-wider leading-none mt-0.5 hidden xs:inline">
+                PANAMÁ
+              </span>
+            </div>
           </div>
-          <span className="font-black tracking-tighter text-base sm:text-lg text-white">LIS<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">CORE</span></span>
         </div>
 
-        {/* Floating Luxury Glass Navigation Bar (Adaptive Responsive Layout) */}
-        <nav className="hidden md:flex items-center space-x-1.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)] shrink-0">
+        {/* Floating Luxury Glass Navigation Bar (Desktop & Laptop lg+) */}
+        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink min-w-0">
 
           {/* Direct Dashboard Pill */}
           <button
             onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
-                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.4)]'
+                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
             <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider whitespace-nowrap">Dashboard</span>
+            <span className="uppercase tracking-wider">Dashboard</span>
           </button>
 
-          {/* Suite Category Pills (Ultra-wide screens 1536px+) */}
-          <div className="hidden 2xl:flex items-center space-x-1">
-            {DOMAIN_CATEGORIES.map((category) => {
-              const CategoryIcon = category.icon;
-              const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
-              const isOpen = activeCategoryMenu === category.id;
+          {/* 4 Clinical Suite Category Drops */}
+          {DOMAIN_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
+            const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
+            const isOpen = activeCategoryMenu === category.id;
 
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveCategoryMenu(isOpen ? null : category.id);
-                  }}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    isOpen || isCategoryActive
-                      ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${(isOpen || isCategoryActive) ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
-                  <span className="uppercase tracking-wider whitespace-nowrap">{category.label}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-              );
-            })}
-          </div>
+            return (
+              <button
+                key={category.id}
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategoryMenu(isOpen ? null : category.id);
+                }}
+                className={`flex items-center space-x-1 px-2.5 xl:px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  isOpen || isCategoryActive
+                    ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+                title={`Ver módulos de ${category.label}`}
+              >
+                <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${(isOpen || isCategoryActive) ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                <span className="uppercase tracking-wider hidden 2xl:inline">{category.label}</span>
+                <span className="uppercase tracking-wider 2xl:hidden">{category.shortLabel}</span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300">
+                  {category.count}
+                </span>
+                <ChevronDown className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+            );
+          })}
 
-          {/* Unified Mega Launcher Button (Shown on 100% Zoom Desktop Screens < 1536px) */}
+          {/* Unified All Modules Button with Search Tip */}
           <button
             onClick={() => {
               setSearchQuery('');
-              setActiveCategoryMenu(isMenuOpen ? null : 'all');
+              setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
             }}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              isMenuOpen
-                ? 'bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(0,240,255,0.5)]'
+              isMenuOpen && activeCategoryMenu === 'all'
+                ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
                 : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
             }`}
+            title="Presione Ctrl+K para buscar en cualquier momento"
           >
             <Grid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="uppercase tracking-wider hidden xl:inline">❖ Módulos LIS-CORE ({visibleTabs.length})</span>
-            <span className="uppercase tracking-wider xl:hidden font-black">❖ Módulos ({visibleTabs.length})</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 shrink-0 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} />
+            <span className="uppercase tracking-wider font-black">❖ Catálogo ({visibleTabs.length})</span>
+            <span className="text-[9.5px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
           </button>
         </nav>
 
-        {/* Right Controls: Timer, User Profile Badge, Lock & Logout */}
+        {/* Right Controls: Status, Language, User Profile & Actions */}
         <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0 ml-auto">
-          
+
           {isDemoMode && (
-            <div className="hidden xl:flex items-center space-x-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
+            <div className="hidden 2xl:flex items-center space-x-1 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
                <Sparkles className="w-3 h-3 text-amber-400" />
-               <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Demo</span>
+               <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Demo</span>
             </div>
           )}
 
           {isSyncing && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
                <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
-               <span className="text-[9px] font-black text-cyan-400 uppercase tracking-tighter">Sync</span>
+               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-tighter hidden xl:inline">Sync</span>
             </div>
           )}
 
-          {/* Offline Sync */}
+          {/* Offline Sync Indicator */}
           <OfflineSyncIndicator />
 
-          {/* Interactive Language Selector Dropdown (ES / EN) */}
-          <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-2.5 py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
+          {/* Language Selector Dropdown (ES / EN) */}
+          <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-2 py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
             <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <select
               value={language}
@@ -447,57 +516,60 @@ export const Header: React.FC<HeaderProps> = ({
                   })
                 );
               }}
-              className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer pr-0.5"
             >
               <option value="ES" className="bg-slate-900 text-white">🇵🇦 ES</option>
               <option value="EN" className="bg-slate-900 text-white">🇺🇸 EN</option>
             </select>
           </div>
 
-          {/* Quick Punch Clock / Marcaje Turno Button (ALL ROLES) */}
+          {/* Quick Punch Clock (Visible on screens >= 2xl to preserve space on laptops) */}
           <button
             onClick={() => setActiveTab('punch_clock')}
             title="Marcaje Digital de Entrada y Salida de Turno (Biométrico / PIN)"
-            className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-md shadow-emerald-500/10"
+            className="hidden 2xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-sm"
           >
             <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
-            <span className="uppercase tracking-wider text-[11px] hidden xl:inline">Marcaje Turno</span>
+            <span className="uppercase tracking-wider text-[10.5px]">Marcaje Turno</span>
           </button>
 
-          {/* Inactivity Countdown Timer */}
-          <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
+          {/* Inactivity Countdown Timer (Hidden on mobile < md to prevent navbar clutter) */}
+          <div className="hidden md:flex shrink-0">
+            <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
+          </div>
 
           <div className="h-5 w-px bg-white/10 hidden sm:block"></div>
 
-          {/* Compact Responsive User Profile Badge */}
+          {/* Clinical User Profile Badge (Clean 2-Line Professional Layout) */}
           <div
             onClick={onOpenBranchModal}
-            className="hidden md:flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2 py-1 gap-1.5 shadow-lg shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
             title="Click para cambiar de Sede / Sucursal"
           >
-            <div className="flex flex-col text-right min-w-0">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[75px] lg:max-w-[95px] xl:max-w-[140px]">
-                {currentUser?.name || 'Lic. Sofía Guardia'}
+            <div className="hidden md:flex flex-col text-right min-w-0">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px] xl:max-w-[150px]">
+                {currentUser?.name || 'Licda. Ana Morales'}
               </span>
-              <span className="text-[8px] text-cyan-300 font-bold uppercase tracking-wider opacity-90 truncate max-w-[75px] lg:max-w-[95px] xl:max-w-[140px] mt-0.5">
+              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate max-w-[110px] xl:max-w-[150px] mt-1">
                 {currentBranch?.name || 'Sede Vía España'}
               </span>
             </div>
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[10px] flex items-center justify-center shadow-md shrink-0">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+              {currentUser?.name?.charAt(0) || 'A'}
+            </div>
+          </div>
               {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>
 
-          <div className="h-8 w-px bg-white/5 hidden md:block"></div>
-
-          {/* Lock Session Button */}
+          {/* Lock Session Button (Hidden on mobile < sm) */}
           {onLockSession && (
             <button
               onClick={onLockSession}
               title="Bloquear Estación Manualmente"
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
+              className="hidden sm:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
             >
-              <Lock className="w-4 h-4 text-slate-400 group-hover:text-amber-400 transition-transform" />
+              <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
             </button>
           )}
 
@@ -505,64 +577,113 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={logout}
             title="Cerrar Sesión"
-            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
           >
-            <LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-400 transition-transform" />
+            <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-transform" />
           </button>
         </div>
       </div>
 
-      {/* Senior Enterprise Viewport-Centered Mega Dropdown Console */}
+      {/* Mobile Quick Sub-Bar (< lg): Direct access to all 4 domains + Search */}
+      <div className="lg:hidden border-t border-cyan-500/20 px-2 sm:px-3 py-1.5 bg-[#020617]/95 overflow-x-auto no-scrollbar flex items-center space-x-1.5 shadow-inner">
+        <button
+          onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
+          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all shrink-0 flex items-center space-x-1 ${
+            activeTab === 'dashboard' ? 'bg-cyan-400 text-slate-950 shadow-sm' : 'bg-slate-900 text-slate-300 border border-slate-800'
+          }`}
+        >
+          <LayoutDashboard className="w-3 h-3" />
+          <span>Dashboard</span>
+        </button>
+
+        {DOMAIN_CATEGORIES.map((cat) => {
+          const CatIcon = cat.icon;
+          const isCatActive = activeCategoryMenu === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategoryMenu(isCatActive ? null : cat.id);
+              }}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap flex items-center space-x-1 transition-all shrink-0 ${
+                isCatActive
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm'
+                  : 'bg-slate-900 text-slate-400 border border-slate-800'
+              }`}
+            >
+              <CatIcon className="w-3 h-3 text-cyan-400" />
+              <span>{cat.shortLabel}</span>
+              <span className="text-[9px] font-mono font-bold px-1 rounded bg-cyan-500/20 text-cyan-300">
+                {cat.count}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => {
+            setSearchQuery('');
+            setActiveCategoryMenu('all');
+          }}
+          className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap flex items-center space-x-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200 border border-cyan-400/40 shrink-0"
+        >
+          <Search className="w-3 h-3 text-cyan-400" />
+          <span>Buscar ({visibleTabs.length})</span>
+        </button>
+      </div>
+
+      {/* Senior Enterprise Viewport-Centered Mega Console & Mobile Sheet */}
       {isMenuOpen && (
         <>
           {/* Opaque Dark Backdrop Overlay */}
           <div
-            className="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setActiveCategoryMenu(null)}
-          ></div>
+          />
 
-          {/* Viewport-Centered Solid Opaque Mega Console Box */}
-          <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 w-[min(940px,95vw)] max-h-[85vh] bg-[#020817] border-2 border-cyan-500/40 rounded-3xl p-4 sm:p-6 shadow-[0_25px_90px_rgba(0,0,0,0.98)] ring-1 ring-cyan-500/30 z-50 flex flex-col space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          {/* Modal / Mobile Drawer Container */}
+          <div className="fixed inset-0 sm:inset-auto sm:top-18 sm:left-1/2 sm:-translate-x-1/2 sm:w-[min(1060px,94vw)] sm:max-h-[82vh] bg-[#020817] sm:border-2 sm:border-cyan-500/40 sm:rounded-3xl p-3.5 sm:p-5 shadow-[0_25px_90px_rgba(0,0,0,0.98)] ring-1 ring-cyan-500/30 z-50 flex flex-col space-y-3 animate-in fade-in sm:zoom-in-95 duration-200">
 
-            {/* Top Toolbar inside Mega Console (Solid Dark Wrapper) */}
-            <div className="bg-[#030b26] p-3.5 sm:p-4 rounded-2xl border border-cyan-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+            {/* Top Toolbar inside Mega Console */}
+            <div className="bg-[#030b26] p-3 sm:p-3.5 rounded-2xl border border-cyan-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-inner">
 
               {/* Category Title & Badge */}
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-300 shadow-md">
-                  <Grid className="w-5 h-5 text-cyan-400" />
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-300 shadow-md">
+                  <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                     <span>
                       {activeCategoryMenu === 'all'
-                        ? 'Consola Unificada LIS-CORE'
+                        ? 'Catálogo Clínico Unificado LIS-CORE'
                         : `Suite ${DOMAIN_CATEGORIES.find(c => c.id === activeCategoryMenu)?.label || 'Especializada'}`}
                     </span>
-                    <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                    <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 px-2 py-0.2 rounded-full text-[9.5px] font-mono font-bold">
                       {filteredModules.length} Módulos
                     </span>
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-medium">Seleccione el módulo clínico o administrativo para navegar</p>
+                  <p className="text-[9.5px] text-slate-400 font-medium">Acceso directo a módulos hospitalarios, analíticos y administrativos</p>
                 </div>
               </div>
 
-              {/* Instant Search Bar */}
-              <div className="flex items-center gap-2 flex-1 sm:max-w-xs ml-auto">
+              {/* Instant Search Bar & Close Button */}
+              <div className="flex items-center gap-2 flex-1 sm:max-w-xs ml-auto w-full sm:w-auto">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-cyan-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 text-cyan-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar módulo o función..."
-                    className="w-full bg-[#010514] border border-cyan-500/40 rounded-full pl-9 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner"
+                    placeholder="Buscar módulo (ej. HIL, Pánicos, EHR)..."
+                    className="w-full bg-[#010514] border border-cyan-500/40 rounded-full pl-8 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner"
                     autoFocus
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -579,17 +700,17 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* Category Filter Pills Bar (Solid Background Container) */}
-            <div className="bg-[#010514] p-1.5 rounded-2xl border border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-inner">
+            {/* Category Filter Pills Bar */}
+            <div className="bg-[#010514] p-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-inner shrink-0">
               <button
                 onClick={() => setActiveCategoryMenu('all')}
-                className={`px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-[10.5px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
                   activeCategoryMenu === 'all'
                     ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-md shadow-cyan-500/30'
-                    : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
-                Todos los Módulos ({visibleTabs.length})
+                Todos ({visibleTabs.length})
               </button>
 
               {DOMAIN_CATEGORIES.map((cat) => {
@@ -599,15 +720,15 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategoryMenu(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer flex items-center space-x-1.5 ${
+                    className={`px-2.5 sm:px-3 py-1 rounded-lg text-[10.5px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer flex items-center space-x-1.5 ${
                       isSelected
                         ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-md shadow-cyan-500/30'
-                        : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                     }`}
                   >
-                    <CatIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-cyan-400'}`} />
+                    <CatIcon className={`w-3 h-3 ${isSelected ? 'text-slate-950' : 'text-cyan-400'}`} />
                     <span>{cat.label}</span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-cyan-500/20 text-cyan-300'}`}>
+                    <span className={`text-[9.5px] font-mono px-1 rounded-full ${isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-cyan-500/20 text-cyan-300'}`}>
                       {cat.count}
                     </span>
                   </button>
@@ -615,8 +736,8 @@ export const Header: React.FC<HeaderProps> = ({
               })}
             </div>
 
-            {/* Module Grid (Solid High-Contrast Cards, Smooth Scroll & Bottom Padding) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[50vh] sm:max-h-[55vh] overflow-y-auto no-scrollbar p-1 pb-4">
+            {/* Responsive Module Grid (High density, cards never cut off) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto max-h-[calc(100vh-210px)] sm:max-h-[52vh] p-1 pb-4 no-scrollbar">
               {filteredModules.length === 0 ? (
                 <div className="col-span-full py-12 text-center space-y-2">
                   <Search className="w-8 h-8 text-slate-600 mx-auto" />
@@ -641,23 +762,23 @@ export const Header: React.FC<HeaderProps> = ({
                         setActiveTab(tab.id);
                         setActiveCategoryMenu(null);
                       }}
-                      className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer group flex flex-col justify-between space-y-2 ${style.card}`}
+                      className={`p-2.5 sm:p-3 rounded-xl border transition-all text-left cursor-pointer group flex flex-col justify-between space-y-1.5 ${style.card}`}
                     >
-                      <div className="flex items-start space-x-3">
-                        <div className={`p-2.5 rounded-xl shrink-0 ${style.iconBg} group-hover:scale-110 transition-transform`}>
-                          <SubIcon className="w-4 h-4" />
+                      <div className="flex items-start space-x-2.5">
+                        <div className={`p-2 rounded-lg shrink-0 ${style.iconBg} group-hover:scale-105 transition-transform`}>
+                          <SubIcon className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1 mb-1">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
                             <h4 className="text-xs font-extrabold leading-tight truncate">{getTabLabel(tab)}</h4>
                             {!isSubActive && style.label && (
-                              <span className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded-full uppercase shrink-0 ${style.badge}`}>
+                              <span className={`text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-full uppercase shrink-0 ${style.badge}`}>
                                 {style.label}
                               </span>
                             )}
                           </div>
                           {tab.desc && (
-                            <p className={`text-[10px] line-clamp-2 leading-relaxed font-medium ${isSubActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                            <p className={`text-[9.5px] line-clamp-1 leading-snug font-medium ${isSubActive ? 'text-slate-900 font-bold' : 'text-slate-400 group-hover:text-slate-200'}`}>
                               {tab.desc}
                             </p>
                           )}
@@ -665,7 +786,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
 
                       {tab.example && (
-                        <span className={`text-[9px] font-mono font-bold tracking-tight truncate px-2 py-0.5 rounded-md self-start ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-950/80 text-amber-300 border border-amber-500/20'}`}>
+                        <span className={`text-[8.5px] font-mono font-bold tracking-tight truncate px-1.5 py-0.2 rounded self-start ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-950/80 text-amber-300 border border-amber-500/20'}`}>
                           {tab.example}
                         </span>
                       )}
@@ -677,31 +798,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </>
       )}
-
-      {/* Mobile / Tablet Horizontal Scroller */}
-      <div className="lg:hidden border-t border-white/5 px-3 py-2 bg-[#020617]/90 overflow-x-auto no-scrollbar flex items-center space-x-2">
-        <button
-          onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
-          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all shrink-0 ${
-            activeTab === 'dashboard' ? 'bg-cyan-400 text-slate-950 shadow-md' : 'bg-white/5 text-slate-400 hover:text-white'
-          }`}
-        >
-          Dashboard
-        </button>
-
-        <button
-          onClick={() => {
-            setSearchQuery('');
-            setActiveCategoryMenu(isMenuOpen ? null : 'all');
-          }}
-          className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap flex items-center space-x-1.5 transition-all shrink-0 ${
-            isMenuOpen ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'bg-white/5 text-slate-300 hover:text-white'
-          }`}
-        >
-          <Grid className="w-3 h-3 text-cyan-400" />
-          <span>Módulos ({visibleTabs.length})</span>
-        </button>
-      </div>
     </header>
   );
 };
