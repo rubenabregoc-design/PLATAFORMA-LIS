@@ -394,7 +394,8 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)] w-full select-none">
+    <>
+      <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)] w-full select-none">
       {/* Top Navbar Row */}
       <div className="w-full px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-[1920px] mx-auto">
 
@@ -429,12 +430,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Floating Luxury Glass Navigation Bar (Desktop & Laptop lg+) */}
-        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink min-w-0">
+        <nav className="hidden lg:flex items-center space-x-0.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-0.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink min-w-0">
 
           {/* Direct Dashboard Pill */}
           <button
             onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -444,8 +445,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider">Dashboard</span>
           </button>
 
-          {/* 4 Direct Suite Navigation Action Pills (Visible on xl screens >= 1280px) */}
-          <div className="hidden xl:flex items-center space-x-1">
+          {/* 4 Direct Suite Navigation Action Pills (Visible on all desktop/laptop lg+ screens) */}
+          <div className="flex items-center space-x-0.5">
             {DOMAIN_CATEGORIES.map((category) => {
               const CategoryIcon = category.icon;
               const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
@@ -462,14 +463,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   key={category.id}
                   onClick={handleCategoryDirectNav}
-                  className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryActive
                       ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)] font-black'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                   title={`Ir directamente a la Suite ${category.label}`}
                 >
-                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <CategoryIcon className={`w-3 h-3 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
                   <span className="uppercase tracking-wider font-extrabold">{category.shortLabel}</span>
                 </button>
               );
@@ -482,7 +483,7 @@ export const Header: React.FC<HeaderProps> = ({
               setSearchQuery('');
               setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
             }}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               isMenuOpen && activeCategoryMenu === 'all'
                 ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
                 : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
@@ -491,7 +492,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Grid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="uppercase tracking-wider font-black">❖ {language === 'EN' ? 'CATALOG' : 'Catálogo'} ({visibleTabs.length})</span>
-            <span className="text-[9.5px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
+            <span className="text-[9px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
           </button>
         </nav>
 
@@ -519,16 +520,16 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setIsServerHealthModalOpen(true)}
             title="AbregoTech Server Health & Cluster Telemetry (PostgreSQL 16, PostgREST :8000, ACE :5100)"
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
+            className="flex items-center space-x-1 px-2 py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
           >
             <Server className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
-            <span className="hidden sm:inline font-mono text-[10.5px]">SERVIDOR: ONLINE</span>
+            <span className="hidden 2xl:inline font-mono text-[10.5px]">SERVIDOR: ONLINE</span>
             <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">4.4ms</span>
           </button>
 
           {/* Language Selector Dropdown (ES / EN) */}
-          <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-2 py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
-            <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
+            <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400 shrink-0" />
             <select
               value={language}
               onChange={(e) => {
@@ -544,7 +545,7 @@ export const Header: React.FC<HeaderProps> = ({
                   })
                 );
               }}
-              className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer pr-0.5"
+              className="bg-transparent text-white font-mono font-bold text-[11px] sm:text-xs focus:outline-none cursor-pointer pr-0.5"
             >
               <option value="ES" className="bg-slate-900 text-white">🇵🇦 ES</option>
               <option value="EN" className="bg-slate-900 text-white">🇺🇸 EN</option>
@@ -561,20 +562,20 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
-          {/* Inactivity Countdown Timer (Hidden on mobile < md to prevent navbar clutter) */}
-          <div className="hidden md:flex shrink-0">
+          {/* Inactivity Countdown Timer (Visible on xl+ screens) */}
+          <div className="hidden xl:flex shrink-0">
             <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
           </div>
 
-          <div className="h-5 w-px bg-white/10 hidden sm:block"></div>
+          <div className="h-5 w-px bg-white/10 hidden xl:block"></div>
 
-          {/* Clinical User Profile Badge (Clean 2-Line Professional Layout) */}
+          {/* Clinical User Profile Badge (Clean Layout) */}
           <div
             onClick={onOpenBranchModal}
-            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full p-0.5 sm:px-2.5 sm:py-1 gap-1.5 sm:gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
             title={language === 'EN' ? "Click to switch Clinical Facility / Branch" : "Click para cambiar de Sede / Sucursal"}
           >
-            <div className="hidden md:flex flex-col text-right min-w-0">
+            <div className="hidden xl:flex flex-col text-right min-w-0">
               <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px] xl:max-w-[150px]">
                 {currentUser?.name || 'Licda. Ana Morales'}
               </span>
@@ -589,12 +590,12 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Lock Session Button (Hidden on mobile < sm) */}
+          {/* Lock Session Button (Hidden on < xl) */}
           {onLockSession && (
             <button
               onClick={onLockSession}
               title={language === 'EN' ? "Lock Station Manually" : "Bloquear Estación Manualmente"}
-              className="hidden sm:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
+              className="hidden xl:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
             >
               <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
             </button>
@@ -604,60 +605,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={logout}
             title={language === 'EN' ? "Sign Out" : "Cerrar Sesión"}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
           >
             <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-transform" />
           </button>
         </div>
-      </div>
-
-      {/* Mobile Quick Sub-Bar (< lg): Direct access to all 4 domains + Search */}
-      <div className="lg:hidden border-t border-cyan-500/20 px-2 sm:px-3 py-1.5 bg-[#020617]/95 overflow-x-auto no-scrollbar flex items-center space-x-1.5 shadow-inner">
-        <button
-          onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
-          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all shrink-0 flex items-center space-x-1 ${
-            activeTab === 'dashboard' ? 'bg-cyan-400 text-slate-950 shadow-sm' : 'bg-slate-900 text-slate-300 border border-slate-800'
-          }`}
-        >
-          <LayoutDashboard className="w-3 h-3" />
-          <span>Dashboard</span>
-        </button>
-
-        {DOMAIN_CATEGORIES.map((cat) => {
-          const CatIcon = cat.icon;
-          const isCatActive = activeCategoryMenu === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSearchQuery('');
-                setActiveCategoryMenu(isCatActive ? null : cat.id);
-              }}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap flex items-center space-x-1 transition-all shrink-0 ${
-                isCatActive
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm'
-                  : 'bg-slate-900 text-slate-400 border border-slate-800'
-              }`}
-            >
-              <CatIcon className="w-3 h-3 text-cyan-400" />
-              <span>{cat.shortLabel}</span>
-              <span className="text-[9px] font-mono font-bold px-1 rounded bg-cyan-500/20 text-cyan-300">
-                {cat.count}
-              </span>
-            </button>
-          );
-        })}
-
-        <button
-          onClick={() => {
-            setSearchQuery('');
-            setActiveCategoryMenu('all');
-          }}
-          className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap flex items-center space-x-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200 border border-cyan-400/40 shrink-0"
-        >
-          <Search className="w-3 h-3 text-cyan-400" />
-          <span>{language === 'EN' ? `Search (${visibleTabs.length})` : `Buscar (${visibleTabs.length})`}</span>
-        </button>
       </div>
 
       {/* Senior Enterprise Viewport-Centered Mega Console & Mobile Sheet */}
@@ -840,5 +792,97 @@ export const Header: React.FC<HeaderProps> = ({
         onClose={() => setIsServerHealthModalOpen(false)}
       />
     </header>
+
+      {/* 📱 Native Mobile Bottom Navigation Bar (< lg, Thumb-friendly, iOS/Android ergonomics) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#02071a]/95 backdrop-blur-2xl border-t border-cyan-500/20 px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.9)] flex items-center justify-around select-none">
+        {/* Tab 1: Inicio / Dashboard */}
+        <button
+          onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            activeTab === 'dashboard' && !isMenuOpen
+              ? 'text-cyan-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === 'dashboard' && !isMenuOpen ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)] ring-1 ring-cyan-400/40' : 'text-slate-400'}`}>
+            <LayoutDashboard className="w-4 h-4" />
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider mt-0.5 ${activeTab === 'dashboard' && !isMenuOpen ? 'font-black text-cyan-400' : 'font-bold text-slate-400'}`}>
+            {language === 'EN' ? 'Home' : 'Inicio'}
+          </span>
+        </button>
+
+        {/* Tab 2: LIS (Laboratorio) */}
+        <button
+          onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            visibleTabs.some(t => t.category === 'lis' && t.id === activeTab) && !isMenuOpen
+              ? 'text-cyan-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${visibleTabs.some(t => t.category === 'lis' && t.id === activeTab) && !isMenuOpen ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)] ring-1 ring-cyan-400/40' : 'text-slate-400'}`}>
+            <Microscope className="w-4 h-4" />
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider mt-0.5 ${visibleTabs.some(t => t.category === 'lis' && t.id === activeTab) && !isMenuOpen ? 'font-black text-cyan-400' : 'font-bold text-slate-400'}`}>
+            LIS
+          </span>
+        </button>
+
+        {/* Tab 3: HIS (Hospital) */}
+        <button
+          onClick={() => { setActiveTab('his_command'); setActiveCategoryMenu(null); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            visibleTabs.some(t => t.category === 'his' && t.id === activeTab) && !isMenuOpen
+              ? 'text-indigo-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${visibleTabs.some(t => t.category === 'his' && t.id === activeTab) && !isMenuOpen ? 'bg-indigo-500/20 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.4)] ring-1 ring-indigo-400/40' : 'text-slate-400'}`}>
+            <Activity className="w-4 h-4" />
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider mt-0.5 ${visibleTabs.some(t => t.category === 'his' && t.id === activeTab) && !isMenuOpen ? 'font-black text-indigo-400' : 'font-bold text-slate-400'}`}>
+            HIS
+          </span>
+        </button>
+
+        {/* Tab 4: Banco (Sangre) */}
+        <button
+          onClick={() => { setActiveTab('bloodbank'); setActiveCategoryMenu(null); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            visibleTabs.some(t => t.category === 'bloodbank' && t.id === activeTab) && !isMenuOpen
+              ? 'text-rose-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${visibleTabs.some(t => t.category === 'bloodbank' && t.id === activeTab) && !isMenuOpen ? 'bg-rose-500/20 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.4)] ring-1 ring-rose-400/40' : 'text-slate-400'}`}>
+            <Droplets className="w-4 h-4" />
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider mt-0.5 ${visibleTabs.some(t => t.category === 'bloodbank' && t.id === activeTab) && !isMenuOpen ? 'font-black text-rose-400' : 'font-bold text-slate-400'}`}>
+            {language === 'EN' ? 'Blood' : 'Banco'}
+          </span>
+        </button>
+
+        {/* Tab 5: Módulos Clínicos (Catálogo Completo) */}
+        <button
+          onClick={() => {
+            setSearchQuery('');
+            setActiveCategoryMenu(isMenuOpen ? null : 'all');
+          }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            isMenuOpen
+              ? 'text-cyan-300'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${isMenuOpen ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.6)]' : 'bg-white/5 text-cyan-400 border border-cyan-500/30'}`}>
+            <Grid className={`w-4 h-4 ${isMenuOpen ? 'text-slate-950' : 'text-cyan-400'}`} />
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider mt-0.5 ${isMenuOpen ? 'font-black text-cyan-300' : 'font-bold text-slate-400'}`}>
+            {language === 'EN' ? 'Modules' : 'Módulos'}
+          </span>
+        </button>
+      </div>
+    </>
   );
 };
