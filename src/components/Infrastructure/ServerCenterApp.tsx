@@ -44,8 +44,9 @@ export const ServerCenterApp: React.FC = () => {
 
     // Live ping check to local ports
     const t0 = performance.now();
+    const pingHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     try {
-      await fetch('http://localhost:3000', { mode: 'no-cors' });
+      await fetch(`http://${pingHost}:3000`, { mode: 'no-cors' });
     } catch (_) {}
     const routerLat = +(performance.now() - t0).toFixed(1);
 
@@ -81,8 +82,10 @@ export const ServerCenterApp: React.FC = () => {
     setTimeout(() => setActionNotice(null), 4000);
   };
 
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+
   const openPortal = (port: number, path = '') => {
-    window.open(`http://localhost:${port}${path}`, '_blank');
+    window.open(`http://${currentHost}:${port}${path}`, '_blank');
   };
 
   const copyDiagnostic = () => {
@@ -134,12 +137,17 @@ Cifrado y Custodia: Ley 81 de la República de Panamá (SHA-256 Vault Verificado
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-2xl hidden sm:block">
+            <span className="text-[10px] font-mono font-bold text-slate-500 block uppercase leading-none">Host / IP Activo</span>
+            <span className="text-xs font-mono font-bold text-emerald-400">{currentHost === 'localhost' ? 'localhost (192.168.0.4)' : currentHost}</span>
+          </div>
+
+          <div className="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-2xl hidden sm:block">
             <span className="text-[10px] font-mono font-bold text-slate-500 block uppercase leading-none">Uptime Activo</span>
             <span className="text-xs font-mono font-bold text-cyan-300">{formatUptime(uptimeSeconds)}</span>
           </div>
 
           <a
-            href="http://localhost:3000"
+            href={`http://${currentHost}:3000`}
             className="flex items-center space-x-2 px-4 py-2 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-cyan-500/20"
           >
             <span>Ir a Estación LIS</span>
