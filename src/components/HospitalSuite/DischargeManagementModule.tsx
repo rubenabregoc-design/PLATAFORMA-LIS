@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   FileCheck2, ShieldCheck, UserCheck, Calendar, Download, Printer,
   FileText, CheckCircle2, Clock, AlertTriangle, ChevronRight, Search,
-  Award, HeartPulse, Building2, User, Smartphone, FileSpreadsheet, Lock
+  Award, HeartPulse, Building2, User, Smartphone, FileSpreadsheet, Lock, XCircle
 } from 'lucide-react';
 import { useHisStore } from '../../store/useHisStore';
 import { useLisStore } from '../../store/useLisStore';

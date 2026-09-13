@@ -25,6 +25,7 @@ import {
   RotateCcw,
   Clock
 } from 'lucide-react';
+import { getTimeBasedGreeting } from '../../utils/greeting';
 
 interface LabTechDashboardProps {
   orders: Order[];
@@ -184,9 +185,15 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="space-y-2 relative z-10">
-          <div className="text-teal-400 text-xs font-bold uppercase tracking-wider flex items-center space-x-2">
-            <Zap className="w-4 h-4 text-teal-400" />
-            <span>Dashboard & Validación Rápida Técnica — Lab Tech / TM</span>
+          <div className="text-teal-400 text-xs font-bold uppercase tracking-wider flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-2">
+              <Zap className="w-4 h-4 text-teal-400" />
+              <span>Dashboard & Validación Rápida Técnica — Lab Tech / TM</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
+              <span>👋</span>
+              <span>{getTimeBasedGreeting('ES')}, Téc. Jorge Valdés!</span>
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             Mesa de Trabajo & Validación Técnica Masiva

@@ -7,6 +7,7 @@ import {
   Clock, TrendingUp, Filter, Sparkles, CheckCircle2, UserCheck, Flame,
   XCircle, Check, ArrowUpRight, FlaskConical, ExternalLink
 } from 'lucide-react';
+import { getTimeBasedGreeting } from '../../utils/greeting';
 
 interface TechMedDashboardProps {
   results: TestResult[];
@@ -94,7 +95,26 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
+
+      {/* 🔬 Executive Welcome & Dynamic Greeting Bar */}
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-[2rem] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20 shrink-0">
+            <Microscope className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-black text-white uppercase tracking-tight">Estación de Trabajo — Tecnólogo Médico</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
+                <span>👋</span>
+                <span>{getTimeBasedGreeting('ES')}, {currentUser?.name || 'Lic. Sofía Guardia'}!</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Validación técnica de analitos, control de calidad y telemetría de analizadores.</p>
+          </div>
+        </div>
+      </div>
 
       {/* 🏥 Top 5 Clinical & Demographic KPI Banners */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

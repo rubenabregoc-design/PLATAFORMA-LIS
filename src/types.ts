@@ -16,6 +16,7 @@ export type Permission =
   | 'RESULT_VALIDATE_TECH'
   | 'RESULT_VALIDATE_MED'
   | 'RESULT_UNVALIDATE'
+  | 'RESULT_RELEASE'
   | 'RESULT_HISTORY_VIEW'
   | 'ORDER_CREATE'
   | 'ORDER_CANCEL'
@@ -26,6 +27,11 @@ export type Permission =
   | 'BRIDGE_CONTROL'
   | 'AUDIT_LOG_VIEW';
 
+export interface LaboratoryPolicy {
+  canTmMedicalValidate: boolean; // Si el TM puede, además de validar técnicamente, validar médicamente
+  canTmRelease: boolean;         // Si el TM puede liberar el resultado (o queda reservado al JL)
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -33,6 +39,7 @@ export interface Tenant {
   dv: string;
   plan: 'Basic' | 'Pro' | 'Enterprise';
   branches: Branch[];
+  policy?: LaboratoryPolicy;
 }
 
 export interface Branch {
@@ -50,6 +57,7 @@ export interface User {
   branchId?: string;
   name: string;
   email: string;
+  username?: string;
   role: Role;
   licenseNumber?: string; // Idoneidad médica / tecnólogo
   signatureUrl?: string;
@@ -91,7 +99,7 @@ export interface Doctor {
 }
 
 export type Priority = 'RUTINA' | 'STAT' | 'URGENTE';
-export type OrderStatus = 'REGISTRADA' | 'TOMADA' | 'EN_PROCESO' | 'VALIDADA_TEC' | 'VALIDADA_MED' | 'COMPLETADA' | 'CANCELADA';
+export type OrderStatus = 'REGISTRADA' | 'TOMADA' | 'EN_PROCESO' | 'VALIDADA_TEC' | 'VALIDADA_MED' | 'LIBERADA' | 'COMPLETADA' | 'CANCELADA';
 
 export interface TestCatalogItem {
   id: string;
@@ -110,7 +118,7 @@ export interface TestCatalogItem {
 
 export interface TestParameter {
   id: string;
-  testId: string;
+  testId?: string;
   name: string;
   unit: string;
   astmParamCode: string; // e.g., "WBC", "RBC", "GLU"
@@ -120,6 +128,7 @@ export interface TestParameter {
   refMaxFemale?: number;
   criticalMin?: number;
   criticalMax?: number;
+  referenceRanges?: ReferenceRange[];
 }
 
 export interface Order {
@@ -144,6 +153,8 @@ export interface Order {
   specimens: Specimen[];
   testIds: string[];
   expandedTestIds?: string[];
+  assignedTechMedId?: string; // TM asignado / propietario de la orden
+  assignedTechId?: string;    // TC asignado (flebotomista / toma de muestra)
 }
 
 export interface Specimen {
@@ -177,7 +188,7 @@ export interface AuditLogEntry {
 
 export interface TestResult {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   orderId: string;
   testId: string;
   parameterId: string;
@@ -185,24 +196,24 @@ export interface TestResult {
   unit: string;
   value: string;
   numericValue?: number;
-  flag?: 'NORMAL' | 'ALTO' | 'BAJO' | 'CRITICO_ALTO' | 'CRITICO_BAJO';
+  flag?: 'NORMAL' | 'ALTO' | 'BAJO' | 'CRITICO_ALTO' | 'CRITICO_BAJO' | 'PENDIENTE';
   refRangeText: string;
-  source: 'MANUAL' | 'MIDDLEWARE_ASTM' | 'MIDDLEWARE_HL7';
+  source: 'MANUAL' | 'MIDDLEWARE_ASTM' | 'MIDDLEWARE_HL7' | 'RECEPCION_POS' | 'INGRESO_MANUAL';
   analyzerName?: string;
   technicalValidatedBy?: string;
   technicalValidatedAt?: string;
   medicalValidatedBy?: string;
   medicalValidatedAt?: string;
   /** Lifecycle status: UI and DB aligned */
-  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'DUDOSA' | 'DESVALIDADO';
+  status: 'PENDIENTE' | 'PRE-VALIDADO' | 'VALIDADO' | 'INGRESADO' | 'VALIDADO_TEC' | 'VALIDADO_MED' | 'LIBERADO' | 'DUDOSA' | 'DESVALIDADO';
   isExtra?: boolean;
   parameterCode?: string;
   testCode?: string;
   createdAt?: string;
   interpretation?: string; // Comentario clínico o interpretación
   specimenType?: string;   // Tipo de muestra (Sangre, Orina, etc)
-  version: number;
-  history: AuditLogEntry[];
+  version?: number;
+  history?: AuditLogEntry[];
 }
 
 export interface Analyzer {
@@ -238,12 +249,13 @@ export interface Analyzer {
 
 export interface MiddlewareMessageLog {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   analyzerId: string;
   analyzerName: string;
   protocol: string;
   direction: 'INBOUND' | 'OUTBOUND';
-  rawPayload: string; // Frame ASTM o HL7
+  rawPayload?: string; // Frame ASTM o HL7
+  rawMessage?: string;
   hexDump?: string;
   frameType?: 'ENQ' | 'ACK' | 'NAK' | 'STX_RECORD' | 'EOT' | 'MLLP_ORU' | 'MLLP_OML' | 'MLLP_QBP' | 'MLLP_ACK';
   checksumValid?: boolean;
@@ -315,14 +327,17 @@ export interface ReagentInventory {
 
 export interface ReferenceRange {
   id: string;
-  gender: 'Ambos' | 'Masculino' | 'Femenino';
+  gender: 'Ambos' | 'Masculino' | 'Femenino' | 'TODOS' | 'AMBOS' | 'M' | 'F';
   minAgeYears?: number;
   maxAgeYears?: number;
+  minAgeMonths?: number;
+  maxAgeMonths?: number;
   minValue: number;
   maxValue: number;
   panicLowValue?: number;
   panicHighValue?: number;
-  unit: string;
+  unit?: string;
+  textValue?: string;
   interpretation?: string; // ej. "Adultos Sanos", "Pediátrico"
 }
 
@@ -551,6 +566,7 @@ export interface HospitalAdmission {
   admittingDiagnosis?: string;           // Diagnóstico al ingreso (campo original)
   admittingDoctor?: string;             // Nombre del médico (campo original)
   admittingDoctorName?: string;         // Alias usado por componentes
+  doctorName?: string;                  // Alias de médico tratante
   admittingDoctorLicense?: string;      // Número de idoneidad del médico
   primaryDiagnosisIcd10?: string;       // Código diagnóstico ICD-10
   allergies?: string[];                  // Alergias conocidas del paciente

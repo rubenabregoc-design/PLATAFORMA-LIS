@@ -16,6 +16,7 @@ interface SecurePatientPortalGatewayProps {
   tenant?: Tenant;
   branch?: Branch;
   onOpenPdf: (orderId: string) => void;
+  initialPatient?: Patient | null;
 }
 
 /**
@@ -95,7 +96,8 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
   results,
   tenant,
   branch,
-  onOpenPdf
+  onOpenPdf,
+  initialPatient
 }) => {
   // Input states
   const [nationalId, setNationalId] = useState('');
@@ -103,9 +105,18 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Authenticated state
-  const [authenticatedPatient, setAuthenticatedPatient] = useState<Patient | null>(null);
-  const [patientOrders, setPatientOrders] = useState<Order[]>([]);
+  // Authenticated state — Inicializado si viene un paciente pre-autenticado
+  const [authenticatedPatient, setAuthenticatedPatient] = useState<Patient | null>(() => initialPatient || null);
+  const [patientOrders, setPatientOrders] = useState<Order[]>(() => {
+    if (initialPatient) {
+      const cleanCedula = initialPatient.nationalId ? initialPatient.nationalId.replace(/[-]/g, '') : '';
+      return orders.filter(
+        o => o.patientId === initialPatient.id ||
+             (cleanCedula && o.patientNationalId.replace(/[-]/g, '') === cleanCedula)
+      );
+    }
+    return [];
+  });
   const [activeTab, setActiveTab] = useState<'results' | 'privacy'>('results');
   const [searchAnalyteQuery, setSearchAnalyteQuery] = useState('');
 
@@ -704,6 +715,19 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
                       </div>
                       <div className="text-teal-400 font-mono text-[10px]">Cédula: 8-745-1290</div>
                       <div className="text-slate-500 font-mono text-[10px]">Orden: ORD-2026-00102</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickDemoFill('8-720-1980', 'ORD-2026-00109')}
+                      className="text-left p-3 rounded-2xl bg-slate-950 border border-slate-800 hover:border-teal-500/40 text-[11px] transition cursor-pointer sm:col-span-2"
+                    >
+                      <div className="font-bold text-white flex items-center justify-between">
+                        <span>Gonzalo A. Ríos</span>
+                        <span className="text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded font-mono">Demo 3</span>
+                      </div>
+                      <div className="text-teal-400 font-mono text-[10px]">Cédula: 8-720-1980</div>
+                      <div className="text-slate-500 font-mono text-[10px]">Orden: ORD-2026-00109</div>
                     </button>
                   </div>
                 </div>

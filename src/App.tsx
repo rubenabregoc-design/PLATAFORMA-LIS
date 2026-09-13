@@ -101,6 +101,7 @@ import { LabTechDashboard } from './components/RoleDashboards/LabTechDashboard';
 import { ReceptionDashboard } from './components/RoleDashboards/ReceptionDashboard';
 import { DoctorPortal } from './components/RoleDashboards/DoctorPortal';
 import { SecureDoctorPortalGateway } from './components/RoleDashboards/SecureDoctorPortalGateway';
+import { SecurePatientPortalGateway } from './components/PatientPortal/SecurePatientPortalGateway';
 import { PatientPortal } from './components/RoleDashboards/PatientPortal';
 import { SuperAdminDashboard } from './components/RoleDashboards/SuperAdminDashboard';
 import { SkeletonLoader } from './components/SkeletonLoader';
@@ -206,12 +207,12 @@ export default function App() {
       setIsAuthenticated(true);
       setCurrentRole('patient');
       setActiveTab('patient_results');
-      setShowAllModules(true);
+      setShowAllModules(false); // Aislamiento estricto: el paciente solo ve sus módulos
       const patUser = MOCK_USERS.find((u) => u.role === 'patient') || {
-        id: 'usr-patient-public',
+        id: 'usr-patient-1',
         tenantId: 'lab-san-jose',
-        name: 'Portal de Pacientes (Consulta Externa)',
-        email: 'paciente@liscore.pa',
+        name: 'Sr. Gonzalo A. Ríos',
+        email: 'gonzalo.rios@gmail.com',
         role: 'patient',
         twoFactorEnabled: false
       };
@@ -220,13 +221,14 @@ export default function App() {
       setIsAuthenticated(true);
       setCurrentRole('ext_doctor');
       setActiveTab('dashboard');
-      setShowAllModules(true);
+      setShowAllModules(false); // Aislamiento estricto: el médico solo ve sus módulos
       const docUser = MOCK_USERS.find((u) => u.role === 'ext_doctor') || {
-        id: 'usr-doctor-public',
+        id: 'usr-doctor-icaza',
         tenantId: 'lab-san-jose',
-        name: 'Dr. Roberto Icaza (Médico Referente)',
+        name: 'Dr. Roberto Icaza (Médico Referente Especialista)',
         email: 'dr.icaza@consultoriospaitilla.com',
         role: 'ext_doctor',
+        licenseNumber: 'MED-10492-PA',
         twoFactorEnabled: false
       };
       setCurrentUser(docUser as any);
@@ -584,7 +586,64 @@ export default function App() {
     }
   }, [isAuthenticated, isTabAuthorized, currentRole]);
 
-  // If not authenticated, present the real Login Portal
+  const isDoctorPortal = typeof window !== 'undefined' && (
+    window.location.port === '3002' ||
+    new URLSearchParams(window.location.search).get('portal') === 'doctor' ||
+    currentRole === 'ext_doctor'
+  );
+
+  const isPatientPortal = typeof window !== 'undefined' && (
+    window.location.port === '3001' ||
+    new URLSearchParams(window.location.search).get('portal') === 'patient' ||
+    currentRole === 'patient'
+  );
+
+  // Si está en el Portal Médico (puerto 3002 o ?portal=doctor o rol ext_doctor), presentar pasarela médica aislada directamente
+  if (isDoctorPortal) {
+    return (
+      <ModuleErrorBoundary moduleName="Portal de Médicos Referentes">
+        <div className="min-h-screen bg-[#020617] text-slate-100 p-4 sm:p-6 lg:p-8">
+          <SecureDoctorPortalGateway
+            orders={orders}
+            results={results}
+            patients={patients}
+            tenant={currentTenant}
+            branch={currentBranch}
+            onOpenPdf={setPreviewOrderId}
+            onCreateOrder={handleCreateOrder}
+          />
+        </div>
+      </ModuleErrorBoundary>
+    );
+  }
+
+  // Si está en el Portal de Pacientes (puerto 3001 o ?portal=patient o rol patient), presentar portal de pacientes con su propio login y vista aislada
+  if (isPatientPortal) {
+    const matchedPatient = patients.find(p =>
+      (currentUser?.id && p.id === currentUser.id) ||
+      (currentUser?.email && p.email?.toLowerCase() === currentUser.email?.toLowerCase()) ||
+      (currentUser?.name && p.firstName && currentUser.name.toLowerCase().includes(p.firstName.toLowerCase())) ||
+      (currentUser?.name && p.lastName && currentUser.name.toLowerCase().includes(p.lastName.toLowerCase()))
+    ) || patients.find(p => p.id === 'pat-009') || patients[0];
+
+    return (
+      <ModuleErrorBoundary moduleName="Portal de Pacientes">
+        <div className="min-h-screen bg-[#020617] text-slate-100 p-4 sm:p-6 lg:p-8">
+          <SecurePatientPortalGateway
+            patients={patients}
+            orders={orders}
+            results={results}
+            tenant={currentTenant}
+            branch={currentBranch}
+            onOpenPdf={setPreviewOrderId}
+            initialPatient={currentUser?.role === 'patient' ? matchedPatient : null}
+          />
+        </div>
+      </ModuleErrorBoundary>
+    );
+  }
+
+  // Si no está autenticado en la estación estándar (Puerto 3000), presentar Login de Personal Clínico (LIS / HIS / Banco de Sangre)
   if (!isAuthenticated) {
     return (
       <ModuleErrorBoundary moduleName="Portal de Inicio de Sesión">
@@ -850,6 +909,7 @@ export default function App() {
                       <SecureDoctorPortalGateway
                         orders={orders}
                         results={results}
+                        patients={patients}
                         tenant={currentTenant}
                         branch={currentBranch}
                         onOpenPdf={setPreviewOrderId}
@@ -857,10 +917,12 @@ export default function App() {
                       />
                     )}
                     {currentRole === 'patient' && (
-                      <PatientResultsPortal
+                      <SecurePatientPortalGateway
                         patients={patients}
                         orders={orders}
                         results={results}
+                        tenant={currentTenant}
+                        branch={currentBranch}
                         onOpenPdf={setPreviewOrderId}
                       />
                     )}
@@ -897,6 +959,9 @@ export default function App() {
                 orders={orders}
                 results={results}
                 onOpenPdf={setPreviewOrderId}
+                currentUser={currentUser}
+                currentRole={currentRole}
+                language={language}
               />
             )}
 

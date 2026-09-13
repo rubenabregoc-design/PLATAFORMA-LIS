@@ -84,10 +84,10 @@ export const useLisStore = create<LisState>()(
           }
           if (portalParam === 'patient' || port === '3001') {
             return MOCK_USERS.find((u) => u.role === 'patient') || {
-              id: 'usr-patient-public',
+              id: 'usr-patient-1',
               tenantId: 'lab-san-jose',
-              name: 'Portal de Pacientes (Consulta Externa)',
-              email: 'paciente@liscore.pa',
+              name: 'Sr. Gonzalo A. Ríos',
+              email: 'gonzalo.rios@gmail.com',
               role: 'patient',
               twoFactorEnabled: false
             };

@@ -10,7 +10,7 @@ import {
   Smartphone, Trash2, RotateCcw, Beaker, CheckCircle2, Printer,
   Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
   ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
-  Microscope, AlertTriangle, Check
+  Microscope, AlertTriangle, Check, Lock, ShieldCheck
 } from 'lucide-react';
 
 interface ResultEntryWorkspaceProps {
@@ -28,8 +28,9 @@ interface ResultEntryWorkspaceProps {
 const ResultValueInput: React.FC<{
   result: TestResult;
   isValidated: boolean;
+  canEdit: boolean;
   onSave: (resultId: string, val: string, result: TestResult) => void;
-}> = ({ result, isValidated, onSave }) => {
+}> = ({ result, isValidated, canEdit, onSave }) => {
   const [val, setVal] = useState(result.value || '');
 
   useEffect(() => {
@@ -41,10 +42,14 @@ const ResultValueInput: React.FC<{
     onSave(result.id, newVal, result);
   };
 
-  if (isValidated) {
+  if (isValidated || !canEdit) {
     return (
-      <span className="px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
-        {result.value || 'VALIDADO'}
+      <span className={`px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border ${
+        isValidated
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+          : 'border-slate-800 bg-slate-900/60 text-slate-400'
+      }`}>
+        {result.value || (isValidated ? 'VALIDADO' : '—')}
       </span>
     );
   }
@@ -88,6 +93,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const currentOrder = allOrders.find(o => o.id === activeOrderId) || initialOrder;
   const currentPatient = allPatients.find(p => p.id === currentOrder.patientId) || initialPatient;
 
+  // Reglas de propiedad y permisos según Especificación LIS/HIS:
+  // - JL, Dueño y Admin: autoridad de supervisión total sin restricción de propiedad
+  // - TM: puede ver todas las órdenes, pero solo validar/desvalidar/modificar las suyas
+  const isSupervisor = currentUser?.role === 'lab_chief' || currentUser?.role === 'owner' || currentUser?.role === 'abregotech_admin';
+  const isOrderOwner = !currentOrder?.assignedTechMedId || currentOrder?.assignedTechMedId === currentUser?.id || currentOrder?.assignedTechMedId === currentUser?.username;
+  const canModifyThisOrder = isSupervisor || isOrderOwner;
+  const canReleaseThisOrder = isSupervisor || (currentUser?.role === 'tech_med' && isOrderOwner);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandingNotesId, setExpandingNotesId] = useState<string | null>(null);
   const [activeTraceabilityId, setActiveTraceabilityId] = useState<string | null>(null);
@@ -101,7 +114,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [tempValue, setTempValue] = useState<string>('');
   const [tempNote, setTempNote] = useState<string>('');
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
-  const [isAuditFilterActive, setIsAuditFilterActive] = useState(false);
+  const [analyteFilter, setAnalyteFilter] = useState<'ALL' | 'PENDING' | 'CRITICAL' | 'VALIDATED' | 'MIDDLEWARE'>('ALL');
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -115,7 +128,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     return { text: diff < 1 ? 'Justo ahora' : `${diff}m`, isLate: diff >= 30 };
   };
 
-  const patientResults = useMemo(() => {
+  const rawOrderResults = useMemo(() => {
     let list = results.filter(r => r.orderId === currentOrder?.id);
 
     // Auto-fallback: if an order has 0 results, generate test parameters from MOCK_TEST_CATALOG
@@ -148,13 +161,32 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         list = generated;
       }
     }
+    return list;
+  }, [currentOrder, results]);
 
-    if (isAuditFilterActive) {
-      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
-      list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' && (r.createdAt || '') >= oneHourAgo);
+  const patientResults = useMemo(() => {
+    let list = rawOrderResults;
+    if (analyteFilter === 'PENDING') {
+      list = list.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO');
+    } else if (analyteFilter === 'CRITICAL') {
+      list = list.filter(r => r.flag?.includes('CRITICO') || r.flag === 'PANICO');
+    } else if (analyteFilter === 'VALIDATED') {
+      list = list.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO');
+    } else if (analyteFilter === 'MIDDLEWARE') {
+      list = list.filter(r => r.source === 'MIDDLEWARE_ASTM' || r.source === 'ANALYZER_DIRECT');
     }
     return list;
-  }, [currentOrder, results, isAuditFilterActive]);
+  }, [rawOrderResults, analyteFilter]);
+
+  const analyteCounts = useMemo(() => {
+    return {
+      all: rawOrderResults.length,
+      pending: rawOrderResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO').length,
+      critical: rawOrderResults.filter(r => r.flag?.includes('CRITICO') || r.flag === 'PANICO').length,
+      validated: rawOrderResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length,
+      middleware: rawOrderResults.filter(r => r.source === 'MIDDLEWARE_ASTM' || r.source === 'ANALYZER_DIRECT').length
+    };
+  }, [rawOrderResults]);
 
   const getFlagStyle = (flag?: string) => {
     if (flag?.includes('CRITICO')) return 'bg-rose-500/25 border-2 border-rose-500 text-rose-200 font-black text-sm px-3.5 py-1 rounded-xl shadow-lg shadow-rose-500/30 animate-pulse';
@@ -276,59 +308,59 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     </>
                   ) : (
                     <>
-                      <div className="flex justify-between items-start mb-1">
-                        <div className={`text-[9px] font-mono font-black italic flex items-center gap-1 ${
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div className={`text-xs font-mono font-bold flex items-center gap-1.5 ${
                           o.id === activeOrderId
-                            ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-900/60')
-                            : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-400' : 'text-slate-500')
+                            ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950 font-black')
+                            : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-400 font-black' : 'text-slate-400')
                         }`}>
-                          {o.priority === 'STAT' || o.priority === 'URGENTE' ? <Zap className="w-3 h-3 fill-current" /> : null}
-                          {o.orderNumber}
+                          {o.priority === 'STAT' || o.priority === 'URGENTE' ? <Zap className="w-3.5 h-3.5 fill-current text-rose-300" /> : null}
+                          <span>{o.orderNumber}</span>
                         </div>
                         {results.filter(r => r.orderId === o.id).some(r => r.flag?.includes('CRITICO')) && (
-                          <ShieldAlert className={`w-3.5 h-3.5 animate-pulse ${
-                            o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-rose-900') : 'text-rose-500'
+                          <ShieldAlert className={`w-4 h-4 animate-pulse ${
+                            o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-rose-900') : 'text-rose-400'
                           }`} />
                         )}
                       </div>
-                      <div className={`text-[11px] font-black uppercase truncate leading-tight flex items-center gap-2 ${
-                        o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-slate-200'
+                      <div className={`text-xs sm:text-sm font-black uppercase truncate leading-tight flex items-center gap-2 ${
+                        o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-white'
                       }`}>
-                        {o.patientName}
+                        <span>{o.patientName}</span>
                         {(o.priority === 'STAT' || o.priority === 'URGENTE') && (
-                          <span className={`text-[7px] px-1 rounded-sm font-black ${
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider ${
                             o.id === activeOrderId ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
                           }`}>STAT</span>
                         )}
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className={`h-1 flex-1 rounded-full overflow-hidden ${
-                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/20' : 'bg-black/10') : 'bg-black/20'
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className={`h-1.5 flex-1 rounded-full overflow-hidden ${
+                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/30' : 'bg-black/15') : 'bg-slate-800'
                         }`}>
                           <div
                             className={`h-full ${
-                              o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white' : 'bg-slate-900') : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500' : 'bg-teal-500/50')
+                              o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white' : 'bg-slate-950') : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500' : 'bg-teal-400')
                             }`}
                             style={{
                               width: `${(() => {
                                 const orderResults = results.filter(r => r.orderId === o.id);
                                 const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
                                 const validatedCount = uniqueParams.filter(pId =>
-                                  orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED'))
+                                  orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
                                 ).length;
                                 return (validatedCount / Math.max(1, uniqueParams.length)) * 100;
                               })()}%`
                             }}
                           ></div>
                         </div>
-                        <span className={`text-[8px] font-black tracking-tighter ${
-                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white/80' : 'text-slate-900/60') : 'text-slate-500'
+                        <span className={`text-[10px] font-mono font-black ${
+                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-teal-300'
                         }`}>
                           {(() => {
                             const orderResults = results.filter(r => r.orderId === o.id);
                             const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
                             const validatedCount = uniqueParams.filter(pId =>
-                              orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED'))
+                              orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
                             ).length;
                             return `${validatedCount}/${uniqueParams.length} VAL.`;
                           })()}
@@ -377,67 +409,132 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               </div>
            </div>
 
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-2.5">
               <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/30 text-xs font-mono text-teal-300 flex items-center gap-2 shadow-inner">
                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                 <span className="text-[10px] font-bold">Muestras: EDTA (BC-8823) + Suero (BC-8824)</span>
+                 <span className="text-xs font-bold text-slate-200">Muestras: <strong className="text-teal-300">EDTA (BC-8823)</strong> + <strong className="text-amber-300">Suero (BC-8824)</strong></span>
               </div>
 
-              <button onClick={() => setIsAuditFilterActive(!isAuditFilterActive)} className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${isAuditFilterActive ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md' : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white'}`}>
-                 <Timer className={`w-3.5 h-3.5 inline mr-1.5 ${isAuditFilterActive ? 'animate-pulse' : ''}`} />
-                 {isAuditFilterActive ? 'Filtro Auditoría' : 'Ver Todos'}
-              </button>
+              {/* Segmented Filter Bar for Analytes */}
+              <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 gap-1 shadow-md">
+                 <button
+                   type="button"
+                   onClick={() => setAnalyteFilter('ALL')}
+                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                     analyteFilter === 'ALL'
+                       ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
+                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                   }`}
+                   title="Mostrar todos los analitos de la orden"
+                 >
+                   <span>Todos</span>
+                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'ALL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.all}</span>
+                 </button>
+
+                 <button
+                   type="button"
+                   onClick={() => setAnalyteFilter('PENDING')}
+                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                     analyteFilter === 'PENDING'
+                       ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/20'
+                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                   }`}
+                   title="Filtrar analitos pendientes de ingresar o validar"
+                 >
+                   <span>Pendientes</span>
+                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'PENDING' ? 'bg-slate-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.pending}</span>
+                 </button>
+
+                 <button
+                   type="button"
+                   onClick={() => setAnalyteFilter('CRITICAL')}
+                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                     analyteFilter === 'CRITICAL'
+                       ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 animate-pulse'
+                       : 'text-rose-300 hover:text-rose-200 hover:bg-rose-500/10'
+                   }`}
+                   title="Filtrar valores críticos / de pánico clínico"
+                 >
+                   <span>🚨 Críticos</span>
+                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'CRITICAL' ? 'bg-white text-rose-600' : 'bg-rose-500/20 text-rose-300'}`}>{analyteCounts.critical}</span>
+                 </button>
+
+                 <button
+                   type="button"
+                   onClick={() => setAnalyteFilter('VALIDATED')}
+                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                     analyteFilter === 'VALIDATED'
+                       ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                   }`}
+                   title="Filtrar analitos con validación técnica o médica"
+                 >
+                   <span>✓ Validados</span>
+                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'VALIDATED' ? 'bg-slate-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.validated}</span>
+                 </button>
+              </div>
            </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
-           {/* Minimalist Ultra-Luxury Integrated Metrics Ribbon (Enterprise System Caro) */}
-           <div className="p-2 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-2xl flex items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_10px_30px_rgba(0,0,0,0.8)]">
+           {/* Cinta de Métricas Clínicas de la Orden */}
+           <div className="p-3 bg-slate-900/90 backdrop-blur-2xl border border-teal-500/30 rounded-2xl flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 shadow-xl">
 
-              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
+              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Pendientes</span>
-                    <span className="text-lg font-black text-cyan-300">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-500">/ {patientResults.length}</span></span>
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">Pendientes</span>
+                    <span className="text-xl font-black text-cyan-300 font-mono">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-400 font-normal">/ {patientResults.length}</span></span>
                  </div>
-                 <div className="w-8 h-8 rounded-lg bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
-                    <Microscope className="w-4 h-4" />
+                 <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
+                    <Microscope className="w-5 h-5" />
                  </div>
               </div>
 
-              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-rose-500/30 rounded-xl flex items-center justify-between">
+              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-rose-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <span className="text-[10px] font-bold text-rose-300 uppercase tracking-widest block">Alertas Pánico</span>
-                    <span className="text-lg font-black text-rose-400">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/60">Críticos</span></span>
+                    <span className="text-xs font-bold text-rose-300 uppercase tracking-wider block">Valores de Pánico</span>
+                    <span className="text-xl font-black text-rose-400 font-mono">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/80 font-normal">Críticos</span></span>
                  </div>
-                 <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
-                    <ShieldAlert className="w-4 h-4 animate-pulse" />
+                 <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                    <ShieldAlert className="w-5 h-5 animate-pulse" />
                  </div>
               </div>
 
-              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-amber-500/30 rounded-xl flex items-center justify-between">
+              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-amber-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block">Prioridad Orden</span>
-                    <span className="text-base font-black text-amber-300">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA'}</span>
+                    <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Prioridad de Atención</span>
+                    <span className="text-sm sm:text-base font-black text-amber-300">{currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA NORMAL'}</span>
                  </div>
-                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
-                    <Zap className="w-4 h-4" />
+                 <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
+                    <Zap className="w-5 h-5" />
                  </div>
               </div>
 
-              <div className="flex-1 px-4 py-2 bg-[#030a28]/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
+              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-teal-500/30 rounded-xl flex items-center justify-between">
                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">TAT Restante</span>
-                    <span className="text-lg font-black text-cyan-300">18 <span className="text-xs text-slate-400 font-medium">min</span></span>
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">Tiempo Respuesta (TAT)</span>
+                    <span className="text-xl font-black text-teal-300 font-mono">18 <span className="text-xs text-slate-400 font-normal">min restantes</span></span>
                  </div>
-                 <div className="w-8 h-8 rounded-lg bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
-                    <Timer className="w-4 h-4" />
+                 <div className="w-9 h-9 rounded-xl bg-teal-400/20 text-teal-300 flex items-center justify-center font-bold">
+                    <Timer className="w-5 h-5" />
                  </div>
               </div>
 
-           </div>
+            </div>
 
-           {/* Mobile Card View (< md) */}
+            {/* Banner de Protección por Propiedad de la Orden (Normativa LIS/HIS) */}
+            {!canModifyThisOrder && (
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center space-x-3 text-amber-200 text-xs shadow-md">
+                <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <strong className="text-white block font-bold">🔒 Expediente Protegido por Normativa LIS/HIS</strong>
+                  <span>Esta orden pertenece a otro Tecnólogo Médico. Puede consultar sus resultados y trazabilidad en modo solo lectura, pero únicamente su dueño o la Jefatura de Laboratorio pueden modificarla, validarla o desvalidarla.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Card View (< md) */}
            <div className="block md:hidden space-y-3">
               {patientResults.map((res, index) => {
                  const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
@@ -518,36 +615,37 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            {/* Desktop 3D Glassmorphic Table Container (>= md) */}
            <div className="hidden md:block bg-slate-950/80 backdrop-blur-2xl border border-teal-500/30 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-teal-500/20 overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                 <thead className="bg-slate-950/90 text-slate-400 font-black uppercase text-[9px] tracking-widest border-b border-teal-500/20 sticky top-0 z-20 backdrop-blur-md">
+                 <thead className="bg-slate-950/95 text-slate-300 font-black uppercase text-xs tracking-wider border-b-2 border-teal-500/40 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
                       <th className="p-4 w-12 text-center">
                         <button
                           onClick={toggleSelectAll}
-                          className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
+                          className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
                             selectedResults.length > 0 && selectedResults.length === patientResults.length
                               ? 'bg-teal-500 border-teal-500 text-slate-950'
                               : selectedResults.length > 0
                               ? 'bg-teal-500/20 border-teal-500 text-teal-500'
-                              : 'bg-slate-950 border-slate-800 text-transparent hover:border-slate-600'
+                              : 'bg-slate-950 border-slate-700 text-transparent hover:border-slate-500'
                           }`}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       </th>
-                      <th className="p-4">Analito / Parámetro</th>
+                      <th className="p-4">Analito / Examen</th>
                       <th className="p-4 text-center">Resultado Clínico</th>
-                      <th className="p-4">Unidad</th>
-                      <th className="p-4">Valor Referencia</th>
-                      <th className="p-4 text-center">TAT / Origen</th>
-                      <th className="p-4 text-center">ESTADO</th>
+                      <th className="p-4 text-center">Unidad</th>
+                      <th className="p-4">Intervalo de Referencia</th>
+                      <th className="p-4 text-center">Origen / Equipo</th>
+                      <th className="p-4 text-center">Estado</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-white/5">
+                 <tbody className="divide-y divide-slate-800">
                     {patientResults.map((res, index) => {
                       const { text, isLate } = getTimeAgoData(res.createdAt);
-                      const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+                      const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
                       const isNoteExpanded = expandingNotesId === res.id;
                       const isHigh = res.flag === 'ALTO';
+                      const isLow = res.flag === 'BAJO';
                       const isCritical = res.flag?.includes('CRITICO');
 
                       return (
@@ -557,23 +655,25 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           onClick={() => setActiveTraceabilityId(res.id)}
                           className={`group/row cursor-pointer transition-all border-l-4 ${
                             isCritical
-                              ? 'bg-rose-500/20 border-l-rose-500 border-y border-rose-500/30 animate-pulse'
+                              ? 'bg-rose-950/40 border-l-rose-500 border-y border-rose-500/40'
                               : isHigh
-                              ? 'bg-amber-500/15 border-l-amber-400 border-y border-amber-500/30'
+                              ? 'bg-amber-950/30 border-l-amber-400 border-y border-amber-500/40'
+                              : isLow
+                              ? 'bg-blue-950/30 border-l-blue-400 border-y border-blue-500/40'
                               : selectedResults.includes(res.id)
-                              ? 'bg-teal-500/10 border-l-teal-400 shadow-inner'
+                              ? 'bg-teal-500/15 border-l-teal-400 shadow-inner'
                               : isValidated
-                              ? 'bg-emerald-500/[0.04] border-l-emerald-500/50'
-                              : 'border-l-transparent hover:bg-slate-900/60'
+                              ? 'bg-emerald-500/[0.06] border-l-emerald-500/60'
+                              : 'border-l-transparent hover:bg-slate-900/80'
                           }`}
                         >
                            <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
-                                className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center mx-auto ${
+                                className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center mx-auto cursor-pointer ${
                                   selectedResults.includes(res.id)
-                                    ? 'bg-teal-500 border-teal-500 text-slate-950 shadow-lg shadow-teal-500/20'
-                                    : 'bg-slate-950 border-slate-800 text-transparent group-hover/row:border-teal-500/50'
+                                    ? 'bg-teal-500 border-teal-500 text-slate-950 shadow-lg shadow-teal-500/20 font-black'
+                                    : 'bg-slate-950 border-slate-700 text-transparent group-hover/row:border-teal-400'
                                 }`}
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -583,24 +683,24 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               <div className="flex items-center gap-2">
                                  {isValidated && (
                                    <span title="Resultado Validado" className="shrink-0">
-                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                    </span>
                                  )}
-                                <div className={`font-black uppercase ${isValidated ? 'text-slate-400' : 'text-slate-200'}`}>{res.parameterName}</div>
+                                <div className={`font-black text-sm uppercase ${isValidated ? 'text-slate-300' : 'text-white'}`}>{res.parameterName}</div>
                                 {res.isExtra && (
-                                  <span className="bg-amber-500 text-slate-950 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-lg shadow-amber-500/20">EXTRA</span>
+                                  <span className="bg-purple-500/20 text-purple-300 border border-purple-400/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">HALLAZGO</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <div className="text-[9px] text-slate-600 font-mono tracking-tight">{res.parameterCode}</div>
-                                <div className="h-2.5 w-px bg-white/5"></div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="text-xs text-slate-400 font-mono font-bold">{res.parameterCode}</div>
+                                <div className="h-3 w-px bg-slate-700"></div>
                                 {res.source?.includes('MIDDLEWARE') ? (
-                                  <div className="flex items-center gap-1 text-[8px] text-teal-500 font-bold" title={`Recibido de: ${res.analyzerName || 'Analizador LIS'}`}>
-                                    <Cpu className="w-2.5 h-2.5" /> <span className="uppercase tracking-tighter">{res.analyzerName || 'ASTM-HUB'}</span>
+                                  <div className="flex items-center gap-1.5 text-xs text-teal-300 font-bold" title={`Recibido de: ${res.analyzerName || 'Analizador LIS'}`}>
+                                    <Cpu className="w-3 h-3 text-teal-400" /> <span className="uppercase tracking-wider">{res.analyzerName || 'ASTM E1394'}</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1 text-[8px] text-indigo-400 font-bold" title="Ingresado Manualmente">
-                                    <PencilLine className="w-2.5 h-2.5" /> <span className="uppercase tracking-tighter">MANUAL</span>
+                                  <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-bold" title="Ingresado Manualmente">
+                                    <PencilLine className="w-3 h-3 text-indigo-400" /> <span className="uppercase tracking-wider">MANUAL TM</span>
                                   </div>
                                 )}
                               </div>
@@ -609,19 +709,20 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               <ResultValueInput
                                 result={res}
                                 isValidated={isValidated}
+                                canEdit={canModifyThisOrder}
                                 onSave={onUpdateResultValue}
                               />
                            </td>
-                           <td className="p-4 text-slate-500 font-mono text-[10px] uppercase tracking-tighter">{res.unit}</td>
-                           <td className="p-4 text-slate-400 font-mono text-[10px] italic">
-                              <div>{res.refRangeText}</div>
+                           <td className="p-4 text-center text-slate-300 font-mono text-xs font-bold uppercase">{res.unit || '—'}</td>
+                           <td className="p-4 text-slate-200 font-mono text-xs">
+                              <div className="font-bold">{res.refRangeText || 'Normal'}</div>
                               {/* Visual Range Gauge Slider Bar */}
-                              <div className="w-28 h-1.5 bg-slate-900 border border-slate-800 rounded-full mt-1.5 relative overflow-hidden">
-                                 <div className="absolute inset-y-0 bg-emerald-500/30 border-x border-emerald-500/50" style={{ left: '20%', width: '60%' }} />
+                              <div className="w-32 h-2 bg-slate-900 border border-slate-700 rounded-full mt-1.5 relative overflow-hidden">
+                                 <div className="absolute inset-y-0 bg-emerald-500/30 border-x border-emerald-500/60" style={{ left: '20%', width: '60%' }} />
                                  <div
-                                   className={`absolute top-0 bottom-0 w-2 rounded-full border border-slate-950 ${
+                                   className={`absolute top-0 bottom-0 w-2.5 rounded-full border border-slate-950 ${
                                      res.flag?.includes('CRITICO')
-                                       ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-pulse'
+                                       ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse'
                                        : res.flag === 'ALTO'
                                        ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
                                        : res.flag === 'BAJO'
@@ -635,35 +736,35 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               </div>
                            </td>
                            <td className="p-4 text-center">
-                              {res.source?.includes('MIDDLEWARE') && !isValidated && (
-                                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${isLate ? 'border-amber-500/40 bg-amber-500/5 text-amber-400' : 'border-white/5 bg-slate-950 text-teal-400'}`}>
-                                   <Timer className={`w-3 h-3 ${isLate ? 'animate-pulse' : ''}`} /><span className="text-[9px] font-black">{text}</span>
+                              {res.source?.includes('MIDDLEWARE') && !isValidated ? (
+                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${isLate ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : 'border-teal-500/30 bg-teal-500/10 text-teal-300'}`}>
+                                   <Timer className={`w-3.5 h-3.5 ${isLate ? 'animate-pulse' : ''}`} />
+                                   <span className="text-xs font-black font-mono">{text}</span>
                                 </div>
-                              )}
-                              {isValidated && (
-                                <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">OK</span>
+                              ) : (
+                                <span className="text-xs font-mono font-bold text-slate-400">{res.analyzerName || 'Manual TM'}</span>
                               )}
                            </td>
                            {/* Dedicated ESTADO / VALIDACIÓN Column */}
                            <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                               {isValidated ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs font-black uppercase rounded-xl shadow-md">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                   <span>VALIDADO</span>
                                 </span>
                               ) : res.status === 'LIBERADO' ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 text-xs font-black uppercase rounded-xl shadow-md">
+                                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
                                   <span>LIBERADO</span>
                                 </span>
                               ) : res.status === 'RECHAZADO' ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase rounded-xl shadow-sm animate-pulse">
-                                  <X className="w-3.5 h-3.5 text-rose-400" />
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/50 text-xs font-black uppercase rounded-xl shadow-md animate-pulse">
+                                  <X className="w-4 h-4 text-rose-400" />
                                   <span>RECHAZADO</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase rounded-xl shadow-sm">
-                                  <Timer className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-400/50 text-xs font-black uppercase rounded-xl shadow-md">
+                                  <Timer className="w-4 h-4 text-amber-400 animate-pulse" />
                                   <span>PENDIENTE</span>
                                 </span>
                               )}
@@ -672,14 +773,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                         {/* Inline Clinical Alert Card for High or Critical Values */}
                         {(res.flag === 'ALTO' || res.flag?.includes('CRITICO')) && (
-                          <tr key={`tr-alert-${res.id}-${index}`} className={res.flag?.includes('CRITICO') ? 'bg-rose-500/10 border-b border-rose-500/20' : 'bg-amber-500/10 border-b border-amber-500/20'}>
-                            <td colSpan={6} className="px-4 py-2">
-                               <div className="flex items-center gap-2 text-[10px] font-bold">
-                                  <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${res.flag?.includes('CRITICO') ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
-                                  <span className={res.flag?.includes('CRITICO') ? 'text-rose-300 font-bold' : 'text-amber-300 font-bold'}>
+                          <tr key={`tr-alert-${res.id}-${index}`} className={res.flag?.includes('CRITICO') ? 'bg-rose-950/60 border-b border-rose-500/40' : 'bg-amber-950/40 border-b border-amber-500/30'}>
+                            <td colSpan={7} className="px-4 py-2.5">
+                               <div className="flex items-center gap-2.5 text-xs font-bold">
+                                  <AlertTriangle className={`w-4 h-4 shrink-0 ${res.flag?.includes('CRITICO') ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
+                                  <span className={res.flag?.includes('CRITICO') ? 'text-rose-200 font-black' : 'text-amber-200 font-bold'}>
                                      {res.flag?.includes('CRITICO')
-                                        ? `🚨 VALOR CRÍTICO DE PÁNICO: ${res.parameterName} (${res.value} ${res.unit}) — Requiere protocolo de notificación inmediata a médico tratante.`
-                                        : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el valor máximo de referencia (${res.refRangeText}). Δ +17.5% vs previo.`
+                                        ? `🚨 VALOR CRÍTICO DE PÁNICO: ${res.parameterName} (${res.value} ${res.unit}) — Notificación inmediata obligatoria al médico tratante según norma ISO 15189.`
+                                        : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el límite de referencia (${res.refRangeText}).`
                                      }
                                   </span>
                                </div>
@@ -687,24 +788,40 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           </tr>
                         )}
                         {isNoteExpanded && (
-                          <tr key={`tr-note-${res.id}-${index}`} className="bg-slate-900/60 border-b border-white/5">
-                            <td colSpan={6} className="p-4">
+                          <tr key={`tr-note-${res.id}-${index}`} className="bg-slate-900/90 border-b border-slate-700">
+                            <td colSpan={7} className="p-4">
                                <div className="flex gap-4 items-start animate-in slide-in-from-top-2 duration-300">
-                                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0"><MessageSquare className="w-5 h-5" /></div>
+                                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0"><MessageSquare className="w-5 h-5" /></div>
                                   <div className="flex-1 space-y-3">
                                      <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interpretación Clínica / Hallazgos del Analizador</span>
+                                        <span className="text-xs font-black text-slate-300 uppercase tracking-wider">Interpretación Clínica & Observaciones del Tecnólogo</span>
                                         <div className="flex gap-2">
-                                           <button onClick={() => { onUpdateInterpretation(res.id, tempNote); setExpandingNotesId(null); }} className="px-3 py-1 bg-indigo-500 text-white text-[9px] font-black rounded-lg uppercase shadow-lg shadow-indigo-500/20">Guardar Nota</button>
-                                           <button onClick={() => setExpandingNotesId(null)} className="px-3 py-1 bg-white/5 text-slate-400 text-[9px] font-black rounded-lg uppercase">Cerrar</button>
+                                           <button onClick={() => { onUpdateInterpretation(res.id, tempNote); setExpandingNotesId(null); }} className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black rounded-xl uppercase shadow-md cursor-pointer transition">Guardar Nota</button>
+                                           <button onClick={() => setExpandingNotesId(null)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl uppercase cursor-pointer transition">Cerrar</button>
                                         </div>
                                      </div>
+
+                                     {/* Quick Tag Pills */}
+                                     <div className="flex flex-wrap gap-1.5 items-center">
+                                       <span className="text-[11px] text-slate-400 font-bold">Etiquetas Rápidas:</span>
+                                       {['Muestra Lipémica', 'Confirmado por Repetición', 'Dilución 1:10', 'Muestra Hemolizada', 'Paciente en Ayuno', 'Valores Normales'].map((tag) => (
+                                         <button
+                                           key={tag}
+                                           type="button"
+                                           onClick={() => setTempNote(prev => prev ? `${prev} • ${tag}` : tag)}
+                                           className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 text-[11px] font-bold cursor-pointer transition"
+                                         >
+                                           + {tag}
+                                         </button>
+                                       ))}
+                                     </div>
+
                                      <textarea
                                        disabled={isValidated}
                                        value={tempNote}
                                        onChange={(e) => setTempNote(e.target.value)}
-                                       className="w-full bg-slate-950/80 border border-white/5 rounded-2xl p-4 text-xs text-slate-300 min-h-[80px] focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-800"
-                                       placeholder="Ingrese observaciones técnicas, comentarios sobre la muestra o hallazgos instrumentales..."
+                                       className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 min-h-[70px] focus:outline-none focus:border-teal-400 transition-all placeholder:text-slate-600"
+                                       placeholder="Ingrese observaciones técnicas, comentarios sobre la muestra o hallazgos del analizador..."
                                      />
                                   </div>
                                </div>
@@ -719,150 +836,141 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
         </div>
 
+        {/* Barra de Acciones Rápidas del Tecnólogo / Validador */}
         <div className="py-3 px-3 sm:px-6 shrink-0 border-t border-slate-800/80 bg-[#02071a]/95 backdrop-blur-3xl">
-          <div className="bg-[#020617]/80 border border-slate-800 rounded-3xl p-2 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-2xl overflow-x-auto no-scrollbar">
+          <div className="bg-[#020617]/90 border border-slate-700/80 rounded-3xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xl">
 
-             {/* Grupo 1: Alertas & Comunicación */}
-             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
+             {/* Herramientas Clínicas */}
+             <div className="flex flex-wrap items-center gap-2">
                 <button
-                  title="CENTRO DE ALERTAS Y PÁNICOS: Gestionar valores críticos y pánicos"
+                  title="Gestión de valores críticos de pánico e ISO 15189"
                   onClick={() => setShowAlertsCenterModal(true)}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer group ${
+                  className={`px-3.5 py-2.5 rounded-2xl flex items-center space-x-2 text-xs font-bold transition-all cursor-pointer ${
                     selectedResults.some(id => results.find(r => r.id === id)?.flag?.includes('CRITICO'))
-                    ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30 animate-pulse'
-                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-slate-950'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                    : 'bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
                   }`}
                 >
-                  <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <ShieldAlert className="w-4 h-4" />
+                  <span>Alertas y Pánicos</span>
                 </button>
 
                 <button
-                  title="WHATSAPP CLOUD: Enviar reporte parcial al paciente"
-                  onClick={() => {
-                    alert('Reporte enviado exitosamente vía WhatsApp.');
-                  }}
-                  className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all group"
-                >
-                  <PhoneCall className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
-             </div>
-
-             {/* Grupo 2: Herramientas de Cálculo & Trazado */}
-             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
-                <button
-                  title="SUITE DE CALCULADORAS CLÍNICAS: eGFR, LDL, HOMA-IR, De Ritis, Calcio Corregido"
+                  title="Calculadoras Clínicas (eGFR, LDL, HOMA-IR, De Ritis)"
                   onClick={() => setShowClinicalCalcModal(true)}
-                  className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center hover:bg-amber-500 hover:text-slate-950 transition-all group cursor-pointer"
+                  className="px-3.5 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-slate-950 text-xs font-bold flex items-center space-x-2 transition cursor-pointer"
                 >
-                  <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <Calculator className="w-4 h-4" />
+                  <span>Calculadoras</span>
                 </button>
+
                 <button
-                  title="ZEBRA SPOOLER: Re-imprimir etiquetas de código de barras"
-                  onClick={() => {
-                    alert('Etiquetas enviadas a la impresora térmica de la sede.');
-                  }}
-                  className="w-12 h-12 rounded-2xl bg-slate-800/40 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition-all group"
+                  title="Gráficas de evolución y telemetría de analizadores"
+                  onClick={() => setShowTelemetryModal(true)}
+                  className="px-3.5 py-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500 hover:text-slate-950 text-xs font-bold flex items-center space-x-2 transition cursor-pointer"
                 >
-                  <Barcode className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Telemetría</span>
                 </button>
-             </div>
 
-             {/* Grupo 3: Trazabilidad & Revocación */}
-             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
-                <button title="AUDIT TRAIL: Ver historial completo de modificaciones" onClick={() => setShowAuditLog(true)} className="w-12 h-12 rounded-2xl bg-slate-800/40 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition-all group">
-                  <RotateCcw className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
-                <button title="TELEMETRÍA & TENDENCIAS: Gráficas de evolución histórica del paciente" onClick={() => setShowTelemetryModal(true)} className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center hover:bg-teal-500 hover:text-white transition-all group text-teal-400 cursor-pointer">
-                  <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
                 <button
-                  title="REVOCAR: Desvalidar resultados seleccionados (Solo Dueño, Jefe o TM Propietario)"
-                  disabled={!selectedResults.some(id => {
-                    const res = results.find(r => r.id === id);
-                    const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
-                    const canUnvalidate = currentUser.role === 'owner' ||
-                                         currentUser.role === 'abregotech_admin' ||
-                                         currentUser.role === 'lab_chief' ||
-                                         (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
-                    return isValidated && canUnvalidate;
-                  })}
-                  onClick={() => {
-                    const toRevokeIds = selectedResults.filter(id => {
-                      const res = results.find(r => r.id === id);
-                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
-                      const canUnvalidate = currentUser.role === 'owner' ||
-                                           currentUser.role === 'abregotech_admin' ||
-                                           currentUser.role === 'lab_chief' ||
-                                           (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
-                      return isValidated && canUnvalidate;
-                    });
-
-                    if (toRevokeIds.length === 0) {
-                      alert('Seleccione resultados validados que le pertenezcan (o inicie sesión como Jefe/Dueño para revocar).');
-                      return;
-                    }
-
-                    setUnvalidateReason('');
-                    setShowUnvalidateModal(true);
-                  }}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all group ${
-                    selectedResults.some(id => {
-                      const res = results.find(r => r.id === id);
-                      const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
-                      const canUnvalidate = currentUser.role === 'owner' ||
-                                           currentUser.role === 'abregotech_admin' ||
-                                           currentUser.role === 'lab_chief' ||
-                                           (currentUser.role === 'tech_med' && res?.technicalValidatedBy === currentUser.name);
-                      return isValidated && canUnvalidate;
-                    })
-                    ? 'bg-amber-500 text-slate-950 border border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer'
-                    : 'bg-slate-800/40 text-slate-700 opacity-40 cursor-not-allowed'
-                  }`}
+                  title="Ver bitácora de auditoría y trazabilidad ISO 15189"
+                  onClick={() => setShowAuditLog(true)}
+                  className="px-3.5 py-2.5 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white text-xs font-bold flex items-center space-x-2 transition cursor-pointer"
                 >
-                  <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Trazabilidad</span>
                 </button>
-             </div>
 
-             {/* Grupo 4: Orden & PDF */}
-             <div className="flex gap-2 px-4 border-r border-white/5 shrink-0">
-                <button title="MASTER CATALOG: Añadir analitos extra a la orden" onClick={() => onUpdateOrderTests?.(currentOrder.id, currentOrder.expandedTestIds || currentOrder.testIds)} className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all group">
-                  <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
-                <button title="REPORT PREVIEW: Generar PDF oficial" onClick={() => onOpenPdf(currentOrder.id)} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all group">
-                  <Printer className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
-             </div>
-
-             {/* Acción Principal Maestría */}
-             <div className="pl-4 pr-3">
                 <button
-                  disabled={!selectedResults.some(id => {
-                    const res = results.find(r => r.id === id);
-                    return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
-                  })}
-                  onClick={() => {
-                    const toValidate = selectedResults.filter(id => {
-                      const res = results.find(r => r.id === id);
-                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
-                    });
-                    if (toValidate.length === 0) return;
-
-                    toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
-                    setSelectedResults([]);
-                  }}
-                  className={`h-14 px-8 font-black rounded-2xl flex items-center gap-3 transition-all cursor-pointer shadow-xl text-xs uppercase tracking-widest ${
-                    selectedResults.some(id => {
-                      const res = results.find(r => r.id === id);
-                      return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED';
-                    })
-                    ? 'bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-400 text-slate-950 shadow-[0_10px_25px_rgba(20,184,166,0.35)] hover:brightness-110 hover:scale-105'
-                    : 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/50'
-                  }`}
+                  title="Generar e imprimir informe clínico oficial tamaño Carta (US Letter)"
+                  onClick={() => onOpenPdf(currentOrder.id)}
+                  className="px-4 py-2.5 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500 hover:text-slate-950 text-xs font-black flex items-center space-x-2 transition cursor-pointer shadow-md"
                 >
-                  <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                  <span>VALIDAR RESULTADOS ({selectedResults.filter(id => results.find(r => r.id === id && r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED')).length})</span>
+                  <Printer className="w-4 h-4" />
+                  <span>Informe Tamaño Carta</span>
                 </button>
              </div>
+
+             {/* Acciones de Validación, Desvalidación y Liberación (Ciclo LIS: Pendiente -> Validado -> Liberado) */}
+              <div className="flex items-center gap-2.5">
+                 {canModifyThisOrder && selectedResults.some(id => {
+                   const res = results.find(r => r.id === id);
+                   const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
+                   return isValidated;
+                 }) && (
+                   <button
+                     onClick={() => {
+                       setUnvalidateReason('');
+                       setShowUnvalidateModal(true);
+                     }}
+                     className="px-4 py-3 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-rose-300 hover:bg-rose-500 hover:text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-md"
+                   >
+                     <X className="w-4 h-4" />
+                     <span>Desvalidar Seleccionados</span>
+                   </button>
+                 )}
+
+                 <button
+                   disabled={!canModifyThisOrder || !selectedResults.some(id => {
+                     const res = results.find(r => r.id === id);
+                     return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
+                   })}
+                   onClick={() => {
+                     const toValidate = selectedResults.filter(id => {
+                       const res = results.find(r => r.id === id);
+                       return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
+                     });
+                     if (toValidate.length === 0) return;
+
+                     toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+                     setSelectedResults([]);
+                   }}
+                   className={`h-12 px-6 font-black rounded-2xl flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer shadow-xl ${
+                     canModifyThisOrder && selectedResults.some(id => {
+                       const res = results.find(r => r.id === id);
+                       return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
+                     })
+                     ? 'bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-400 text-slate-950 shadow-teal-500/30 hover:brightness-110 hover:scale-[1.02]'
+                     : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'
+                   }`}
+                 >
+                   <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                   <span>
+                     Validar ({selectedResults.filter(id => results.find(r => r.id === id && r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO')).length}) Analitos
+                   </span>
+                 </button>
+
+                 <button
+                   disabled={!canModifyThisOrder}
+                   onClick={() => {
+                     const unvalidated = patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
+                     unvalidated.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
+                     setSelectedResults([]);
+                   }}
+                   className="h-12 px-5 font-black rounded-2xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/50 text-teal-200 text-xs uppercase tracking-wider transition flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+                 >
+                   <Check className="w-4 h-4 stroke-[2.5]" />
+                   <span>Validar Todo</span>
+                 </button>
+
+                 {/* Botón de Liberación (Ciclo: Validado -> Liberado) */}
+                 {canReleaseThisOrder && (
+                   <button
+                     disabled={!patientResults.some(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO')}
+                     onClick={() => {
+                       const toRelease = patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO');
+                       toRelease.forEach(r => onUpdateResultStatus(r.id, 'LIBERADO'));
+                       setSelectedResults([]);
+                     }}
+                     className="h-12 px-5 font-black rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 text-white text-xs uppercase tracking-wider transition flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/25 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+                     title="Liberar formalmente resultados para entrega a Médicos y Pacientes (Sección 2 LIS)"
+                   >
+                     <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
+                     <span>Liberar ({patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO').length})</span>
+                   </button>
+                 )}
+              </div>
           </div>
         </div>
 

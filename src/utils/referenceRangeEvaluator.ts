@@ -247,7 +247,7 @@ export function evaluateTestResult(
     return {
       isOutOfRange: isQualitativeFlag,
       severity: isQualitativeFlag ? 'HIGH' : 'NORMAL',
-      flag: isEmptyValue ? 'NORMAL' : (result.flag || 'NORMAL'),
+      flag: (isEmptyValue || result.flag === 'PENDIENTE') ? 'NORMAL' : (result.flag || 'NORMAL'),
       numericValue: null,
       minValue,
       maxValue,

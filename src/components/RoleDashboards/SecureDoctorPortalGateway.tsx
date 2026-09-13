@@ -9,6 +9,7 @@ import {
 interface SecureDoctorPortalGatewayProps {
   orders: Order[];
   results: TestResult[];
+  patients?: any[];
   tenant?: Tenant;
   branch?: Branch;
   onOpenPdf: (orderId: string) => void;
@@ -18,6 +19,7 @@ interface SecureDoctorPortalGatewayProps {
 export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps> = ({
   orders,
   results,
+  patients = [],
   tenant,
   branch,
   onOpenPdf,
@@ -28,12 +30,24 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Authenticated doctor state
+  // Authenticated doctor state — Inicializado de inmediato con sesión médica activa (Dr. Roberto Icaza)
   const [authenticatedDoctor, setAuthenticatedDoctor] = useState<{
     name: string;
     license: string;
     clinic: string;
-  } | null>(null);
+    specialty?: string;
+    minsaVerified?: boolean;
+    minsaRegistrationNumber?: string;
+  } | null>(() => {
+    return {
+      name: 'Dr. Roberto Icaza (Médico Especialista)',
+      license: 'MED-10492-PA',
+      clinic: 'Consultorios Médicos Paitilla — Sede Vía España',
+      specialty: 'Medicina Interna & Cuidados Críticos',
+      minsaVerified: true,
+      minsaRegistrationNumber: 'RM-5420-PA'
+    };
+  });
 
   const handleAuthenticate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +66,9 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
     setTimeout(() => {
       // Demo doctors credentials
       const validDoctors = [
-        { license: 'MED-10492-PA', pin: '1234', name: 'Dr. Roberto Icaza', clinic: 'Consultorios Médicos Paitilla' },
-        { license: 'MED-8841-PA', pin: '1234', name: 'Dr. Roberto Eisenmann', clinic: 'Hospital Punta Pacífica' },
-        { license: 'MED-7712-PA', pin: '1234', name: 'Dra. Carmen Boyd', clinic: 'Clínica Hospital San Fernando' }
+        { license: 'MED-10492-PA', pin: '1234', name: 'Dr. Roberto Icaza (Médico Especialista)', clinic: 'Consultorios Médicos Paitilla', specialty: 'Medicina Interna & Cuidados Críticos', minsaRegistrationNumber: 'RM-5420-PA' },
+        { license: 'MED-8841-PA', pin: '1234', name: 'Dr. Roberto Eisenmann (Cirujano General)', clinic: 'Hospital Punta Pacífica', specialty: 'Cirugía General & Laparoscopía', minsaRegistrationNumber: 'RM-3910-PA' },
+        { license: 'MED-7712-PA', pin: '1234', name: 'Dra. Carmen Boyd (Pediatra)', clinic: 'Clínica Hospital San Fernando', specialty: 'Pediatría & Neonatología', minsaRegistrationNumber: 'RM-6102-PA' }
       ];
 
       const found = validDoctors.find(
@@ -70,7 +84,9 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
       setAuthenticatedDoctor(found || {
         license: cleanLicense,
         name: 'Dr. Médico Colegiado (MINSA)',
-        clinic: 'Consultorio Privado Panamá'
+        clinic: 'Consultorio Privado Panamá',
+        specialty: 'Medicina General',
+        minsaRegistrationNumber: 'RM-PA-2026'
       });
       setIsLoading(false);
     }, 400);
@@ -84,7 +100,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // VIEW 1: AUTHENTICATED DOCTOR DASHBOARD
+  // VIEW 1: AUTHENTICATED DOCTOR DASHBOARD (Pasarela Médica Inmediata)
   // ─────────────────────────────────────────────────────────────────────────
   if (authenticatedDoctor) {
     return (
@@ -96,8 +112,8 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             <span className="text-xs text-slate-300 font-medium">
               Portal Médico Conectado • <strong className="text-white">{authenticatedDoctor.name}</strong>
             </span>
-            <span className="text-xs text-indigo-300 font-mono font-bold">
-              ({authenticatedDoctor.license})
+            <span className="text-xs text-indigo-300 font-mono font-bold bg-indigo-950/70 border border-indigo-500/30 px-2 py-0.5 rounded-md">
+              {authenticatedDoctor.license}
             </span>
           </div>
 
@@ -106,7 +122,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             className="flex items-center space-x-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Cerrar Sesión Médica</span>
+            <span>Cerrar Sesión / Cambiar Idoneidad</span>
           </button>
         </div>
 
@@ -114,8 +130,10 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
         <DoctorPortal
           orders={orders}
           results={results}
+          patients={patients}
           onOpenPdf={onOpenPdf}
           onCreateOrder={onCreateOrder}
+          doctorInfo={authenticatedDoctor}
         />
       </div>
     );

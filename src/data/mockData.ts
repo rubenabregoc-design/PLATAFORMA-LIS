@@ -29,12 +29,52 @@ export const MOCK_TENANTS: Tenant[] = [
 ];
 
 export const MOCK_USERS: User[] = [
+  // ⚙️ Programador Senior & Súper Admin Principal (AbregoTech Systems)
+  {
+    id: 'usr-rabrego-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Ing. Rubén Abrego (Senior Lead Developer & Architect)',
+    username: 'rabrego',
+    email: 'rabrego@abregotech.com',
+    role: 'abregotech_admin',
+    licenseNumber: 'DEV-SR-9999',
+    password: 'admin',
+    pinCode: '9999',
+    twoFactorEnabled: true
+  },
+  {
+    id: 'usr-developer-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Ing. Rubén Abrego (Programador Senior LIS/HIS)',
+    username: 'developer',
+    email: 'developer@abregotech.com',
+    role: 'abregotech_admin',
+    licenseNumber: 'DEV-LEAD-2026',
+    password: 'admin',
+    pinCode: '9999',
+    twoFactorEnabled: true
+  },
+  {
+    id: 'usr-admin-1',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    name: 'Ing. Gabriel Abrego (AbregoTech Systems)',
+    username: 'admin',
+    email: 'admin@abregotech.com',
+    role: 'abregotech_admin',
+    password: 'admin123',
+    pinCode: '9999',
+    twoFactorEnabled: true
+  },
   // 🔬 Jefe de Laboratorio / Director Médico
   {
     id: 'usr-chief-1',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Dr. Roberto Icaza Villalaz',
+    username: 'ricaza',
     email: 'roberto.icaza@labsanjose.com',
     role: 'lab_chief',
     licenseNumber: 'TM-1840-PA',
@@ -48,6 +88,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Lic. Sofía Guardia Franco',
+    username: 'sguardia',
     email: 'sofia.guardia@labsanjose.com',
     role: 'tech_med',
     licenseNumber: 'TM-5920-PA',
@@ -60,6 +101,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-david',
     name: 'Lic. Carlos E. Mendoza',
+    username: 'cmendoza',
     email: 'carlos.mendoza@labsanjose.com',
     role: 'tech_med',
     licenseNumber: 'TM-6140-PA',
@@ -73,6 +115,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Téc. Pedro Luis Navarro',
+    username: 'pnavarro',
     email: 'pedro.navarro@labsanjose.com',
     role: 'lab_tech',
     licenseNumber: 'TEC-3310-MINSA',
@@ -85,6 +128,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-david',
     name: 'Téc. Carmen Rosa Castillo',
+    username: 'ccastillo',
     email: 'carmen.castillo@labsanjose.com',
     role: 'lab_tech',
     licenseNumber: 'TEC-4180-MINSA',
@@ -98,6 +142,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Dra. María Elena Abrego',
+    username: 'mabrego',
     email: 'maria.abrego@labsanjose.com',
     role: 'owner',
     licenseNumber: 'TM-4821-PA',
@@ -111,6 +156,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Licda. Ana Lucía Morales',
+    username: 'amorales',
     email: 'ana.morales@labsanjose.com',
     role: 'receptionist',
     password: '123456',
@@ -123,6 +169,7 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Dr. Fernando Arosemena Boyd',
+    username: 'farosemena',
     email: 'dr.arosemena@hospitalclinico.pa',
     role: 'ext_doctor',
     licenseNumber: 'M-9812-MINSA',
@@ -136,23 +183,12 @@ export const MOCK_USERS: User[] = [
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
     name: 'Sr. Gonzalo A. Ríos',
+    username: 'grios',
     email: 'gonzalo.rios@gmail.com',
     role: 'patient',
     password: '123456',
     pinCode: '4432',
     twoFactorEnabled: false
-  },
-  // ⚙️ Súper Admin
-  {
-    id: 'usr-admin-1',
-    tenantId: 'lab-san-jose',
-    branchId: 'branch-via-espana',
-    name: 'Ing. Gabriel Abrego (AbregoTech Systems)',
-    email: 'admin@abregotech.com',
-    role: 'abregotech_admin',
-    password: 'admin123',
-    pinCode: '9999',
-    twoFactorEnabled: true
   }
 ];
 
@@ -276,6 +312,21 @@ export const MOCK_PATIENTS: Patient[] = [
     address: 'Bella Vista, Av. Balboa, PH Yoo',
     dataConsentLey81: true,
     consentDate: '2026-07-01'
+  },
+  {
+    id: 'pat-009',
+    tenantId: 'lab-san-jose',
+    nationalId: '8-720-1980',
+    idType: 'CEDULA',
+    firstName: 'Gonzalo A.',
+    lastName: 'Ríos',
+    dob: '1980-06-15',
+    gender: 'M',
+    phone: '+507 6555-1234',
+    email: 'gonzalo.rios@gmail.com',
+    address: 'San Francisco, Vía España, PH Royal Plaza',
+    dataConsentLey81: true,
+    consentDate: '2026-08-01'
   }
 ];
 
@@ -730,6 +781,25 @@ export const MOCK_ORDERS: Order[] = [
     paymentStatus: 'PAGADO',
     specimens: [],
     testIds: ['test-hemograma', 'test-vsg', 'test-tsh']
+  },
+  {
+    id: 'ord-1009',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    orderNumber: 'ORD-2026-00109',
+    patientId: 'pat-009',
+    patientName: 'Gonzalo A. Ríos',
+    patientNationalId: '8-720-1980',
+    patientGender: 'M',
+    patientAge: 46,
+    doctorName: 'Dr. Roberto Icaza (Médico Referente Especialista)',
+    priority: 'STAT',
+    status: 'LIBERADA',
+    createdAt: '2026-08-20T10:00:00Z',
+    totalAmount: 48.00,
+    paymentStatus: 'PAGADO',
+    specimens: [],
+    testIds: ['test-hemograma', 'test-lipidico']
   }
 ];
 
@@ -769,7 +839,13 @@ export const MOCK_RESULTS: TestResult[] = [
 
   // ORD 1008 (Mariana Navarro)
   { id: 'res-20', tenantId: 'lab-san-jose', orderId: 'ord-1008', testId: 'test-vsg', parameterId: 'p-vsg-8', parameterName: 'VSG (Eritrosedimentación)', unit: 'mm/h', value: '38', numericValue: 38, flag: 'ALTO', refRangeText: '0 - 20', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO', version: 1, history: [], specimenType: 'Sangre Total', interpretation: 'Velocidad de sedimentación acelerada.' },
-  { id: 'res-21', tenantId: 'lab-san-jose', orderId: 'ord-1008', testId: 'test-tsh', parameterId: 'p-tsh-8', parameterName: 'TSH Ultrasensible', unit: 'uIU/mL', value: '1.92', numericValue: 1.92, flag: 'NORMAL', refRangeText: '0.40 - 4.50', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO', version: 1, history: [], specimenType: 'Suero' }
+  { id: 'res-21', tenantId: 'lab-san-jose', orderId: 'ord-1008', testId: 'test-tsh', parameterId: 'p-tsh-8', parameterName: 'TSH Ultrasensible', unit: 'uIU/mL', value: '1.92', numericValue: 1.92, flag: 'NORMAL', refRangeText: '0.40 - 4.50', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO', version: 1, history: [], specimenType: 'Suero' },
+
+  // ORD 1009 (Gonzalo A. Ríos) — Resultados Liberados
+  { id: 'res-22', tenantId: 'lab-san-jose', orderId: 'ord-1009', testId: 'test-hemograma', parameterId: 'p-wbc-9', parameterName: 'Leucocitos (WBC)', unit: 'x10^3/µL', value: '7.8', numericValue: 7.8, flag: 'NORMAL', refRangeText: '4.5 - 11.0', source: 'MIDDLEWARE_ASTM', status: 'LIBERADO', version: 1, history: [], specimenType: 'Sangre Total', interpretation: 'Recuento leucocitario dentro de parámetros normales.' },
+  { id: 'res-23', tenantId: 'lab-san-jose', orderId: 'ord-1009', testId: 'test-hemograma', parameterId: 'p-hgb-9', parameterName: 'Hemoglobina (HGB)', unit: 'g/dL', value: '15.1', numericValue: 15.1, flag: 'NORMAL', refRangeText: '13.5 - 17.5', source: 'MIDDLEWARE_ASTM', status: 'LIBERADO', version: 1, history: [], specimenType: 'Sangre Total' },
+  { id: 'res-24', tenantId: 'lab-san-jose', orderId: 'ord-1009', testId: 'test-lipidico', parameterId: 'p-col-9', parameterName: 'Colesterol Total', unit: 'mg/dL', value: '185', numericValue: 185, flag: 'NORMAL', refRangeText: '< 200', source: 'MIDDLEWARE_ASTM', status: 'LIBERADO', version: 1, history: [], specimenType: 'Suero', interpretation: 'Perfil lipídico dentro del rango deseable.' },
+  { id: 'res-25', tenantId: 'lab-san-jose', orderId: 'ord-1009', testId: 'test-lipidico', parameterId: 'p-trig-9', parameterName: 'Triglicéridos', unit: 'mg/dL', value: '132', numericValue: 132, flag: 'NORMAL', refRangeText: '< 150', source: 'MIDDLEWARE_ASTM', status: 'LIBERADO', version: 1, history: [], specimenType: 'Suero' }
 ];
 
 export const MOCK_ANALYZERS: Analyzer[] = [

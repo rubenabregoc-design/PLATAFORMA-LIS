@@ -113,7 +113,7 @@ const ALL_MODULE_TABS = NAVIGATION_TABS.map(t => t.id);
 
 export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
   owner: ALL_MODULE_TABS,
-  lab_chief: ALL_MODULE_TABS,
+  lab_chief: ALL_MODULE_TABS.filter(t => t !== 'superadmin'),
   abregotech_admin: ALL_MODULE_TABS,
 
   // 🔬 Tecnólogo Médico (TM): Acceso total a analítica LIS, Banco de Sangre, Validación y Calidad QC
@@ -179,6 +179,19 @@ export const Header: React.FC<HeaderProps> = ({
   const visibleTabs = NAVIGATION_TABS.filter((t) => allowedTabIds.includes(t.id));
 
   const getTabLabel = (tab: { id: string; label: string }) => {
+    // 1. Nomenclatura oficial por rol para 'patient_results' (Sección 7 Especificación LIS/HIS)
+    if (tab.id === 'patient_results') {
+      if (language === 'EN') {
+        if (currentRole === 'receptionist') return "Today's Orders";
+        if (currentRole === 'lab_tech') return "My Samples";
+        return "Patient Results";
+      } else {
+        if (currentRole === 'receptionist') return 'Órdenes del día';
+        if (currentRole === 'lab_tech') return 'Mis muestras';
+        return 'Resultados de Pacientes';
+      }
+    }
+
     if (language === 'EN') {
       const EN_LABELS: Record<string, string> = {
         dashboard: 'Main Dashboard',
@@ -186,7 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
         validation: 'Results & Validation',
         tm_workbench: 'Technical Workbench',
         lis_workstation: '3D Validation Workstation',
-        patient_results: 'Patient Records & Samples',
+        patient_results: 'Patient Results',
         test_catalog: 'LIS Test Catalog',
         qc: 'Quality Control QC',
         middleware: 'ASTM Middleware',
@@ -252,11 +265,6 @@ export const Header: React.FC<HeaderProps> = ({
       return EN_LABELS[tab.id] || tab.label;
     }
 
-    if (tab.id === 'patient_results') {
-      if (currentRole === 'receptionist') return 'Órdenes del día';
-      if (currentRole === 'lab_tech') return 'Mis muestras';
-      if (currentRole === 'tech_med' || currentRole === 'lab_chief') return 'Resultados de Pacientes';
-    }
     return tab.label;
   };
 

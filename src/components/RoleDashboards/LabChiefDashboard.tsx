@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TestResult, Order, Patient } from '../../types';
 import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Lock, Key, Award, Sparkles, User, Activity, ExternalLink } from 'lucide-react';
+import { getTimeBasedGreeting } from '../../utils/greeting';
 
 interface LabChiefDashboardProps {
   orders: Order[];
@@ -54,9 +55,15 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
       <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-600"></div>
         <div>
-          <div className="text-emerald-400 text-xs font-black uppercase tracking-wider mb-1.5 flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Dashboard — Jefe de Laboratorio / Dirección Técnica</span>
+          <div className="text-emerald-400 text-xs font-black uppercase tracking-wider mb-1.5 flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Dashboard — Jefe de Laboratorio / Dirección Técnica</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1">
+              <span>👋</span>
+              <span>{getTimeBasedGreeting('ES')}, Dr. Roberto Icaza!</span>
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             Bandeja de Validación Médica & Firma Digital SHA-256

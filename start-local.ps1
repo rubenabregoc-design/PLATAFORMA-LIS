@@ -78,13 +78,25 @@ if (-not $bridgeRunning) {
     Write-Host "  [OK] Middleware Bridge ya esta activo en ws://localhost:$bridgePort." -ForegroundColor Green
 }
 
-# 4. Iniciar la app React
-Write-Host "`n  [4/4] Iniciando aplicacion LIS/HIS en http://localhost:3000 ..." -ForegroundColor Yellow
+# 4. Iniciar Enrutador de Portales Multi-Puerto (3001, 3002, 3003)
+Write-Host "`n  [4/5] Levantando Portales Dedicados (Pacientes: 3001, Medicos: 3002, SuperAdmin: 3003) ..." -ForegroundColor Yellow
+$portalScript = Join-Path $PSScriptRoot "server\portal-proxy.js"
+if (Test-Path $portalScript) {
+    Start-Process -FilePath "node" -ArgumentList "`"$portalScript`"" -WindowStyle Minimized
+    Start-Sleep -Seconds 1
+    Write-Host "  [OK] Enrutador multi-puerto activo." -ForegroundColor Green
+}
+
+# 5. Iniciar la app React
+Write-Host "`n  [5/5] Iniciando aplicacion LIS/HIS en http://localhost:3000 ..." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  -> Base de Datos Local:    localhost:5432 (lis_local)" -ForegroundColor Cyan
 Write-Host "  -> API REST Local:         http://localhost:8000" -ForegroundColor Cyan
 Write-Host "  -> Middleware Bridge:       ws://localhost:$bridgePort (TCP 5100-5106)" -ForegroundColor Cyan
 Write-Host "  -> Aplicacion Web LIS:     http://localhost:3000" -ForegroundColor Cyan
+Write-Host "  -> Portal Pacientes:       http://localhost:3001" -ForegroundColor Cyan
+Write-Host "  -> Portal Medicos:         http://localhost:3002" -ForegroundColor Cyan
+Write-Host "  -> Consola SuperAdmin:     http://localhost:3003" -ForegroundColor Cyan
 Write-Host ""
 
 npm run dev

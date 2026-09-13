@@ -2,6 +2,7 @@ import React from 'react';
 import { Tenant, Branch, Order } from '../../types';
 import { DollarSign, Activity, Building2, Clock, Zap, Package, ChevronRight, TrendingUp } from 'lucide-react';
 import { DailyProductionWidget } from './DailyProductionWidget';
+import { getTimeBasedGreeting } from '../../utils/greeting';
 
 interface OwnerDashboardProps {
   tenant: Tenant;
@@ -15,7 +16,26 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
   const avgTatHours = 1.4;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* 💼 Executive Welcome & Dynamic Greeting Bar */}
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-[2rem] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-black text-white uppercase tracking-tight">Consola Ejecutiva & Gerencial</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
+                <span>👋</span>
+                <span>{getTimeBasedGreeting('ES')}, Dirección General!</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Indicadores financieros, producción diaria y rendimiento multi-sede de {tenant.name}.</p>
+          </div>
+        </div>
+      </div>
+
       {/* 3D Glass Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
