@@ -434,33 +434,37 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider">Dashboard</span>
           </button>
 
-          {/* 4 Clinical Suite Category Drops */}
-          {DOMAIN_CATEGORIES.map((category) => {
-            const CategoryIcon = category.icon;
-            const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
-            const isOpen = activeCategoryMenu === category.id;
+          {/* 4 Direct Suite Navigation Action Pills (Visible on xl screens >= 1280px) */}
+          <div className="hidden xl:flex items-center space-x-1">
+            {DOMAIN_CATEGORIES.map((category) => {
+              const CategoryIcon = category.icon;
+              const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
 
-            return (
-              <button
-                key={category.id}
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategoryMenu(isOpen ? null : category.id);
-                }}
-                className={`flex items-center space-x-1 px-2.5 xl:px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  isOpen || isCategoryActive
-                    ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-                title={`Ver módulos de ${category.label}`}
-              >
-                <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${(isOpen || isCategoryActive) ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
-                <span className="uppercase tracking-wider hidden 2xl:inline">{category.label}</span>
-                <span className="uppercase tracking-wider 2xl:hidden">{category.shortLabel}</span>
-                <ChevronDown className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-              </button>
-            );
-          })}
+              const handleCategoryDirectNav = () => {
+                setActiveCategoryMenu(null);
+                if (category.id === 'lis') setActiveTab('dashboard');
+                else if (category.id === 'his') setActiveTab('his_command');
+                else if (category.id === 'bloodbank') setActiveTab('bloodbank');
+                else if (category.id === 'bi') setActiveTab('executive');
+              };
+
+              return (
+                <button
+                  key={category.id}
+                  onClick={handleCategoryDirectNav}
+                  className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isCategoryActive
+                      ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)] font-black'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                  title={`Ir directamente a la Suite ${category.label}`}
+                >
+                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <span className="uppercase tracking-wider font-extrabold">{category.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {/* Unified All Modules Button with Search Tip */}
           <button
