@@ -735,9 +735,6 @@ export default function App() {
                   {currentBranch?.name || 'Sede Vía España'}
                 </span>
               </div>
-                  {currentBranch?.name || 'Sede Vía España'}
-                </span>
-              </div>
 
             </div>
           </div>
