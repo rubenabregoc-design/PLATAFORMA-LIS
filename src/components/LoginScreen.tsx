@@ -254,9 +254,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-slate-950/75 pointer-events-none" />
       </div>
 
-      {/* Selector Discreto de Idioma (Ubicación Superior Limpia) */}
-      <div className="absolute top-3 sm:top-4 right-4 sm:right-6 z-40">
-        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-950/90 border border-slate-700/90 text-slate-200 text-xs font-bold backdrop-blur-md shadow-xl hover:border-cyan-400 transition-colors">
+      {/* Selector Discreto de Idioma (Ubicación Esquina Inferior Izquierda) */}
+      <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-40">
+        <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-2xl bg-slate-950/90 border border-slate-700/90 text-slate-200 text-xs font-bold backdrop-blur-md shadow-2xl hover:border-cyan-400 transition-colors">
           <span className="text-sm">{language === 'ES' ? '🇵🇦' : '🇺🇸'}</span>
           <select
             value={language}
