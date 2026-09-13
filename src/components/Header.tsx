@@ -7,6 +7,7 @@ import {
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
 import { getTimeBasedGreeting } from '../utils/greeting';
+import { ServerInfrastructureModal } from './Infrastructure/ServerInfrastructureModal';
 
 interface HeaderProps {
   onRoleChange: (role: Role) => void;
@@ -158,6 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [activeCategoryMenu, setActiveCategoryMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isServerHealthModalOpen, setIsServerHealthModalOpen] = useState<boolean>(false);
 
   const {
     currentRole,
@@ -513,6 +515,17 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Offline Sync Indicator */}
           <OfflineSyncIndicator />
 
+          {/* Server Infrastructure Health Monitor Pulse Button */}
+          <button
+            onClick={() => setIsServerHealthModalOpen(true)}
+            title="AbregoTech Server Health & Cluster Telemetry (PostgreSQL 16, PostgREST :8000, ACE :5100)"
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
+          >
+            <Server className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
+            <span className="hidden sm:inline font-mono text-[10.5px]">SERVIDOR: ONLINE</span>
+            <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">4.4ms</span>
+          </button>
+
           {/* Language Selector Dropdown (ES / EN) */}
           <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-full px-2 py-1 gap-1 shadow-md text-xs font-bold text-white shrink-0 cursor-pointer hover:border-cyan-400 transition-colors">
             <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -820,6 +833,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </>
       )}
+
+      {/* Modal Interactivo de Salud y Telemetría de Servidores AbregoTech */}
+      <ServerInfrastructureModal
+        isOpen={isServerHealthModalOpen}
+        onClose={() => setIsServerHealthModalOpen(false)}
+      />
     </header>
   );
 };
