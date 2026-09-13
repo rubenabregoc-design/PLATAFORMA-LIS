@@ -233,11 +233,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               <span className="text-xs font-black text-white tracking-tight truncate max-w-[160px] sm:max-w-[200px]">
                 {!isManualEmailMode
                   ? (selectedUser?.name || 'Personal Clínico')
-                  : (allUsers.find(u => u.email.toLowerCase() === emailOrUserInput.trim().toLowerCase())?.name || 'Personal Clínico')}
+                  : (allUsers.find(u => (u?.email || '').toLowerCase() === (emailOrUserInput || '').trim().toLowerCase())?.name || 'Personal Clínico')}
               </span>
-              {(!isManualEmailMode ? selectedUser?.role : allUsers.find(u => u.email.toLowerCase() === emailOrUserInput.trim().toLowerCase())?.role) && (
+              {(!isManualEmailMode ? selectedUser?.role : allUsers.find(u => (u?.email || '').toLowerCase() === (emailOrUserInput || '').trim().toLowerCase())?.role) && (
                 <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-500/30 px-1.5 py-0.2 rounded shrink-0 hidden xs:inline">
-                  {ROLE_LABELS[(!isManualEmailMode ? selectedUser?.role : allUsers.find(u => u.email.toLowerCase() === emailOrUserInput.trim().toLowerCase())?.role) || 'tech_med']?.title?.split('/')[0]?.trim()}
+                  {ROLE_LABELS[(!isManualEmailMode ? selectedUser?.role : allUsers.find(u => (u?.email || '').toLowerCase() === (emailOrUserInput || '').trim().toLowerCase())?.role) || 'tech_med']?.title?.split('/')[0]?.trim()}
                 </span>
               )}
             </div>

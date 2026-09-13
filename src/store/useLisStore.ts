@@ -68,6 +68,41 @@ export const useLisStore = create<LisState>()(
     (set, get) => ({
       currentUser: (() => {
         if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const portalParam = searchParams.get('portal');
+          const port = window.location.port;
+
+          if (portalParam === 'doctor' || port === '3002') {
+            return MOCK_USERS.find((u) => u.role === 'ext_doctor') || {
+              id: 'usr-doctor-public',
+              tenantId: 'lab-san-jose',
+              name: 'Dr. Roberto Icaza (Médico Referente)',
+              email: 'dr.icaza@consultoriospaitilla.com',
+              role: 'ext_doctor',
+              twoFactorEnabled: false
+            };
+          }
+          if (portalParam === 'patient' || port === '3001') {
+            return MOCK_USERS.find((u) => u.role === 'patient') || {
+              id: 'usr-patient-public',
+              tenantId: 'lab-san-jose',
+              name: 'Portal de Pacientes (Consulta Externa)',
+              email: 'paciente@liscore.pa',
+              role: 'patient',
+              twoFactorEnabled: false
+            };
+          }
+          if (portalParam === 'superadmin' || port === '3003') {
+            return MOCK_USERS.find((u) => u.role === 'abregotech_admin') || {
+              id: 'usr-superadmin',
+              tenantId: 'lab-san-jose',
+              name: 'Súper Admin AbregoTech',
+              email: 'admin@abregotech.com',
+              role: 'abregotech_admin',
+              twoFactorEnabled: true
+            };
+          }
+
           try {
             const raw = localStorage.getItem('abregotech_lis_store_v1');
             if (raw) {
@@ -81,6 +116,14 @@ export const useLisStore = create<LisState>()(
 
       currentRole: (() => {
         if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const portalParam = searchParams.get('portal');
+          const port = window.location.port;
+
+          if (portalParam === 'doctor' || port === '3002') return 'ext_doctor';
+          if (portalParam === 'patient' || port === '3001') return 'patient';
+          if (portalParam === 'superadmin' || port === '3003') return 'abregotech_admin';
+
           try {
             const raw = localStorage.getItem('abregotech_lis_store_v1');
             if (raw) {
@@ -94,18 +137,47 @@ export const useLisStore = create<LisState>()(
 
       currentTenant: MOCK_TENANTS[0],
       currentBranch: MOCK_TENANTS[0].branches[0],
-      isAuthenticated: typeof window !== 'undefined' ? localStorage.getItem('lis_auth_active') === 'true' : false,
+      isAuthenticated: (() => {
+        if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const portalParam = searchParams.get('portal');
+          const port = window.location.port;
+
+          if (portalParam === 'doctor' || port === '3002') return true;
+          if (portalParam === 'patient' || port === '3001') return true;
+          if (portalParam === 'superadmin' || port === '3003') return true;
+
+          return localStorage.getItem('lis_auth_active') === 'true';
+        }
+        return false;
+      })(),
 
       orders: MOCK_ORDERS,
       results: MOCK_RESULTS,
       patients: MOCK_PATIENTS,
 
-      activeOrderId: MOCK_ORDERS[0].id,
+      activeOrderId: (() => {
+        if (typeof window !== 'undefined') {
+          const savedOrder = localStorage.getItem('lis_current_order_id');
+          if (savedOrder) return savedOrder;
+        }
+        return MOCK_ORDERS[0].id;
+      })(),
 
       activeTab: (() => {
         if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const portalParam = searchParams.get('portal');
+          const port = window.location.port;
+
+          if (portalParam === 'patient' || port === '3001') return 'patient_results';
+          if (portalParam === 'doctor' || port === '3002') return 'dashboard';
+          if (portalParam === 'superadmin' || port === '3003') return 'dashboard';
+
+          const savedTab = localStorage.getItem('lis_current_tab');
+          if (savedTab) return savedTab;
           try {
-            const raw = localStorage.getItem('abregotech_lis_store_v1');
+            const raw = localStorage.getItem('lis-storage-v4');
             if (raw) {
               const parsed = JSON.parse(raw);
               if (parsed?.state?.activeTab) return parsed.state.activeTab;
@@ -260,9 +332,19 @@ export const useLisStore = create<LisState>()(
 
       setSessionLock: (locked) => set({ isSessionLocked: locked }),
 
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveTab: (tab) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lis_current_tab', tab);
+        }
+        set({ activeTab: tab });
+      },
 
-      setActiveOrder: (orderId) => set({ activeOrderId: orderId }),
+      setActiveOrder: (orderId) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lis_current_order_id', orderId);
+        }
+        set({ activeOrderId: orderId });
+      },
 
       setCurrentUser: (user) => set({ currentUser: user, currentRole: user ? user.role : 'lab_tech' }),
       setCurrentRole: (role) => set({ currentRole: role }),
