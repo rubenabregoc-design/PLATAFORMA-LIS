@@ -631,9 +631,9 @@ export default function App() {
           }`}>
             <div className="max-w-[1920px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
 
-              {/* Left: Platform Badge, Module & Greeting Context */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                <span className={`px-2.5 sm:px-3 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wider border shadow-md flex items-center space-x-1.5 shrink-0 ${
+              {/* Left: Platform Badge & Module Name */}
+              <div className="flex items-center space-x-2.5 shrink-0">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wider border shadow-md flex items-center space-x-1.5 shrink-0 ${
                   activePlatformCategory === 'lis'
                     ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-cyan-500/10'
                     : activePlatformCategory === 'his'
@@ -650,23 +650,12 @@ export default function App() {
                   </span>
                 </span>
 
-                <span className="text-slate-600 font-bold hidden sm:inline">•</span>
+                <span className="text-slate-600 font-bold">•</span>
 
-                <span className="font-extrabold text-white text-xs truncate">
+                <span className="font-extrabold text-white text-xs sm:text-sm tracking-tight truncate">
                   <span className="text-slate-400 font-medium">{language === 'EN' ? 'Module: ' : 'Módulo: '}</span>
                   <span className="text-white underline decoration-cyan-500/40 underline-offset-4">{currentTabObj.label}</span>
                 </span>
-
-                {/* Prominent Golden User Greeting Badge */}
-                <div className="flex items-center space-x-1.5 bg-slate-900/90 border border-amber-400/40 px-3 py-1 rounded-full text-xs shadow-inner shrink-0">
-                  <span className="text-xs">👋</span>
-                  <span className="font-black text-amber-300">
-                    {greeting}, <strong className="text-white font-black">{currentUser?.name || 'Usuario'}</strong>!
-                  </span>
-                  <span className="text-[10px] text-cyan-300 font-mono font-bold bg-cyan-950/80 border border-cyan-500/30 px-2 py-0.5 rounded-md hidden lg:inline">
-                    {ROLE_LABELS[currentRole]?.title || 'Estación'}
-                  </span>
-                </div>
               </div>
 
               {/* Right: Quick Access Shortcuts Bar (⭐ ACCESOS RÁPIDOS 1-CLIC) */}
