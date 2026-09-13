@@ -562,24 +562,24 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
-          {/* Inactivity Countdown Timer (Visible on xl+ screens) */}
-          <div className="hidden xl:flex shrink-0">
+          {/* Inactivity Countdown Timer (Visible on lg+ screens) */}
+          <div className="hidden lg:flex shrink-0">
             <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
           </div>
 
-          <div className="h-5 w-px bg-white/10 hidden xl:block"></div>
+          <div className="h-5 w-px bg-white/10 hidden lg:block"></div>
 
-          {/* Clinical User Profile Badge (Clean Layout) */}
+          {/* Clinical User Profile Badge (Full Name & Branch clearly visible) */}
           <div
             onClick={onOpenBranchModal}
-            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full p-0.5 sm:px-2.5 sm:py-1 gap-1.5 sm:gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 sm:px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
             title={language === 'EN' ? "Click to switch Clinical Facility / Branch" : "Click para cambiar de Sede / Sucursal"}
           >
-            <div className="hidden xl:flex flex-col text-right min-w-0">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px] xl:max-w-[150px]">
+            <div className="hidden md:flex flex-col text-right min-w-0">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none whitespace-nowrap">
                 {currentUser?.name || 'Licda. Ana Morales'}
               </span>
-              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate max-w-[110px] xl:max-w-[150px] mt-1">
+              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none whitespace-nowrap mt-1">
                 {language === 'EN'
                   ? (currentBranch?.name?.replace('Sede Vía España', 'Via España Branch')?.replace('Sede Principal', 'Main Branch') || currentBranch?.name || 'Via España Branch')
                   : (currentBranch?.name || 'Sede Vía España')}
@@ -590,12 +590,12 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Lock Session Button (Hidden on < xl) */}
+          {/* Lock Session Button (Visible on lg+) */}
           {onLockSession && (
             <button
               onClick={onLockSession}
               title={language === 'EN' ? "Lock Station Manually" : "Bloquear Estación Manualmente"}
-              className="hidden xl:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
+              className="hidden lg:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
             >
               <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
             </button>
