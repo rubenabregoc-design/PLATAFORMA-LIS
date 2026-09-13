@@ -162,8 +162,9 @@ export default defineConfig(() => {
       }
     },
     server: {
-      host: true, // Listen on all network interfaces (0.0.0.0) so LAN IP (e.g. 192.168.0.8:3000) works
+      host: true, // Listen on all network interfaces (0.0.0.0) so LAN IP works
       port: 3000,
+      allowedHosts: true, // Allow LAN hostnames like DESKTOP-TI8J086 or his.local
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
