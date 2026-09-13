@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
@@ -26,7 +26,11 @@ export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: str
   receptionist: { title: 'Recepcionista', color: 'bg-purple-500/15 text-purple-300 border-purple-500/30', desc: 'Registro, órdenes, cobros' },
   ext_doctor: { title: 'Médico Referente', color: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', desc: 'Portal médico externo' },
   patient: { title: 'Paciente / Cliente', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30', desc: 'Portal personal' },
-  abregotech_admin: { title: 'Admin AbregoTech', color: 'bg-slate-700/60 text-slate-200 border-slate-600', desc: 'Súper-admin SaaS' }
+  abregotech_admin: {
+    title: 'Senior Dev & Admin',
+    color: 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-500/40',
+    desc: 'Programador Senior & Súper-Admin SaaS'
+  }
 };
 
 export const NAVIGATION_TABS = [
@@ -102,6 +106,7 @@ export const NAVIGATION_TABS = [
   { id: 'ha_dr', label: 'Alta Disponibilidad & Contingencia (HA/DR)', icon: Server, category: 'bi', desc: 'Clúster activo-pasivo y réplica de contingencia.' },
   { id: 'accreditation', label: 'Acreditación ISO 15189', icon: Award, category: 'bi', desc: 'Gestión documental y evidencias de auditoría ISO.' },
   { id: 'schema', label: 'Base de Datos & Esquemas', icon: Database, category: 'bi', desc: 'Visor de modelos E-R y diccionario de datos PostgreSQL.' },
+  { id: 'superadmin', label: 'Consola Súper-Admin', icon: Shield, category: 'bi', desc: 'Control maestro de clientes, sedes, catálogo LIS, valores de referencia, HIS y banco de sangre.', example: 'Ej: Superadmin / AbregoTech' },
 ];
 
 const ALL_MODULE_TABS = NAVIGATION_TABS.map(t => t.id);
@@ -241,6 +246,7 @@ export const Header: React.FC<HeaderProps> = ({
         ha_dr: 'HA/DR High Availability',
         accreditation: 'ISO 15189 Accreditation',
         schema: 'Database E-R Schema',
+        superadmin: 'Super-Admin Console',
         punch_clock: 'Shift Clock In/Out'
       };
       return EN_LABELS[tab.id] || tab.label;
@@ -451,9 +457,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${(isOpen || isCategoryActive) ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
                 <span className="uppercase tracking-wider hidden 2xl:inline">{category.label}</span>
                 <span className="uppercase tracking-wider 2xl:hidden">{category.shortLabel}</span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300">
-                  {category.count}
-                </span>
                 <ChevronDown className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
             );
@@ -470,10 +473,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
                 : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
             }`}
-            title="Presione Ctrl+K para buscar en cualquier momento"
+            title={language === 'EN' ? "Press Ctrl+K to search anytime" : "Presione Ctrl+K para buscar en cualquier momento"}
           >
             <Grid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="uppercase tracking-wider font-black">❖ Catálogo ({visibleTabs.length})</span>
+            <span className="uppercase tracking-wider font-black">❖ {language === 'EN' ? 'CATALOG' : 'Catálogo'} ({visibleTabs.length})</span>
             <span className="text-[9.5px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
           </button>
         </nav>
@@ -526,11 +529,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Quick Punch Clock (Visible on screens >= 2xl to preserve space on laptops) */}
           <button
             onClick={() => setActiveTab('punch_clock')}
-            title="Marcaje Digital de Entrada y Salida de Turno (Biométrico / PIN)"
+            title={language === 'EN' ? "Shift Clock In/Out (Biometric / PIN)" : "Marcaje Digital de Entrada y Salida de Turno (Biométrico / PIN)"}
             className="hidden 2xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-sm"
           >
             <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
-            <span className="uppercase tracking-wider text-[10.5px]">Marcaje Turno</span>
+            <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
           {/* Inactivity Countdown Timer (Hidden on mobile < md to prevent navbar clutter) */}
@@ -544,21 +547,20 @@ export const Header: React.FC<HeaderProps> = ({
           <div
             onClick={onOpenBranchModal}
             className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
-            title="Click para cambiar de Sede / Sucursal"
+            title={language === 'EN' ? "Click to switch Clinical Facility / Branch" : "Click para cambiar de Sede / Sucursal"}
           >
             <div className="hidden md:flex flex-col text-right min-w-0">
               <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate max-w-[110px] xl:max-w-[150px]">
                 {currentUser?.name || 'Licda. Ana Morales'}
               </span>
               <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate max-w-[110px] xl:max-w-[150px] mt-1">
-                {currentBranch?.name || 'Sede Vía España'}
+                {language === 'EN'
+                  ? (currentBranch?.name?.replace('Sede Vía España', 'Via España Branch')?.replace('Sede Principal', 'Main Branch') || currentBranch?.name || 'Via España Branch')
+                  : (currentBranch?.name || 'Sede Vía España')}
               </span>
             </div>
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
               {currentUser?.name?.charAt(0) || 'A'}
-            </div>
-          </div>
-              {ROLE_LABELS[currentUser?.role || 'owner']?.title?.charAt(0) || 'D'}
             </div>
           </div>
 
@@ -566,7 +568,7 @@ export const Header: React.FC<HeaderProps> = ({
           {onLockSession && (
             <button
               onClick={onLockSession}
-              title="Bloquear Estación Manualmente"
+              title={language === 'EN' ? "Lock Station Manually" : "Bloquear Estación Manualmente"}
               className="hidden sm:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
             >
               <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
@@ -576,7 +578,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logout Button */}
           <button
             onClick={logout}
-            title="Cerrar Sesión"
+            title={language === 'EN' ? "Sign Out" : "Cerrar Sesión"}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
           >
             <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-transform" />
@@ -629,7 +631,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap flex items-center space-x-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200 border border-cyan-400/40 shrink-0"
         >
           <Search className="w-3 h-3 text-cyan-400" />
-          <span>Buscar ({visibleTabs.length})</span>
+          <span>{language === 'EN' ? `Search (${visibleTabs.length})` : `Buscar (${visibleTabs.length})`}</span>
         </button>
       </div>
 
@@ -657,14 +659,18 @@ export const Header: React.FC<HeaderProps> = ({
                   <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                     <span>
                       {activeCategoryMenu === 'all'
-                        ? 'Catálogo Clínico Unificado LIS-CORE'
-                        : `Suite ${DOMAIN_CATEGORIES.find(c => c.id === activeCategoryMenu)?.label || 'Especializada'}`}
+                        ? (language === 'EN' ? 'LIS-CORE Unified Clinical Catalog' : 'Catálogo Clínico Unificado LIS-CORE')
+                        : `${language === 'EN' ? 'Suite' : 'Suite'} ${DOMAIN_CATEGORIES.find(c => c.id === activeCategoryMenu)?.label || (language === 'EN' ? 'Specialized' : 'Especializada')}`}
                     </span>
                     <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 px-2 py-0.2 rounded-full text-[9.5px] font-mono font-bold">
-                      {filteredModules.length} Módulos
+                      {filteredModules.length} {language === 'EN' ? 'Modules' : 'Módulos'}
                     </span>
                   </h3>
-                  <p className="text-[9.5px] text-slate-400 font-medium">Acceso directo a módulos hospitalarios, analíticos y administrativos</p>
+                  <p className="text-[9.5px] text-slate-400 font-medium">
+                    {language === 'EN'
+                      ? 'Direct access to hospital, analytical and administrative modules'
+                      : 'Acceso directo a módulos hospitalarios, analíticos y administrativos'}
+                  </p>
                 </div>
               </div>
 
@@ -676,7 +682,7 @@ export const Header: React.FC<HeaderProps> = ({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar módulo (ej. HIL, Pánicos, EHR)..."
+                    placeholder={language === 'EN' ? 'Search module (e.g. HIL, Panics, EHR)...' : 'Buscar módulo (ej. HIL, Pánicos, EHR)...'}
                     className="w-full bg-[#010514] border border-cyan-500/40 rounded-full pl-8 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner"
                     autoFocus
                   />
@@ -693,7 +699,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => setActiveCategoryMenu(null)}
                   className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:border-cyan-400 flex items-center justify-center shrink-0 cursor-pointer"
-                  title="Cerrar (Esc)"
+                  title={language === 'EN' ? 'Close (Esc)' : 'Cerrar (Esc)'}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -710,7 +716,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
-                Todos ({visibleTabs.length})
+                {language === 'EN' ? `All (${visibleTabs.length})` : `Todos (${visibleTabs.length})`}
               </button>
 
               {DOMAIN_CATEGORIES.map((cat) => {
@@ -741,12 +747,16 @@ export const Header: React.FC<HeaderProps> = ({
               {filteredModules.length === 0 ? (
                 <div className="col-span-full py-12 text-center space-y-2">
                   <Search className="w-8 h-8 text-slate-600 mx-auto" />
-                  <p className="text-xs font-bold text-slate-400">No se encontraron módulos con "<span className="text-cyan-400">{searchQuery}</span>"</p>
+                  <p className="text-xs font-bold text-slate-400">
+                    {language === 'EN'
+                      ? `No modules found matching "${searchQuery}"`
+                      : `No se encontraron módulos con "${searchQuery}"`}
+                  </p>
                   <button
                     onClick={() => setSearchQuery('')}
                     className="text-[11px] text-cyan-400 underline font-bold cursor-pointer"
                   >
-                    Limpiar búsqueda
+                    {language === 'EN' ? 'Clear search' : 'Limpiar búsqueda'}
                   </button>
                 </div>
               ) : (
