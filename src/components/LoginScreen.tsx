@@ -18,24 +18,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [selectedTenantId, setSelectedTenantId] = useState<string>('lab-san-jose');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
 
-  // Real users loaded from storage + mock users
-  const [allUsers, setAllUsers] = useState<User[]>(() => {
+  // Helper para sanitizar usuarios reales cargados de almacenamiento local
+  const loadSanitizedUsers = (): User[] => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('lis_real_users');
         if (stored) {
-          const parsed: User[] = JSON.parse(stored);
-          return [...parsed, ...MOCK_USERS.filter((m) => !parsed.some((p) => p.id === m.id || p.email === m.email))];
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            const valid = parsed.filter((p): p is User => Boolean(p && typeof p === 'object' && p.id && p.role));
+            const existingIds = new Set(valid.map((p) => p.id));
+            const existingEmails = new Set(valid.map((p) => (p.email || '').toLowerCase()));
+            const missingMocks = MOCK_USERS.filter(
+              (m) => !existingIds.has(m.id) && (!m.email || !existingEmails.has(m.email.toLowerCase()))
+            );
+            return [...valid, ...missingMocks];
+          }
         }
       } catch (e) {
         console.error('Error cargando usuarios reales:', e);
       }
     }
     return MOCK_USERS;
-  });
+  };
+
+  const [allUsers, setAllUsers] = useState<User[]>(() => loadSanitizedUsers());
 
   const [selectedUser, setSelectedUser] = useState<User | null>(() => {
-    return allUsers.find((u) => u.role === 'receptionist') || allUsers[0];
+    const users = loadSanitizedUsers();
+    return users.find((u) => u && u.role === 'receptionist') || users[0] || MOCK_USERS[0];
   });
 
   const [isManualEmailMode, setIsManualEmailMode] = useState<boolean>(false);
@@ -63,11 +74,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   useEffect(() => {
     const handleUsersUpdated = () => {
       try {
-        const stored = localStorage.getItem('lis_real_users');
-        if (stored) {
-          const parsed: User[] = JSON.parse(stored);
-          setAllUsers([...parsed, ...MOCK_USERS.filter((m) => !parsed.some((p) => p.id === m.id || p.email === m.email))]);
-        }
+        setAllUsers(loadSanitizedUsers());
       } catch (e) {}
     };
     window.addEventListener('lis_users_updated', handleUsersUpdated);
@@ -101,14 +108,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   const filteredUsers = allUsers.filter((u) => {
+    if (!u) return false;
     const isInternalStaff = u.role !== 'patient';
     const matchesTenant = u.tenantId === selectedTenantId || u.role === 'abregotech_admin';
     return isInternalStaff && matchesTenant;
   });
 
   const handleUserSelect = (user: User) => {
+    if (!user) return;
     setSelectedUser(user);
-    setEmailOrUserInput(user.email);
+    setEmailOrUserInput(user.email || '');
     setPasswordInput(user.password || (user.role === 'abregotech_admin' ? 'admin123' : '123456'));
     setPinInput(user.pinCode || '1234');
     setErrorMessage(null);
@@ -127,9 +136,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         const query = emailOrUserInput.trim().toLowerCase();
         targetUser = allUsers.find(
           (u) =>
-            u.email.toLowerCase() === query ||
-            u.name.toLowerCase() === query ||
-            (u.licenseNumber && u.licenseNumber.toLowerCase() === query)
+            u && (
+              (u.email || '').toLowerCase() === query ||
+              (u.name || '').toLowerCase() === query ||
+              (u.licenseNumber && (u.licenseNumber || '').toLowerCase() === query)
+            )
         ) || null;
 
         if (!targetUser) {
@@ -319,12 +330,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               <select
                 value={selectedUser?.id || ''}
                 onChange={(e) => {
-                  const u = allUsers.find((usr) => usr.id === e.target.value);
+                  const u = allUsers.find((usr) => usr && usr.id === e.target.value);
                   if (u) handleUserSelect(u);
                 }}
                 className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs text-cyan-100 font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 cursor-pointer shadow-inner"
               >
-                {filteredUsers.map((u) => (
+                {filteredUsers.filter(Boolean).map((u) => (
                   <option key={u.id} value={u.id} className="bg-slate-900 text-white">
                     {u.name} — {ROLE_LABELS[u.role]?.title || u.role} {u.licenseNumber ? `(${u.licenseNumber})` : ''}
                   </option>
