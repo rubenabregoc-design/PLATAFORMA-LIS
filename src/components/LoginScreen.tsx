@@ -101,10 +101,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   }, []);
 
   const formattedDate = currentTime.toLocaleDateString(language === 'EN' ? 'en-US' : 'es-PA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
   });
 
   const formattedTime = currentTime.toLocaleTimeString(language === 'EN' ? 'en-US' : 'es-PA', {
@@ -269,8 +269,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* Tarjeta de Inicio de Sesión (Compacta -6% Proporcionada y Elegante) */}
-      <div className="relative z-20 w-full max-w-[385px] xl:max-w-[410px] scale-[0.94] bg-slate-950/92 backdrop-blur-2xl border border-cyan-500/40 rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/30 flex flex-col space-y-3 animate-in fade-in slide-in-from-right-6 duration-700 transition-all shrink-0">
+      {/* Tarjeta de Inicio de Sesión (Compacta -5% Adicional Proporcionada y Elegante) */}
+      <div className="relative z-20 w-full max-w-[370px] xl:max-w-[395px] scale-[0.89] sm:scale-95 bg-slate-950/92 backdrop-blur-2xl border border-cyan-500/40 rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/30 flex flex-col space-y-2.5 animate-in fade-in slide-in-from-right-6 duration-700 transition-all shrink-0">
 
         {/* Encabezado del Formulario */}
         <div className="text-center space-y-2.5 border-b border-slate-800/90 pb-3">
