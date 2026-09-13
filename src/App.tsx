@@ -17,6 +17,7 @@ import { useLisStore } from './store/useLisStore';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
 import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
 import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets } from 'lucide-react';
+import { getTimeBasedGreeting } from './utils/greeting';
 import { LoginScreen } from './components/LoginScreen';
 import { BranchSelectionModal } from './components/BranchSelectionModal';
 import { DatabaseSchemaViewer } from './components/DatabaseSchemaViewer';
@@ -65,6 +66,7 @@ import { MaternityNeonatalModule } from './components/HospitalSuite/MaternityNeo
 import { RisPacsRadiologyStudio } from './components/HospitalSuite/RisPacsRadiologyStudio';
 import { HospitalPharmacyDispensing } from './components/HospitalSuite/HospitalPharmacyDispensing';
 
+import BloodBankCenter from './components/Phase6Suite/TechnologistSuite/BloodBankCenter';
 import DonorScreeningForm from './components/Phase6Suite/TechnologistSuite/DonorScreeningForm';
 import DonorDeferralDashboard from './components/Phase6Suite/TechnologistSuite/DonorDeferralDashboard';
 import ApheresisDonationModule from './components/Phase6Suite/TechnologistSuite/ApheresisDonationModule';
@@ -98,6 +100,7 @@ import { ResultEntryWorkspace } from './components/RoleDashboards/ResultEntryWor
 import { LabTechDashboard } from './components/RoleDashboards/LabTechDashboard';
 import { ReceptionDashboard } from './components/RoleDashboards/ReceptionDashboard';
 import { DoctorPortal } from './components/RoleDashboards/DoctorPortal';
+import { SecureDoctorPortalGateway } from './components/RoleDashboards/SecureDoctorPortalGateway';
 import { PatientPortal } from './components/RoleDashboards/PatientPortal';
 import { SuperAdminDashboard } from './components/RoleDashboards/SuperAdminDashboard';
 import { SkeletonLoader } from './components/SkeletonLoader';
@@ -134,12 +137,41 @@ export default function App() {
     validateResult
   } = useLisStore();
 
+  // Helper para sanitizar tenants y sedes cargados de almacenamiento local
+  const loadSanitizedTenants = (): Tenant[] => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('lis_tenants');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Error cargando tenants:', e);
+      }
+    }
+    return MOCK_TENANTS;
+  };
+
   // Tenant, Branch and User State (Transitioning to Zustand)
-  const [tenants, setTenants] = useState<Tenant[]>(MOCK_TENANTS);
+  const [tenants, setTenants] = useState<Tenant[]>(() => loadSanitizedTenants());
   const [currentTenantId, setCurrentTenantId] = useState<string>('lab-san-jose');
   const [currentBranchId, setCurrentBranchId] = useState<string>('branch-via-espana');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
   const [isBranchModalOpen, setIsBranchModalOpen] = useState<boolean>(false);
+
+  // Escuchar si se crean o modifican sedes y clientes en el Súper Admin
+  useEffect(() => {
+    const handleTenantsUpdated = () => {
+      try {
+        setTenants(loadSanitizedTenants());
+      } catch (e) {}
+    };
+    window.addEventListener('lis_tenants_updated', handleTenantsUpdated);
+    return () => window.removeEventListener('lis_tenants_updated', handleTenantsUpdated);
+  }, []);
 
   // Navigation & View State
   const [showAllModules, setShowAllModules] = useState<boolean>(true);
@@ -161,6 +193,58 @@ export default function App() {
     };
     window.addEventListener('lis-global-toast', handleToast);
     return () => window.removeEventListener('lis-global-toast', handleToast);
+  }, []);
+
+  // Detección automática de puertos dedicados (3001: Pacientes, 3002: Médicos, 3003: SuperAdmin) o parámetros URL (?portal=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const portalParam = searchParams.get('portal');
+    const port = window.location.port;
+
+    if (portalParam === 'patient' || port === '3001') {
+      setIsAuthenticated(true);
+      setCurrentRole('patient');
+      setActiveTab('patient_results');
+      setShowAllModules(true);
+      const patUser = MOCK_USERS.find((u) => u.role === 'patient') || {
+        id: 'usr-patient-public',
+        tenantId: 'lab-san-jose',
+        name: 'Portal de Pacientes (Consulta Externa)',
+        email: 'paciente@liscore.pa',
+        role: 'patient',
+        twoFactorEnabled: false
+      };
+      setCurrentUser(patUser as any);
+    } else if (portalParam === 'doctor' || port === '3002') {
+      setIsAuthenticated(true);
+      setCurrentRole('ext_doctor');
+      setActiveTab('dashboard');
+      setShowAllModules(true);
+      const docUser = MOCK_USERS.find((u) => u.role === 'ext_doctor') || {
+        id: 'usr-doctor-public',
+        tenantId: 'lab-san-jose',
+        name: 'Dr. Roberto Icaza (Médico Referente)',
+        email: 'dr.icaza@consultoriospaitilla.com',
+        role: 'ext_doctor',
+        twoFactorEnabled: false
+      };
+      setCurrentUser(docUser as any);
+    } else if (portalParam === 'superadmin' || port === '3003') {
+      setIsAuthenticated(true);
+      setCurrentRole('abregotech_admin');
+      setActiveTab('dashboard');
+      setShowAllModules(true);
+      const adminUser = MOCK_USERS.find((u) => u.role === 'abregotech_admin') || {
+        id: 'usr-superadmin',
+        tenantId: 'lab-san-jose',
+        name: 'Súper Admin AbregoTech',
+        email: 'admin@abregotech.com',
+        role: 'abregotech_admin',
+        twoFactorEnabled: true
+      };
+      setCurrentUser(adminUser as any);
+    }
   }, []);
 
   const lastActivityRef = useRef<number>(Date.now());
@@ -217,10 +301,8 @@ export default function App() {
   };
 
   const triggerLoading = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 350);
+    // Zero-flicker instant transition
+    setIsLoading(false);
   };
 
   // Domain data state
@@ -260,10 +342,11 @@ export default function App() {
     setIsAuthenticated(true);
     // Modal eliminated upon login because user ALREADY selected branch on Login Screen
 
-    // Default to the first allowed tab for the user's specific role
+    // Preserve active tab if valid for role, otherwise default to first allowed tab
     const allowed = ALLOWED_TABS_PER_ROLE[user.role] || ['dashboard'];
-    setActiveTab(allowed[0] || 'dashboard');
-    triggerLoading();
+    const savedTab = typeof window !== 'undefined' ? localStorage.getItem('lis_current_tab') : null;
+    const initialTab = (savedTab && (allowed.includes(savedTab) || showAllModules)) ? savedTab : (allowed[0] || 'dashboard');
+    setActiveTab(initialTab);
   };
 
   const handleConfirmBranchSelection = (branchId: string) => {
@@ -446,9 +529,22 @@ export default function App() {
     }
   };
 
+  const handleUpdateTenants = (updatedTenants: Tenant[]) => {
+    setTenants(updatedTenants);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('lis_tenants', JSON.stringify(updatedTenants));
+        window.dispatchEvent(new CustomEvent('lis_tenants_updated'));
+      } catch (e) {
+        console.error('Error guardando tenants:', e);
+      }
+    }
+  };
+
   const handleProvisionTenant = (name: string, ruc: string, dv: string, plan: Tenant['plan']) => {
+    const newTenantId = `lab-${Date.now()}`;
     const newTenant: Tenant = {
-      id: `lab-${Date.now()}`,
+      id: newTenantId,
       name,
       ruc,
       dv,
@@ -456,7 +552,7 @@ export default function App() {
       branches: [
         {
           id: `br-${Date.now()}`,
-          tenantId: `lab-${Date.now()}`,
+          tenantId: newTenantId,
           name: 'Sede Central',
           code: 'SC-01',
           address: 'Ciudad de Panamá',
@@ -464,7 +560,7 @@ export default function App() {
         }
       ]
     };
-    setTenants([...tenants, newTenant]);
+    handleUpdateTenants([...tenants, newTenant]);
   };
 
   const handleOrderPaid = (orderId: string) => {
@@ -521,9 +617,10 @@ export default function App() {
       {(() => {
         const currentTabObj = NAVIGATION_TABS.find(t => t.id === activeTab) || NAVIGATION_TABS[0];
         const activePlatformCategory = currentTabObj.category || 'lis';
+        const greeting = getTimeBasedGreeting(language);
 
         return (
-          <div className={`border-b backdrop-blur-xl px-4 py-2 sm:py-2.5 transition-all relative z-20 ${
+          <div className={`border-b backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 transition-all relative z-20 ${
             activePlatformCategory === 'lis'
               ? 'bg-gradient-to-r from-cyan-950/70 via-slate-950 to-slate-950 border-cyan-500/30 text-cyan-200'
               : activePlatformCategory === 'his'
@@ -532,11 +629,11 @@ export default function App() {
               ? 'bg-gradient-to-r from-rose-950/70 via-slate-950 to-slate-950 border-rose-500/30 text-rose-200'
               : 'bg-gradient-to-r from-amber-950/70 via-slate-950 to-slate-950 border-amber-500/30 text-amber-200'
           }`}>
-            <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="max-w-[1920px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
 
-              {/* Platform Badge & Current Module Name */}
-              <div className="flex items-center space-x-2.5">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wider border shadow-md flex items-center space-x-1.5 ${
+              {/* Left: Platform Badge, Module & Greeting Context */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <span className={`px-2.5 sm:px-3 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wider border shadow-md flex items-center space-x-1.5 shrink-0 ${
                   activePlatformCategory === 'lis'
                     ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-cyan-500/10'
                     : activePlatformCategory === 'his'
@@ -553,23 +650,91 @@ export default function App() {
                   </span>
                 </span>
 
-                <span className="text-slate-600 font-bold">•</span>
+                <span className="text-slate-600 font-bold hidden sm:inline">•</span>
 
                 <span className="font-extrabold text-white text-xs truncate">
                   <span className="text-slate-400 font-medium">{language === 'EN' ? 'Module: ' : 'Módulo: '}</span>
                   <span className="text-white underline decoration-cyan-500/40 underline-offset-4">{currentTabObj.label}</span>
                 </span>
+
+                {/* Prominent Golden User Greeting Badge */}
+                <div className="flex items-center space-x-1.5 bg-slate-900/90 border border-amber-400/40 px-3 py-1 rounded-full text-xs shadow-inner shrink-0">
+                  <span className="text-xs">👋</span>
+                  <span className="font-black text-amber-300">
+                    {greeting}, <strong className="text-white font-black">{currentUser?.name || 'Usuario'}</strong>!
+                  </span>
+                  <span className="text-[10px] text-cyan-300 font-mono font-bold bg-cyan-950/80 border border-cyan-500/30 px-2 py-0.5 rounded-md hidden lg:inline">
+                    {ROLE_LABELS[currentRole]?.title || 'Estación'}
+                  </span>
+                </div>
               </div>
 
-              {/* Platform Descriptor & Active Branch */}
-              <div className="text-[11px] font-mono text-slate-400 flex items-center space-x-3">
-                <span className="hidden md:inline">
-                  {activePlatformCategory === 'lis' && 'Laboratorio Clínico • Middleware ASTM/HL7 • ISO 15189'}
-                  {activePlatformCategory === 'his' && 'Expediente EHR • Triage Urgencias • Quirófanos & Camas'}
-                  {activePlatformCategory === 'bloodbank' && 'Medicina Transfusional • Serología & ISBT 128'}
-                  {activePlatformCategory === 'bi' && 'Facturación DGI POS • Inventario FEFO • Analítica BI'}
+              {/* Right: Quick Access Shortcuts Bar (⭐ ACCESOS RÁPIDOS 1-CLIC) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+                <span className="text-[9px] font-black uppercase text-amber-300 tracking-wider hidden 2xl:inline">
+                  ⭐ ACCESOS RÁPIDOS:
                 </span>
-                <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[10px]">
+
+                <button
+                  onClick={() => setActiveTab('billing')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Admisión & Facturación POS"
+                >
+                  <span>🔬 Admisión POS</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('validation')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Resultados & Validación Médica"
+                >
+                  <span>🧪 Validación</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('his_command')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Command Center Hospitalario HIS"
+                >
+                  <span>🏥 Command HIS</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('his_triage')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Triage Urgencias Manchester"
+                >
+                  <span>🫀 Urgencias</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('his_beds')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Censo & Mapa de Camas"
+                >
+                  <span>🛏️ Camas</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('his_ehr')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-white/10 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Historia Clínica EHR"
+                >
+                  <span>📋 EHR</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('bloodbank')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
+                  title="Centro Banco de Sangre"
+                >
+                  <span>🩸 Banco Sangre</span>
+                </button>
+
+                <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[10px] shrink-0">
+                  {currentBranch?.name || 'Sede Vía España'}
+                </span>
+              </div>
                   {currentBranch?.name || 'Sede Vía España'}
                 </span>
               </div>
@@ -580,7 +745,7 @@ export default function App() {
       })()}
 
       {/* Main Body */}
-      <main className="flex-1 pb-16 relative z-10">
+      <main className="flex-1 pb-16 relative z-10 overflow-x-hidden min-w-0">
         {isLoading ? (
           <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <SkeletonLoader />
@@ -612,7 +777,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="max-w-[1920px] w-full mx-auto p-2 sm:p-4 lg:p-6">
+          <div className="max-w-[1920px] w-full mx-auto p-2 sm:p-4 lg:p-6 min-w-0 overflow-x-hidden">
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 {/* 🌟 Suite Dashboard Mode Switcher Bar (Adaptive Responsive Layout) */}
@@ -686,7 +851,33 @@ export default function App() {
                         onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
                       />
                     )}
-                    {currentRole === 'abregotech_admin' && <SuperAdminDashboard tenants={tenants} analyzers={MOCK_ANALYZERS} logs={middlewareLogs} onProvisionTenant={handleProvisionTenant} />}
+                    {currentRole === 'abregotech_admin' && (
+                      <SuperAdminDashboard
+                        tenants={tenants}
+                        analyzers={MOCK_ANALYZERS}
+                        logs={middlewareLogs}
+                        onProvisionTenant={handleProvisionTenant}
+                        onUpdateTenants={handleUpdateTenants}
+                      />
+                    )}
+                    {currentRole === 'ext_doctor' && (
+                      <SecureDoctorPortalGateway
+                        orders={orders}
+                        results={results}
+                        tenant={currentTenant}
+                        branch={currentBranch}
+                        onOpenPdf={setPreviewOrderId}
+                        onCreateOrder={handleCreateOrder}
+                      />
+                    )}
+                    {currentRole === 'patient' && (
+                      <PatientResultsPortal
+                        patients={patients}
+                        orders={orders}
+                        results={results}
+                        onOpenPdf={setPreviewOrderId}
+                      />
+                    )}
                   </>
                 )}
               </div>
@@ -700,6 +891,17 @@ export default function App() {
                 tenant={currentTenant}
                 branch={currentBranch}
                 onOpenSinglePdf={setPreviewOrderId}
+              />
+            )}
+
+            {activeTab === 'reception' && (
+              <ReceptionDashboard
+                patients={patients}
+                testCatalog={MOCK_TEST_CATALOG}
+                orders={orders}
+                results={results}
+                onCreateOrder={handleCreateOrder}
+                onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
               />
             )}
 
@@ -761,8 +963,8 @@ export default function App() {
             {activeTab === 'blood_waste' && <BiohazardWasteManager />}
             {activeTab === 'blood_chemical_waste' && <ChemicalWasteManager />}
             {activeTab === 'blood_manifest' && <DisposalManifestPDF />}
-            {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={MOCK_TENANTS[0].branches || []} />}
-            {activeTab === 'lis_referrals' && <MultiBranchRouting tenant={currentTenant} branches={MOCK_TENANTS[0].branches || []} />}
+            {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches || []} />}
+            {activeTab === 'lis_referrals' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches || []} />}
 
             {/* LIS & Workstation Sub-Modules */}
             {activeTab === 'lis_workstation' && (
@@ -833,6 +1035,15 @@ export default function App() {
             {activeTab === 'fhir' && <FhirInteroperabilityStudio tenant={currentTenant} branch={currentBranch} orders={orders} results={results} patients={patients} />}
             {activeTab === 'ha_dr' && <HighAvailabilityDisasterRecovery tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'accreditation' && <Iso15189AccreditationPortal tenant={currentTenant} branch={currentBranch} />}
+            {activeTab === 'superadmin' && (
+              <SuperAdminDashboard
+                tenants={tenants}
+                analyzers={MOCK_ANALYZERS}
+                logs={middlewareLogs}
+                onProvisionTenant={handleProvisionTenant}
+                onUpdateTenants={handleUpdateTenants}
+              />
+            )}
           </div>
         )}
       </main>
