@@ -29,6 +29,12 @@ const PORTS = [
     name: 'Consola Súper-Admin SaaS',
     portalParam: 'superadmin',
     targetPath: '/?portal=superadmin'
+  },
+  {
+    port: 3004,
+    name: 'Centro de Control de Servidores e Infraestructura',
+    portalParam: 'server_center',
+    targetPath: '/?view=server_center'
   }
 ];
 

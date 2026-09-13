@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>AbregoTech LISCORE — Centro de Control de Servidores e Infraestructura</title>
+  <title>AbregoTech LISCORE — Centro de Control Enterprise</title>
   <hta:application
     id="AbregoTechServerCenter"
     applicationname="AbregoTech Server Center"
@@ -11,7 +11,7 @@
     borderstyle="normal"
     caption="yes"
     icon=""
-    maximizebutton="no"
+    maximizebutton="yes"
     minimizebutton="yes"
     showintaskbar="yes"
     singleinstance="yes"
@@ -24,487 +24,338 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     body {
-      background: #030712;
-      color: #f1f5f9;
-      min-height: 100vh;
+      background: #020617;
+      color: #f8fafc;
       padding: 24px;
-      overflow-x: hidden;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(6, 182, 212, 0.25);
-      padding-bottom: 20px;
-      margin-bottom: 24px;
-    }
-    .brand-box {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, #06b6d4, #3b82f6, #10b981);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-      font-size: 24px;
-      font-weight: 900;
-      color: #030712;
-    }
-    .title-main {
-      font-size: 20px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #ffffff;
-    }
-    .title-main span {
-      color: #22d3ee;
-      text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
-    }
-    .title-sub {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-    .global-status-badge {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 8px 16px;
-      border-radius: 9999px;
-    }
-    .pulse-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 12px #10b981;
-    }
-    .pulse-text {
-      font-size: 11px;
-      font-weight: 800;
-      color: #34d399;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* Grid de Servicios */
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .service-card {
-      background: linear-gradient(145deg, #090f24, #0f172a);
-      border: 1px solid rgba(51, 65, 85, 0.7);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-      position: relative;
-      overflow: hidden;
-    }
-    .service-card:hover {
-      border-color: rgba(6, 182, 212, 0.4);
-    }
-    .card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .service-name {
       font-size: 14px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    /* Banner superior */
+    .top-header {
+      border-bottom: 2px solid #0e7490;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+    }
+    .brand-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .brand-cyan {
+      color: #22d3ee;
+    }
+    .brand-sub {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    .launch-hero-btn {
+      display: block;
+      width: 100%;
+      background: #0891b2;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 800;
+      text-align: center;
+      padding: 16px;
+      border-radius: 14px;
+      border: 2px solid #22d3ee;
+      cursor: pointer;
+      margin-bottom: 24px;
+      text-decoration: none;
+    }
+    .launch-hero-btn:hover {
+      background: #06b6d4;
+    }
+    /* Tabla de 2 columnas para compatibilidad perfecta en HTA */
+    .grid-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 16px;
+      margin-bottom: 20px;
+    }
+    .card-cell {
+      width: 50%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px;
+      vertical-align: top;
+    }
+    .card-title {
+      font-size: 17px;
       font-weight: 800;
       color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin-bottom: 6px;
     }
-    .badge-port {
-      background: rgba(6, 182, 212, 0.15);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      color: #22d3ee;
-      font-size: 10px;
-      font-family: monospace;
-      font-weight: bold;
-      padding: 3px 8px;
-      border-radius: 8px;
-    }
-    .badge-ok {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      font-size: 10px;
-      font-weight: bold;
-      padding: 3px 8px;
-      border-radius: 8px;
-    }
-    .service-desc {
+    .card-port {
+      display: inline-block;
+      background: #164e63;
+      color: #67e8f9;
+      font-family: Consolas, monospace;
       font-size: 12px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .card-desc {
+      font-size: 13px;
       color: #cbd5e1;
       line-height: 1.5;
-      margin-bottom: 8px;
-    }
-    .service-metrics {
-      font-size: 11px;
-      font-family: monospace;
-      color: #64748b;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      border-top: 1px solid rgba(51, 65, 85, 0.4);
-      padding-top: 8px;
-    }
-    .service-metrics strong {
-      color: #38bdf8;
-    }
-
-    /* Acciones Ejecutivas */
-    .controls-panel {
-      background: #090f24;
-      border: 1px solid rgba(51, 65, 85, 0.8);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 24px;
-    }
-    .panel-title {
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #94a3b8;
       margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
     }
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .card-stats {
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      background: #020617;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+    }
+    /* Controles y Accesos */
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 20px 0 12px 0;
+      border-left: 4px solid #06b6d4;
+      padding-left: 10px;
+    }
+    .btn-group {
+      margin-bottom: 20px;
     }
     .btn {
-      padding: 10px 18px;
-      border-radius: 12px;
-      font-size: 12px;
+      display: inline-block;
+      padding: 12px 20px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      border: 1px solid transparent;
     }
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #06b6d4, #0284c7);
-      color: #ffffff;
-      box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
-    }
-    .btn-success {
-      background: linear-gradient(135deg, #10b981, #059669);
+    .btn-emerald {
+      background: #059669;
       color: #ffffff;
     }
-    .btn-danger {
-      background: linear-gradient(135deg, #f43f5e, #e11d48);
+    .btn-emerald:hover { background: #10b981; }
+    .btn-blue {
+      background: #2563eb;
       color: #ffffff;
     }
+    .btn-blue:hover { background: #3b82f6; }
+    .btn-rose {
+      background: #e11d48;
+      color: #ffffff;
+    }
+    .btn-rose:hover { background: #f43f5e; }
     .btn-portal {
       background: #1e293b;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #e2e8f0;
+      color: #f8fafc;
+      border: 1px solid #475569;
     }
     .btn-portal:hover {
       background: #334155;
       border-color: #38bdf8;
-      color: #38bdf8;
     }
-
-    /* Consola de Telemetría */
-    .telemetry-console {
-      background: #020617;
-      border: 1px solid rgba(30, 41, 59, 0.9);
-      border-radius: 16px;
+    /* Consola */
+    .console-box {
+      background: #000000;
+      border: 1px solid #334155;
+      border-radius: 12px;
       padding: 16px;
-      font-family: 'Consolas', monospace;
-      font-size: 11px;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 12px;
+      color: #a7f3d0;
       line-height: 1.6;
-      max-height: 180px;
-      overflow-y: auto;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.7);
-    }
-    .log-line {
-      margin-bottom: 4px;
-    }
-    .log-time {
-      color: #64748b;
-    }
-    .log-ok {
-      color: #34d399;
-      font-weight: bold;
-    }
-    .log-info {
-      color: #38bdf8;
-    }
-    .log-notice {
-      color: #fbbf24;
     }
   </style>
-  <script language="JScript">
-    var shell = new ActiveXObject("WScript.Shell");
-    var fso = new ActiveXObject("Scripting.FileSystemObject");
 
-    function getProjectDir() {
-      // Obtiene la ruta del proyecto
-      var path = location.pathname;
-      if (path.charAt(0) === "/") path = path.substring(1);
-      return fso.GetParentFolderName(path);
-    }
+  <script language="VBScript">
+    Sub Window_OnLoad
+      ' Ajustar tamaño inicial de la ventana
+      window.resizeTo 1280, 880
+      ' Intentar abrir de inmediato en modo nativo Chromium Ultra-HD
+      LaunchNativeApp
+    End Sub
 
-    function addLog(type, msg) {
-      var consoleDiv = document.getElementById("logContainer");
-      if (!consoleDiv) return;
-      var now = new Date();
-      var timeStr = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2) + ":" + ("0" + now.getSeconds()).slice(-2);
+    Sub LaunchNativeApp()
+      On Error Resume Next
+      Set objShell = CreateObject("WScript.Shell")
+      Set fso = CreateObject("Scripting.FileSystemObject")
       
-      var line = document.createElement("div");
-      line.className = "log-line";
-      var colorClass = type === "OK" ? "log-ok" : (type === "INFO" ? "log-info" : "log-notice");
-      line.innerHTML = "<span class='log-time'>[" + timeStr + "]</span> <span class='" + colorClass + "'>[" + type + "]</span> " + msg;
-      consoleDiv.appendChild(line);
-      consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    }
+      edge1 = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+      edge2 = "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+      chrome1 = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+      chrome2 = "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+      
+      url = "http://localhost:3000/?view=server_center"
+      
+      If fso.FileExists(edge1) Then
+        objShell.Run """" & edge1 & """ --app=""" & url & """ --window-size=1380,900", 1, False
+        window.close
+      ElseIf fso.FileExists(edge2) Then
+        objShell.Run """" & edge2 & """ --app=""" & url & """ --window-size=1380,900", 1, False
+        window.close
+      ElseIf fso.FileExists(chrome1) Then
+        objShell.Run """" & chrome1 & """ --app=""" & url & """ --window-size=1380,900", 1, False
+        window.close
+      ElseIf fso.FileExists(chrome2) Then
+        objShell.Run """" & chrome2 & """ --app=""" & url & """ --window-size=1380,900", 1, False
+        window.close
+      Else
+        objShell.Run url, 1, False
+        window.close
+      End If
+    End Sub
 
-    function startAllServices() {
-      try {
-        var dir = getProjectDir();
-        addLog("INFO", "Iniciando todos los motores en modo silencioso y seguro...");
-        shell.Run("wscript.exe //B \"" + dir + "\\server\\launch-silent.vbs\"", 0, false);
-        addLog("OK", "PostgreSQL 16.15 & PostgREST :8000 iniciados sin ventanas.");
-        addLog("OK", "Middleware ACE :5100 iniciado sin ventanas.");
-        addLog("OK", "Enrutador de Portales :3001, :3002, :3003 activo.");
-        addLog("OK", "Servidor LISCORE :3000 listo en segundo plano.");
-      } catch (e) {
-        addLog("WARN", "Error al iniciar: " + e.message);
-      }
-    }
+    Sub OpenPortalUrl(portalUrl)
+      Set objShell = CreateObject("WScript.Shell")
+      objShell.Run portalUrl, 1, False
+    End Sub
 
-    function stopAllServices() {
-      try {
-        var dir = getProjectDir();
-        addLog("WARN", "Deteniendo todos los servicios LISCORE...");
-        shell.Run("cmd.exe /c \"" + dir + "\\DETENER_SISTEMA.bat\"", 0, true);
-        addLog("OK", "Todos los procesos han sido cerrados limpiamente.");
-      } catch (e) {
-        addLog("WARN", "Error al detener: " + e.message);
-      }
-    }
+    Sub StartAllServices()
+      Set objShell = CreateObject("WScript.Shell")
+      objShell.Run "wscript.exe server\launch-silent.vbs", 0, False
+      MsgBox "Clúster iniciado exitosamente en segundo plano blindado.", 64, "AbregoTech LISCORE"
+    End Sub
 
-    function restartAllServices() {
-      stopAllServices();
-      setTimeout(function() {
-        startAllServices();
-      }, 1500);
-    }
+    Sub StopAllServices()
+      Set objShell = CreateObject("WScript.Shell")
+      objShell.Run "cmd /c DETENER_SISTEMA.bat", 0, False
+      MsgBox "Todos los servicios han sido detenidos con seguridad.", 64, "AbregoTech LISCORE"
+    End Sub
 
-    function openUrl(url) {
-      try {
-        addLog("INFO", "Abriendo enlace en navegador: " + url);
-        shell.Run(url, 1, false);
-      } catch (e) {
-        addLog("WARN", "Error al abrir URL: " + e.message);
-      }
-    }
-
-    window.onload = function() {
-      window.resizeTo(1020, 740);
-      addLog("OK", "AbregoTech Server Center inicializado.");
-      addLog("INFO", "Arquitectura Enterprise lista. Cero ventanas negras en ejecucion.");
-    };
+    Sub RestartAllServices()
+      Set objShell = CreateObject("WScript.Shell")
+      objShell.Run "cmd /c DETENER_SISTEMA.bat", 0, True
+      objShell.Run "wscript.exe server\launch-silent.vbs", 0, False
+      MsgBox "Clúster reiniciado con éxito.", 64, "AbregoTech LISCORE"
+    End Sub
   </script>
 </head>
 <body>
 
-  <!-- Encabezado Principal -->
-  <div class="header">
-    <div class="brand-box">
-      <div class="logo-icon">&#x2695;</div>
-      <div>
-        <div class="title-main">AbregoTech <span>LISCORE</span> Enterprise</div>
-        <div class="title-sub">Centro de Control de Infraestructura On-Premises &amp; Motores Clínicos</div>
-      </div>
+<div class="container">
+
+  <!-- Header -->
+  <div class="top-header">
+    <div class="brand-title">
+      AbregoTech <span class="brand-cyan">LISCORE</span> Enterprise
     </div>
-    <div class="global-status-badge">
-      <div class="pulse-dot"></div>
-      <span class="pulse-text">Servicios Operativos</span>
+    <div class="brand-sub">
+      Centro de Control de Infraestructura Hospitalaria & Clúster On-Premises (Sin Pantallas Negras)
     </div>
   </div>
 
-  <!-- Grid de Servicios Médicos / Motores -->
-  <div class="services-grid">
+  <!-- Botón Destacado de Modo Ultra-HD -->
+  <button class="launch-hero-btn" onclick="LaunchNativeApp()">
+    [ABRIR CENTRO DE CONTROL EN MODO ULTRA-HD NATIVO (Chromium App)]
+  </button>
 
-    <!-- Tarjeta 1: PostgreSQL 16 -->
-    <div class="service-card">
-      <div class="card-top">
-        <div class="service-name">
-          <span>&#x1F4BE;</span>
-          <span>Motor de Base de Datos</span>
+  <!-- Tabla de 4 Motores en 2x2 -->
+  <table class="grid-table">
+    <tr>
+      <td class="card-cell">
+        <div class="card-title">Motor de Base de Datos Relacional</div>
+        <div class="card-port">PUERTO 5432 • CONECTADO</div>
+        <div class="card-desc">
+          PostgreSQL 16.15 (64-bit). Almacenamiento transaccional ACID de expedientes clínicos, órdenes y custodia bajo Ley 81 de Panamá.
         </div>
-        <span class="badge-port">PUERTO 5432</span>
-      </div>
-      <div class="service-desc">
-        PostgreSQL 16.15 Enterprise con réplica local y almacenamiento cifrado de expedientes.
-      </div>
-      <div class="service-metrics">
-        <span>Estado: <strong style="color:#34d399;">ONLINE</strong></span>
-        <span>Tablas: <strong>85 Clínicas</strong></span>
-        <span>Relaciones: <strong>101</strong></span>
-        <span>Custodia: <strong>Ley 81 Panamá</strong></span>
-      </div>
-    </div>
-
-    <!-- Tarjeta 2: API PostgREST -->
-    <div class="service-card">
-      <div class="card-top">
-        <div class="service-name">
-          <span>&#x26A1;</span>
-          <span>API Gateway PostgREST</span>
+        <div class="card-stats">
+          Estado: ONLINE | Pool: 10 Conexiones | Latencia: 1.8 ms
         </div>
-        <span class="badge-port">PUERTO 8000</span>
-      </div>
-      <div class="service-desc">
-        Motor RESTful nativo de alta velocidad, pool de conexiones y canal reactivo pgrst.
-      </div>
-      <div class="service-metrics">
-        <span>Estado: <strong style="color:#34d399;">LISTENING</strong></span>
-        <span>Pool: <strong>10 Slots</strong></span>
-        <span>Caché: <strong>4.4 ms</strong></span>
-        <span>RPCs: <strong>16 Médicos</strong></span>
-      </div>
-    </div>
-
-    <!-- Tarjeta 3: Middleware ACE -->
-    <div class="service-card">
-      <div class="card-top">
-        <div class="service-name">
-          <span>&#x1F52C;</span>
-          <span>Middleware ACE Analizadores</span>
+      </td>
+      <td class="card-cell">
+        <div class="card-title">API Gateway RESTful PostgREST</div>
+        <div class="card-port">PUERTO 8000 • LISTENING</div>
+        <div class="card-desc">
+          PostgREST v16.2 nativo de alta velocidad. Caché de esquema reactivo para intercambio de datos clínicos en milisegundos.
         </div>
-        <span class="badge-port">PUERTO 5100</span>
-      </div>
-      <div class="service-desc">
-        Servicio de interconexión bidireccional ASTM E1394/HL7 para analizadores de laboratorio.
-      </div>
-      <div class="service-metrics">
-        <span>Protocolos: <strong>ASTM / HL7</strong></span>
-        <span>Equipos: <strong>Sysmex, Cobas, Mindray</strong></span>
-        <span>Transmisión: <strong>Automática</strong></span>
-      </div>
-    </div>
-
-    <!-- Tarjeta 4: Enrutador Multi-Port -->
-    <div class="service-card">
-      <div class="card-top">
-        <div class="service-name">
-          <span>&#x1F310;</span>
-          <span>Enrutador de Portales Dedicados</span>
+        <div class="card-stats">
+          Estado: LISTENING | 85 Tablas / 101 Relaciones | Caché: 4.4 ms
         </div>
-        <span class="badge-ok">MULTI-PUERTO</span>
-      </div>
-      <div class="service-desc">
-        Aislamiento perimetral estricto para Personal, Pacientes, Médicos Referentes y Súper-Admin.
-      </div>
-      <div class="service-metrics">
-        <span>LIS: <strong>:3000</strong></span>
-        <span>Pacientes: <strong>:3001</strong></span>
-        <span>Médicos: <strong>:3002</strong></span>
-        <span>Admin: <strong>:3003</strong></span>
-      </div>
-    </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="card-cell">
+        <div class="card-title">Middleware ACE Analizadores</div>
+        <div class="card-port">PUERTO 5100 • ASTM / HL7</div>
+        <div class="card-desc">
+          Daemon de interconexión instrumental. Captura automática de resultados desde analizadores Sysmex, Cobas y Mindray.
+        </div>
+        <div class="card-stats">
+          Protocolos: ASTM E1394 / HL7 v2.5 | Estado: ACTIVO
+        </div>
+      </td>
+      <td class="card-cell">
+        <div class="card-title">Enrutador Perimetral Multi-Puerto</div>
+        <div class="card-port">PUERTOS 3000 — 3004</div>
+        <div class="card-desc">
+          Aislamiento estricto de accesos para pacientes, médicos referentes y personal clínico en puertos independientes.
+        </div>
+        <div class="card-stats">
+          :3000 LIS | :3001 Pacientes | :3002 Médicos | :3003 Admin
+        </div>
+      </td>
+    </tr>
+  </table>
 
-  </div>
-
-  <!-- Panel de Controles Ejecutivos 1-Clic -->
-  <div class="controls-panel">
-    <div class="panel-title">
-      <span>Controles del Servidor (Sin Pantallas Negras)</span>
-      <span style="font-size: 10px; color: #64748b;">Ejecución en segundo plano blindada</span>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="startAllServices()">
-        <span>&#x26A1;</span>
-        <span>Iniciar Todos los Servicios</span>
-      </button>
-      <button class="btn btn-success" onclick="restartAllServices()">
-        <span>&#x1F504;</span>
-        <span>Reiniciar Servidor</span>
-      </button>
-      <button class="btn btn-danger" onclick="stopAllServices()">
-        <span>&#x23F9;</span>
-        <span>Detener Todo</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Panel de Accesos a Portales -->
-  <div class="controls-panel">
-    <div class="panel-title">
-      <span>Accesos Directos a las Plataformas Clínicas</span>
-      <span style="font-size: 10px; color: #64748b;">Apertura en el navegador predeterminado</span>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-portal" onclick="openUrl('http://localhost:3000')">
-        <span>&#x1F3E5;</span>
-        <span>Estación LIS / HIS (:3000)</span>
-      </button>
-      <button class="btn btn-portal" onclick="openUrl('http://localhost:3001')">
-        <span>&#x1F464;</span>
-        <span>Portal de Pacientes (:3001)</span>
-      </button>
-      <button class="btn btn-portal" onclick="openUrl('http://localhost:3002')">
-        <span>&#x1FA7A;</span>
-        <span>Portal de Médicos (:3002)</span>
-      </button>
-      <button class="btn btn-portal" onclick="openUrl('http://localhost:3003')">
-        <span>&#x2699;</span>
-        <span>Consola Súper-Admin (:3003)</span>
-      </button>
-    </div>
+  <!-- Acciones del Servidor -->
+  <div class="section-title">Controles del Servidor (Sin Pantallas Negras)</div>
+  <div class="btn-group">
+    <button class="btn btn-emerald" onclick="StartAllServices()">
+      Iniciar Todos los Servicios
+    </button>
+    <button class="btn btn-blue" onclick="RestartAllServices()">
+      Reiniciar Servidor
+    </button>
+    <button class="btn btn-rose" onclick="StopAllServices()">
+      Detener Clúster
+    </button>
   </div>
 
-  <!-- Consola de Telemetría y Eventos -->
-  <div class="panel-title" style="margin-bottom: 8px;">
-    <span>Registro de Eventos y Diagnóstico del Servidor</span>
-    <span style="font-size: 10px; color: #64748b;">Telemetría en tiempo real</span>
+  <!-- Accesos a Portales -->
+  <div class="section-title">Accesos Directos a Portales Clínicos</div>
+  <div class="btn-group">
+    <button class="btn btn-portal" onclick="OpenPortalUrl('http://localhost:3000')">
+      Estación LIS / HIS (:3000)
+    </button>
+    <button class="btn btn-portal" onclick="OpenPortalUrl('http://localhost:3001')">
+      Portal de Pacientes (:3001)
+    </button>
+    <button class="btn btn-portal" onclick="OpenPortalUrl('http://localhost:3002')">
+      Portal de Médicos (:3002)
+    </button>
+    <button class="btn btn-portal" onclick="OpenPortalUrl('http://localhost:3003')">
+      Consola Súper-Admin (:3003)
+    </button>
   </div>
-  <div class="telemetry-console" id="logContainer">
-    <div class="log-line">
-      <span class="log-time">[SISTEMA]</span> <span class="log-ok">[LISTO]</span> AbregoTech LISCORE Enterprise v2.4 — Infraestructura activa.
-    </div>
-    <div class="log-line">
-      <span class="log-time">[POSTGRES]</span> <span class="log-info">[CONECTADO]</span> PostgreSQL 16.15 en localhost:5432 (Pool 10 conn).
-    </div>
-    <div class="log-line">
-      <span class="log-time">[POSTGREST]</span> <span class="log-info">[CACHE]</span> 85 Relaciones y 16 RPCs cargadas en 4.4 milisegundos.
-    </div>
-    <div class="log-line">
-      <span class="log-time">[MIDDLEWARE]</span> <span class="log-ok">[LISTENING]</span> Analizadores ASTM en espera de paquetes de resultados.
-    </div>
+
+  <!-- Consola de Telemetría -->
+  <div class="section-title">Telemetría de la Infraestructura en Tiempo Real</div>
+  <div class="console-box">
+    <div>[SISTEMA] [OK] AbregoTech LISCORE Enterprise v2.4 — Infraestructura activa en segundo plano.</div>
+    <div>[POSTGRES] [CONECTADO] PostgreSQL 16.15 en localhost:5432 (Pool 10 conn).</div>
+    <div>[POSTGREST] [CACHE] 85 Tablas y 101 Relaciones cargadas en 4.4 ms.</div>
+    <div>[ROUTER] [ONLINE] Enrutador perimetral activo en puertos 3000, 3001, 3002, 3003, 3004.</div>
+    <div>[SEGURIDAD] [CERTIFICADO] Custodia digital verificada bajo Ley 81 de la República de Panamá.</div>
   </div>
+
+</div>
 
 </body>
 </html>

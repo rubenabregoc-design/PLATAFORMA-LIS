@@ -104,6 +104,7 @@ import { SecureDoctorPortalGateway } from './components/RoleDashboards/SecureDoc
 import { SecurePatientPortalGateway } from './components/PatientPortal/SecurePatientPortalGateway';
 import { PatientPortal } from './components/RoleDashboards/PatientPortal';
 import { SuperAdminDashboard } from './components/RoleDashboards/SuperAdminDashboard';
+import { ServerCenterApp } from './components/Infrastructure/ServerCenterApp';
 import { SkeletonLoader } from './components/SkeletonLoader';
 import { RecentActivityWidget } from './components/RecentActivityWidget';
 
@@ -585,6 +586,20 @@ export default function App() {
       setActiveTab(defaultTab);
     }
   }, [isAuthenticated, isTabAuthorized, currentRole]);
+
+  const isServerCenterView = typeof window !== 'undefined' && (
+    window.location.port === '3004' ||
+    new URLSearchParams(window.location.search).get('view') === 'server_center'
+  );
+
+  // Si está en la vista del Centro de Control de Servidores (puerto 3004 o ?view=server_center)
+  if (isServerCenterView) {
+    return (
+      <ModuleErrorBoundary moduleName="Centro de Control de Servidores e Infraestructura">
+        <ServerCenterApp />
+      </ModuleErrorBoundary>
+    );
+  }
 
   const isDoctorPortal = typeof window !== 'undefined' && (
     window.location.port === '3002' ||
