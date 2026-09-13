@@ -222,7 +222,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           id: 'usr-rabrego-1',
           tenantId: selectedTenantId,
           branchId: selectedBranchId,
-          name: 'Ing. Rubén Abrego (Senior Lead Developer & Architect)',
+          name: 'Ing. Rubén Ábrego',
           username: query,
           email: query.includes('@') ? query : `${query}@abregotech.com`,
           role: 'abregotech_admin',

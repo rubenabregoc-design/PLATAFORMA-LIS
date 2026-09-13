@@ -174,6 +174,16 @@ export const Header: React.FC<HeaderProps> = ({
     setLanguage
   } = useLisStore();
 
+  // Clean User Name & Initials (extract clean name from mock titles like "Ing. Rubén Abrego (Senior Lead Developer & Architect)")
+  const rawUserName = currentUser?.name || 'Licda. Ana Morales';
+  const cleanUserName = (rawUserName.includes('(') ? rawUserName.split('(')[0].trim() : rawUserName).replace('Ruben Abrego', 'Rubén Ábrego');
+  const userInitials = (() => {
+    const withoutTitles = cleanUserName.replace(/^(Ing\.|Licda\.|Lic\.|Dr\.|Dra\.|Sr\.|Sra\.)\s*/i, '').trim();
+    const parts = withoutTitles.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return withoutTitles.substring(0, 2).toUpperCase() || 'RÁ';
+  })();
+
   const allowedTabIds = showAllModules
     ? NAVIGATION_TABS.map((t) => t.id)
     : ALLOWED_TABS_PER_ROLE[currentRole || 'lab_tech'] || ['dashboard'];
@@ -430,7 +440,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Floating Luxury Glass Navigation Bar (Desktop & Laptop lg+) */}
-        <nav className="hidden lg:flex items-center space-x-0.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-0.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink min-w-0">
+        <nav className="hidden lg:flex items-center space-x-0.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-0.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink-0">
 
           {/* Direct Dashboard Pill */}
           <button
@@ -562,31 +572,31 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
-          {/* Inactivity Countdown Timer (Visible on lg+ screens) */}
-          <div className="hidden lg:flex shrink-0">
+          {/* Inactivity Countdown Timer (Visible on xl+ screens to ensure zero crowding on laptops) */}
+          <div className="hidden xl:flex shrink-0">
             <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
           </div>
 
-          <div className="h-5 w-px bg-white/10 hidden lg:block"></div>
+          <div className="h-5 w-px bg-white/10 hidden xl:block"></div>
 
           {/* Clinical User Profile Badge (Full Name & Branch clearly visible) */}
           <div
             onClick={onOpenBranchModal}
             className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 sm:px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
-            title={language === 'EN' ? "Click to switch Clinical Facility / Branch" : "Click para cambiar de Sede / Sucursal"}
+            title={`${rawUserName} • ${currentBranch?.name || 'Sede Vía España'} (${language === 'EN' ? 'Click to change branch' : 'Click para cambiar sede'})`}
           >
-            <div className="hidden md:flex flex-col text-right min-w-0">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none whitespace-nowrap">
-                {currentUser?.name || 'Licda. Ana Morales'}
+            <div className="hidden md:flex flex-col text-right min-w-0 max-w-[130px] lg:max-w-[160px] xl:max-w-[190px]">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate">
+                {cleanUserName}
               </span>
-              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none whitespace-nowrap mt-1">
+              <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate mt-1">
                 {language === 'EN'
                   ? (currentBranch?.name?.replace('Sede Vía España', 'Via España Branch')?.replace('Sede Principal', 'Main Branch') || currentBranch?.name || 'Via España Branch')
                   : (currentBranch?.name || 'Sede Vía España')}
               </span>
             </div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
-              {currentUser?.name?.charAt(0) || 'A'}
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[11px] flex items-center justify-center shadow-md shrink-0">
+              {userInitials}
             </div>
           </div>
 
