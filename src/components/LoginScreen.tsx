@@ -4,11 +4,10 @@ import { MOCK_TENANTS, MOCK_USERS } from '../data/mockData';
 import { useLisStore } from '../store/useLisStore';
 import { ROLE_LABELS } from './Header';
 import loginBg from '@/login-bg.png';
+import { getTimeBasedGreeting } from '../utils/greeting';
 import {
-  ShieldCheck, Building2, Lock, CheckCircle2, Activity,
-  Users, LogIn, Eye, EyeOff, AlertTriangle, Key, Sparkles,
-  Search, Stethoscope, Microscope, FileText, ArrowRight, Play, Heart, X,
-  Calendar, Clock
+  ShieldCheck, Building2, Lock, LogIn, Eye, EyeOff,
+  AlertTriangle, Key, Calendar, Clock, UserCheck, Sparkles
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -18,31 +17,39 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [selectedTenantId, setSelectedTenantId] = useState<string>('lab-san-jose');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
-  
-  const [portalCategory, setPortalCategory] = useState<'all' | 'lab' | 'doctor' | 'admin'>('lab');
-  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState<boolean>(false);
-  const [patientCedulaInput, setPatientCedulaInput] = useState<string>('8-812-4432');
-  const [patientOrderInput, setPatientOrderInput] = useState<string>('20260810073000');
-  const [patientLookupError, setPatientLookupError] = useState<string | null>(null);
+  // Real users loaded from storage + mock users
+  const [allUsers, setAllUsers] = useState<User[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('lis_real_users');
+        if (stored) {
+          const parsed: User[] = JSON.parse(stored);
+          return [...parsed, ...MOCK_USERS.filter((m) => !parsed.some((p) => p.id === m.id || p.email === m.email))];
+        }
+      } catch (e) {
+        console.error('Error cargando usuarios reales:', e);
+      }
+    }
+    return MOCK_USERS;
+  });
 
   const [selectedUser, setSelectedUser] = useState<User | null>(() => {
-    return MOCK_USERS.find((u) => u.role === 'lab_chief') || MOCK_USERS[0];
+    return allUsers.find((u) => u.role === 'receptionist') || allUsers[0];
   });
-  
-  const [passwordInput, setPasswordInput] = useState<string>('');
-  const [pinInput, setPinInput] = useState<string>('');
+
+  const [isManualEmailMode, setIsManualEmailMode] = useState<boolean>(false);
+  const [emailOrUserInput, setEmailOrUserInput] = useState<string>('ana.morales@labsanjose.com');
+  const [passwordInput, setPasswordInput] = useState<string>('123456');
+  const [pinInput, setPinInput] = useState<string>('1234');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showDemoHelp, setShowDemoHelp] = useState<boolean>(true);
-  
+
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { language, setLanguage } = useLisStore();
 
-  // Live ticking clock state for official Panama date & time
+  // Reloj oficial de Panamá en tiempo real
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -50,6 +57,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Escuchar si se crean usuarios en otra pestaña / componente
+  useEffect(() => {
+    const handleUsersUpdated = () => {
+      try {
+        const stored = localStorage.getItem('lis_real_users');
+        if (stored) {
+          const parsed: User[] = JSON.parse(stored);
+          setAllUsers([...parsed, ...MOCK_USERS.filter((m) => !parsed.some((p) => p.id === m.id || p.email === m.email))]);
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('lis_users_updated', handleUsersUpdated);
+    return () => window.removeEventListener('lis_users_updated', handleUsersUpdated);
   }, []);
 
   const formattedDate = currentTime.toLocaleDateString('es-PA', {
@@ -78,41 +100,53 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
-  const filteredUsers = MOCK_USERS.filter((u) => {
-    // REGLA DE SEGURIDAD ESTRICTA: Solo usuarios internos del personal LIS/HIS/Banco Sangre/Admin
-    const isInternalStaff = u.role !== 'patient' && u.role !== 'ext_doctor';
+  const filteredUsers = allUsers.filter((u) => {
+    const isInternalStaff = u.role !== 'patient';
     const matchesTenant = u.tenantId === selectedTenantId || u.role === 'abregotech_admin';
-    const matchesRole = selectedRoleFilter === 'all' || u.role === selectedRoleFilter;
-    const matchesSearch =
-      !searchTerm.trim() ||
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.licenseNumber && u.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      ROLE_LABELS[u.role]?.title.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return isInternalStaff && matchesTenant && matchesRole && matchesSearch;
+    return isInternalStaff && matchesTenant;
   });
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
-    setPasswordInput('');
-    setPinInput('');
+    setEmailOrUserInput(user.email);
+    setPasswordInput(user.password || (user.role === 'abregotech_admin' ? 'admin123' : '123456'));
+    setPinInput(user.pinCode || '1234');
     setErrorMessage(null);
   };
 
   const handleAuthenticate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) {
-      setErrorMessage('Seleccione un usuario.');
-      return;
-    }
-
     setErrorMessage(null);
     setIsAuthenticating(true);
 
     setTimeout(() => {
-      const expectedPassword = selectedUser.password || '123456';
-      const expectedPin = selectedUser.pinCode || '1234';
+      let targetUser = selectedUser;
+
+      // Si está en modo manual de email, buscar por email o nombre
+      if (isManualEmailMode) {
+        const query = emailOrUserInput.trim().toLowerCase();
+        targetUser = allUsers.find(
+          (u) =>
+            u.email.toLowerCase() === query ||
+            u.name.toLowerCase() === query ||
+            (u.licenseNumber && u.licenseNumber.toLowerCase() === query)
+        ) || null;
+
+        if (!targetUser) {
+          setIsAuthenticating(false);
+          setErrorMessage(`No se encontró ningún usuario con el correo/identificador: "${emailOrUserInput}".`);
+          return;
+        }
+      }
+
+      if (!targetUser) {
+        setIsAuthenticating(false);
+        setErrorMessage('Por favor seleccione o ingrese un usuario válido.');
+        return;
+      }
+
+      const expectedPassword = targetUser.password || '123456';
+      const expectedPin = targetUser.pinCode || '1234';
 
       const isPasswordValid =
         passwordInput.trim() === expectedPassword ||
@@ -121,7 +155,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         passwordInput.trim() === 'admin';
 
       const isPinValid =
-        !selectedUser.twoFactorEnabled ||
+        !targetUser.twoFactorEnabled ||
         pinInput.trim() === expectedPin ||
         pinInput.trim() === '1234' ||
         pinInput.trim() === '9999' ||
@@ -129,378 +163,290 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
       if (!isPasswordValid) {
         setIsAuthenticating(false);
-        setErrorMessage('Contraseña incorrecta.');
+        setErrorMessage('Contraseña incorrecta. Verifique sus credenciales.');
         return;
       }
 
       if (!isPinValid) {
         setIsAuthenticating(false);
         setPinInput('');
-        setErrorMessage('PIN 2FA incorrecto.');
+        setErrorMessage('PIN de Firma Electrónica incorrecto.');
         return;
       }
 
       setIsAuthenticating(false);
-      onLogin(selectedUser, currentTenant, currentBranch);
-    }, 300);
+      onLogin(targetUser, currentTenant, currentBranch);
+    }, 450);
   };
 
-  const LAB_ROLES = [
-    { id: 'all', label: 'Todos' },
-    { id: 'lab_chief', label: 'Jefe Lab' },
-    { id: 'tech_med', label: 'Tecnólogo' },
-    { id: 'lab_tech', label: 'Técnico' },
-    { id: 'owner', label: 'Gerente' },
-    { id: 'receptionist', label: 'Recepción' },
-  ];
-
   return (
-    <div
-      className="h-screen w-screen max-h-screen max-w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-2.5 sm:p-3.5 lg:p-4 relative overflow-hidden font-sans select-none bg-cover bg-no-repeat"
-      style={{ backgroundImage: `url(${loginBg})`, backgroundPosition: 'center 25%' }}
-    >
-      {/* TOP BAR */}
-      <div className="relative z-10 flex items-center justify-end w-full shrink-0">
-        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-cyan-500/40 text-slate-100 text-xs font-bold backdrop-blur-md shadow-md hover:border-cyan-300 transition-colors">
+    <div className="fixed inset-0 w-screen h-screen max-h-[100dvh] overflow-hidden flex flex-col justify-between p-2.5 sm:p-4 lg:px-8 lg:py-2.5 font-sans select-none z-50">
+      {/* Fondo Panorámico de Alta Calidad con Velo Degradado Asimétrico */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      >
+        {/* Velo translúcido con gradiente lateral: suave a la izquierda para apreciar el laboratorio y con tinte oscuro glass hacia la derecha */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/20 via-slate-950/50 to-slate-950/90 backdrop-blur-[1px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-transparent to-slate-950/75"></div>
+      </div>
+
+      {/* BARRA SUPERIOR ELEGANTE (Lado Derecho: Selector de Idioma / País) */}
+      <header className="shrink-0 relative z-20 flex items-center justify-end gap-3 w-full max-w-7xl mx-auto py-0.5 sm:py-1">
+        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-slate-950/85 border border-slate-800 text-slate-200 text-xs font-bold backdrop-blur-xl shadow-lg">
           <span>{language === 'ES' ? '🇵🇦' : '🇺🇸'}</span>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as 'ES' | 'EN')}
             className="bg-transparent text-white font-mono font-bold text-xs focus:outline-none cursor-pointer"
           >
-            <option value="ES" className="bg-slate-900 text-white">ES — Español</option>
+            <option value="ES" className="bg-slate-900 text-white">ES — Panamá</option>
             <option value="EN" className="bg-slate-900 text-white">EN — English</option>
           </select>
         </div>
-      </div>
+      </header>
 
-      {/* MAIN 2-COLUMN CONTENT */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center my-auto w-full max-w-7xl mx-auto flex-1 py-1">
+      {/* CONTENEDOR PRINCIPAL: Tarjeta alineada a la DERECHA con Fondo Arte de Laboratorio Limpio a la Izquierda */}
+      <main className="shrink-0 flex-1 relative z-20 flex flex-col lg:flex-row items-center justify-end gap-6 lg:gap-10 w-full max-w-7xl mx-auto my-auto min-h-0 py-1">
+        
+        {/* Lado Izquierdo: Espacio despejado para apreciar el fondo panorámico del laboratorio */}
+        <div className="hidden lg:flex flex-1" />
 
-        {/* LEFT COLUMN: Empty area revealing pristine background image artwork */}
-        <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 h-full" />
+        {/* Lado Derecho: Tarjeta de Login Glassmorphism Ultra-Senior */}
+        <div className="w-full max-w-[390px] xl:max-w-[410px] lg:ml-auto bg-slate-950/85 backdrop-blur-2xl border border-cyan-500/35 rounded-2xl p-3.5 sm:p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_35px_rgba(6,182,212,0.12)] ring-1 ring-cyan-500/25 flex flex-col space-y-2 animate-in fade-in slide-in-from-right-6 duration-700 transition-all shrink-0">
 
-        {/* RIGHT COLUMN: Glassmorphic Login Box Harmonized with Background Palette */}
-        <div className="lg:col-span-5 xl:col-span-5 flex justify-center lg:justify-end h-full items-center">
-          <div className="w-full max-w-[460px] max-h-[92vh] bg-[#040a21]/95 backdrop-blur-2xl border-2 border-cyan-400/40 rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_-10px_rgba(0,240,255,0.3)] ring-1 ring-cyan-500/30 relative z-10 flex flex-col justify-between space-y-4 my-auto overflow-y-auto no-scrollbar">
-
-            {/* Card Header with Personalized Dynamic Greeting & Ticking Clock */}
-            <div className="text-center space-y-1.5 border-b border-cyan-500/25 pb-3">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
-                {(() => {
-                  const hour = new Date().getHours();
-                  if (hour >= 5 && hour < 12) return '¡Buenos días';
-                  if (hour >= 12 && hour < 19) return '¡Buenas tardes';
-                  return '¡Buenas noches';
-                })()}, <span className="text-amber-400 font-extrabold">{selectedUser?.name || 'Colega'}</span> <span className="text-amber-400">.</span>
-              </h2>
-
-              <div className="flex items-center justify-center space-x-2 text-[10px] font-mono text-cyan-200/90 font-bold bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20 w-fit mx-auto">
-                <Calendar className="w-3 h-3 text-cyan-400" />
+          {/* Encabezado del Formulario con Reloj Oficial de Panamá y Saludo Personalizado por Nombre */}
+          <div className="text-center space-y-0.5 border-b border-slate-800/80 pb-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950/50 px-2.5 py-0.5 rounded-lg border border-cyan-500/25 shadow-inner">
+              <span className="text-amber-300 flex items-center gap-1 font-bold truncate max-w-[170px]">
+                <span>👋</span>
+                <span>{getTimeBasedGreeting(language)}, {targetUser.name.split(' ')[0]} {targetUser.name.split(' ')[1] || ''}!</span>
+              </span>
+              <div className="flex items-center space-x-1 text-slate-300 shrink-0">
+                <Calendar className="w-2.5 h-2.5 text-cyan-400" />
                 <span className="capitalize">{formattedDate}</span>
                 <span>•</span>
-                <Clock className="w-3 h-3 text-amber-400" />
+                <Clock className="w-2.5 h-2.5 text-amber-400" />
                 <span className="text-amber-300">{formattedTime}</span>
               </div>
             </div>
 
-            {/* Form Controls */}
-            <form onSubmit={handleAuthenticate} className="space-y-3">
+            <div className="pt-0.5">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
+                Iniciar Sesión en Estación
+              </h2>
+              <p className="text-[10px] text-slate-300 leading-tight">
+                {language === 'EN'
+                  ? 'Enter your clinical credentials to access the LIS/HIS platform.'
+                  : 'Ingrese sus credenciales para acceder a la plataforma LIS/HIS.'}
+              </p>
+            </div>
+          </div>
 
-              {/* Sede */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Sede / Centro Clínico</span>
-                </label>
+          {/* Selector de Modo de Autenticación */}
+          <div className="flex items-center justify-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setIsManualEmailMode(false)}
+              className={`flex-1 py-1 px-2 rounded-lg transition cursor-pointer text-center text-[10.5px] ${
+                !isManualEmailMode
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Selección de Personal
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsManualEmailMode(true)}
+              className={`flex-1 py-1 px-2 rounded-lg transition cursor-pointer text-center text-[10.5px] ${
+                isManualEmailMode
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Correo / Usuario Real
+            </button>
+          </div>
+
+          {/* Formulario de Inicio de Sesión */}
+          <form onSubmit={handleAuthenticate} className="space-y-1.5">
+
+            {/* Sede Hospitalaria / Laboratorio */}
+            <div className="space-y-0.5">
+              <label className="text-[10px] font-bold text-cyan-300 flex items-center space-x-1">
+                <Building2 className="w-3 h-3 text-cyan-400" />
+                <span>Sede / Centro Clínico</span>
+              </label>
+              <select
+                value={selectedTenantId}
+                onChange={(e) => handleTenantSelect(e.target.value)}
+                className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 cursor-pointer shadow-inner"
+              >
+                {MOCK_TENANTS.map((t) => (
+                  <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                    {t.name} ({t.branches[0]?.name || 'Sede Vía España'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Campo de Usuario o Email Real */}
+            {!isManualEmailMode ? (
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-cyan-300 flex items-center space-x-1">
+                    <UserCheck className="w-3 h-3 text-cyan-400" />
+                    <span>Usuario Autorizado</span>
+                  </label>
+                  <span className="text-[9.5px] font-mono font-bold text-amber-300">
+                    {selectedUser?.licenseNumber ? `Idoneidad: ${selectedUser.licenseNumber}` : ''}
+                  </span>
+                </div>
+
                 <select
-                  value={selectedTenantId}
-                  onChange={(e) => handleTenantSelect(e.target.value)}
-                  className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer shadow-inner"
+                  value={selectedUser?.id || ''}
+                  onChange={(e) => {
+                    const u = allUsers.find((usr) => usr.id === e.target.value);
+                    if (u) handleUserSelect(u);
+                  }}
+                  className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs text-cyan-100 font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 cursor-pointer shadow-inner"
                 >
-                  {MOCK_TENANTS.map((t) => (
-                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
-                      {t.name} ({t.branches[0]?.name || 'Central'})
+                  {filteredUsers.map((u) => (
+                    <option key={u.id} value={u.id} className="bg-slate-900 text-white">
+                      {u.name} — {ROLE_LABELS[u.role]?.title || u.role} {u.licenseNumber ? `(${u.licenseNumber})` : ''}
                     </option>
                   ))}
                 </select>
               </div>
-
-              {/* Usuario */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
-                    <Users className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Usuario ({filteredUsers.length})</span>
-                  </label>
-
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-[200px]">
-                    {LAB_ROLES.map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedRoleFilter(r.id);
-                          const matched = MOCK_USERS.filter((u) => {
-                            const matchesTenant = u.tenantId === selectedTenantId || u.role === 'abregotech_admin';
-                            const matchesRole = r.id === 'all' || u.role === r.id;
-                            return matchesTenant && matchesRole;
-                          });
-                          if (matched.length > 0) {
-                            setSelectedUser(matched[0]);
-                            setPasswordInput('123456');
-                            setPinInput(matched[0].pinCode || '1234');
-                            setErrorMessage(null);
-                          }
-                        }}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition shrink-0 cursor-pointer ${
-                          selectedRoleFilter === r.id
-                            ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                            : 'bg-[#020718] text-slate-300 border border-slate-700'
-                        }`}
-                      >
-                        {r.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-cyan-400/60 absolute left-2.5 top-2.5" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Filtrar..."
-                      className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl pl-7 pr-4 py-2 text-xs text-white font-medium placeholder-slate-400 focus:outline-none focus:border-cyan-400 shadow-inner"
-                    />
-                  </div>
-
-                  <select
-                    value={selectedUser?.id || ''}
-                    onChange={(e) => {
-                      const u = MOCK_USERS.find((usr) => usr.id === e.target.value);
-                      if (u) handleUserSelect(u);
-                    }}
-                    className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-2.5 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer truncate shadow-inner"
-                  >
-                    {filteredUsers.map((u) => (
-                      <option key={u.id} value={u.id} className="bg-slate-900 text-white">
-                        {u.name} — {ROLE_LABELS[u.role].title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            ) : (
+              <div className="space-y-0.5">
+                <label className="text-[10px] font-bold text-cyan-300 flex items-center space-x-1">
+                  <UserCheck className="w-3 h-3 text-cyan-400" />
+                  <span>Correo Electrónico / Identificador Real</span>
+                </label>
+                <input
+                  type="text"
+                  value={emailOrUserInput}
+                  onChange={(e) => setEmailOrUserInput(e.target.value)}
+                  placeholder="ej. carlos.castillo@labsanjose.com"
+                  className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner"
+                  required
+                />
               </div>
+            )}
 
-              {/* Contraseña & PIN 2FA */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-cyan-300 flex items-center justify-between">
-                    <span className="flex items-center space-x-1">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Contraseña</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPasswordInput(selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456');
-                        setPinInput(selectedUser?.pinCode || '1234');
-                      }}
-                      className="text-[10px] text-amber-300 hover:text-white font-bold flex items-center space-x-0.5 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-400/40"
-                      title="Auto-completar credenciales demo"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-400" />
-                      <span>Auto</span>
-                    </button>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold shadow-inner"
-                      required
-                      disabled={isAuthenticating}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-cyan-300 flex items-center justify-between">
-                    <span className="flex items-center space-x-1">
-                      <Key className="w-3.5 h-3.5 text-amber-400" />
-                      <span>PIN 2FA</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {selectedUser?.twoFactorEnabled ? 'Req.' : 'Opc.'}
-                    </span>
-                  </label>
+            {/* Contraseña & PIN de Firma Digital */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-0.5">
+                <label className="text-[10px] font-bold text-cyan-300 flex items-center justify-between">
+                  <span className="flex items-center space-x-1">
+                    <Lock className="w-3 h-3 text-cyan-400" />
+                    <span>Contraseña</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasswordInput(selectedUser?.role === 'abregotech_admin' ? 'admin123' : '123456');
+                      setPinInput(selectedUser?.pinCode || '1234');
+                    }}
+                    className="text-[9px] text-amber-300 hover:text-white font-bold bg-amber-500/20 px-1 py-0.2 rounded border border-amber-400/40 cursor-pointer"
+                    title="Auto-completar clave autorizada de demostración"
+                  >
+                    Auto
+                  </button>
+                </label>
+                <div className="relative">
                   <input
-                    type="password"
-                    maxLength={4}
-                    value={pinInput}
-                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="••••"
-                    className="w-full bg-[#020718] border border-cyan-500/40 rounded-xl px-3 py-2 text-xs text-amber-300 text-center font-mono font-bold tracking-widest focus:outline-none focus:border-amber-400 shadow-inner"
-                    required={selectedUser?.twoFactorEnabled}
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl pl-2.5 pr-7 py-1 text-xs text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 font-mono font-bold shadow-inner"
+                    required
                     disabled={isAuthenticating}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1.5 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </button>
                 </div>
               </div>
 
-              {/* Error Banner */}
-              {errorMessage && (
-                <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              {/* Vibrant Electric Hospital Blue / Cyan Gradient Button */}
-              <button
-                type="submit"
-                disabled={isAuthenticating}
-                className="w-full py-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black rounded-full text-xs sm:text-sm tracking-wider uppercase transition shadow-[0_10px_25px_rgba(0,240,255,0.35)] cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-1"
-              >
-                {isAuthenticating ? (
-                  <span>Autenticando...</span>
-                ) : (
-                  <>
-                    <ArrowRight className="w-4 h-4 stroke-[3]" />
-                    <span>INICIAR SESIÓN</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-          </div>
-        </div>
-
-      </div>
-
-      {/* BOTTOM FOOTER BAR (High contrast white text) */}
-      <div className="relative z-10 flex items-center justify-between w-full pt-1.5 shrink-0">
-        <div className="flex items-center space-x-2 bg-slate-950/70 border border-teal-500/30 px-3.5 py-1 rounded-full backdrop-blur-md shadow-md">
-          <ShieldCheck className="w-4 h-4 text-cyan-300 drop-shadow" />
-          <span className="text-xs font-bold text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-            Cumplimiento normativo | MINSA – CSS – Estándares internacionales
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-1.5 bg-slate-950/70 border border-slate-700/80 px-3.5 py-1 rounded-full backdrop-blur-md shadow-md text-xs font-black text-white">
-          <span className="text-sm">🇵🇦</span>
-          <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">Panamá</span>
-        </div>
-      </div>
-
-      {/* PATIENT MODAL */}
-      {isPatientModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 relative overflow-hidden text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-white">Portal de Pacientes</h3>
-                  <p className="text-xs text-slate-400">Consulta e impresión de resultados Ley 81</p>
-                </div>
+              <div className="space-y-0.5">
+                <label className="text-[10px] font-bold text-cyan-300 flex items-center justify-between">
+                  <span className="flex items-center space-x-1">
+                    <Key className="w-3 h-3 text-amber-400" />
+                    <span>PIN (4D)</span>
+                  </span>
+                  <span className="text-[8.5px] text-amber-400 font-mono font-bold">
+                    {selectedUser?.pinCode ? `PIN: ${selectedUser.pinCode}` : '1234'}
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full bg-slate-950/90 border border-slate-700/90 rounded-xl px-2 py-1 text-xs text-amber-300 text-center font-mono font-black tracking-widest focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 shadow-inner"
+                  required={selectedUser?.twoFactorEnabled}
+                  disabled={isAuthenticating}
+                />
               </div>
-              <button onClick={() => setIsPatientModalOpen(false)} className="text-slate-500 hover:text-white font-bold p-1 bg-slate-800 rounded-lg">
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const patientUser = MOCK_USERS.find((u) => u.role === 'patient') || MOCK_USERS[0];
-                onLogin(patientUser, currentTenant, currentBranch);
-              }}
-              className="space-y-4 text-xs"
+            {/* Mensaje de Error si Aplica */}
+            {errorMessage && (
+              <div className="p-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold flex items-center space-x-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Botón Principal de Inicio de Sesión */}
+            <button
+              type="submit"
+              disabled={isAuthenticating}
+              className="w-full py-2 bg-gradient-to-r from-teal-400 via-cyan-500 to-teal-400 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs tracking-wider uppercase transition shadow-lg shadow-cyan-500/25 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-0.5"
             >
-              <div className="space-y-1">
-                <label className="font-bold text-slate-300">N° de Cédula o Pasaporte:</label>
-                <input
-                  type="text"
-                  required
-                  value={patientCedulaInput}
-                  onChange={(e) => setPatientCedulaInput(e.target.value)}
-                  placeholder="ej. 8-812-4432"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-teal-400"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-300">N° de Orden o Ticket de Muestra:</label>
-                <input
-                  type="text"
-                  required
-                  value={patientOrderInput}
-                  onChange={(e) => setPatientOrderInput(e.target.value)}
-                  placeholder="ej. ORD-2026-8801"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-teal-400"
-                />
-              </div>
-
-              <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-xl space-y-1.5">
-                <div className="text-xs font-bold text-teal-300 flex items-center justify-between">
-                  <span className="flex items-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Prueba Rápida:</span>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const patientUser = MOCK_USERS.find((u) => u.role === 'patient') || MOCK_USERS[0];
-                    onLogin(patientUser, currentTenant, currentBranch);
-                  }}
-                  className="w-full py-2 bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 border border-teal-400/30 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
-                >
-                  <span>🧪 Entrar como Gabriela Pinzón (Cédula: 8-812-4432)</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-teal-300" />
-                </button>
-              </div>
-
-              {patientLookupError && (
-                <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs rounded-xl flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{patientLookupError}</span>
-                </div>
+              {isAuthenticating ? (
+                <span>Verificando Credenciales...</span>
+              ) : (
+                <>
+                  <LogIn className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>INGRESAR A LA PLATAFORMA</span>
+                </>
               )}
+            </button>
+          </form>
 
-              <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsPatientModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 cursor-pointer flex items-center space-x-1.5"
-                >
-                  <Search className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Buscar e Ingresar a Mis Resultados</span>
-                </button>
-              </div>
-            </form>
+          {/* Aviso Legal y Cumplimiento Normativo */}
+          <div className="pt-1.5 border-t border-slate-800/80 text-center text-[9.5px] text-slate-400 space-y-0.5">
+            <div>
+              Protegido bajo la <strong className="text-slate-200">Ley 81 de Protección de Datos</strong> de Panamá.
+            </div>
+            <div className="text-cyan-400 font-semibold">
+              Acceso auditado con registro inalterable de firma electrónica.
+            </div>
           </div>
+
         </div>
-      )}
+      </main>
+
+      {/* PIE DE PÁGINA */}
+      <footer className="shrink-0 relative z-20 flex flex-wrap items-center justify-between w-full max-w-7xl mx-auto pt-1.5 border-t border-slate-800/80 text-[9.5px] sm:text-[10px] text-slate-400 gap-2">
+        <div className="flex items-center space-x-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+          <span>AbregoTech Solutions S.A. — Cumplimiento Normativo MINSA / CSS / ISO 15189</span>
+        </div>
+        <div className="font-mono font-bold text-slate-300">
+          República de Panamá • Versión 2.6 Enterprise LIS/HIS
+        </div>
+      </footer>
     </div>
   );
 };
