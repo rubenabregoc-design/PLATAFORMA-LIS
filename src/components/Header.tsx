@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
+import { useHisStore } from '../store/useHisStore';
 import {
   Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu
 } from 'lucide-react';
@@ -170,6 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
     logout,
     isSyncing,
     isDemoMode,
+    toggleDemoMode,
     language,
     setLanguage
   } = useLisStore();
@@ -509,12 +511,32 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Controls: Status, Language, User Profile & Actions */}
         <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0 ml-auto">
 
-          {isDemoMode && (
-            <div className="hidden 2xl:flex items-center space-x-1 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full animate-pulse">
-               <Sparkles className="w-3 h-3 text-amber-400" />
-               <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Demo</span>
-            </div>
-          )}
+          {/* Executive Clinical Mode Switcher (Producción Real vs Demostración Sintética) */}
+          <button
+            onClick={() => {
+              const nextMode = !isDemoMode;
+              toggleDemoMode();
+              useHisStore.getState().setHisDemoMode(nextMode);
+            }}
+            title={
+              isDemoMode
+                ? "Modo Demostración activo. Clic para cambiar a MODO PRODUCCIÓN (Pacientes Reales Panameños, Cédulas, Triage y Pruebas Cruzadas Reales)."
+                : "Modo Producción activo (Pacientes Reales Panameños con Cédula, Triage Manchester y Hemovigilancia). Clic para alternar a MODO DEMO."
+            }
+            className={`flex items-center space-x-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shrink-0 border ${
+              isDemoMode
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+            <span className="uppercase tracking-wider font-extrabold hidden sm:inline">
+              {isDemoMode ? 'MODO DEMO' : 'PRODUCCIÓN (REAL)'}
+            </span>
+            <span className="uppercase tracking-wider font-extrabold sm:hidden">
+              {isDemoMode ? 'DEMO' : 'REAL'}
+            </span>
+          </button>
 
           {isSyncing && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">

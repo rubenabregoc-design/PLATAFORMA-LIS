@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLisStore } from '../../store/useLisStore';
+import { useHisStore } from '../../store/useHisStore';
+import { REAL_BLOOD_UNITS, REAL_CROSSMATCHES } from '../../data/realClinicalData';
 import {
   Droplets,
   Heart,
@@ -111,15 +114,35 @@ const INITIAL_CROSSMATCHES: CrossmatchRequest[] = [
 ];
 
 export const BloodBankModule: React.FC = () => {
-  const [units, setUnits] = useState<BloodUnit[]>(INITIAL_UNITS);
-  const [crossmatches, setCrossmatches] = useState<CrossmatchRequest[]>(INITIAL_CROSSMATCHES);
+  const { isDemoMode, patients } = useLisStore();
+  const { admissions } = useHisStore();
+
+  const [units, setUnits] = useState<BloodUnit[]>(isDemoMode ? INITIAL_UNITS : REAL_BLOOD_UNITS);
+  const [crossmatches, setCrossmatches] = useState<CrossmatchRequest[]>(isDemoMode ? INITIAL_CROSSMATCHES : REAL_CROSSMATCHES);
   const [selectedGroup, setSelectedGroup] = useState<string>('TODOS');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
+  // Synchronize when Demo/Production mode is toggled
+  useEffect(() => {
+    if (isDemoMode) {
+      setUnits(INITIAL_UNITS);
+      setCrossmatches(INITIAL_CROSSMATCHES);
+    } else {
+      setUnits(REAL_BLOOD_UNITS);
+      setCrossmatches(REAL_CROSSMATCHES);
+    }
+  }, [isDemoMode]);
+
   // New Crossmatch Fields
-  const [formPatientName, setFormPatientName] = useState<string>('Sra. Elena de Icaza');
-  const [formPatientGroup, setFormPatientGroup] = useState<string>('O Rhesus Negativo (O-)');
-  const [formAssignedUnit, setFormAssignedUnit] = useState<string>('PGRE-2026-0815');
+  const [formPatientName, setFormPatientName] = useState<string>(
+    !isDemoMode ? 'David Alejandro Castillo (3-705-1144)' : 'Sra. Elena de Icaza'
+  );
+  const [formPatientGroup, setFormPatientGroup] = useState<string>(
+    !isDemoMode ? 'O Rhesus Positivo (O+)' : 'O Rhesus Negativo (O-)'
+  );
+  const [formAssignedUnit, setFormAssignedUnit] = useState<string>(
+    !isDemoMode ? 'PGRE-2026-9101' : 'PGRE-2026-0815'
+  );
 
   const filteredUnits = units.filter(u => {
     if (selectedGroup !== 'TODOS' && u.bloodGroup !== selectedGroup) return false;
@@ -331,6 +354,43 @@ export const BloodBankModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateCrossmatch} className="space-y-4 text-xs">
+              {/* Quick Select Real Admitted Patients */}
+              <div>
+                <label className="font-bold text-slate-300 block mb-1">Selección Rápida de Paciente (HIS / LIS):</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {admissions.map(adm => (
+                    <button
+                      key={adm.id}
+                      type="button"
+                      onClick={() => {
+                        setFormPatientName(`${adm.patientName} (${adm.patientNationalId})`);
+                        // Match blood group if available or default
+                        const matchedPatient = patients.find(p => p.nationalId === adm.patientNationalId);
+                        if (matchedPatient?.bloodGroup) {
+                          setFormPatientGroup(matchedPatient.bloodGroup);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:border-rose-500/40 border border-slate-700 text-slate-200 text-[10px] font-bold transition-all"
+                    >
+                      🏥 {adm.patientName} ({adm.patientNationalId})
+                    </button>
+                  ))}
+                  {patients.slice(0, 3).map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setFormPatientName(`${p.fullName} (${p.nationalId})`);
+                        if (p.bloodGroup) setFormPatientGroup(p.bloodGroup);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-cyan-500/20 hover:border-cyan-500/40 border border-slate-700 text-slate-200 text-[10px] font-bold transition-all"
+                    >
+                      👤 {p.fullName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="font-bold text-slate-300 block mb-1">Nombre Completo del Paciente:</label>
                 <input
@@ -354,15 +414,17 @@ export const BloodBankModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-bold text-slate-300 block mb-1">Unidad de Sangre Asignada:</label>
+                <label className="font-bold text-slate-300 block mb-1">Unidad de Sangre Asignada (Disponibles):</label>
                 <select
                   value={formAssignedUnit}
                   onChange={(e) => setFormAssignedUnit(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
                 >
-                  <option value="PGRE-2026-0812">PGRE-2026-0812 (Glóbulos Rojos O+)</option>
-                  <option value="PGRE-2026-0815">PGRE-2026-0815 (Glóbulos Rojos O- Universal)</option>
-                  <option value="PFC-2026-0901">PFC-2026-0901 (Plasma A+)</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.unitCode}>
+                      {u.unitCode} ({u.componentType} {u.bloodGroup} - {u.status})
+                    </option>
+                  ))}
                 </select>
               </div>
 

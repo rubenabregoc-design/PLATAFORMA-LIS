@@ -17,6 +17,11 @@ import {
   MOCK_MEDICATION_ORDERS,
   MOCK_KARDEX_RECORDS
 } from '../data/mockHospitalData';
+import {
+  REAL_HOSPITAL_BEDS,
+  REAL_TRIAGE_RECORDS,
+  REAL_ADMISSIONS
+} from '../data/realClinicalData';
 
 interface HisState {
   // --- Data Collections ---
@@ -32,6 +37,7 @@ interface HisState {
   selectedBedId: string | null;
 
   // --- Actions ---
+  setHisDemoMode: (isDemo: boolean) => void;
   setSelectedAdmissionId: (id: string | null) => void;
   setSelectedBedId: (id: string | null) => void;
 
@@ -73,15 +79,33 @@ interface HisState {
 export const useHisStore = create<HisState>()(
   persist(
     (set, get) => ({
-      beds: MOCK_HOSPITAL_BEDS,
-      triageRecords: MOCK_TRIAGE_RECORDS,
-      admissions: MOCK_HOSPITAL_ADMISSIONS,
+      beds: REAL_HOSPITAL_BEDS,
+      triageRecords: REAL_TRIAGE_RECORDS,
+      admissions: REAL_ADMISSIONS,
       soapNotes: MOCK_SOAP_NOTES,
       medicationOrders: MOCK_MEDICATION_ORDERS,
       kardexRecords: MOCK_KARDEX_RECORDS,
 
-      selectedAdmissionId: MOCK_HOSPITAL_ADMISSIONS[0]?.id || null,
+      selectedAdmissionId: REAL_ADMISSIONS[0]?.id || null,
       selectedBedId: 'bed-urg-01',
+
+      setHisDemoMode: (isDemo: boolean) => {
+        if (isDemo) {
+          set({
+            beds: MOCK_HOSPITAL_BEDS,
+            triageRecords: MOCK_TRIAGE_RECORDS,
+            admissions: MOCK_HOSPITAL_ADMISSIONS,
+            selectedAdmissionId: MOCK_HOSPITAL_ADMISSIONS[0]?.id || null,
+          });
+        } else {
+          set({
+            beds: REAL_HOSPITAL_BEDS,
+            triageRecords: REAL_TRIAGE_RECORDS,
+            admissions: REAL_ADMISSIONS,
+            selectedAdmissionId: REAL_ADMISSIONS[0]?.id || null,
+          });
+        }
+      },
 
       setSelectedAdmissionId: (id) => set({ selectedAdmissionId: id }),
       setSelectedBedId: (id) => set({ selectedBedId: id }),
@@ -285,7 +309,7 @@ export const useHisStore = create<HisState>()(
       }
     }),
     {
-      name: 'abregotech_his_store_v1',
+      name: 'abregotech_his_store_v2',
       storage: createJSONStorage(() => localStorage)
     }
   )

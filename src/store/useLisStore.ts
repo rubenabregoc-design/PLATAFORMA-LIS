@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, Role, Tenant, Branch, Order, TestResult, Patient, AuditLogEntry, Permission, Specimen } from '../types';
 import { MOCK_USERS, MOCK_ORDERS, MOCK_RESULTS, MOCK_PATIENTS, MOCK_TENANTS } from '../data/mockData';
+import { REAL_PATIENTS, REAL_ORDERS, REAL_RESULTS } from '../data/realClinicalData';
 import { ResultEvaluator } from '../domain/ResultEvaluator';
 import { InterpretationEngine } from '../domain/InterpretationEngine';
 import { PermissionManager } from '../domain/PermissionManager';
@@ -35,6 +36,8 @@ interface LisState {
   // --- Actions ---
   canDo: (permission: Permission) => boolean;
   setDemoMode: (active: boolean) => void;
+  toggleDemoMode: () => boolean;
+  registerRealPatient: (patientData: Omit<Patient, 'id' | 'tenantId' | 'dataConsentLey81'>) => Patient;
   fetchInitialData: () => Promise<void>;
   login: (email: string, password: string) => void;
   logout: () => void;
@@ -152,16 +155,16 @@ export const useLisStore = create<LisState>()(
         return false;
       })(),
 
-      orders: MOCK_ORDERS,
-      results: MOCK_RESULTS,
-      patients: MOCK_PATIENTS,
+      orders: REAL_ORDERS,
+      results: REAL_RESULTS,
+      patients: REAL_PATIENTS,
 
       activeOrderId: (() => {
         if (typeof window !== 'undefined') {
           const savedOrder = localStorage.getItem('lis_current_order_id');
           if (savedOrder) return savedOrder;
         }
-        return MOCK_ORDERS[0].id;
+        return REAL_ORDERS[0].id;
       })(),
 
       activeTab: (() => {
@@ -212,7 +215,45 @@ export const useLisStore = create<LisState>()(
         return PermissionManager.hasPermission(role, permission);
       },
 
-      setDemoMode: (active) => set({ isDemoMode: active }),
+      setDemoMode: (active: boolean) => {
+        if (active) {
+          set({
+            isDemoMode: true,
+            patients: MOCK_PATIENTS,
+            orders: MOCK_ORDERS,
+            results: MOCK_RESULTS,
+            activeOrderId: MOCK_ORDERS[0]?.id || ''
+          });
+        } else {
+          set({
+            isDemoMode: false,
+            patients: REAL_PATIENTS,
+            orders: REAL_ORDERS,
+            results: REAL_RESULTS,
+            activeOrderId: REAL_ORDERS[0]?.id || ''
+          });
+        }
+      },
+
+      toggleDemoMode: () => {
+        const next = !get().isDemoMode;
+        get().setDemoMode(next);
+        return next;
+      },
+
+      registerRealPatient: (patientData) => {
+        const newPatient: Patient = {
+          ...patientData,
+          id: `pat-real-${Date.now()}`,
+          tenantId: get().currentTenant?.id || 'lab-san-jose',
+          dataConsentLey81: true,
+          consentDate: new Date().toISOString()
+        };
+        set((state) => ({
+          patients: [newPatient, ...state.patients]
+        }));
+        return newPatient;
+      },
 
       fetchInitialData: async () => {
         // En caso de estar desconectado, preservar el estado local ya persistido sin sobreescribirlo
@@ -222,13 +263,13 @@ export const useLisStore = create<LisState>()(
         }
 
         if (get().isDemoMode || !isSupabaseConfigured) {
-          console.info('🚀 LIS-CORE: Iniciando en Modo Local / Demo Seguro.');
+          console.info('🚀 LIS-CORE: Iniciando en Modo Local / Dataset Activo.');
           const currentResults = get().results;
           if (!currentResults || currentResults.length === 0) {
             set({
-              results: MOCK_RESULTS,
-              patients: MOCK_PATIENTS,
-              orders: MOCK_ORDERS
+              results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
+              patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
+              orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS
             });
           }
           return;
@@ -720,7 +761,7 @@ export const useLisStore = create<LisState>()(
       }),
     }),
     {
-      name: 'lis-storage-v4', // Version bump to flush stale IndexedDB cache & load latest fresh mock dataset
+      name: 'lis-storage-v5', // Bumped to load Real Panamanian Clinical Dataset
       storage: createJSONStorage(() => lisIndexedDb),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
@@ -730,6 +771,7 @@ export const useLisStore = create<LisState>()(
         language: state.language,
         activeTab: state.activeTab,
         activeOrderId: state.activeOrderId,
+        isDemoMode: state.isDemoMode,
         orders: state.orders,
         results: state.results,
         patients: state.patients,

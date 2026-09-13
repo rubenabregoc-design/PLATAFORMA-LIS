@@ -984,7 +984,7 @@ export default function App() {
               <ResultEntryWorkspace
                 order={orders.find((o) => o.id === activeOrderId) || orders[0]}
                 patient={patients.find((p) => p.id === (orders.find((o) => o.id === activeOrderId) || orders[0])?.patientId) || patients[0]}
-                results={results.filter((r) => r.orderId === (activeOrderId || orders[0]?.id))}
+                results={results}
                 analyzers={MOCK_ANALYZERS}
                 currentUser={currentUser}
                 onUpdateResultValue={handleUpdateResultValue}
