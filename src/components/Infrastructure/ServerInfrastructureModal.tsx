@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Server, Database, Activity, ShieldCheck, Cpu, HardDrive,
   RefreshCw, CheckCircle2, Clock, Globe, Network, AlertCircle,
@@ -26,6 +26,17 @@ export const ServerInfrastructureModal: React.FC<ServerInfrastructureModalProps>
     'postgres-5432': { status: 'ONLINE', latency: 1.8 }
   });
 
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   const handleRunDiagnostics = () => {
@@ -47,27 +58,32 @@ export const ServerInfrastructureModal: React.FC<ServerInfrastructureModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-[#070e24] to-slate-950 border border-cyan-500/40 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.2)] text-slate-100 p-6 sm:p-8 space-y-6">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md p-3 sm:p-6 flex items-start sm:items-center justify-center animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-gradient-to-br from-slate-900 via-[#070e24] to-slate-950 border-2 border-cyan-500/40 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.35)] text-slate-100 my-auto overflow-hidden">
 
-        {/* Top Header */}
-        <div className="flex items-start justify-between border-b border-slate-800/80 pb-5">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-emerald-500 p-0.5 shadow-lg shadow-cyan-500/30 shrink-0">
+        {/* Sticky Header at the top of modal - NEVER gets pushed out of view */}
+        <div className="flex items-center justify-between border-b border-cyan-500/30 bg-[#02071a]/95 px-5 sm:px-8 py-4 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-emerald-500 p-0.5 shadow-lg shadow-cyan-500/30 shrink-0">
               <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Server className="w-6 h-6 text-cyan-400" />
+                <Server className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
               </div>
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-xl font-black text-white tracking-tight">
                   AbregoTech <span className="text-cyan-400">Server Health & Telemetry</span>
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9.5px] font-mono font-bold uppercase tracking-wider">
                   Enterprise On-Premises
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5 hidden xs:block">
                 Monitor en tiempo real de base de datos, gateway PostgREST, analizadores y enrutador de puertos
               </p>
             </div>
@@ -75,12 +91,15 @@ export const ServerInfrastructureModal: React.FC<ServerInfrastructureModalProps>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-400 hover:text-white transition cursor-pointer"
-            title="Cerrar monitor"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition cursor-pointer shrink-0 ml-2"
+            title="Cerrar monitor (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Scrollable Modal Content */}
+        <div className="overflow-y-auto p-5 sm:p-8 space-y-6">
 
         {/* Global Health Overview Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4">
@@ -305,6 +324,7 @@ export const ServerInfrastructureModal: React.FC<ServerInfrastructureModalProps>
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   );

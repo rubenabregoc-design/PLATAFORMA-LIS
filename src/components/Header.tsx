@@ -611,6 +611,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </div>
+    </header>
 
       {/* Senior Enterprise Viewport-Centered Mega Console & Mobile Sheet */}
       {isMenuOpen && (
@@ -791,7 +792,6 @@ export const Header: React.FC<HeaderProps> = ({
         isOpen={isServerHealthModalOpen}
         onClose={() => setIsServerHealthModalOpen(false)}
       />
-    </header>
 
       {/* 📱 Native Mobile Bottom Navigation Bar (< lg, Thumb-friendly, iOS/Android ergonomics) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#02071a]/95 backdrop-blur-2xl border-t border-cyan-500/20 px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.9)] flex items-center justify-around select-none">
