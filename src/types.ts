@@ -62,6 +62,7 @@ export interface User {
   licenseNumber?: string; // Idoneidad médica / tecnólogo
   signatureUrl?: string;
   password?: string;
+  passwordHash?: string;
   pinCode?: string;
   twoFactorEnabled?: boolean;
 }
@@ -84,6 +85,9 @@ export interface Patient {
   weight?: string;
   height?: string;
   bloodType?: string;
+  bloodGroup?: string;
+  fullName?: string;
+  name?: string;
   dataConsentLey81: boolean; // Consentimiento Ley 81 de Panamá
   consentDate?: string;
 }
@@ -106,8 +110,8 @@ export interface TestCatalogItem {
   tenantId: string;
   code: string;
   name: string;
-  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION';
-  tubeType: 'EDTA_MORADO' | 'SUERO_ROJO' | 'CITRATO_AZUL' | 'ORINA' | 'HEPARINA_VERDE';
+  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION' | 'SEROLOGIA' | 'COPROLOGIA' | 'BANCO_SANGRE' | 'GASOMETRIA_STAT';
+  tubeType: 'EDTA_MORADO' | 'SUERO_ROJO' | 'CITRATO_AZUL' | 'ORINA' | 'HEPARINA_VERDE' | 'HECES' | 'LCR' | 'HISOPADO_MEDIO' | 'FRASCO_HEMOCULTIVO';
   price: number;
   specimenType: string;
   tatHours: number;
@@ -164,7 +168,7 @@ export interface Specimen {
   tubeType: string;
   collectedAt?: string;
   collectedBy?: string;
-  status: 'PENDIENTE' | 'RECEPTADA' | 'EN_ANALIZADOR' | 'DESECHADA';
+  status?: 'PENDIENTE' | 'RECEPTADA' | 'EN_ANALIZADOR' | 'DESECHADA';
   phlebotomyTime?: string;
   receptionAt?: string;
   centrifugedAt?: string;
@@ -540,8 +544,10 @@ export interface TriageRecord {
   chiefComplaint: string;
   allergies?: string | string[];
   priority: TriagePriority;
-  vitalSigns: VitalSigns;
+  vitalSigns?: VitalSigns;
+  vitals?: any;
   evaluatedBy?: string;         // Campo original
+  nurseName?: string;
   assessedBy?: string;          // Alias usado por EmergencyTriage
   assessedAt?: string;          // Fecha/hora de evaluación
   status: 'EVALUADO' | 'EN_ESPERA' | 'ASIGNADO_CAMA' | 'ATENDIDO' | 'ALTA' | 'INGRESADO';
@@ -554,10 +560,13 @@ export interface HospitalAdmission {
   branchId: string;
   patientId: string;
   patientName: string;
+  admissionNumber?: string;
   patientCedula?: string;
   patientNationalId?: string;
-  bedId: string;
+  bedId?: string;
+  assignedBedId?: string;
   bedLabel?: string;
+  triageId?: string;
   ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
   admittedAt?: string;                  // Timestamp de ingreso (campo original)
   admissionDate?: string;               // Alias usado por mock data y store
@@ -568,6 +577,7 @@ export interface HospitalAdmission {
   admittingDoctorName?: string;         // Alias usado por componentes
   doctorName?: string;                  // Alias de médico tratante
   admittingDoctorLicense?: string;      // Número de idoneidad del médico
+  doctorLicense?: string;               // Alias de idoneidad
   primaryDiagnosisIcd10?: string;       // Código diagnóstico ICD-10
   allergies?: string[];                  // Alergias conocidas del paciente
   status: 'ACTIVA' | 'ALTA' | 'ALTA_MEDICA' | 'TRASLADO' | 'FALLECIDO';

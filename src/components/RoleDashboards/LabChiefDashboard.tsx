@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TestResult, Order, Patient } from '../../types';
 import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Lock, Key, Award, Sparkles, User, Activity, ExternalLink } from 'lucide-react';
 import { getTimeBasedGreeting } from '../../utils/greeting';
+import { useLisStore } from '../../store/useLisStore';
 
 interface LabChiefDashboardProps {
   orders: Order[];
@@ -18,8 +19,11 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
   onValidateMedical,
   onOpenPdf
 }) => {
+  const language = useLisStore((state) => state.language);
+  const isEn = language === 'EN';
+
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || '');
-  const [signaturePin, setSignaturePin] = useState<string>('1234');
+  const [signaturePin, setSignaturePin] = useState<string>('');
   const [isValidated, setIsValidated] = useState<boolean>(false);
 
   const selectedOrder = orders.find((o) => o.id === selectedOrderId) || orders[0];
@@ -30,7 +34,12 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
     if (!signaturePin) {
       window.dispatchEvent(
         new CustomEvent('lis-global-toast', {
-          detail: { message: 'Por favor ingrese su clave/PIN de firma digital biométrica de idoneidad.', type: 'warning' }
+          detail: {
+            message: isEn
+              ? 'Please enter your biometric digital signature credential/PIN.'
+              : 'Por favor ingrese su clave/PIN de firma digital biométrica de idoneidad.',
+            type: 'warning'
+          }
         })
       );
       return;
@@ -43,7 +52,13 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
 
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
-        detail: { message: '✓ Resultados validados médicamente y firmados digitalmente con hash SHA-256.', type: 'success', duration: 4000 }
+        detail: {
+          message: isEn
+            ? '✓ Results medically authorized and electronically signed with SHA-256 hash.'
+            : '✓ Resultados validados médicamente y firmados digitalmente con hash SHA-256.',
+          type: 'success',
+          duration: 4000
+        }
       })
     );
   };
@@ -58,18 +73,20 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
           <div className="text-emerald-400 text-xs font-black uppercase tracking-wider mb-1.5 flex flex-wrap items-center gap-2">
             <div className="flex items-center space-x-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Dashboard — Jefe de Laboratorio / Dirección Técnica</span>
+              <span>{isEn ? 'Dashboard — Laboratory Chief / Medical Direction' : 'Dashboard — Jefe de Laboratorio / Dirección Técnica'}</span>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1">
               <span>👋</span>
-              <span>{getTimeBasedGreeting('ES')}, Dr. Roberto Icaza!</span>
+              <span>{getTimeBasedGreeting(language)}, Dr. Roberto Icaza!</span>
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Bandeja de Validación Médica & Firma Digital SHA-256
+            {isEn ? 'Medical Validation Console & SHA-256 Digital Signature' : 'Bandeja de Validación Médica & Firma Digital SHA-256'}
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-xl font-medium">
-            Revisión técnica de resultados previo a su emisión oficial al paciente y médico tratante.
+            {isEn
+              ? 'Technical clinical review before certified report release to patient and treating physician.'
+              : 'Revisión técnica de resultados previo a su emisión oficial al paciente y médico tratante.'}
           </p>
         </div>
 
@@ -78,7 +95,9 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
             <Award className="w-4 h-4 text-amber-400" />
             <span>Dr. Roberto Icaza Villalaz (TM-1840-PA)</span>
           </div>
-          <div className="text-emerald-400 font-semibold">● Firma Biométrica / Digital Activa</div>
+          <div className="text-emerald-400 font-semibold">
+            {isEn ? '● Biometric / Digital Signature Active' : '● Firma Biométrica / Digital Activa'}
+          </div>
         </div>
       </div>
 
@@ -91,10 +110,10 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-extrabold text-white text-xs uppercase tracking-wider flex items-center space-x-2">
                 <FileText className="w-4 h-4 text-teal-400" />
-                <span>Pendientes de Firma ({orders.length})</span>
+                <span>{isEn ? `Pending Sign-off (${orders.length})` : `Pendientes de Firma (${orders.length})`}</span>
               </h3>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold px-2.5 py-0.5 rounded-full">
-                Cola Activa
+                {isEn ? 'Active Queue' : 'Cola Activa'}
               </span>
             </div>
 
@@ -118,14 +137,18 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
                     </span>
                   </div>
                   <div className="text-xs font-bold text-white mt-1.5">{ord.patientName}</div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">Cédula: {ord.patientNationalId}</div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    {isEn ? 'National ID:' : 'Cédula:'} {ord.patientNationalId}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
-            Firma acreditada según Ley de Salud de Panamá y la ANTAI.
+            {isEn
+              ? 'Accredited signature under Panama Health Code & Data Protection Law 81.'
+              : 'Firma acreditada según Ley de Salud de Panamá y la ANTAI.'}
           </div>
         </div>
 
@@ -134,10 +157,12 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-teal-400">Revisando Expediente Orden:</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-teal-400">
+                  {isEn ? 'Reviewing Clinical Order:' : 'Revisando Expediente Orden:'}
+                </div>
                 <h2 className="text-xl font-black text-white tracking-tight">{selectedOrder?.orderNumber} — {patient?.firstName || selectedOrder?.patientName} {patient?.lastName || ''}</h2>
                 <div className="text-xs text-slate-400 mt-0.5 font-mono">
-                  Cédula: <strong className="text-cyan-300">{patient?.nationalId || selectedOrder?.patientNationalId}</strong> | Edad: <strong className="text-white">{selectedOrder?.patientAge || 34} años</strong>
+                  {isEn ? 'ID:' : 'Cédula:'} <strong className="text-cyan-300">{patient?.nationalId || selectedOrder?.patientNationalId}</strong> | {isEn ? 'Age:' : 'Edad:'} <strong className="text-white">{selectedOrder?.patientAge || 34} {isEn ? 'years' : 'años'}</strong>
                 </div>
               </div>
 
@@ -146,24 +171,24 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs transition flex items-center space-x-2 shadow-md shadow-cyan-500/20 cursor-pointer"
               >
                 <FileText className="w-4 h-4 text-slate-950" />
-                <span>Generar PDF Oficial</span>
+                <span>{isEn ? 'Generate Official PDF' : 'Generar PDF Oficial'}</span>
               </button>
             </div>
 
             {/* Results Table */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                Parámetros Analizados para Autorización Técnica y Médica:
+                {isEn ? 'Analyzed Parameters for Technical & Medical Release:' : 'Parámetros Analizados para Autorización Técnica y Médica:'}
               </h4>
               <div className="overflow-x-auto border border-slate-800 rounded-2xl">
                 <table className="w-full text-left text-xs font-sans">
                   <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 font-black uppercase tracking-wider text-[10px]">
                     <tr>
-                      <th className="p-3">Parámetro</th>
-                      <th className="p-3">Valor Obtenido</th>
+                      <th className="p-3">{isEn ? 'Parameter' : 'Parámetro'}</th>
+                      <th className="p-3">{isEn ? 'Reported Value' : 'Valor Obtenido'}</th>
                       <th className="p-3">Ref. Range</th>
-                      <th className="p-3">Fuente / Equipo</th>
-                      <th className="p-3 text-center">Estado Flag</th>
+                      <th className="p-3">{isEn ? 'Source / Instrument' : 'Fuente / Equipo'}</th>
+                      <th className="p-3 text-center">{isEn ? 'Flag Status' : 'Estado Flag'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-medium text-slate-200">
@@ -177,7 +202,7 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black ${
                             r.flag?.includes('CRITICO') ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse' : r.flag === 'ALTO' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                           }`}>
-                            {r.flag === 'CRITICO_ALTO' ? '⚠️ CRÍTICO ALTO' : r.flag === 'CRITICO_BAJO' ? '⚠️ CRÍTICO BAJO' : r.flag || '✓ NORMAL'}
+                            {r.flag === 'CRITICO_ALTO' ? (isEn ? '⚠️ CRITICAL HIGH' : '⚠️ CRÍTICO ALTO') : r.flag === 'CRITICO_BAJO' ? (isEn ? '⚠️ CRITICAL LOW' : '⚠️ CRÍTICO BAJO') : r.flag || (isEn ? '✓ NORMAL' : '✓ NORMAL')}
                           </span>
                         </td>
                       </tr>
@@ -192,15 +217,42 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
           <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex items-center space-x-2 text-white font-bold text-sm">
               <Lock className="w-4 h-4 text-emerald-400" />
-              <span>Firma Electrónica / Biométrica de Idoneidad Médica</span>
+              <span>{isEn ? 'Biometric / Electronic Medical Authorization Signature' : 'Firma Electrónica / Biométrica de Idoneidad Médica'}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3" onContextMenu={(e) => e.preventDefault()}>
               <input
                 type="password"
-                placeholder="Ingrese su PIN de Firma (ej. 1234)"
-                value={signaturePin}
-                onChange={(e) => setSignaturePin(e.target.value)}
+                maxLength={4}
+                inputMode="numeric"
+                autoComplete="new-password"
+                placeholder={isEn ? 'Enter Signature PIN (4 Digits)' : 'Ingrese su PIN de Firma (4 Dígitos)'}
+                value={'•'.repeat(signaturePin.length)}
+                onChange={(e) => {
+                  const rawVal = e.target.value;
+                  const prevLen = signaturePin.length;
+                  if (rawVal.length < prevLen) {
+                    setSignaturePin(signaturePin.slice(0, rawVal.length));
+                  } else {
+                    const added = rawVal.replace(/•/g, '').replace(/\D/g, '');
+                    if (added) {
+                      setSignaturePin((prev) => (prev + added).slice(0, 4));
+                    }
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    setSignaturePin((prev) => prev.slice(0, -1));
+                  }
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+                  if (pasted) {
+                    setSignaturePin(pasted);
+                  }
+                }}
                 className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-amber-300 focus:border-emerald-400 outline-none"
               />
 
@@ -209,14 +261,18 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
                 className="bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center space-x-2"
               >
                 <ShieldCheck className="w-4 h-4 text-slate-950" />
-                <span>Validar y Emitir Firma SHA-256</span>
+                <span>{isEn ? 'Validate & Issue SHA-256 Signature' : 'Validar y Emitir Firma SHA-256'}</span>
               </button>
             </div>
 
             {isValidated && (
               <div className="text-xs text-emerald-300 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30 flex items-center space-x-2 font-semibold animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Orden autorizada y firmada. Expediente guardado en Bóveda de Auditoría Imputable Ley 81.</span>
+                <span>
+                  {isEn
+                    ? 'Order verified and medically signed. Audit record stored in Immutable Law 81 Vault.'
+                    : 'Orden autorizada y firmada. Expediente guardado en Bóveda de Auditoría Imputable Ley 81.'}
+                </span>
               </div>
             )}
           </div>

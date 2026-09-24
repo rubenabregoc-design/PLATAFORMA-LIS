@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Patient, Order, TestCatalogItem, TestResult, PatientImmediateNotificationRecord, NotificationLogItem } from '../../types';
+import { Patient, Order, TestCatalogItem, TestResult, PatientImmediateNotificationRecord, NotificationLogItem, Specimen } from '../../types';
 import {
   UserPlus, Search, ShieldCheck, FileText, Plus, CheckCircle2,
   DollarSign, AlertCircle, QrCode, Printer, User, Heart,
@@ -20,6 +20,8 @@ import { MOCK_RESULTS } from '../../data/mockData';
 import { SupabaseService } from '../../services/SupabaseService';
 import { notifyToast } from '../../utils/toastNotification';
 import { getTimeBasedGreeting } from '../../utils/greeting';
+import { useLisStore } from '../../store/useLisStore';
+import { ImageCompressor } from '../../utils/imageCompressor';
 
 interface ReceptionDashboardProps {
   patients: Patient[];
@@ -38,6 +40,9 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   onCreateOrder,
   onOpenPdf
 }) => {
+  const language = useLisStore((state) => state.language);
+  const isEn = language === 'EN';
+
   const [activeSubTab, setActiveSubTab] = useState<'ADMISSION' | 'TURNS' | 'MANAGEMENT' | 'PRINT' | 'PRINTERS'>('ADMISSION');
   const [activeCategory, setActiveCategory] = useState<string>('HEMATOLOGIA');
 
@@ -228,6 +233,57 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   const [createdOrderSummary, setCreatedOrderSummary] = useState<Order | null>(null);
   const [portalAccessCode, setPortalAccessCode] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
+
+  // 📸 Instant Prescription Attachment State (<0.2s client-side compression)
+  const [prescriptionAttachment, setPrescriptionAttachment] = useState<{
+    file: File;
+    dataUrl: string;
+    originalSize: string;
+    compressedSize: string;
+    ratio: number;
+    processingTimeMs: number;
+  } | null>(null);
+  const [isCompressingPrescription, setIsCompressingPrescription] = useState(false);
+
+  const handlePrescriptionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingPrescription(true);
+    const startTime = performance.now();
+
+    try {
+      const comp = await ImageCompressor.compressImage(file, {
+        maxWidth: 1600,
+        quality: 0.8,
+        format: 'image/webp'
+      });
+      const durationMs = Math.round(performance.now() - startTime);
+
+      setPrescriptionAttachment({
+        file: comp.file,
+        dataUrl: comp.dataUrl,
+        originalSize: ImageCompressor.formatBytes(comp.originalSizeBytes),
+        compressedSize: ImageCompressor.formatBytes(comp.compressedSizeBytes),
+        ratio: comp.compressionRatioPercent,
+        processingTimeMs: durationMs
+      });
+
+      notifyToast(
+        `✓ Receta optimizada en ${durationMs}ms: ${ImageCompressor.formatBytes(comp.originalSizeBytes)} ➔ ${ImageCompressor.formatBytes(comp.compressedSizeBytes)} (${comp.compressionRatioPercent}% de ahorro)`,
+        'success',
+        3500
+      );
+    } catch (err: any) {
+      notifyToast(
+        err.message || 'No se pudo procesar la imagen.',
+        'error',
+        4000
+      );
+    } finally {
+      setIsCompressingPrescription(false);
+    }
+  };
 
   // Helper to extract critical and high-priority status for an order
   const getOrderCriticalInfo = (order: Order) => {
@@ -515,8 +571,24 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       ? new Date().getFullYear() - new Date(patientToUse.dob).getFullYear()
       : 30;
 
+    // Group tests by required tubeType to generate physical specimens with distinct barcodes
+    const orderUniqueId = `ord-${Date.now()}`;
+    const requiredTubeTypes: string[] = Array.from(new Set(selectedTests.map(t => (t.tubeType || 'EDTA_MORADO') as string)));
+    const generatedSpecimens: Specimen[] = (requiredTubeTypes.length > 0 ? requiredTubeTypes : ['EDTA_MORADO']).map((tube, idx) => ({
+      id: `sp-${Date.now()}-${idx + 1}`,
+      orderId: orderUniqueId,
+      barcode: `BC-${Date.now().toString().slice(-6)}-${tube.split('_')[0]}`,
+      tubeType: tube,
+      status: 'PENDIENTE',
+      collectedAt: new Date().toISOString(),
+      phlebotomyTime: new Date().toISOString(),
+      sampleVolumeMl: tube === 'ORINA' ? 30 : tube === 'HECES' ? 10 : 4.0,
+      temperatureCondition: tube === 'HEPARINA_VERDE' ? 'BANO_HIELO' : 'AMBIENTE_20_25',
+      isSeparated: tube === 'SUERO_ROJO'
+    }));
+
     const newOrder: Order = {
-      id: `ord-${Date.now()}`,
+      id: orderUniqueId,
       tenantId: 'lab-san-jose',
       branchId: 'branch-via-espana',
       orderNumber: `ORD-2026-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -530,7 +602,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       createdAt: new Date().toISOString(),
       totalAmount,
       paymentStatus: 'PAGADO',
-      specimens: [{ id: `sp-${Date.now()}`, orderId: `ord-${Date.now()}`, barcode: `BC-${Date.now()}`, tubeType: 'EDTA', status: 'PENDIENTE' }],
+      specimens: generatedSpecimens,
       testIds: selectedTestIds
     };
 
@@ -698,33 +770,33 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-tight leading-none truncate">
-                SISTEMA DE ADMISIÓN, RECEPCIÓN Y TURNOS
+                {isEn ? 'PATIENT ADMISSION, RECEPTION & QUEUE SYSTEM' : 'SISTEMA DE ADMISIÓN, RECEPCIÓN Y TURNOS'}
               </h2>
               {/* Dynamic Greeting Pill */}
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 shadow-sm flex items-center space-x-1 shrink-0">
                 <span>👋</span>
-                <span>{getTimeBasedGreeting('ES')}, Recepción!</span>
+                <span>{getTimeBasedGreeting(language)}, {isEn ? 'Reception!' : 'Recepción!'}</span>
               </span>
               {activeAttendingTicketNumber && (
                 <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-400 text-slate-950 animate-pulse shadow shrink-0">
-                  Atendiendo: {activeAttendingTicketNumber}
+                  {isEn ? 'Attending:' : 'Atendiendo:'} {activeAttendingTicketNumber}
                 </span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-bold uppercase text-slate-400 mt-1.5">
               <div className="flex items-center space-x-1.5 text-emerald-400">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span>Terminal Activa</span>
+                <span>{isEn ? 'Active Terminal' : 'Terminal Activa'}</span>
               </div>
               <span>•</span>
               <div className="flex items-center space-x-1.5 text-teal-300">
                 <Printer className="w-3.5 h-3.5" />
-                <span>Impresión Automática: {autoPrintEnabled ? 'ACTIVADA' : 'MANUAL'} ({defaultPrinter.name.slice(0, 14)})</span>
+                <span>{isEn ? 'Auto-Print:' : 'Impresión Automática:'} {autoPrintEnabled ? (isEn ? 'ENABLED' : 'ACTIVADA') : 'MANUAL'} ({defaultPrinter.name.slice(0, 14)})</span>
               </div>
               <span>•</span>
               <div className="flex items-center space-x-1.5 text-rose-400 font-bold">
                 <Flame className="w-3.5 h-3.5" />
-                <span>Alertas Críticas: {criticalStats.criticalCount} ({criticalStats.pendingCount} Pend.)</span>
+                <span>{isEn ? 'Critical Alerts:' : 'Alertas Críticas:'} {criticalStats.criticalCount} ({criticalStats.pendingCount} {isEn ? 'Pend.' : 'Pend.'})</span>
               </div>
             </div>
           </div>
@@ -732,11 +804,11 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
         <nav className="flex items-center space-x-1.5 p-1.5 bg-slate-950/70 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar shrink-0 max-w-full">
           {[
-            { id: 'ADMISSION', label: 'Admisión y Registro', icon: UserPlus },
-            { id: 'TURNS', label: 'Turnos y Llamador', icon: Users },
-            { id: 'MANAGEMENT', label: 'Órdenes y Etiquetas', icon: Barcode, badge: criticalStats.pendingCount > 0 ? `${criticalStats.pendingCount} 🚨` : undefined },
-            { id: 'PRINT', label: 'Entrega de Resultados', icon: ShieldCheck },
-            { id: 'PRINTERS', label: 'Impresoras Térmicas', icon: Printer }
+            { id: 'ADMISSION', label: isEn ? 'Patient Intake & Admission' : 'Admisión y Registro', icon: UserPlus },
+            { id: 'TURNS', label: isEn ? 'Queue & Calling Display' : 'Turnos y Llamador', icon: Users },
+            { id: 'MANAGEMENT', label: isEn ? 'Orders & Tube Labels' : 'Órdenes y Etiquetas', icon: Barcode, badge: criticalStats.pendingCount > 0 ? `${criticalStats.pendingCount} 🚨` : undefined },
+            { id: 'PRINT', label: isEn ? 'Result Delivery' : 'Entrega de Resultados', icon: ShieldCheck },
+            { id: 'PRINTERS', label: isEn ? 'Thermal Printers' : 'Impresoras Térmicas', icon: Printer }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1229,18 +1301,23 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+                <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-thin">
                   {[
                     { id: 'HEMATOLOGIA', label: 'Hematología', color: 'bg-rose-500 text-white shadow-rose-500/30' },
-                    { id: 'QUIMICA', label: 'Química Clínica', color: 'bg-cyan-400 text-slate-950 shadow-cyan-500/30 font-black' },
-                    { id: 'INMUNOLOGIA', label: 'Inmunología', color: 'bg-indigo-500 text-white shadow-indigo-500/30' },
-                    { id: 'URINALISIS', label: 'Uroanálisis', color: 'bg-amber-400 text-slate-950 shadow-amber-500/30 font-black' },
                     { id: 'COAGULACION', label: 'Coagulación', color: 'bg-emerald-400 text-slate-950 shadow-emerald-500/30 font-black' },
+                    { id: 'QUIMICA', label: 'Química Clínica', color: 'bg-cyan-400 text-slate-950 shadow-cyan-500/30 font-black' },
+                    { id: 'URINALISIS', label: 'Uroanálisis', color: 'bg-amber-400 text-slate-950 shadow-amber-500/30 font-black' },
+                    { id: 'COPROLOGIA', label: 'Coprología', color: 'bg-yellow-600 text-white shadow-yellow-600/30 font-bold' },
+                    { id: 'SEROLOGIA', label: 'Serología', color: 'bg-fuchsia-500 text-white shadow-fuchsia-500/30 font-bold' },
+                    { id: 'INMUNOLOGIA', label: 'Inmunología', color: 'bg-indigo-500 text-white shadow-indigo-500/30' },
+                    { id: 'MICROBIOLOGIA', label: 'Microbiología', color: 'bg-teal-400 text-slate-950 shadow-teal-500/30 font-black' },
+                    { id: 'BANCO_SANGRE', label: 'Banco de Sangre', color: 'bg-red-600 text-white shadow-red-600/30 font-bold' },
+                    { id: 'GASOMETRIA_STAT', label: 'Urgencias / STAT', color: 'bg-orange-500 text-white shadow-orange-500/30 font-black' }
                   ].map(cat => (
                     <button
                       key={cat.id}
                       onClick={() => { setActiveCategory(cat.id); setTestSearchTerm(''); }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer whitespace-nowrap ${
                         activeCategory === cat.id && !testSearchTerm
                           ? `${cat.color} shadow-lg font-black`
                           : 'bg-slate-950 text-slate-400 hover:text-white border border-white/5'
@@ -1372,6 +1449,66 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${isPregnant ? 'left-5' : 'left-0.5'}`}></div>
                       </div>
                     </button>
+                  )}
+                </div>
+
+                {/* 📸 Instant Prescription / Order Camera Attachment (<0.2s) */}
+                <div className="p-3.5 bg-slate-950 border border-indigo-500/30 rounded-2xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 flex items-center space-x-2">
+                      <Camera className="w-4 h-4 text-indigo-400" />
+                      <span>Foto de Receta / Orden</span>
+                    </span>
+                    {prescriptionAttachment && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black">
+                        ⚡ {prescriptionAttachment.processingTimeMs}ms
+                      </span>
+                    )}
+                  </div>
+
+                  {prescriptionAttachment ? (
+                    <div className="flex items-center space-x-3 bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/40">
+                      <img
+                        src={prescriptionAttachment.dataUrl}
+                        alt="Receta Optimizada"
+                        className="w-11 h-11 object-cover rounded-lg border border-slate-700 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="text-[11px] font-bold text-white truncate">
+                          {prescriptionAttachment.file.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          {prescriptionAttachment.originalSize} ➔ <strong className="text-emerald-400 font-bold">{prescriptionAttachment.compressedSize}</strong> (-{prescriptionAttachment.ratio}%)
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPrescriptionAttachment(null)}
+                        className="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                        title="Eliminar foto"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`w-full flex items-center justify-center space-x-2 py-2.5 px-3 border border-dashed rounded-xl cursor-pointer transition ${
+                      isCompressingPrescription
+                        ? 'bg-indigo-950/40 border-indigo-500 text-indigo-300 animate-pulse'
+                        : 'border-slate-800 hover:border-indigo-400 bg-slate-900/50 hover:bg-slate-900 text-slate-400 hover:text-white'
+                    }`}>
+                      <Camera className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-xs font-bold">
+                        {isCompressingPrescription ? 'Comprimiendo en memoria...' : 'Tomar Foto o Subir Receta (<0.2 seg)'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePrescriptionUpload}
+                        className="hidden"
+                        disabled={isCompressingPrescription}
+                      />
+                    </label>
                   )}
                 </div>
 
@@ -1900,7 +2037,16 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   <button className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-teal-300 px-3 py-1.5 rounded-xl text-[9px] font-black transition-all">
                     <Smartphone size={14} /> SMS
                   </button>
-                  <button className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-emerald-300 px-3 py-1.5 rounded-xl text-[9px] font-black transition-all">
+                  <button
+                    onClick={() => {
+                      const patient = patients.find(p => p.id === createdOrderSummary.patientId);
+                      const phone = (patient?.phone || '').replace(/[^0-9]/g, '');
+                      const finalPhone = phone.startsWith('507') ? phone : `507${phone}`;
+                      const msg = `🏥 *${(createdOrderSummary as any).tenantName || 'LABORATORIO CLÍNICO'}*\n\nEstimado(a) *${createdOrderSummary.patientName}*,\nLe confirmamos el ingreso exitoso de su orden médica *${createdOrderSummary.orderNumber}*.\n\n🔑 *Código de Acceso:* ${portalAccessCode}\nConsulte sus resultados en: https://${window.location.host}/portal\n\n_Le notificaremos cuando sus análisis hayan sido completados._`;
+                      window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl text-[9px] font-black transition-all cursor-pointer"
+                  >
                     <Smartphone size={14} /> WHATSAPP
                   </button>
                 </div>

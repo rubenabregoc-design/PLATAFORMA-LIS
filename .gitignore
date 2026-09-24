@@ -9,4 +9,5 @@ coverage/
 supabase/.temp/
 .gradle/
 .vscode/
+.idea/
 *.gradle

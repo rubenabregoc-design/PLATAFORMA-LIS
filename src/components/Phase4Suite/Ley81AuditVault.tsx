@@ -713,7 +713,7 @@ export const Ley81AuditVault: React.FC<Ley81AuditVaultProps> = ({ tenant, branch
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'letter'
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();

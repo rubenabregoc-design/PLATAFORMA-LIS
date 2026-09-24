@@ -32,7 +32,7 @@ const CalibrationCertificatePDF: React.FC<CalibrationCertificatePDFProps> = ({ c
 
         {/* PDF Content Area */}
         <div className="flex-1 overflow-y-auto p-12 bg-slate-200/30 flex justify-center print:bg-white print:p-0">
-          <div className="w-[210mm] min-h-[297mm] bg-white shadow-xl p-[25mm] font-serif text-black border border-slate-100 print:shadow-none print:border-none print:w-full relative">
+          <div className="w-[8.5in] min-h-[11in] bg-white shadow-xl p-[18mm] font-serif text-black border border-slate-100 print:shadow-none print:border-none print:w-full print:p-0 relative">
 
             {/* Watermark */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none select-none">

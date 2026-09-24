@@ -19,12 +19,12 @@ import {
 } from 'lucide-react';
 
 interface ResultsAlertsCenterProps {
-  order: Order;
-  patient: Patient;
+  order?: Order;
+  patient?: Patient;
   results: TestResult[];
-  currentUser: User;
-  onUpdateInterpretation: (resultId: string, interpretation: string) => void;
-  onUpdateResultStatus: (resultId: string, status: TestResult['status']) => void;
+  currentUser?: User;
+  onUpdateInterpretation?: (resultId: string, interpretation: string) => void;
+  onUpdateResultStatus?: (resultId: string, status: TestResult['status']) => void;
 }
 
 export const ResultsAlertsCenter: React.FC<ResultsAlertsCenterProps> = ({
@@ -32,8 +32,8 @@ export const ResultsAlertsCenter: React.FC<ResultsAlertsCenterProps> = ({
   patient,
   results,
   currentUser,
-  onUpdateInterpretation,
-  onUpdateResultStatus
+  onUpdateInterpretation = (_resultId: string, _interpretation: string) => {},
+  onUpdateResultStatus = (_resultId: string, _status: TestResult['status']) => {}
 }) => {
   const [selectedPanicResult, setSelectedPanicResult] = useState<TestResult | null>(null);
   const [doctorName, setDoctorName] = useState('Dr. Roberto Arosemena (Urgencias)');
@@ -41,6 +41,18 @@ export const ResultsAlertsCenter: React.FC<ResultsAlertsCenterProps> = ({
   const [notificationNotes, setNotificationNotes] = useState('');
   const [isSubmittingNotification, setIsSubmittingNotification] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  if (!order) {
+    return (
+      <div className="bg-[#020617] border border-slate-800 rounded-3xl p-12 text-center text-slate-400">
+        <ShieldAlert className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-slate-200">Centro de Gestión de Alertas y Pánicos</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mt-2">
+          No hay órdenes con valores críticos o pánicos seleccionadas en este momento.
+        </p>
+      </div>
+    );
+  }
 
   // Filter alerts from results
   const criticalResults = results.filter(r => r.orderId === order.id && r.flag?.includes('CRITICO'));
@@ -119,7 +131,8 @@ export const ResultsAlertsCenter: React.FC<ResultsAlertsCenterProps> = ({
 
     setIsSubmittingNotification(true);
     setTimeout(() => {
-      const logText = `[CRÍTICO NOTIFICADO ISO 15189]: Notificado a ${doctorName} a las ${new Date().toLocaleTimeString()} por ${currentUser.name}. Confirmación de lectura retrógrada (Readback) OK. Obs: ${notificationNotes || 'Sin incidencias'}.`;
+      const techName = currentUser?.name || 'Tecnólogo de Turno';
+      const logText = `[CRÍTICO NOTIFICADO ISO 15189]: Notificado a ${doctorName} a las ${new Date().toLocaleTimeString()} por ${techName}. Confirmación de lectura retrógrada (Readback) OK. Obs: ${notificationNotes || 'Sin incidencias'}.`;
 
       onUpdateInterpretation(selectedPanicResult.id, logText);
       setIsSubmittingNotification(false);

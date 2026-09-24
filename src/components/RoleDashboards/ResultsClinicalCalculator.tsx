@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 
 interface ResultsClinicalCalculatorProps {
-  order: Order;
-  patient: Patient;
+  order?: Order;
+  patient?: Patient;
   results: TestResult[];
   onAddCalculatedResult?: (paramName: string, value: string, unit: string, refRange: string) => void;
 }
@@ -29,6 +29,18 @@ export const ResultsClinicalCalculator: React.FC<ResultsClinicalCalculatorProps>
 }) => {
   const [activeFormula, setActiveFormula] = useState<'ckd' | 'anion' | 'osm' | 'homa' | 'bili'>('ckd');
   const [copiedNote, setCopiedNote] = useState<string | null>(null);
+
+  if (!order) {
+    return (
+      <div className="bg-[#020617] border border-slate-800 rounded-3xl p-12 text-center text-slate-400">
+        <Calculator className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-slate-200">Calculadoras Clínicas Automatizadas</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mt-2">
+          No hay órdenes seleccionadas para aplicar fórmulas y cálculos clínicos.
+        </p>
+      </div>
+    );
+  }
 
   // Auto-fill from existing test results if found
   const findResultVal = (query: string): number => {

@@ -82,9 +82,9 @@ export const useHisStore = create<HisState>()(
       beds: REAL_HOSPITAL_BEDS,
       triageRecords: REAL_TRIAGE_RECORDS,
       admissions: REAL_ADMISSIONS,
-      soapNotes: MOCK_SOAP_NOTES,
-      medicationOrders: MOCK_MEDICATION_ORDERS,
-      kardexRecords: MOCK_KARDEX_RECORDS,
+      soapNotes: [],
+      medicationOrders: [],
+      kardexRecords: [],
 
       selectedAdmissionId: REAL_ADMISSIONS[0]?.id || null,
       selectedBedId: 'bed-urg-01',
@@ -95,6 +95,9 @@ export const useHisStore = create<HisState>()(
             beds: MOCK_HOSPITAL_BEDS,
             triageRecords: MOCK_TRIAGE_RECORDS,
             admissions: MOCK_HOSPITAL_ADMISSIONS,
+            soapNotes: MOCK_SOAP_NOTES,
+            medicationOrders: MOCK_MEDICATION_ORDERS,
+            kardexRecords: MOCK_KARDEX_RECORDS,
             selectedAdmissionId: MOCK_HOSPITAL_ADMISSIONS[0]?.id || null,
           });
         } else {
@@ -102,6 +105,9 @@ export const useHisStore = create<HisState>()(
             beds: REAL_HOSPITAL_BEDS,
             triageRecords: REAL_TRIAGE_RECORDS,
             admissions: REAL_ADMISSIONS,
+            soapNotes: [],
+            medicationOrders: [],
+            kardexRecords: [],
             selectedAdmissionId: REAL_ADMISSIONS[0]?.id || null,
           });
         }

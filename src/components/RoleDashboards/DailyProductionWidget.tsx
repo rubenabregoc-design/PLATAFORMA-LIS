@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Tenant, Branch, Order } from '../../types';
+import { useLisStore } from '../../store/useLisStore';
 import {
   BarChart3,
   CheckCircle2,
@@ -84,27 +85,112 @@ export const DailyProductionWidget: React.FC<DailyProductionWidgetProps> = ({
     return 1 / totalBranches + 0.15;
   }, [selectedBranchId, tenant.branches.length]);
 
+  const isDemoMode = useLisStore((state) => state.isDemoMode);
+
   // Dynamic Chart Data with calculated metrics
   const chartData = useMemo(() => {
-    let rawData = HOURLY_PRODUCTION_DATA;
-    if (timeframe === 'YESTERDAY') rawData = YESTERDAY_PRODUCTION_DATA;
-    if (timeframe === 'WEEK') rawData = WEEKLY_PRODUCTION_DATA;
+    if (isDemoMode) {
+      let rawData = HOURLY_PRODUCTION_DATA;
+      if (timeframe === 'YESTERDAY') rawData = YESTERDAY_PRODUCTION_DATA;
+      if (timeframe === 'WEEK') rawData = WEEKLY_PRODUCTION_DATA;
 
-    return rawData.map(item => {
-      const pruebas = Math.round(item.pruebas * branchMultiplier);
-      const validados = Math.min(pruebas, Math.round(item.validados * branchMultiplier));
+      return rawData.map(item => {
+        const pruebas = Math.round(item.pruebas * branchMultiplier);
+        const validados = Math.min(pruebas, Math.round(item.validados * branchMultiplier));
+        const pendientes = Math.max(0, pruebas - validados);
+        const tasaValidacion = pruebas > 0 ? Math.round((validados / pruebas) * 100) : 100;
+
+        return {
+          ...item,
+          pruebas,
+          validados,
+          pendientes,
+          tasaValidacion
+        };
+      });
+    }
+
+    // ── PRODUCCIÓN REAL BASADA EN BASE DE DATOS Y ÓRDENES ──
+    const relevantOrders = orders.filter(o => 
+      selectedBranchId === 'ALL' || o.branchId === selectedBranchId
+    );
+
+    if (timeframe === 'WEEK') {
+      const days = [
+        { key: 1, label: 'Lun', time: 'Lunes' },
+        { key: 2, label: 'Mar', time: 'Martes' },
+        { key: 3, label: 'Mié', time: 'Miércoles' },
+        { key: 4, label: 'Jue', time: 'Jueves' },
+        { key: 5, label: 'Vie', time: 'Viernes' },
+        { key: 6, label: 'Sáb', time: 'Sábado' },
+        { key: 0, label: 'Dom', time: 'Domingo' }
+      ];
+
+      return days.map(day => {
+        const dayOrders = relevantOrders.filter(o => {
+          if (!o.createdAt) return false;
+          return new Date(o.createdAt).getDay() === day.key;
+        });
+        const pruebas = dayOrders.reduce((sum, o) => sum + (o.testIds?.length || 1), 0);
+        const validados = dayOrders
+          .filter(o => o.status === 'COMPLETADO' || o.status === 'VALIDADO' || o.status === 'VALIDADO_MED' || o.status === 'VALIDADO_TEC')
+          .reduce((sum, o) => sum + (o.testIds?.length || 1), 0);
+        const pendientes = Math.max(0, pruebas - validados);
+        const tasaValidacion = pruebas > 0 ? Math.round((validados / pruebas) * 100) : 100;
+
+        return {
+          time: day.time,
+          label: day.label,
+          pruebas,
+          validados,
+          pendientes,
+          tasaValidacion,
+          hematologia: Math.round(pruebas * 0.4),
+          quimica: Math.round(pruebas * 0.4),
+          inmunologia: Math.round(pruebas * 0.2)
+        };
+      });
+    }
+
+    // For TODAY and YESTERDAY hourly curves
+    const hoursSlots = [
+      { start: 6, end: 8, label: '06:00 - 08:00', time: '06:00 - 08:00' },
+      { start: 8, end: 10, label: '08:00 - 10:00', time: '08:00 - 10:00' },
+      { start: 10, end: 12, label: '10:00 - 12:00', time: '10:00 - 12:00' },
+      { start: 12, end: 14, label: '12:00 - 14:00', time: '12:00 - 14:00' },
+      { start: 14, end: 16, label: '14:00 - 16:00', time: '14:00 - 16:00' },
+      { start: 16, end: 18, label: '16:00 - 18:00', time: '16:00 - 18:00' },
+      { start: 18, end: 20, label: '18:00 - 20:00', time: '18:00 - 20:00' },
+      { start: 20, end: 22, label: '20:00 - 22:00', time: '20:00 - 22:00' }
+    ];
+
+    return hoursSlots.map(slot => {
+      const slotOrders = relevantOrders.filter(o => {
+        if (!o.createdAt) return false;
+        const h = new Date(o.createdAt).getHours();
+        return h >= slot.start && h < slot.end;
+      });
+
+      const pruebas = slotOrders.reduce((sum, o) => sum + (o.testIds?.length || 1), 0);
+      const validados = slotOrders
+        .filter(o => o.status === 'COMPLETADO' || o.status === 'VALIDADO' || o.status === 'VALIDADO_MED' || o.status === 'VALIDADO_TEC')
+        .reduce((sum, o) => sum + (o.testIds?.length || 1), 0);
       const pendientes = Math.max(0, pruebas - validados);
       const tasaValidacion = pruebas > 0 ? Math.round((validados / pruebas) * 100) : 100;
 
       return {
-        ...item,
+        time: slot.time,
+        label: slot.label,
         pruebas,
         validados,
         pendientes,
-        tasaValidacion
+        tasaValidacion,
+        hematologia: Math.round(pruebas * 0.4),
+        quimica: Math.round(pruebas * 0.4),
+        inmunologia: Math.round(pruebas * 0.2)
       };
     });
-  }, [timeframe, branchMultiplier]);
+  }, [timeframe, branchMultiplier, isDemoMode, orders, selectedBranchId]);
 
   // Aggregate Total KPI Metrics
   const totalPruebas = useMemo(() => chartData.reduce((acc, curr) => acc + curr.pruebas, 0), [chartData]);

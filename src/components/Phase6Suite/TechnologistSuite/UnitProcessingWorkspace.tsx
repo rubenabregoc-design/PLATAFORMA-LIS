@@ -4,11 +4,11 @@ import { SupabaseService } from '../../../services/SupabaseService';
 import EpidemiologicalReportModal from './EpidemiologicalReportModal';
 
 interface UnitProcessingWorkspaceProps {
-  onClose: () => void;
-  onRefresh: () => void;
+  onClose?: () => void;
+  onRefresh?: () => void;
 }
 
-const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClose, onRefresh }) => {
+const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClose = () => {}, onRefresh = () => {} }) => {
   const [quarantineUnits, setQuarantineUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);

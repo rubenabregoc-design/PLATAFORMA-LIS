@@ -2,11 +2,26 @@ import React from 'react';
 import { Printer, X, ShieldCheck, Truck, Scale, AlertTriangle } from 'lucide-react';
 
 interface DisposalManifestPDFProps {
-  pickup: any;
-  onClose: () => void;
+  pickup?: any;
+  onClose?: () => void;
 }
 
-const DisposalManifestPDF: React.FC<DisposalManifestPDFProps> = ({ pickup, onClose }) => {
+const DEFAULT_PICKUP = {
+  manifest_number: 'MAN-2026-0042',
+  pickup_date: new Date().toISOString(),
+  total_weight_kg: 24.5,
+  company_name: 'SERVICIOS ECOLÓGICOS Y AMBIENTALES DE PANAMÁ, S.A.',
+  transport_company_ruc: '155234-1-849102 DV 40',
+  vehicle_plate: 'PA-94821',
+  driver_name: 'Carlos Mendoza (Lic. Profesional Tipo F)',
+  disposal_method: 'INCINERACION_TERMICA'
+};
+
+const DisposalManifestPDF: React.FC<DisposalManifestPDFProps> = ({ 
+  pickup = DEFAULT_PICKUP, 
+  onClose = () => {} 
+}) => {
+  const activePickup = pickup || DEFAULT_PICKUP;
   const now = new Date();
 
   return (
@@ -34,7 +49,7 @@ const DisposalManifestPDF: React.FC<DisposalManifestPDFProps> = ({ pickup, onClo
 
         {/* PDF Content Area */}
         <div className="flex-1 overflow-y-auto p-12 bg-slate-200/30 flex justify-center print:bg-white print:p-0">
-          <div className="w-[210mm] min-h-[297mm] bg-white shadow-xl p-[20mm] font-serif text-black border border-slate-100 print:shadow-none print:border-none print:w-full">
+          <div className="w-[8.5in] min-h-[11in] bg-white shadow-xl p-[16mm] font-serif text-black border border-slate-100 print:shadow-none print:border-none print:w-full print:p-0">
 
             {/* Header */}
             <div className="text-center border-b-2 border-black pb-6 mb-8">

@@ -329,7 +329,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
             </div>
             <div className="text-[10px] text-slate-400 flex items-center space-x-1">
               <Clock className="w-3 h-3 text-slate-500" />
-              <span>Orden #{order.orderNumber}</span>
+              <span>Orden #{order?.orderNumber || 'N/A'}</span>
             </div>
           </div>
 

@@ -117,10 +117,44 @@ export const BloodBankModule: React.FC = () => {
   const { isDemoMode, patients } = useLisStore();
   const { admissions } = useHisStore();
 
-  const [units, setUnits] = useState<BloodUnit[]>(isDemoMode ? INITIAL_UNITS : REAL_BLOOD_UNITS);
-  const [crossmatches, setCrossmatches] = useState<CrossmatchRequest[]>(isDemoMode ? INITIAL_CROSSMATCHES : REAL_CROSSMATCHES);
+  const [units, setUnits] = useState<BloodUnit[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_blood_units');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return isDemoMode ? INITIAL_UNITS : REAL_BLOOD_UNITS;
+  });
+  const [crossmatches, setCrossmatches] = useState<CrossmatchRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_blood_crossmatches');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return isDemoMode ? INITIAL_CROSSMATCHES : REAL_CROSSMATCHES;
+  });
   const [selectedGroup, setSelectedGroup] = useState<string>('TODOS');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lis_blood_units', JSON.stringify(units));
+    } catch (e) {
+      console.error('Error saving blood units to localStorage', e);
+    }
+  }, [units]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lis_blood_crossmatches', JSON.stringify(crossmatches));
+    } catch (e) {
+      console.error('Error saving blood crossmatches to localStorage', e);
+    }
+  }, [crossmatches]);
 
   // Synchronize when Demo/Production mode is toggled
   useEffect(() => {
@@ -128,8 +162,15 @@ export const BloodBankModule: React.FC = () => {
       setUnits(INITIAL_UNITS);
       setCrossmatches(INITIAL_CROSSMATCHES);
     } else {
-      setUnits(REAL_BLOOD_UNITS);
-      setCrossmatches(REAL_CROSSMATCHES);
+      try {
+        const savedU = localStorage.getItem('lis_blood_units');
+        const savedC = localStorage.getItem('lis_blood_crossmatches');
+        setUnits(savedU ? JSON.parse(savedU) : REAL_BLOOD_UNITS);
+        setCrossmatches(savedC ? JSON.parse(savedC) : REAL_CROSSMATCHES);
+      } catch {
+        setUnits(REAL_BLOOD_UNITS);
+        setCrossmatches(REAL_CROSSMATCHES);
+      }
     }
   }, [isDemoMode]);
 

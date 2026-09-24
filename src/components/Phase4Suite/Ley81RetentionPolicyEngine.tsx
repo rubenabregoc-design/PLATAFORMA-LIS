@@ -415,7 +415,7 @@ export const Ley81RetentionPolicyEngine: React.FC<Ley81RetentionPolicyEngineProp
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'letter'
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();

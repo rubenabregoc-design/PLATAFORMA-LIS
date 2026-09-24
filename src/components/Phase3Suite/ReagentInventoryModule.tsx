@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ReagentInventory, Tenant, Branch } from '../../types';
 import {
   Package,
@@ -130,7 +130,25 @@ export const ReagentInventoryModule: React.FC<ReagentInventoryModuleProps> = ({
   tenant,
   branch
 }) => {
-  const [reagents, setReagents] = useState<ReagentInventory[]>(INITIAL_REAGENTS);
+  const [reagents, setReagents] = useState<ReagentInventory[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_reagents');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REAGENTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lis_reagents', JSON.stringify(reagents));
+    } catch (e) {
+      console.error('Error saving reagents to localStorage', e);
+    }
+  }, [reagents]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'LOW_STOCK'>('ALL');
 

@@ -32,10 +32,15 @@ import {
 } from './parsers/hl7-parser.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Configuration
+// Configuration & Hybrid Sync (Local On-Prem + Cloud Supabase)
 // ──────────────────────────────────────────────────────────────────────────────
 
-const POSTGREST_URL = process.env.MIDDLEWARE_POSTGREST_URL || 'http://localhost:8000';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const POSTGREST_URL = process.env.MIDDLEWARE_POSTGREST_URL || process.env.VITE_SUPABASE_LOCAL_URL || 'http://localhost:8000';
+const CLOUD_URL = process.env.VITE_SUPABASE_CLOUD_URL || process.env.SUPABASE_CLOUD_URL;
+const CLOUD_KEY = process.env.VITE_SUPABASE_CLOUD_ANON_KEY || process.env.SUPABASE_CLOUD_ANON_KEY;
 const WS_PORT = parseInt(process.env.MIDDLEWARE_BRIDGE_PORT || '8765', 10);
 const TENANT_ID = process.env.MIDDLEWARE_TENANT_ID || 'lab-san-jose';
 
@@ -46,6 +51,22 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const configPath = path.join(__dirname, 'analyzers-config.json');
+
+// Local On-Premise Spool (Zero Data Loss on Internet / Cloud Outages)
+const SPOOL_DIR = path.join(__dirname, 'spool');
+if (!fs.existsSync(SPOOL_DIR)) {
+  fs.mkdirSync(SPOOL_DIR, { recursive: true });
+}
+
+function appendToLocalSpool(filename, record) {
+  try {
+    const filePath = path.join(SPOOL_DIR, filename);
+    const line = JSON.stringify(record) + '\n';
+    fs.appendFileSync(filePath, line, 'utf8');
+  } catch (err) {
+    console.error(`[SPOOL] Error escribiendo a disco local: ${err.message}`);
+  }
+}
 
 // Default Analyzers
 const DEFAULT_ANALYZERS = [
@@ -411,6 +432,17 @@ function handleAstmData(analyzerConfig, socket, data) {
             timestamp: new Date().toISOString()
           });
 
+          persistRawFrame({
+            id: `frm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            tenantId: TENANT_ID,
+            analyzerId: id,
+            analyzerName: name,
+            protocol: 'ASTM_E1381',
+            direction: 'INBOUND',
+            rawPayload: frameText,
+            timestamp: new Date().toISOString()
+          });
+
           if (checkResult.valid) {
             state.messageText += frameText + '\n';
             if (ackDelayMs > 0) {
@@ -635,6 +667,17 @@ async function processHl7Data(analyzerConfig, dataBuffer) {
 
     log(name, `Mensaje HL7 parseado: type=${parsed.messageType}, barcode=${barcode}, paciente=${patientName}, ${parsed.obx.length} OBX(s)`);
 
+    persistRawFrame({
+      id: `frm-hl7-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      tenantId: TENANT_ID,
+      analyzerId: id,
+      analyzerName: name,
+      protocol: 'HL7_V2',
+      direction: 'INBOUND',
+      rawPayload: messageText,
+      timestamp: new Date().toISOString()
+    });
+
     let matchedOrder = null;
     if (barcode) {
       matchedOrder = await queryOrderByBarcode(barcode);
@@ -782,32 +825,112 @@ async function queryOrderByBarcode(barcode) {
 }
 
 /**
- * Persist a result to the database via PostgREST.
+ * Persist raw frame to local disk spool and database via PostgREST.
+ */
+async function persistRawFrame(frameRecord) {
+  // 1. Inmediato en Disco Local (On-Premise Spool - Cero Pérdida ante cortes de internet)
+  const dateStr = new Date().toISOString().slice(0, 10);
+  appendToLocalSpool(`raw_frames_${dateStr}.jsonl`, {
+    ...frameRecord,
+    savedLocallyAt: new Date().toISOString()
+  });
+
+  // 2. Persistir a PostgREST Local
+  try {
+    const response = await fetch(`${POSTGREST_URL}/middleware_raw_frames`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        id: frameRecord.id,
+        tenant_id: frameRecord.tenantId,
+        analyzer_id: frameRecord.analyzerId,
+        protocol: frameRecord.protocol,
+        direction: frameRecord.direction,
+        raw_payload: frameRecord.rawPayload,
+        processed: true,
+        created_at: frameRecord.timestamp
+      })
+    });
+
+    if (response.ok || response.status === 201) {
+      log('DB', `✓ Trama cruda guardada en PostgreSQL Local (${frameRecord.analyzerName})`);
+    } else {
+      appendToLocalSpool('pending_sync_frames.jsonl', frameRecord);
+    }
+  } catch (err) {
+    log('DB', `PostgreSQL Local no disponible (${err.message}) — Trama en spool local.`);
+    appendToLocalSpool('pending_sync_frames.jsonl', frameRecord);
+  }
+
+  // 3. Replicar a Supabase Cloud (si está configurado)
+  if (CLOUD_URL && CLOUD_KEY && !CLOUD_URL.includes('localhost') && CLOUD_URL !== POSTGREST_URL) {
+    try {
+      const cloudRes = await fetch(`${CLOUD_URL}/rest/v1/middleware_raw_frames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CLOUD_KEY,
+          'Authorization': `Bearer ${CLOUD_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          id: frameRecord.id,
+          tenant_id: frameRecord.tenantId,
+          analyzer_id: frameRecord.analyzerId,
+          protocol: frameRecord.protocol,
+          direction: frameRecord.direction,
+          raw_payload: frameRecord.rawPayload,
+          processed: true,
+          created_at: frameRecord.timestamp
+        })
+      });
+      if (cloudRes.ok || cloudRes.status === 201) {
+        log('CLOUD', `☁ Trama replicada en Supabase Cloud`);
+      }
+    } catch (err) {
+      log('CLOUD', `Supabase Cloud offline o sin internet (${err.message}) — queda en cola.`);
+    }
+  }
+}
+
+/**
+ * Persist a result to local disk spool and database via PostgREST and Supabase Cloud.
  */
 async function persistResult(result, barcode, patientName) {
-  try {
-    const payload = {
-      id: result.id,
-      tenant_id: result.tenantId,
-      order_id: result.orderId || null,
-      test_id: result.testId || null,
-      parameter_id: result.parameterId || null,
-      parameter_name: result.parameterName,
-      unit: result.unit,
-      value: result.value,
-      numeric_value: result.numericValue,
-      flag: result.flag,
-      ref_range_text: result.refRangeText,
-      source: result.source,
-      analyzer_name: result.analyzerName,
-      status: result.status,
-      specimen_type: result.specimenType || null,
-      version: result.version || 1,
-      sample_barcode: barcode,
-      patient_name: patientName,
-      created_at: new Date().toISOString()
-    };
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const payload = {
+    id: result.id,
+    tenant_id: result.tenantId,
+    order_id: result.orderId || null,
+    test_id: result.testId || null,
+    parameter_id: result.parameterId || null,
+    parameter_name: result.parameterName,
+    unit: result.unit,
+    value: result.value,
+    numeric_value: result.numericValue,
+    flag: result.flag,
+    ref_range_text: result.refRangeText,
+    source: result.source,
+    analyzer_name: result.analyzerName,
+    status: result.status,
+    specimen_type: result.specimenType || null,
+    version: result.version || 1,
+    sample_barcode: barcode,
+    patient_name: patientName,
+    created_at: new Date().toISOString()
+  };
 
+  // 1. Respaldo local inmediato en disco (On-Premise Spool)
+  appendToLocalSpool(`results_${dateStr}.jsonl`, {
+    ...payload,
+    savedLocallyAt: new Date().toISOString()
+  });
+
+  // 2. Persistir a PostgREST Local
+  try {
     const response = await fetch(`${POSTGREST_URL}/results`, {
       method: 'POST',
       headers: {
@@ -818,15 +941,123 @@ async function persistResult(result, barcode, patientName) {
     });
 
     if (response.ok || response.status === 201) {
-      log('DB', `✓ Resultado persistido: ${result.parameterName}=${result.value} ${result.unit} (${barcode})`);
+      log('DB', `✓ Resultado guardado en PostgreSQL Local: ${result.parameterName}=${result.value} ${result.unit}`);
     } else {
       const errText = await response.text();
-      log('DB', `⚠ Error persistiendo resultado (${response.status}): ${errText}`);
+      log('DB', `⚠ Error en DB local (${response.status}): ${errText}`);
+      appendToLocalSpool('pending_sync_results.jsonl', payload);
     }
   } catch (err) {
-    log('DB', `Error de conexión con PostgREST: ${err.message} — resultado almacenado solo en WebSocket`);
+    log('DB', `Error conexión con DB local: ${err.message} — guardado en spool de disco.`);
+    appendToLocalSpool('pending_sync_results.jsonl', payload);
+  }
+
+  // 3. Replicar a Supabase Cloud (Espejo 1:1)
+  if (CLOUD_URL && CLOUD_KEY && !CLOUD_URL.includes('localhost') && CLOUD_URL !== POSTGREST_URL) {
+    try {
+      const cloudRes = await fetch(`${CLOUD_URL}/rest/v1/results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CLOUD_KEY,
+          'Authorization': `Bearer ${CLOUD_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (cloudRes.ok || cloudRes.status === 201) {
+        log('CLOUD', `☁ Resultado sincronizado a Supabase Cloud: ${result.parameterName} (${barcode})`);
+      }
+    } catch (err) {
+      log('CLOUD', `Supabase Cloud inaccesible (${err.message}) — guardado en cola para auto-sincronización.`);
+    }
   }
 }
+
+/**
+ * Auto-drain and retry synchronizing pending offline frames and results to Supabase
+ */
+async function flushOfflineSpool() {
+  const pendingFramesPath = path.join(SPOOL_DIR, 'pending_sync_frames.jsonl');
+  if (fs.existsSync(pendingFramesPath)) {
+    try {
+      const content = fs.readFileSync(pendingFramesPath, 'utf8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        log('SYNC', `Reintentando sincronizar ${lines.length} tramas pendientes con Supabase...`);
+        const remaining = [];
+        for (const line of lines) {
+          try {
+            const frame = JSON.parse(line);
+            const res = await fetch(`${POSTGREST_URL}/middleware_raw_frames`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+              body: JSON.stringify({
+                id: frame.id,
+                tenant_id: frame.tenantId,
+                analyzer_id: frame.analyzerId,
+                protocol: frame.protocol,
+                direction: frame.direction,
+                raw_payload: frame.rawPayload,
+                processed: true,
+                created_at: frame.timestamp
+              })
+            });
+            if (!res.ok && res.status !== 201) remaining.push(line);
+          } catch {
+            remaining.push(line);
+            break; // Stop on first network error to avoid hammering
+          }
+        }
+        if (remaining.length > 0) {
+          fs.writeFileSync(pendingFramesPath, remaining.join('\n') + '\n', 'utf8');
+        } else {
+          fs.unlinkSync(pendingFramesPath);
+          log('SYNC', '✓ Todas las tramas del spool offline sincronizadas exitosamente.');
+        }
+      }
+    } catch (err) {
+      log('SYNC', `Error procesando spool offline de tramas: ${err.message}`);
+    }
+  }
+
+  const pendingResultsPath = path.join(SPOOL_DIR, 'pending_sync_results.jsonl');
+  if (fs.existsSync(pendingResultsPath)) {
+    try {
+      const content = fs.readFileSync(pendingResultsPath, 'utf8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        log('SYNC', `Reintentando sincronizar ${lines.length} resultados pendientes con Supabase...`);
+        const remaining = [];
+        for (const line of lines) {
+          try {
+            const payload = JSON.parse(line);
+            const res = await fetch(`${POSTGREST_URL}/results`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok && res.status !== 201) remaining.push(line);
+          } catch {
+            remaining.push(line);
+            break;
+          }
+        }
+        if (remaining.length > 0) {
+          fs.writeFileSync(pendingResultsPath, remaining.join('\n') + '\n', 'utf8');
+        } else {
+          fs.unlinkSync(pendingResultsPath);
+          log('SYNC', '✓ Todos los resultados del spool offline sincronizados exitosamente.');
+        }
+      }
+    } catch (err) {
+      log('SYNC', `Error procesando spool offline de resultados: ${err.message}`);
+    }
+  }
+}
+
+// Start auto-drain worker every 30 seconds
+setInterval(flushOfflineSpool, 30000);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Logging

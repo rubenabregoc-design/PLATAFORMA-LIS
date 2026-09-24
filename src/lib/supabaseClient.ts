@@ -45,8 +45,29 @@ export interface DatabaseHealthStatus {
   latencyCloudMs: number | null;
 }
 
+/**
+ * Token JWT válido de 3 partes firmado con HS256 para PostgREST local (rol: postgres).
+ * Generado a partir de jwt-secret en postgrest.conf.
+ */
+export const LOCAL_POSTGREST_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJpc3MiOiJzdXBhYmFzZS1sb2NhbCIsImlhdCI6MTc4OTQ0NTcxNSwiZXhwIjoyMTA0ODA1NzE1fQ.jkWvPtkx0kPAi0WryyoM6xeT5x8AnGunfDrQ4PR9iFo';
+
+/**
+ * Interceptor de fetch para PostgREST local:
+ * PostgREST standalone en el puerto 8000 escucha en la raíz (ej. /orders),
+ * mientras que @supabase/supabase-js añade /rest/v1 por defecto.
+ * Este interceptor normaliza la ruta quitando /rest/v1 para peticiones a :8000.
+ */
+const customPostgrestFetch: typeof fetch = (input, init) => {
+  let url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+  if (url.includes(':8000/rest/v1')) {
+    url = url.replace(':8000/rest/v1', ':8000');
+  }
+  return fetch(url, init);
+};
+
 const localUrl = import.meta.env.VITE_SUPABASE_LOCAL_URL || 'http://localhost:8000';
-const localKey = import.meta.env.VITE_SUPABASE_LOCAL_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-placeholder';
+const rawLocalKey = import.meta.env.VITE_SUPABASE_LOCAL_ANON_KEY;
+const localKey = (rawLocalKey && rawLocalKey.split('.').length === 3) ? rawLocalKey : LOCAL_POSTGREST_JWT;
 
 const cloudUrl = import.meta.env.VITE_SUPABASE_CLOUD_URL || supabaseUrl || 'https://placeholder.supabase.co';
 const cloudKey = import.meta.env.VITE_SUPABASE_CLOUD_ANON_KEY || supabaseAnonKey || 'placeholder-key';
@@ -56,6 +77,9 @@ export const isLocalConfigured = Boolean(localUrl && !localUrl.includes('placeho
 export const isCloudConfigured = Boolean(cloudUrl && !cloudUrl.includes('placeholder'));
 
 export const supabaseLocal = createClient<Database>(localUrl, localKey, {
+  global: {
+    fetch: customPostgrestFetch,
+  },
   auth: {
     storageKey: 'sb-local-lis-auth-token',
     persistSession: false,
@@ -115,11 +139,23 @@ if (typeof globalThis.WebSocket === 'undefined' && typeof window === 'undefined'
 /**
  * Typed Supabase client — all .from() calls are inferred from Database schema.
  * See: src/database.types.ts (generated from supabase/migrations/20260810_initial_schema.sql)
+ * In HYBRID and LOCAL_FIRST modes, it defaults to the ultra-fast local PostgREST engine (http://localhost:8000).
  */
+const resolvedUrl = (DATABASE_MODE === 'LOCAL_FIRST' || DATABASE_MODE === 'HYBRID')
+  ? (localUrl || 'http://localhost:8000')
+  : (supabaseUrl || cloudUrl || 'https://placeholder.supabase.co');
+
+const resolvedKey = (DATABASE_MODE === 'LOCAL_FIRST' || DATABASE_MODE === 'HYBRID')
+  ? localKey
+  : (supabaseAnonKey || cloudKey || 'placeholder-key');
+
 export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
+  resolvedUrl,
+  resolvedKey,
   {
+    global: {
+      fetch: customPostgrestFetch,
+    },
     auth: {
       storageKey: 'sb-main-lis-auth-token',
       persistSession: true,

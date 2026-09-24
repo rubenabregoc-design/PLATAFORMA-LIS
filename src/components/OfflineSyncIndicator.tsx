@@ -26,8 +26,10 @@ import {
   Fingerprint
 } from 'lucide-react';
 import { offlineSyncManager, OfflineSyncItem } from '../utils/offlineSyncEngine';
+import { useLisStore } from '../store/useLisStore';
 
 export const OfflineSyncIndicator: React.FC = () => {
+  const { language } = useLisStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(offlineSyncManager.getConnectionStatus());
   const [isSimulated, setIsSimulated] = useState(offlineSyncManager.isSimulated());
@@ -149,7 +151,7 @@ export const OfflineSyncIndicator: React.FC = () => {
       {/* Header Pill Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        title="Estado de Sincronización y Persistencia Local Offline"
+        title={language === 'EN' ? "Offline Local Persistence & Synchronization Status" : "Estado de Sincronización y Persistencia Local Offline"}
         className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer select-none shrink-0 ${
           !isOnline
             ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/20 hover:bg-rose-900/80 animate-pulse'
@@ -170,8 +172,8 @@ export const OfflineSyncIndicator: React.FC = () => {
           {!isOnline
             ? 'OFFLINE'
             : isSyncing
-            ? 'SINCRONIZANDO'
-            : 'EN LÍNEA'}
+            ? (language === 'EN' ? 'SYNCING' : 'SINCRONIZANDO')
+            : (language === 'EN' ? 'ONLINE' : 'EN LÍNEA')}
         </span>
 
         {pendingCount > 0 && (
@@ -198,8 +200,12 @@ export const OfflineSyncIndicator: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <HardDrive className="w-5 h-5 text-teal-400" />
                 <div>
-                  <h4 className="font-bold text-sm text-white">Sincronización Offline & Buffer Local</h4>
-                  <p className="text-[10px] text-slate-400">Persistencia local ininterrumpida (ISO 15189)</p>
+                  <h4 className="font-bold text-sm text-white">
+                    {language === 'EN' ? 'Offline Sync & Local Buffer' : 'Sincronización Offline & Buffer Local'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    {language === 'EN' ? 'Continuous local persistence (ISO 15189)' : 'Persistencia local ininterrumpida (ISO 15189)'}
+                  </p>
                 </div>
               </div>
               <button
@@ -221,16 +227,22 @@ export const OfflineSyncIndicator: React.FC = () => {
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="flex items-center space-x-2">
                   {!isOnline ? <WifiOff className="w-4 h-4 text-rose-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
-                  <span>Enlace Middleware & Sockets:</span>
+                  <span>{language === 'EN' ? 'Middleware & Sockets Link:' : 'Enlace Middleware & Sockets:'}</span>
                 </span>
                 <span className="font-mono uppercase font-black">
-                  {!isOnline ? '🔴 Desconectado (Modo Local)' : '🟢 CONEXIÓN ACTIVA (SOCKET 3000)'}
+                  {!isOnline
+                    ? (language === 'EN' ? '🔴 Disconnected (Local Mode)' : '🔴 Desconectado (Modo Local)')
+                    : (language === 'EN' ? '🟢 ACTIVE CONNECTION (SOCKET 3000)' : '🟢 CONEXIÓN ACTIVA (SOCKET 3000)')}
                 </span>
               </div>
               <p className="text-[11px] opacity-85 leading-relaxed">
                 {!isOnline
-                  ? 'Los tecnólogos pueden continuar procesando analitos y escaneando tubos. Se guardan en el buffer criptográfico IndexedDB hasta restablecer el servidor central.'
-                  : 'El enlace con los analizadores ASTM/HL7 y el servidor PostgreSQL local está sincronizado en tiempo real.'}
+                  ? (language === 'EN'
+                      ? 'Technologists can continue processing analytes and scanning tubes. Everything is persisted in the encrypted client buffer until the central server is restored.'
+                      : 'Los tecnólogos pueden continuar procesando analitos y escaneando tubos. Se guardan en el buffer criptográfico IndexedDB hasta restablecer el servidor central.')
+                  : (language === 'EN'
+                      ? 'Real-time telemetry and bidirectional ASTM/HL7 analyzer link with local PostgreSQL database.'
+                      : 'El enlace con los analizadores ASTM/HL7 y el servidor PostgreSQL local está sincronizado en tiempo real.')}
               </p>
             </div>
 

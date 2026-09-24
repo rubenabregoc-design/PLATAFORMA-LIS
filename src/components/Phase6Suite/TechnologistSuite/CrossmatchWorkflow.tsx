@@ -3,13 +3,29 @@ import { ShieldCheck, Beaker, Thermometer, FlaskConical, AlertCircle, Save, X, C
 import { SupabaseService } from '../../../services/SupabaseService';
 
 interface CrossmatchWorkflowProps {
-  request: any;
-  availableUnits: any[];
-  onClose: () => void;
-  onComplete: () => void;
+  request?: any;
+  availableUnits?: any[];
+  onClose?: () => void;
+  onComplete?: () => void;
 }
 
-const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ request, availableUnits, onClose, onComplete }) => {
+const DEFAULT_CROSSMATCH_REQUEST = {
+  id: 'req-trans-01',
+  component_requested: 'RED_CELLS',
+  patients: {
+    first_name: 'David Alejandro',
+    last_name: 'Castillo',
+    national_id: '8-745-1922'
+  }
+};
+
+const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ 
+  request = DEFAULT_CROSSMATCH_REQUEST, 
+  availableUnits = [], 
+  onClose = () => {}, 
+  onComplete = () => {} 
+}) => {
+  const activeRequest = request || DEFAULT_CROSSMATCH_REQUEST;
   const [step, setStep] = useState(1);
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
   const [results, setResults] = useState({
@@ -29,7 +45,7 @@ const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ request, availa
       const { data: profile } = await SupabaseService.auth.getCurrentProfile() as any;
 
       await SupabaseService.bloodBank.performCrossmatch({
-        request_id: request.id,
+        request_id: activeRequest.id,
         unit_id: selectedUnit.id,
         technologist_id: profile?.id,
         method: results.method,
@@ -41,7 +57,7 @@ const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ request, availa
       });
 
       // Update request status
-      await SupabaseService.bloodBank.updateRequestStatus(request.id, isCompatible ? 'READY' : 'CANCELLED');
+      await SupabaseService.bloodBank.updateRequestStatus(activeRequest.id, isCompatible ? 'READY' : 'CANCELLED');
 
       onComplete();
     } catch (error) {
@@ -60,7 +76,7 @@ const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ request, availa
               Protocolo de Compatibilidad Pre-transfusional
             </h2>
             <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">
-              Paciente: {request.patients.first_name} {request.patients.last_name} ({request.patients.national_id})
+              Paciente: {activeRequest?.patients?.first_name || 'Paciente'} {activeRequest?.patients?.last_name || ''} ({activeRequest?.patients?.national_id || 'N/A'})
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -78,7 +94,7 @@ const CrossmatchWorkflow: React.FC<CrossmatchWorkflowProps> = ({ request, availa
                 Selección de Hemocomponente
               </h3>
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                {availableUnits.filter(u => u.component_type === request.component_requested).map(unit => (
+                {availableUnits.filter(u => !activeRequest?.component_requested || u.component_type === activeRequest.component_requested).map(unit => (
                   <div
                     key={unit.id}
                     onClick={() => setSelectedUnit(unit)}

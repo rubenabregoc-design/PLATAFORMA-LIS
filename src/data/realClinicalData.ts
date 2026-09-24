@@ -768,8 +768,8 @@ export const REAL_TRIAGE_RECORDS: TriageRecord[] = [
     patientNationalId: '8-415-2281',
     priority: 'NIVEL_2_NARANJA',
     chiefComplaint: 'Dolor precordial opresivo con irradiación a mandíbula y brazo izquierdo de 45 min de evolución, asociado a diaforesis.',
-    triageTimestamp: '2026-09-07T07:10:00Z',
-    status: 'ASIGNADO_A_CAMA',
+    triageTime: '2026-09-07T07:10:00Z',
+    status: 'ASIGNADO_CAMA',
     assignedBedId: 'bed-urg-01',
     vitals: {
       systolic: 155,
@@ -793,8 +793,8 @@ export const REAL_TRIAGE_RECORDS: TriageRecord[] = [
     patientNationalId: '3-705-1144',
     priority: 'NIVEL_2_NARANJA',
     chiefComplaint: 'Colisión vehicular leve con dolor abdominal en cuadrante superior izquierdo y equimosis en parrilla costal.',
-    triageTimestamp: '2026-09-07T11:15:00Z',
-    status: 'ASIGNADO_A_CAMA',
+    triageTime: '2026-09-07T11:15:00Z',
+    status: 'ASIGNADO_CAMA',
     assignedBedId: 'bed-urg-03',
     vitals: {
       systolic: 110,
@@ -828,7 +828,7 @@ export const REAL_ADMISSIONS: HospitalAdmission[] = [
     doctorLicense: 'MP-6612-PA',
     assignedBedId: 'bed-urg-01',
     primaryDiagnosisIcd10: 'I21.9 — Infarto Agudo del Miocardio sin otra especificación',
-    status: 'ACTIVO',
+    status: 'ACTIVA',
     allergies: ['Penicilina', 'Dipirona'],
     triageId: 'trg-real-001'
   },
@@ -845,7 +845,7 @@ export const REAL_ADMISSIONS: HospitalAdmission[] = [
     doctorLicense: 'MP-4821-PA',
     assignedBedId: 'bed-hosp-201',
     primaryDiagnosisIcd10: 'E11.9 — Diabetes Mellitus Tipo 2 no controlada',
-    status: 'ACTIVO',
+    status: 'ACTIVA',
     allergies: ['Sulfas']
   }
 ];

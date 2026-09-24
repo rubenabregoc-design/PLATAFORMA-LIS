@@ -41,22 +41,50 @@ const SecurityPinModal: React.FC<SecurityPinModalProps> = ({ onSuccess, onCancel
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 text-center">
+        <form onSubmit={handleSubmit} className="p-8 text-center" noValidate>
           <ShieldCheck size={48} className="mx-auto text-slate-200 mb-4" />
           <h3 className="text-lg font-black text-slate-800 mb-2">Autorizar Acción</h3>
           <p className="text-xs text-slate-500 mb-6 font-medium uppercase tracking-tight">{actionTitle}</p>
 
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="Ingrese su PIN de 4 dígitos"
-            maxLength={4}
-            autoFocus
-            className={`w-full p-4 bg-slate-100 border-2 rounded-2xl text-center text-2xl font-black tracking-[1em] focus:outline-none transition-all ${
-              error ? 'border-red-500 animate-shake' : 'border-transparent focus:border-teal-500'
-            }`}
-          />
+          <div onContextMenu={(e) => e.preventDefault()}>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              value={'•'.repeat(pin.length)}
+              onChange={(e) => {
+                const rawVal = e.target.value;
+                const prevLen = pin.length;
+                if (rawVal.length < prevLen) {
+                  setPin(pin.slice(0, rawVal.length));
+                } else {
+                  const added = rawVal.replace(/•/g, '').replace(/\D/g, '');
+                  if (added) {
+                    setPin((prev) => (prev + added).slice(0, 4));
+                  }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Backspace') {
+                  e.preventDefault();
+                  setPin((prev) => prev.slice(0, -1));
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+                if (pasted) {
+                  setPin(pasted);
+                }
+              }}
+              placeholder="••••"
+              maxLength={4}
+              autoFocus
+              className={`w-full p-4 bg-slate-100 border-2 rounded-2xl text-center text-2xl font-black tracking-[1em] focus:outline-none transition-all ${
+                error ? 'border-red-500 animate-shake' : 'border-transparent focus:border-teal-500'
+              }`}
+            />
+          </div>
 
           {error && (
             <div className="mt-4 flex items-center justify-center gap-2 text-red-600 text-xs font-bold">

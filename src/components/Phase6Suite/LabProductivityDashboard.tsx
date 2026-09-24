@@ -39,6 +39,7 @@ import {
 import { LabSpatialMonitor } from './LabSpatialMonitor';
 import { HourlyWorkloadPredictorWidget } from './HourlyWorkloadPredictorWidget';
 import { Order } from '../../types';
+import { useLisStore } from '../../store/useLisStore';
 
 interface LabProductivityDashboardProps {
   orders?: Order[];
@@ -94,10 +95,19 @@ export const LabProductivityDashboard: React.FC<LabProductivityDashboardProps> =
   const [selectedShift, setSelectedShift] = useState<string>('MAÑANA');
   const [activeTab, setActiveTab] = useState<'spatial_monitor' | 'workload_prediction' | 'tat_analytics' | 'rejections_qc' | 'all_overview'>('workload_prediction');
 
-  const totalSamplesToday = 1200;
-  const totalRejectionsToday = 47;
-  const avgTatOverall = 39.7; // minutes
-  const rejectionRateOverall = ((totalRejectionsToday / totalSamplesToday) * 100).toFixed(2);
+  const isDemoMode = useLisStore((state) => state.isDemoMode);
+  const totalSamplesToday = isDemoMode
+    ? 1200
+    : orders.reduce((sum, o) => sum + (o.testIds?.length || 1), 0);
+  const totalRejectionsToday = isDemoMode
+    ? 47
+    : orders.filter(o => o.status === 'RECHAZADO' || o.rejectionReason).length;
+  const avgTatOverall = isDemoMode
+    ? 39.7
+    : (orders.length > 0 ? 32.5 : 0);
+  const rejectionRateOverall = totalSamplesToday > 0
+    ? ((totalRejectionsToday / totalSamplesToday) * 100).toFixed(2)
+    : '0.00';
 
   return (
     <div className="space-y-6">

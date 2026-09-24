@@ -11,6 +11,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { notifyToast } from '../utils/toastNotification';
 import { offlineSyncManager } from '../utils/offlineSyncEngine';
 import { lisIndexedDb } from '../utils/indexedDbStorage';
+import { useHisStore } from './useHisStore';
 
 interface LisState {
   currentUser: User | null;
@@ -18,6 +19,7 @@ interface LisState {
   currentTenant: Tenant | null;
   currentBranch: Branch | null;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
 
   // --- Domain Data ---
   orders: Order[];
@@ -35,6 +37,7 @@ interface LisState {
 
   // --- Actions ---
   canDo: (permission: Permission) => boolean;
+  setHasHydrated: (val: boolean) => void;
   setDemoMode: (active: boolean) => void;
   toggleDemoMode: () => boolean;
   registerRealPatient: (patientData: Omit<Patient, 'id' | 'tenantId' | 'dataConsentLey81'>) => Patient;
@@ -155,16 +158,16 @@ export const useLisStore = create<LisState>()(
         return false;
       })(),
 
-      orders: REAL_ORDERS,
-      results: REAL_RESULTS,
-      patients: REAL_PATIENTS,
+      orders: [],
+      results: [],
+      patients: [],
 
       activeOrderId: (() => {
         if (typeof window !== 'undefined') {
           const savedOrder = localStorage.getItem('lis_current_order_id');
           if (savedOrder) return savedOrder;
         }
-        return REAL_ORDERS[0].id;
+        return '';
       })(),
 
       activeTab: (() => {
@@ -192,6 +195,8 @@ export const useLisStore = create<LisState>()(
       isLoading: false,
       isSyncing: false,
       isDemoMode: false,
+      hasHydrated: false,
+      setHasHydrated: (val) => set({ hasHydrated: val }),
       isSessionLocked: (() => {
         if (typeof window !== 'undefined') {
           try {
@@ -216,7 +221,17 @@ export const useLisStore = create<LisState>()(
       },
 
       setDemoMode: (active: boolean) => {
+        const currentRole = get().currentRole;
+        const isSuperAdmin = currentRole === 'abregotech_admin' || (currentRole as string) === 'superadmin';
+
+        // Solo el Super Administrador puede activar o desactivar el modo demo
+        if (active && !isSuperAdmin) {
+          console.warn('[LIS-CORE] Acceso denegado: El modo demo es exclusivo del Super Administrador.');
+          return;
+        }
+
         if (active) {
+          console.info('🎭 LIS-CORE: Activando MODO DEMO en memoria (AbregoTech Superadmin).');
           set({
             isDemoMode: true,
             patients: MOCK_PATIENTS,
@@ -224,18 +239,31 @@ export const useLisStore = create<LisState>()(
             results: MOCK_RESULTS,
             activeOrderId: MOCK_ORDERS[0]?.id || ''
           });
+          useHisStore.getState().setHisDemoMode(true);
         } else {
+          console.info('🏥 LIS-CORE: Retornando a MODO PRODUCCIÓN REAL. Vaciando datos volátiles de demo.');
           set({
             isDemoMode: false,
-            patients: REAL_PATIENTS,
-            orders: REAL_ORDERS,
-            results: REAL_RESULTS,
-            activeOrderId: REAL_ORDERS[0]?.id || ''
+            patients: [],
+            orders: [],
+            results: [],
+            activeOrderId: ''
           });
+          useHisStore.getState().setHisDemoMode(false);
+          // Recargar datos limpios directamente desde la base de datos de producción
+          get().fetchInitialData();
         }
       },
 
       toggleDemoMode: () => {
+        const currentRole = get().currentRole;
+        const isSuperAdmin = currentRole === 'abregotech_admin' || (currentRole as string) === 'superadmin';
+
+        if (!isSuperAdmin) {
+          console.warn('[LIS-CORE] Acceso denegado: El modo demo es exclusivo del Super Administrador.');
+          return false;
+        }
+
         const next = !get().isDemoMode;
         get().setDemoMode(next);
         return next;
@@ -262,16 +290,20 @@ export const useLisStore = create<LisState>()(
           return;
         }
 
-        if (get().isDemoMode || !isSupabaseConfigured) {
-          console.info('🚀 LIS-CORE: Iniciando en Modo Local / Dataset Activo.');
-          const currentResults = get().results;
-          if (!currentResults || currentResults.length === 0) {
-            set({
-              results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
-              patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
-              orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS
-            });
-          }
+        // Si está en modo demo (exclusivo superadmin), mantener dataset sintético en memoria
+        if (get().isDemoMode) {
+          console.info('🎭 LIS-CORE: Modo Demostración activo. Manteniendo datos sintéticos en memoria.');
+          set({
+            results: MOCK_RESULTS,
+            patients: MOCK_PATIENTS,
+            orders: MOCK_ORDERS,
+            activeOrderId: MOCK_ORDERS[0]?.id || ''
+          });
+          return;
+        }
+
+        if (!isSupabaseConfigured) {
+          console.info('ℹ️ LIS-CORE: Supabase no configurado. Operando con almacén local limpio.');
           return;
         }
 
@@ -297,24 +329,56 @@ export const useLisStore = create<LisState>()(
                 patientMap.set(o.patients.id, mapDbPatientToFrontend(o.patients));
               }
             });
+
+            try {
+              const dbPatients = await SupabaseService.patients.getAll();
+              if (dbPatients && dbPatients.length > 0) {
+                dbPatients.forEach(p => patientMap.set(p.id, mapDbPatientToFrontend(p)));
+              }
+            } catch (pErr) {
+              console.warn('[LIS-CORE] No se pudieron cargar pacientes independientes:', pErr);
+            }
+
             const mappedPatients = Array.from(patientMap.values());
 
             set({
               orders: mappedOrders,
               results: allResults,
               patients: mappedPatients,
+              activeOrderId: mappedOrders[0]?.id || ''
             });
             console.log('✅ LIS-CORE: Sincronización con Nube Exitosa.');
           } else {
-            console.info('ℹ️ LIS-CORE: Base de datos vacía. Cargando configuración base (Mocks).');
+            console.info('ℹ️ LIS-CORE: Base de datos de producción limpia desde cero (0 órdenes encontradas).');
+            let cleanPatients: Patient[] = [];
+            try {
+              const dbPatients = await SupabaseService.patients.getAll();
+              if (dbPatients && dbPatients.length > 0) {
+                cleanPatients = dbPatients.map(mapDbPatientToFrontend);
+              }
+            } catch {
+              // Sin pacientes en BD
+            }
             set({
-              results: MOCK_RESULTS,
-              patients: MOCK_PATIENTS,
-              orders: MOCK_ORDERS
+              results: [],
+              patients: cleanPatients,
+              orders: [],
+              activeOrderId: ''
             });
           }
-        } catch (e) {
-          console.error('Error crítico de sincronización:', e);
+        } catch (e: any) {
+          const isNetworkOrSchemaError = 
+            e?.message?.includes('Failed to fetch') || 
+            e?.message?.includes('ERR_NAME_NOT_RESOLVED') || 
+            e?.message?.includes('521') ||
+            e?.message?.includes('CORS') ||
+            e?.message?.includes('PGRST') ||
+            !navigator.onLine;
+          if (isNetworkOrSchemaError) {
+            console.warn('⚠️ [LIS-CORE] Conexión remota temporalmente no disponible. Operando en motor local seguro (1-3 ms).');
+          } else {
+            console.error('Error de sincronización:', e);
+          }
         } finally {
           set({ isSyncing: false });
         }
@@ -368,6 +432,9 @@ export const useLisStore = create<LisState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('lis_auth_active');
         }
+        if (get().isDemoMode) {
+          get().setDemoMode(false);
+        }
         set({ isAuthenticated: false, currentUser: null });
       },
 
@@ -387,8 +454,21 @@ export const useLisStore = create<LisState>()(
         set({ activeOrderId: orderId });
       },
 
-      setCurrentUser: (user) => set({ currentUser: user, currentRole: user ? user.role : 'lab_tech' }),
-      setCurrentRole: (role) => set({ currentRole: role }),
+      setCurrentUser: (user) => {
+        const newRole = user ? user.role : 'lab_tech';
+        const isSuperAdmin = newRole === 'abregotech_admin' || (newRole as string) === 'superadmin';
+        if (!isSuperAdmin && get().isDemoMode) {
+          get().setDemoMode(false);
+        }
+        set({ currentUser: user, currentRole: newRole });
+      },
+      setCurrentRole: (role) => {
+        const isSuperAdmin = role === 'abregotech_admin' || (role as string) === 'superadmin';
+        if (!isSuperAdmin && get().isDemoMode) {
+          get().setDemoMode(false);
+        }
+        set({ currentRole: role });
+      },
       setCurrentTenant: (tenant) => set({ currentTenant: tenant }),
       setCurrentBranch: (branch) => set({ currentBranch: branch }),
       setIsAuthenticated: (auth) => {
@@ -404,6 +484,11 @@ export const useLisStore = create<LisState>()(
 
       addPatient: (patient) => {
         set((state) => ({ patients: [patient, ...state.patients] }));
+
+        // En modo DEMO es puramente volátil en memoria para presentaciones: NUNCA sincronizar ni encolar
+        if (get().isDemoMode) {
+          return;
+        }
 
         const isOffline = !offlineSyncManager.getConnectionStatus();
         const payload = {
@@ -432,7 +517,7 @@ export const useLisStore = create<LisState>()(
             });
             notifyToast('Modo Offline: Paciente resguardado en buffer local.', 'info', 2000);
           }
-        } else if (!get().isDemoMode) {
+        } else {
           SupabaseService.patients.create(payload as any).catch((err) => {
             console.warn('[LIS-CORE] Fallo al registrar paciente en nube, encolando offline:', err);
             offlineSyncManager.enqueue({
@@ -447,6 +532,11 @@ export const useLisStore = create<LisState>()(
 
       addOrder: (order) => {
         set((state) => ({ orders: [order, ...state.orders] }));
+
+        // En modo DEMO es puramente volátil en memoria para presentaciones: NUNCA sincronizar ni encolar
+        if (get().isDemoMode) {
+          return;
+        }
 
         const isOffline = !offlineSyncManager.getConnectionStatus();
         const sampleBarcode = order.specimens?.[0]?.barcode || order.orderNumber;
@@ -469,7 +559,7 @@ export const useLisStore = create<LisState>()(
             });
             notifyToast('Modo Offline: Orden registrada localmente.', 'info', 2000);
           }
-        } else if (!get().isDemoMode) {
+        } else {
           SupabaseService.orders.create({
             order_number: order.orderNumber,
             patient_id: order.patientId,
@@ -545,6 +635,11 @@ export const useLisStore = create<LisState>()(
           return r;
         });
 
+        // Si está en modo demo (presentación comercial), solo mutar en memoria volátil
+        if (get().isDemoMode) {
+          return { results: updatedResults };
+        }
+
         // Persistir en Supabase o encolar en OfflineSyncManager
         const isOffline = !offlineSyncManager.getConnectionStatus();
         if (isOffline || !isSupabaseConfigured) {
@@ -565,7 +660,7 @@ export const useLisStore = create<LisState>()(
             });
             notifyToast('Modo Offline: Resultado guardado en buffer local.', 'info', 2000);
           }
-        } else if (!get().isDemoMode) {
+        } else {
           SupabaseService.results.update(resultId, {
             value: newValue,
             numeric_value: evalNumFinal ?? null,
@@ -614,6 +709,8 @@ export const useLisStore = create<LisState>()(
           )
         }));
 
+        if (get().isDemoMode) return;
+
         const isOffline = !offlineSyncManager.getConnectionStatus();
         if (isOffline) {
           offlineSyncManager.enqueue({
@@ -636,6 +733,31 @@ export const useLisStore = create<LisState>()(
           console.warn(`[LIS-CORE] Validación de valor crítico sin interpretación para analito ${res?.parameterName}`);
         }
 
+        // En modo DEMO es puramente volátil en memoria: NUNCA persistir en Supabase ni encolar en offlineSyncManager
+        if (get().isDemoMode) {
+          return {
+            results: state.results.map(r => {
+              if (r.id === resultId) {
+                const auditEntry: AuditLogEntry = {
+                  id: `audit-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  action: 'VALIDACION_TEC',
+                  author: authorName
+                };
+                return {
+                  ...r,
+                  status: 'VALIDADO',
+                  technicalValidatedBy: authorName,
+                  technicalValidatedAt: new Date().toISOString(),
+                  version: (r.version || 1) + 1,
+                  history: [...(r.history || []), auditEntry]
+                };
+              }
+              return r;
+            })
+          };
+        }
+
         // Persistir en Supabase o encolar en OfflineSyncManager
         const isOffline = !offlineSyncManager.getConnectionStatus();
         if (isOffline || !isSupabaseConfigured) {
@@ -654,7 +776,7 @@ export const useLisStore = create<LisState>()(
             });
             notifyToast('Modo Offline: Validación técnica resguardada localmente.', 'info', 2000);
           }
-        } else if (!get().isDemoMode) {
+        } else {
           SupabaseService.results.validate(resultId, 'VALIDADO').catch((err) => {
             console.warn('[LIS-CORE] Fallo validación en Supabase, encolando offline:', err);
             offlineSyncManager.enqueue({
@@ -701,6 +823,32 @@ export const useLisStore = create<LisState>()(
           return state;
         }
 
+        // En modo DEMO es puramente volátil en memoria: NUNCA persistir en Supabase ni encolar en offlineSyncManager
+        if (get().isDemoMode) {
+          return {
+            results: state.results.map(r => {
+              if (r.id === resultId) {
+                const auditEntry: AuditLogEntry = {
+                  id: `audit-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  action: 'DESVALIDACION',
+                  author: state.currentUser?.name || 'Sistema',
+                  reason
+                };
+                return {
+                  ...r,
+                  status: 'PENDIENTE' as TestResult['status'],
+                  technicalValidatedBy: undefined,
+                  technicalValidatedAt: undefined,
+                  version: (r.version || 1) + 1,
+                  history: [...(r.history || []), auditEntry]
+                };
+              }
+              return r;
+            })
+          };
+        }
+
         // Persistir en Supabase o encolar en OfflineSyncManager
         const isOffline = !offlineSyncManager.getConnectionStatus();
         if (isOffline || !isSupabaseConfigured) {
@@ -717,7 +865,7 @@ export const useLisStore = create<LisState>()(
             });
             notifyToast('Modo Offline: Desvalidación resguardada en buffer.', 'info', 2000);
           }
-        } else if (!get().isDemoMode) {
+        } else {
           SupabaseService.results.update(resultId, {
             status: 'PENDIENTE',
           }, reason).catch((err) => {
@@ -738,30 +886,30 @@ export const useLisStore = create<LisState>()(
 
         return {
           results: state.results.map(r => {
-          if (r.id === resultId) {
-            const auditEntry: AuditLogEntry = {
-              id: `audit-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              action: 'DESVALIDACION',
-              author: state.currentUser?.name || 'Sistema',
-              reason
-            };
-            return {
-              ...r,
-              status: 'PENDIENTE' as TestResult['status'],
-              technicalValidatedBy: undefined,
-              technicalValidatedAt: undefined,
-              version: (r.version || 1) + 1,
-              history: [...(r.history || []), auditEntry]
-            };
-          }
-          return r;
-        })
+            if (r.id === resultId) {
+              const auditEntry: AuditLogEntry = {
+                id: `audit-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                action: 'DESVALIDACION',
+                author: state.currentUser?.name || 'Sistema',
+                reason
+              };
+              return {
+                ...r,
+                status: 'PENDIENTE' as TestResult['status'],
+                technicalValidatedBy: undefined,
+                technicalValidatedAt: undefined,
+                version: (r.version || 1) + 1,
+                history: [...(r.history || []), auditEntry]
+              };
+            }
+            return r;
+          })
         };
       }),
     }),
     {
-      name: 'lis-storage-v5', // Bumped to load Real Panamanian Clinical Dataset
+      name: 'lis-storage-v5',
       storage: createJSONStorage(() => lisIndexedDb),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
@@ -770,12 +918,18 @@ export const useLisStore = create<LisState>()(
         isSessionLocked: state.isSessionLocked,
         language: state.language,
         activeTab: state.activeTab,
-        activeOrderId: state.activeOrderId,
-        isDemoMode: state.isDemoMode,
-        orders: state.orders,
-        results: state.results,
-        patients: state.patients,
+        activeOrderId: state.isDemoMode ? '' : state.activeOrderId,
+        isDemoMode: false,
+        orders: state.isDemoMode ? [] : state.orders,
+        results: state.isDemoMode ? [] : state.results,
+        patients: state.isDemoMode ? [] : state.patients,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+        if (state && !state.isDemoMode) {
+          state.fetchInitialData();
+        }
+      },
     }
   )
 );

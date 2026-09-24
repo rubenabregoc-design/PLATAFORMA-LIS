@@ -224,6 +224,60 @@ export const ISO_STABILITY_RULES: Record<string, TubeStabilityRule> = {
       'Contar en cámara de Neubauer dentro de los primeros 30 minutos de punción lumbar.',
       'No refrigerar el tubo destinado a cultivo microbiológico (preservar Neisseria meningitidis).'
     ]
+  },
+
+  HECES: {
+    tubeType: 'HECES',
+    displayName: 'Muestra Fecal / Coprológico (Envase Hermético)',
+    colorHex: '#ca8a04',
+    capColorName: 'Marrón / Tapón con Espátula',
+    department: 'Coprología & Parasitología Clínica',
+    maxStabilityMinutesRoomTemp: 120, // 2 horas para trofozoítos móviles
+    maxStabilityMinutesRefrigerated: 1440, // 24 horas (2-8°C para quistes/huevos)
+    maxCentrifugationDelayMinutes: 120,
+    isoStandardRef: 'ISO 15189:2022 §7.2.4 / CDC DPDx Parasitology Guidelines',
+    clsiGuideline: 'CLSI M28-A2 (Procedures for the Recovery and Identification of Parasites)',
+    criticalAnalytesAffected: ['Trofozoítos de Giardia y Entamoeba', 'Leucocitos Fecales', 'pH Fecal'],
+    degradationBiases: [
+      {
+        analyte: 'Trofozoítos de Protozoarios Móviles',
+        mechanism: 'Pérdida de motilidad y lisis citoplasmática a temperatura ambiente',
+        biasDescription: 'Destrucción completa de trofozoítos amebianos en muestras diarreicas tras > 60-120 min.',
+        clinicalImpact: 'Falso negativo en amebiasis intestinal aguda invasiva.'
+      }
+    ],
+    handlingRecommendations: [
+      'Examinar muestras diarreicas líquidas en fresco dentro de 30-60 minutos.',
+      'Si se requiere coprológico general, conservar refrigerado entre 2°C y 8°C hasta 24 horas.',
+      'Para sangre oculta inmunológica (FIT), no requiere restricción dietética.'
+    ]
+  },
+
+  MICROBIOLOGIA: {
+    tubeType: 'MICROBIOLOGIA',
+    displayName: 'Cultivos & Hisopados (Medio de Transporte / Hemocultivo)',
+    colorHex: '#0d9488',
+    capColorName: 'Teal / Medio Stuart/Amies / Frasco Hemocultivo',
+    department: 'Microbiología Clínica & Antibiogramas',
+    maxStabilityMinutesRoomTemp: 240, // 4 horas
+    maxStabilityMinutesRefrigerated: 1440, // 24 horas para orina de cultivo; hemocultivos a temp ambiente
+    maxCentrifugationDelayMinutes: 240,
+    isoStandardRef: 'ISO 15189:2022 §7.2.4 / CLSI M100-ED33',
+    clsiGuideline: 'CLSI M22-A3 & M40-A2 (Quality Control for Microbiological Media)',
+    criticalAnalytesAffected: ['Recuento de Colonias (UFC/mL)', 'Bacterias Exigentes (Streptococcus, Haemophilus)', 'Viabilidad en Hemocultivos'],
+    degradationBiases: [
+      {
+        analyte: 'Urocultivo & Cultivo de Secreciones',
+        mechanism: 'Sobrecrecimiento de flora comensal y muerte de bacterias patógenas exigentes',
+        biasDescription: 'Sobreestimación de UFC/mL por duplicación bacteriana en orina a temperatura ambiente.',
+        clinicalImpact: 'Falso diagnóstico de bacteriuria significativa y uso inapropiado de antibióticos.'
+      }
+    ],
+    handlingRecommendations: [
+      'Inocular medios de cultivo lo antes posible (ideal < 2 horas tras recolección).',
+      'Las botellas de hemocultivo NUNCA deben refrigerarse; mantener a 20-25°C hasta su ingreso al incubador automatizado.',
+      'Emplear hisopos con medio Stuart o Amies para preservar viabilidad bacteriana.'
+    ]
   }
 };
 
@@ -283,6 +337,12 @@ export function normalizeTubeType(rawTubeType?: string): string {
   }
   if (upper.includes('LCR') || upper.includes('CEFALO') || upper.includes('LIQUIDO')) {
     return 'LCR';
+  }
+  if (upper.includes('HECES') || upper.includes('COPRO') || upper.includes('PARASIT')) {
+    return 'HECES';
+  }
+  if (upper.includes('CULTIVO') || upper.includes('HEMOCULTIVO') || upper.includes('HISOPADO') || upper.includes('MICRO')) {
+    return 'MICROBIOLOGIA';
   }
   return 'SUERO_ROJO';
 }

@@ -3,6 +3,8 @@ import { Tenant, Branch, Order } from '../../types';
 import { DollarSign, Activity, Building2, Clock, Zap, Package, ChevronRight, TrendingUp } from 'lucide-react';
 import { DailyProductionWidget } from './DailyProductionWidget';
 import { getTimeBasedGreeting } from '../../utils/greeting';
+import { useLisStore } from '../../store/useLisStore';
+import { getBranchName } from '../../utils/i18n';
 
 interface OwnerDashboardProps {
   tenant: Tenant;
@@ -11,9 +13,15 @@ interface OwnerDashboardProps {
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, orders }) => {
-  const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0) + 1420.00;
-  const totalOrdersCount = orders.length + 84;
-  const avgTatHours = 1.4;
+  const language = useLisStore((state) => state.language);
+  const isDemoMode = useLisStore((state) => state.isDemoMode);
+  const isEn = language === 'EN';
+
+  const totalRevenue = isDemoMode
+    ? orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) + 1420.00
+    : orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const totalOrdersCount = isDemoMode ? orders.length + 84 : orders.length;
+  const avgTatHours = isDemoMode ? 1.4 : (orders.length > 0 ? 1.2 : 0);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -25,13 +33,19 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-black text-white uppercase tracking-tight">Consola Ejecutiva & Gerencial</span>
+              <span className="text-sm font-black text-white uppercase tracking-tight">
+                {isEn ? 'Executive & Management Console' : 'Consola Ejecutiva & Gerencial'}
+              </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
                 <span>👋</span>
-                <span>{getTimeBasedGreeting('ES')}, Dirección General!</span>
+                <span>{getTimeBasedGreeting(language)}, {isEn ? 'Executive Management!' : 'Dirección General!'}</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Indicadores financieros, producción diaria y rendimiento multi-sede de {tenant.name}.</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              {isEn
+                ? `Financial KPIs, daily production and multi-facility throughput for ${tenant.name}.`
+                : `Indicadores financieros, producción diaria y rendimiento multi-sede de ${tenant.name}.`}
+            </p>
           </div>
         </div>
       </div>
@@ -39,10 +53,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
       {/* 3D Glass Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Ingresos Mensuales', value: `$${totalRevenue.toFixed(0)}`, icon: DollarSign, color: 'from-emerald-400 to-teal-500', shadow: 'shadow-emerald-500/20' },
-          { label: 'Órdenes Activas', value: totalOrdersCount, icon: Activity, color: 'from-teal-400 to-cyan-500', shadow: 'shadow-teal-500/20' },
-          { label: 'Tiempo de Entrega', value: `${avgTatHours}h`, icon: Clock, color: 'from-amber-400 to-orange-500', shadow: 'shadow-amber-500/20' },
-          { label: 'Sedes Operativas', value: tenant.branches.length, icon: Building2, color: 'from-blue-400 to-indigo-500', shadow: 'shadow-blue-500/20' }
+          { label: isEn ? 'Monthly Revenue' : 'Ingresos Mensuales', value: `$${totalRevenue.toFixed(0)}`, icon: DollarSign, color: 'from-emerald-400 to-teal-500', shadow: 'shadow-emerald-500/20' },
+          { label: isEn ? 'Active Orders' : 'Órdenes Activas', value: totalOrdersCount, icon: Activity, color: 'from-teal-400 to-cyan-500', shadow: 'shadow-teal-500/20' },
+          { label: isEn ? 'Turnaround Time' : 'Tiempo de Entrega', value: `${avgTatHours}h`, icon: Clock, color: 'from-amber-400 to-orange-500', shadow: 'shadow-amber-500/20' },
+          { label: isEn ? 'Active Branches' : 'Sedes Operativas', value: tenant.branches.length, icon: Building2, color: 'from-blue-400 to-indigo-500', shadow: 'shadow-blue-500/20' }
         ].map((stat, idx) => (
           <div key={idx} className={`relative group bg-slate-900/40 backdrop-blur-xl border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-start space-y-4 hover:bg-slate-800/60 transition-all duration-500 ${stat.shadow} shadow-2xl`}>
             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${stat.color} flex items-center justify-center text-slate-950 shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
@@ -68,9 +82,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
         {/* Branch Matrix - Glass Panel */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between px-2">
-            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Rendimiento por Sede</h3>
-            <button className="text-[10px] font-bold text-teal-400 hover:text-teal-300 transition-colors uppercase tracking-widest flex items-center">
-              Gestionar Sedes <ChevronRight className="w-3 h-3 ml-1" />
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">
+              {isEn ? 'Branch Performance' : 'Rendimiento por Sede'}
+            </h3>
+            <button className="text-[10px] font-bold text-teal-400 hover:text-teal-300 transition-colors uppercase tracking-widest flex items-center cursor-pointer">
+              {isEn ? 'Manage Branches' : 'Gestionar Sedes'} <ChevronRight className="w-3 h-3 ml-1" />
             </button>
           </div>
 
@@ -84,12 +100,22 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
                       <Building2 className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="font-black text-white text-base">{b.name}</div>
+                      <div className="font-black text-white text-base">{getBranchName(b.name, language)}</div>
                       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-0.5">{b.code} • {b.address.split(',')[0]}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-emerald-400 text-lg font-black tracking-tight">$420</div>
+                    {(() => {
+                      const branchOrders = orders.filter(o => o.branchId === b.id);
+                      const branchRev = isDemoMode
+                        ? 420
+                        : branchOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+                      return (
+                        <div className="text-emerald-400 text-lg font-black tracking-tight">
+                          ${branchRev.toFixed(2)}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-end space-x-1 mt-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       <span className="text-[9px] text-slate-400 uppercase font-black">Live</span>
@@ -103,7 +129,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
 
         {/* Intelligence Panel */}
         <div className="space-y-6">
-          <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 px-2">Alertas de IA</h3>
+          <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 px-2">
+            {isEn ? 'AI Insights & Alerts' : 'Alertas de IA'}
+          </h3>
           <div className="bg-gradient-to-b from-slate-900/80 to-slate-950 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl space-y-8 relative overflow-hidden">
              <div className="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-[80px]"></div>
 
@@ -112,8 +140,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
                   <Zap className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <div className="font-black text-white text-sm tracking-tight">Validaciones Retrasadas</div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">Detectamos un cuello de botella en Sede Chiriquí. 12 muestras requieren firma inmediata.</p>
+                  <div className="font-black text-white text-sm tracking-tight">
+                    {isEn ? 'Delayed Validations' : 'Validaciones Retrasadas'}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {isEn
+                      ? 'Bottleneck detected at Chiriquí branch. 12 specimens require urgent technical review.'
+                      : 'Detectamos un cuello de botella en Sede Chiriquí. 12 muestras requieren firma inmediata.'}
+                  </p>
                 </div>
              </div>
 
@@ -122,14 +156,20 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
                   <Package className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <div className="font-black text-white text-sm tracking-tight">Stock bajo: Glucosa HK</div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">El inventario actual solo cubrirá 3 días de operación normal.</p>
+                  <div className="font-black text-white text-sm tracking-tight">
+                    {isEn ? 'Low Inventory: Glucose HK' : 'Stock bajo: Glucosa HK'}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {isEn
+                      ? 'Current reagent on-hand will only cover 3 days of routine throughput.'
+                      : 'El inventario actual solo cubrirá 3 días de operación normal.'}
+                  </p>
                 </div>
              </div>
 
              <div className="pt-4">
-               <button className="w-full py-4 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg shadow-teal-500/20 transform hover:-translate-y-1 active:scale-95">
-                 Ver Reporte Ejecutivo
+               <button className="w-full py-4 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg shadow-teal-500/20 transform hover:-translate-y-1 active:scale-95 cursor-pointer">
+                 {isEn ? 'View Executive Report' : 'Ver Reporte Ejecutivo'}
                </button>
              </div>
           </div>

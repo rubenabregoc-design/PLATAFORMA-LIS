@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tenant, Analyzer, MiddlewareMessageLog, User, Role, Branch } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
 import { MOCK_USERS, MOCK_TEST_CATALOG } from '../../data/mockData';
@@ -8,7 +8,8 @@ import {
   Stethoscope, Users, UserPlus, Key, Lock, Mail, ShieldCheck, Database,
   CheckCheck, Trash2, Edit3, HeartPulse, Droplets, Thermometer, TestTube,
   Microscope, Sliders, Settings, Filter, Search, RefreshCw, Radio, Phone,
-  MapPin, Clock, ArrowRight, Sparkles, FileText, ChevronRight, X
+  MapPin, Clock, ArrowRight, Sparkles, FileText, ChevronRight, X,
+  Upload, Download, FileSpreadsheet
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -339,19 +340,97 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('lis_real_users');
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            let modified = false;
+            const updated = parsed.map((u: User) => {
+              if (
+                (u.id === 'usr-developer-1' || u.email === 'developer@abregotech.com') &&
+                u.name === 'Ing. Rubén Ábrego'
+              ) {
+                modified = true;
+                return { ...u, name: 'Equipo de Desarrollo / Lead Dev' };
+              }
+              return u;
+            });
+            if (modified) {
+              localStorage.setItem('lis_real_users', JSON.stringify(updated));
+            }
+            return updated;
+          }
+        }
       } catch (e) {}
     }
     return MOCK_USERS;
   });
   const [newUserName, setNewUserName] = useState<string>('');
+  const [newUserUsername, setNewUserUsername] = useState<string>('');
   const [newUserEmail, setNewUserEmail] = useState<string>('');
   const [newUserPassword, setNewUserPassword] = useState<string>('');
   const [newUserRole, setNewUserRole] = useState<Role>('tech_med');
   const [newUserLicense, setNewUserLicense] = useState<string>('');
-  const [newUserPin, setNewUserPin] = useState<string>('1234');
   const [newUserTenant, setNewUserTenant] = useState<string>(tenants[0]?.id || 'lab-san-jose');
+  const [newUserBranch, setNewUserBranch] = useState<string>(tenants[0]?.branches[0]?.id || '');
+  const [newUserPin, setNewUserPin] = useState<string>('');
   const [userCreatedSuccess, setUserCreatedSuccess] = useState<string | null>(null);
+
+  // Búsqueda y Filtros de Usuarios en Tiempo Real
+  const [userSearchTerm, setUserSearchTerm] = useState<string>('');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('ALL');
+  const [userTenantFilter, setUserTenantFilter] = useState<string>('ALL');
+
+  // Filtro Inteligente de Usuarios por Nombre de Usuario (@username), Nombre, Email, Rol, Idoneidad, Sede o Cliente
+  const filteredUsers = useMemo(() => {
+    const q = userSearchTerm.toLowerCase().trim().replace(/^@/, '');
+    const roleSpanishLabels: Record<string, string> = {
+      owner: 'directora gerencia administrador',
+      lab_chief: 'jefe de laboratorio director tecnico medico doctor',
+      tech_med: 'tecnólogo médico tecnologo analista tm',
+      technologist: 'tecnólogo médico tecnologo analista tm',
+      lab_tech: 'técnico flebotomía flebotomista toma de muestra',
+      phlebotomist: 'flebotomista flebotomía toma de muestra',
+      receptionist: 'recepción admisión recepcionista cajero caja',
+      ext_doctor: 'médico externo doctor remitente clinica',
+      doctor: 'médico doctor remitente clinica',
+      billing: 'facturación caja contabilidad',
+      abregotech_admin: 'super admin administrador programador soporte dev lead lead dev'
+    };
+
+    return realUsers.filter((u) => {
+      const uTenant = tenants.find((t) => t.id === u.tenantId);
+      const uBranch = uTenant?.branches.find((b) => b.id === u.branchId) || uTenant?.branches[0];
+      const emailUser = u.email.split('@')[0].toLowerCase();
+      const userAlias = (u.username || emailUser).toLowerCase();
+
+      const matchesSearch =
+        !q ||
+        userAlias.includes(q) ||
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.licenseNumber && u.licenseNumber.toLowerCase().includes(q)) ||
+        u.role.toLowerCase().includes(q) ||
+        (roleSpanishLabels[u.role] && roleSpanishLabels[u.role].toLowerCase().includes(q)) ||
+        (uTenant && uTenant.name.toLowerCase().includes(q)) ||
+        (uBranch && uBranch.name.toLowerCase().includes(q));
+
+      const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
+      const matchesTenant = userTenantFilter === 'ALL' || u.tenantId === userTenantFilter;
+      return matchesSearch && matchesRole && matchesTenant;
+    });
+  }, [realUsers, userSearchTerm, userRoleFilter, userTenantFilter, tenants]);
+
+  // Modal para editar Rol, Cliente y Sede de un usuario existente
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [editUserRole, setEditUserRole] = useState<Role>('tech_med');
+  const [editUserTenant, setEditUserTenant] = useState<string>('');
+  const [editUserBranch, setEditUserBranch] = useState<string>('');
+
+  // Estados para Restablecimiento Administrativo de Credenciales (Contraseña y PIN si olvidó ambos)
+  const [userToReset, setUserToReset] = useState<User | null>(null);
+  const [adminResetPassword, setAdminResetPassword] = useState<string>('');
+  const [adminResetPin, setAdminResetPin] = useState<string>('');
+  const [adminResetSuccess, setAdminResetSuccess] = useState<string | null>(null);
 
   // Puertos y Copiado
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -693,38 +772,49 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     }
 
     const targetTenant = tenants.find((t) => t.id === newUserTenant) || tenants[0];
-    const targetBranch = targetTenant.branches[0]?.id || 'branch-via-espana';
+    const targetBranch = newUserBranch || targetTenant?.branches[0]?.id || 'branch-via-espana';
 
+    const cleanPin = newUserPin.trim();
+    const cleanUsername = newUserUsername.trim().toLowerCase().replace(/\s+/g, '') || newUserEmail.trim().split('@')[0].toLowerCase();
     const newUser: User = {
       id: `usr-${Date.now()}`,
       tenantId: newUserTenant,
       branchId: targetBranch,
       name: newUserName.trim(),
+      username: cleanUsername,
       email: newUserEmail.trim(),
       role: newUserRole,
       password: newUserPassword.trim(),
-      pinCode: newUserPin.trim() || '1234',
+      passwordHash: btoa(`abregotech_salt_${newUserPassword.trim()}`),
+      pinCode: cleanPin || undefined,
       licenseNumber: newUserLicense.trim() || undefined,
-      twoFactorEnabled: Boolean(newUserPin.trim())
+      twoFactorEnabled: Boolean(cleanPin)
     };
 
     const updated = [newUser, ...realUsers];
     setRealUsers(updated);
     try {
-      localStorage.setItem('lis_real_users', JSON.stringify(updated));
+      // Protección Ley 81 / ISO 15189: Nunca almacenar contraseñas en texto claro en LocalStorage
+      const sanitizedForStorage = updated.map(u => ({
+        ...u,
+        password: undefined,
+        passwordHash: u.passwordHash || (u.password ? btoa(`abregotech_salt_${u.password}`) : undefined)
+      }));
+      localStorage.setItem('lis_real_users', JSON.stringify(sanitizedForStorage));
       window.dispatchEvent(new CustomEvent('lis_users_updated'));
     } catch (e) {
       console.error(e);
     }
 
-    setUserCreatedSuccess(`Usuario "${newUser.name}" registrado exitosamente.`);
+    setUserCreatedSuccess(`Usuario "${newUser.name}" (@${newUser.username}) registrado exitosamente.`);
     setTimeout(() => setUserCreatedSuccess(null), 4000);
 
     setNewUserName('');
+    setNewUserUsername('');
     setNewUserEmail('');
     setNewUserPassword('');
     setNewUserLicense('');
-    setNewUserPin('1234');
+    setNewUserPin('');
 
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
@@ -744,6 +834,256 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
         detail: { message: 'Usuario eliminado.', type: 'info' }
+      })
+    );
+  };
+
+  // 10. Descargar Plantilla CSV para Importación Masiva en Excel
+  const handleDownloadTemplate = () => {
+    const headers = 'Nombre Completo,Usuario (@login),Correo Electrónico,Rol,Contraseña,PIN,Idoneidad MINSA,Cliente ID,Sede ID\n';
+    const examples = [
+      'Lic. Carlos Mendoza,cmendoza,carlos.mendoza@labsanjose.com,tech_med,Clave2026*,1234,TM-4821-PA,lab-san-jose,br-via-espana',
+      'Dra. Marcela Guardia,mguardia,marcela.guardia@labsanjose.com,lab_chief,Clave2026*,5678,TM-1120-PA,lab-san-jose,br-costa-del-este',
+      'Ana Cristina Boyd,aboyd,ana.boyd@labsanjose.com,receptionist,Clave2026*,9999,,lab-san-jose,br-via-espana',
+      'Dr. Rodrigo De León,rdeleon,rodrigo.deleon@clinica.com,ext_doctor,Clave2026*,4321,MD-9812-PA,lab-san-jose,br-via-espana'
+    ].join('\n');
+
+    const notes = '\n\n# NOTAS PARA EXCEL:\n# Roles permitidos: owner, lab_chief, tech_med, lab_tech, receptionist, ext_doctor, abregotech_admin\n# Clientes disponibles: ' + tenants.map(t => `${t.id} (${t.name})`).join(' | ') + '\n# Sedes disponibles: ' + tenants.flatMap(t => t.branches.map(b => `${b.id} (${b.name})`)).join(' | ');
+
+    const blob = new Blob(['\uFEFF' + headers + examples + notes], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_usuarios_abregotech_lis.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // 11. Importación Masiva en Lote desde Excel / CSV
+  const handleImportCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target?.result as string;
+        if (!text) return;
+
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+        if (lines.length <= 1) {
+          window.dispatchEvent(new CustomEvent('lis-global-toast', { detail: { message: 'El archivo CSV no contiene filas de datos.', type: 'warning' } }));
+          return;
+        }
+
+        const dataRows = lines.slice(1);
+        const newUsersList: User[] = [];
+        let importedCount = 0;
+
+        for (let i = 0; i < dataRows.length; i++) {
+          const row = dataRows[i];
+          if (!row || row.startsWith('#')) continue;
+
+          const cols = row.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+          if (cols.length < 3) continue;
+
+          let name = '';
+          let username = '';
+          let email = '';
+          let role = '';
+          let password = '';
+          let pin = '';
+          let license = '';
+          let tenantId = '';
+          let branchId = '';
+
+          // Soporte tanto para formato de 9 columnas (con usuario) como de 8 columnas (sin usuario)
+          if (cols.length >= 9) {
+            [name, username, email, role, password, pin, license, tenantId, branchId] = cols;
+          } else {
+            [name, email, role, password, pin, license, tenantId, branchId] = cols;
+          }
+
+          if (!name || !email) continue;
+
+          const validUsername = (username || email.split('@')[0]).toLowerCase().replace(/\s+/g, '');
+          const validRole: Role = (['owner', 'lab_chief', 'tech_med', 'lab_tech', 'receptionist', 'ext_doctor', 'abregotech_admin'].includes(role) ? role : 'tech_med') as Role;
+          const validTenant = tenants.find(t => t.id === tenantId)?.id || tenants[0]?.id || 'lab-san-jose';
+          const targetTenantObj = tenants.find(t => t.id === validTenant);
+          const validBranch = targetTenantObj?.branches.find(b => b.id === branchId)?.id || targetTenantObj?.branches[0]?.id || 'branch-via-espana';
+          const pwd = password || 'Clave2026*';
+          const cleanPin = pin ? pin.replace(/\D/g, '').slice(0, 4) : '1234';
+
+          newUsersList.push({
+            id: `usr-${Date.now()}-${i}`,
+            tenantId: validTenant,
+            branchId: validBranch,
+            name: name.trim(),
+            username: validUsername,
+            email: email.trim(),
+            role: validRole,
+            password: pwd,
+            passwordHash: btoa(`abregotech_salt_${pwd}`),
+            pinCode: cleanPin,
+            licenseNumber: license ? license.trim() : undefined,
+            twoFactorEnabled: true
+          });
+          importedCount++;
+        }
+
+        if (importedCount === 0) {
+          window.dispatchEvent(new CustomEvent('lis-global-toast', { detail: { message: 'No se encontraron filas válidas para importar.', type: 'error' } }));
+          return;
+        }
+
+        const existingEmails = new Set(realUsers.map(u => u.email.toLowerCase()));
+        const filteredNew = newUsersList.filter(u => !existingEmails.has(u.email.toLowerCase()));
+        const duplicatesCount = newUsersList.length - filteredNew.length;
+
+        const merged = [...filteredNew, ...realUsers];
+        setRealUsers(merged);
+
+        try {
+          const sanitized = merged.map(u => ({
+            ...u,
+            password: undefined,
+            passwordHash: u.passwordHash || (u.password ? btoa(`abregotech_salt_${u.password}`) : undefined)
+          }));
+          localStorage.setItem('lis_real_users', JSON.stringify(sanitized));
+          window.dispatchEvent(new CustomEvent('lis_users_updated'));
+        } catch (err) {
+          console.error(err);
+        }
+
+        setUserCreatedSuccess(`✓ Importación masiva exitosa: ${filteredNew.length} usuarios registrados.${duplicatesCount > 0 ? ` (${duplicatesCount} omitidos por correo duplicado)` : ''}`);
+        setTimeout(() => setUserCreatedSuccess(null), 5000);
+      } catch (err) {
+        console.error('Error al importar CSV:', err);
+        window.dispatchEvent(new CustomEvent('lis-global-toast', { detail: { message: 'Error al procesar el archivo CSV.', type: 'error' } }));
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+  };
+
+  // 12. Exportar Lista Actual a Excel / CSV
+  const handleExportCurrentUsers = () => {
+    const headers = 'Nombre Completo,Usuario (@login),Correo Electrónico,Rol,Idoneidad MINSA,Cliente / Tenant,Sede / Sucursal\n';
+    const rows = realUsers.map(u => {
+      const tName = tenants.find(t => t.id === u.tenantId)?.name || u.tenantId;
+      const bName = tenants.find(t => t.id === u.tenantId)?.branches.find(b => b.id === u.branchId)?.name || u.branchId || 'Sede Principal';
+      const uLogin = u.username || u.email.split('@')[0];
+      return `"${u.name}","@${uLogin}","${u.email}","${u.role}","${u.licenseNumber || ''}","${tName}","${bName}"`;
+    }).join('\n');
+
+    const blob = new Blob(['\uFEFF' + headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `usuarios_activos_lis_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // 13. Guardar Edición de Rol, Cliente y Sede
+  const handleSaveEditUser = () => {
+    if (!userToEdit) return;
+    const updated = realUsers.map(u => {
+      if (u.id === userToEdit.id) {
+        return {
+          ...u,
+          role: editUserRole,
+          tenantId: editUserTenant,
+          branchId: editUserBranch
+        };
+      }
+      return u;
+    });
+
+    setRealUsers(updated);
+    try {
+      const sanitized = updated.map(u => ({
+        ...u,
+        password: undefined,
+        passwordHash: u.passwordHash || (u.password ? btoa(`abregotech_salt_${u.password}`) : undefined)
+      }));
+      localStorage.setItem('lis_real_users', JSON.stringify(sanitized));
+      window.dispatchEvent(new CustomEvent('lis_users_updated'));
+    } catch (e) {
+      console.error(e);
+    }
+
+    setUserCreatedSuccess(`Usuario "${userToEdit.name}" actualizado exitosamente.`);
+    setTimeout(() => setUserCreatedSuccess(null), 4000);
+    setUserToEdit(null);
+  };
+
+  const handleAdminResetCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToReset) return;
+
+    const trimmedPass = adminResetPassword.trim();
+    const trimmedPin = adminResetPin.trim();
+
+    if (!trimmedPass && !trimmedPin) {
+      alert('Debe ingresar al menos una nueva contraseña o un nuevo PIN de firma.');
+      return;
+    }
+
+    if (trimmedPass && trimmedPass.length < 5) {
+      alert('La nueva contraseña debe tener al menos 5 caracteres.');
+      return;
+    }
+
+    if (trimmedPin && (trimmedPin.length !== 4 || !/^\d{4}$/.test(trimmedPin))) {
+      alert('El PIN de firma electrónica debe ser de exactamente 4 dígitos numéricos.');
+      return;
+    }
+
+    const updated = realUsers.map((u) => {
+      if (u.id === userToReset.id) {
+        return {
+          ...u,
+          password: trimmedPass || u.password,
+          passwordHash: trimmedPass ? btoa(`abregotech_salt_${trimmedPass}`) : u.passwordHash,
+          pinCode: trimmedPin || u.pinCode,
+          twoFactorEnabled: trimmedPin ? true : u.twoFactorEnabled
+        };
+      }
+      return u;
+    });
+
+    setRealUsers(updated);
+    try {
+      const sanitizedForStorage = updated.map((u) => ({
+        ...u,
+        password: undefined,
+        passwordHash: u.passwordHash || (u.password ? btoa(`abregotech_salt_${u.password}`) : undefined)
+      }));
+      localStorage.setItem('lis_real_users', JSON.stringify(sanitizedForStorage));
+      window.dispatchEvent(new CustomEvent('lis_users_updated'));
+    } catch (err) {
+      console.error(err);
+    }
+
+    setAdminResetSuccess(`Credenciales de "${userToReset.name}" actualizadas correctamente.`);
+    setTimeout(() => {
+      setAdminResetSuccess(null);
+      setUserToReset(null);
+      setAdminResetPassword('');
+      setAdminResetPin('');
+    }, 1500);
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          message: `Credenciales de ${userToReset.name} restablecidas con éxito.`,
+          type: 'success'
+        }
       })
     );
   };
@@ -1970,16 +2310,29 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-300 block">Correo Electrónico Real:</label>
-                  <input
-                    type="email"
-                    placeholder="andrea.villalobos@labsanjose.com"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-cyan-400"
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Usuario / Login (@):</label>
+                    <input
+                      type="text"
+                      placeholder="ej. andrea.v"
+                      value={newUserUsername}
+                      onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Correo Electrónico:</label>
+                    <input
+                      type="email"
+                      placeholder="andrea.villalobos@labsanjose.com"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-cyan-400"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -2000,9 +2353,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     <input
                       type="password"
                       maxLength={4}
-                      placeholder="ej. 8821"
-                      value={newUserPin}
-                      onChange={(e) => setNewUserPin(e.target.value.replace(/\D/g, ''))}
+                      inputMode="numeric"
+                      autoComplete="new-password"
+                      placeholder="••••"
+                      value={'•'.repeat(newUserPin.length)}
+                      onChange={(e) => {
+                        const rawVal = e.target.value;
+                        const prevLen = newUserPin.length;
+                        if (rawVal.length < prevLen) {
+                          setNewUserPin(newUserPin.slice(0, rawVal.length));
+                        } else {
+                          const added = rawVal.replace(/•/g, '').replace(/\D/g, '');
+                          if (added) {
+                            setNewUserPin((prev) => (prev + added).slice(0, 4));
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Backspace') {
+                          e.preventDefault();
+                          setNewUserPin((prev) => prev.slice(0, -1));
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+                        if (pasted) {
+                          setNewUserPin(pasted);
+                        }
+                      }}
                       className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-amber-300 font-mono font-black text-center focus:outline-none focus:border-amber-400"
                     />
                   </div>
@@ -2038,19 +2417,41 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-300 block">Laboratorio / Sede:</label>
-                  <select
-                    value={newUserTenant}
-                    onChange={(e) => setNewUserTenant(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400"
-                  >
-                    {tenants.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Cliente / Laboratorio:</label>
+                    <select
+                      value={newUserTenant}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        setNewUserTenant(tId);
+                        const tObj = tenants.find((t) => t.id === tId);
+                        setNewUserBranch(tObj?.branches[0]?.id || '');
+                      }}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    >
+                      {tenants.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Sede / Sucursal:</label>
+                    <select
+                      value={newUserBranch}
+                      onChange={(e) => setNewUserBranch(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    >
+                      {((tenants.find((t) => t.id === newUserTenant) || tenants[0])?.branches || []).map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -2063,51 +2464,406 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </button>
             </form>
 
-            {/* Lista de Usuarios Registrados */}
+            {/* Lista de Usuarios Registrados con Búsqueda, Filtros e Importación Masiva */}
             <div className="lg:col-span-7 bg-slate-900/90 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-cyan-400" />
-                  <span>Usuarios Activos en la Base de Datos ({realUsers.length})</span>
-                </h4>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                  Cifrado SHA-256 / JWT
-                </span>
+              {/* Header con Acciones Masivas Excel / CSV */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-cyan-400" />
+                    <span>
+                      Usuarios ({filteredUsers.length} de {realUsers.length})
+                    </span>
+                  </h4>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Acceso multisede con Cifrado SHA-256 / JWT
+                  </div>
+                </div>
+
+                {/* Botones de Importar / Exportar Excel */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleDownloadTemplate}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white rounded-lg text-[11px] font-bold border border-slate-700 transition flex items-center space-x-1 shadow-sm cursor-pointer"
+                    title="Descargar plantilla CSV con formato para abrir en Excel"
+                  >
+                    <Download className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Plantilla Excel</span>
+                  </button>
+
+                  <label
+                    className="px-2.5 py-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer"
+                    title="Importar archivo Excel / CSV para crear usuarios en lote"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Importar Lote</span>
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={handleImportCsv}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCurrentUsers}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-emerald-300 border border-emerald-500/30 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer"
+                    title="Exportar todos los usuarios a Excel / CSV"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Exportar</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="max-h-[460px] overflow-y-auto space-y-2 pr-1">
-                {realUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/40 transition flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-black text-white truncate">{u.name}</span>
-                        <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-bold">
-                          {u.role}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 font-mono truncate">{u.email}</div>
-                      <div className="text-[10px] text-amber-300 font-mono flex items-center space-x-3">
-                        {u.licenseNumber && <span>Idoneidad: {u.licenseNumber}</span>}
-                        <span>PIN: {u.pinCode || '1234'}</span>
-                      </div>
-                    </div>
-
+              {/* Barra de Búsqueda Rápida & Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-xs">
+                <div className="sm:col-span-6 relative">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por usuario (@usuario), nombre, correo, rol, sede..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-750 rounded-xl pl-9 pr-8 py-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400"
+                  />
+                  {userSearchTerm && (
                     <button
-                      onClick={() => handleDeleteRealUser(u.id)}
-                      className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
-                      title="Eliminar usuario"
+                      onClick={() => setUserSearchTerm('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <X className="w-4 h-4" />
                     </button>
-                  </div>
-                ))}
+                  )}
+                </div>
+
+                <div className="sm:col-span-3">
+                  <select
+                    value={userRoleFilter}
+                    onChange={(e) => setUserRoleFilter(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-750 rounded-xl px-2.5 py-2 text-slate-300 text-xs focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="ALL">Todos los Roles</option>
+                    <option value="owner">Directora / Gerencia</option>
+                    <option value="lab_chief">Jefe de Laboratorio</option>
+                    <option value="tech_med">Tecnólogo Médico</option>
+                    <option value="lab_tech">Técnico / Flebotomía</option>
+                    <option value="receptionist">Recepción & Admisión</option>
+                    <option value="ext_doctor">Médico Externo</option>
+                    <option value="abregotech_admin">Súper-Admin</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <select
+                    value={userTenantFilter}
+                    onChange={(e) => setUserTenantFilter(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-750 rounded-xl px-2.5 py-2 text-slate-300 text-xs focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="ALL">Todos los Clientes</option>
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Lista Filtrada de Usuarios */}
+              <div className="max-h-[440px] overflow-y-auto space-y-2 pr-1">
+                {filteredUsers.map((u) => {
+                  const uTenant = tenants.find((t) => t.id === u.tenantId);
+                  const uBranch = uTenant?.branches.find((b) => b.id === u.branchId) || uTenant?.branches[0];
+
+                  return (
+                    <div
+                      key={u.id}
+                      className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/40 transition flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <span className="font-black text-white truncate">{u.name}</span>
+                          <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded">
+                            @{u.username || u.email.split('@')[0]}
+                          </span>
+                          <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-bold">
+                            {u.role}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-400 font-mono truncate">{u.email}</div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          {/* Tenant / Cliente Badge */}
+                          <span className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                            <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                            <span>{uTenant ? uTenant.name : u.tenantId}</span>
+                          </span>
+
+                          {/* Sede / Sucursal Badge */}
+                          <span className="text-[10px] bg-slate-900 text-cyan-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1 font-mono">
+                            <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span>{uBranch ? uBranch.name : (u.branchId || 'Sede Principal')}</span>
+                          </span>
+
+                          {u.licenseNumber && (
+                            <span className="text-[10px] text-amber-300 font-mono">
+                              Idoneidad: {u.licenseNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                        <div className="flex items-center space-x-1 shrink-0">
+                          {/* Botón Reasignar Sede / Rol */}
+                          <button
+                            onClick={() => {
+                              setUserToEdit(u);
+                              setEditUserRole(u.role);
+                              setEditUserTenant(u.tenantId || tenants[0]?.id || 'lab-san-jose');
+                              setEditUserBranch(u.branchId || '');
+                            }}
+                            className="p-2 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition cursor-pointer"
+                            title="Reasignar Rol, Cliente o Sede"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
+                          {/* Botón Restablecer Clave */}
+                          <button
+                            onClick={() => {
+                              setUserToReset(u);
+                              setAdminResetPassword('');
+                              setAdminResetPin('');
+                              setAdminResetSuccess(null);
+                            }}
+                            className="p-2 text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-xl transition cursor-pointer"
+                            title="Restablecer Contraseña y PIN (Si olvidó ambos)"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+
+                          {/* Botón Eliminar */}
+                          <button
+                            onClick={() => handleDeleteRealUser(u.id)}
+                            className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
           </div>
+
+          {/* Modal de Restablecimiento Administrativo de Credenciales (Si olvidó ambos) */}
+          {userToReset && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+              <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 ring-1 ring-cyan-500/30">
+                <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <Key className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        Restablecer Credenciales
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        {userToReset.name} • Rol: <span className="font-mono text-cyan-300 font-bold">{userToReset.role}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setUserToReset(null)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-slate-300 bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
+                  <div className="text-slate-400 font-mono">
+                    Usuario / Correo: <strong className="text-white">{userToReset.email}</strong>
+                  </div>
+                  {userToReset.licenseNumber && (
+                    <div className="text-slate-400 font-mono">
+                      Idoneidad: <strong className="text-amber-300">{userToReset.licenseNumber}</strong>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 pt-1 leading-relaxed">
+                    Si el profesional olvidó tanto su contraseña como su PIN de firma de 4 dígitos, como Súper-Admin puede asignar nuevas claves inmediatamente para restablecer su acceso clínico.
+                  </p>
+                </div>
+
+                <form onSubmit={handleAdminResetCredentials} className="space-y-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">
+                      Nueva Contraseña:
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 5 caracteres (dejar en blanco para no cambiar)"
+                      value={adminResetPassword}
+                      onChange={(e) => setAdminResetPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-amber-300 flex items-center justify-between">
+                      <span>Nuevo PIN de Firma (4D):</span>
+                      <span className="text-[10px] font-mono text-slate-400">4 dígitos numéricos</span>
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      inputMode="numeric"
+                      placeholder="•••• (dejar en blanco para no cambiar)"
+                      value={adminResetPin}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        setAdminResetPin(val);
+                      }}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-mono font-black text-center tracking-[0.3em] focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {adminResetSuccess && (
+                    <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center space-x-2">
+                      <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{adminResetSuccess}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setUserToReset(null)}
+                      className="w-1/3 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="w-2/3 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 cursor-pointer flex items-center justify-center space-x-1.5"
+                    >
+                      <Key className="w-4 h-4" />
+                      <span>Guardar Credenciales</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal para Reasignar Rol, Cliente y Sede */}
+          {userToEdit && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+              <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 ring-1 ring-cyan-500/30">
+                <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <Edit3 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        Reasignar Cliente y Sede
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        {userToEdit.name} • <span className="font-mono text-cyan-300">@{userToEdit.username || userToEdit.email.split('@')[0]}</span> • <span className="text-slate-500">{userToEdit.email}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setUserToEdit(null)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Rol Clínico:</label>
+                    <select
+                      value={editUserRole}
+                      onChange={(e) => setEditUserRole(e.target.value as Role)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    >
+                      <option value="owner">Directora / Gerencia</option>
+                      <option value="lab_chief">Jefe de Laboratorio</option>
+                      <option value="tech_med">Tecnólogo Médico</option>
+                      <option value="lab_tech">Técnico / Flebotomía</option>
+                      <option value="receptionist">Recepción & Admisión</option>
+                      <option value="ext_doctor">Médico Externo</option>
+                      <option value="abregotech_admin">Súper-Admin (Acceso Total)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Cliente / Laboratorio (Tenant):</label>
+                    <select
+                      value={editUserTenant}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        setEditUserTenant(tId);
+                        const tObj = tenants.find((t) => t.id === tId);
+                        setEditUserBranch(tObj?.branches[0]?.id || '');
+                      }}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    >
+                      {tenants.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Sede / Sucursal Asignada:</label>
+                    <select
+                      value={editUserBranch}
+                      onChange={(e) => setEditUserBranch(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    >
+                      {((tenants.find((t) => t.id === editUserTenant) || tenants[0])?.branches || []).map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setUserToEdit(null)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEditUser}
+                    className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center space-x-1.5 shadow-lg shadow-cyan-500/20"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    <span>Guardar Cambios</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

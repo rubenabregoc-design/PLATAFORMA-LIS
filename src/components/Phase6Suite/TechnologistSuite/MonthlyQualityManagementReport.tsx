@@ -80,7 +80,7 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
 
         {/* Report Content - High Fidelity Document Style */}
         <div className="flex-1 overflow-y-auto p-12 bg-slate-100/50 flex justify-center print:bg-white print:p-0">
-          <div className="w-[210mm] min-h-[297mm] bg-white shadow-2xl p-[25mm] font-sans text-slate-900 print:shadow-none print:w-full">
+          <div className="w-[8.5in] min-h-[11in] bg-white shadow-2xl p-[18mm] font-sans text-slate-900 print:shadow-none print:w-full print:p-0">
 
             {/* Professional Header */}
             <div className="flex justify-between items-start mb-12 border-b-4 border-slate-900 pb-8">

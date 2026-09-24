@@ -178,7 +178,6 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
         if (orderNumClean === cleanCode) return true;
         if (orderNumClean.endsWith(cleanCode)) return true;
         if (o.id.toUpperCase() === cleanCode) return true;
-        if (cleanCode === '123456' || cleanCode === 'DEMO') return true;
         return false;
       });
 

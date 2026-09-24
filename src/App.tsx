@@ -14,10 +14,12 @@ import {
 } from './data/mockData';
 
 import { useLisStore } from './store/useLisStore';
+import { SupabaseService } from './services/SupabaseService';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
 import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
-import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets } from 'lucide-react';
+import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck } from 'lucide-react';
 import { getTimeBasedGreeting } from './utils/greeting';
+import { getTabLabel, getBranchName, getRoleLabel } from './utils/i18n';
 import { LoginScreen } from './components/LoginScreen';
 import { BranchSelectionModal } from './components/BranchSelectionModal';
 import { DatabaseSchemaViewer } from './components/DatabaseSchemaViewer';
@@ -38,6 +40,7 @@ import { FhirInteroperabilityStudio } from './components/Phase5Suite/FhirInterop
 import { HighAvailabilityDisasterRecovery } from './components/Phase5Suite/HighAvailabilityDisasterRecovery';
 import { Iso15189AccreditationPortal } from './components/Phase5Suite/Iso15189AccreditationPortal';
 import { ShiftManagementModule } from './components/ShiftManagementModule';
+import AppointmentCalendarManager from './components/Phase6Suite/TechnologistSuite/AppointmentCalendarManager';
 
 import { EqaPeecModule } from './components/Phase6Suite/EqaPeecModule';
 import { EquipmentMaintenanceCmms } from './components/Phase6Suite/EquipmentMaintenanceCmms';
@@ -110,6 +113,7 @@ import { RecentActivityWidget } from './components/RecentActivityWidget';
 
 export default function App() {
   const {
+    hasHydrated,
     isAuthenticated,
     currentUser,
     currentRole,
@@ -136,8 +140,13 @@ export default function App() {
     addOrder,
     addPatient,
     updateSpecimenStatus,
-    validateResult
+    validateResult,
+    fetchInitialData
   } = useLisStore();
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   // Helper para sanitizar tenants y sedes cargados de almacenamiento local
   const loadSanitizedTenants = (): Tenant[] => {
@@ -157,11 +166,26 @@ export default function App() {
     return MOCK_TENANTS;
   };
 
-  // Tenant, Branch and User State (Transitioning to Zustand)
+  // Tenant, Branch and User State (Instant zero-flicker restoration)
   const [tenants, setTenants] = useState<Tenant[]>(() => loadSanitizedTenants());
-  const [currentTenantId, setCurrentTenantId] = useState<string>('lab-san-jose');
-  const [currentBranchId, setCurrentBranchId] = useState<string>('branch-via-espana');
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-via-espana');
+  const [currentTenantId, setCurrentTenantId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lis_current_tenant_id') || 'lab-san-jose';
+    }
+    return 'lab-san-jose';
+  });
+  const [currentBranchId, setCurrentBranchId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lis_current_branch_id') || 'branch-via-espana';
+    }
+    return 'branch-via-espana';
+  });
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lis_current_branch_id') || 'branch-via-espana';
+    }
+    return 'branch-via-espana';
+  });
   const [isBranchModalOpen, setIsBranchModalOpen] = useState<boolean>(false);
 
   // Escuchar si se crean o modifican sedes y clientes en el Súper Admin
@@ -175,10 +199,35 @@ export default function App() {
     return () => window.removeEventListener('lis_tenants_updated', handleTenantsUpdated);
   }, []);
 
-  // Navigation & View State
-  const [showAllModules, setShowAllModules] = useState<boolean>(true);
+  // Navigation & View State (Restaurados síncronamente)
+  const [showAllModules, setShowAllModules] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const portalParam = searchParams.get('portal');
+      const port = window.location.port;
+      if (portalParam === 'patient' || port === '3001' || portalParam === 'doctor' || port === '3002') {
+        return false;
+      }
+    }
+    return true;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [dashboardSubMode, setDashboardSubMode] = useState<'LIS' | 'HIS' | 'BLOODBANK'>('LIS');
+  const [dashboardSubMode, setDashboardSubMode] = useState<'LIS' | 'HIS' | 'BLOODBANK'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lis_dashboard_submode');
+      if (saved === 'LIS' || saved === 'HIS' || saved === 'BLOODBANK') return saved;
+    }
+    return 'LIS';
+  });
+
+  const handleDashboardSubModeChange = (mode: 'LIS' | 'HIS' | 'BLOODBANK') => {
+    setDashboardSubMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_dashboard_submode', mode);
+    }
+  };
+
+  const [shiftsViewMode, setShiftsViewMode] = useState<'appointments' | 'shifts' | 'phlebotomy'>('appointments');
 
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
@@ -197,56 +246,26 @@ export default function App() {
     return () => window.removeEventListener('lis-global-toast', handleToast);
   }, []);
 
-  // Detección automática de puertos dedicados (3001: Pacientes, 3002: Médicos, 3003: SuperAdmin) o parámetros URL (?portal=...)
+  // Detección de puertos dedicados (3001: Pacientes, 3002: Médicos, 3003: SuperAdmin) o parámetros URL (?portal=...)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const searchParams = new URLSearchParams(window.location.search);
-    const portalParam = searchParams.get('portal');
-    const port = window.location.port;
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const portalParam = searchParams.get('portal');
+      const port = window.location.port;
 
-    if (portalParam === 'patient' || port === '3001') {
-      setIsAuthenticated(true);
-      setCurrentRole('patient');
-      setActiveTab('patient_results');
-      setShowAllModules(false); // Aislamiento estricto: el paciente solo ve sus módulos
-      const patUser = MOCK_USERS.find((u) => u.role === 'patient') || {
-        id: 'usr-patient-1',
-        tenantId: 'lab-san-jose',
-        name: 'Sr. Gonzalo A. Ríos',
-        email: 'gonzalo.rios@gmail.com',
-        role: 'patient',
-        twoFactorEnabled: false
-      };
-      setCurrentUser(patUser as any);
-    } else if (portalParam === 'doctor' || port === '3002') {
-      setIsAuthenticated(true);
-      setCurrentRole('ext_doctor');
-      setActiveTab('dashboard');
-      setShowAllModules(false); // Aislamiento estricto: el médico solo ve sus módulos
-      const docUser = MOCK_USERS.find((u) => u.role === 'ext_doctor') || {
-        id: 'usr-doctor-icaza',
-        tenantId: 'lab-san-jose',
-        name: 'Dr. Roberto Icaza (Médico Referente Especialista)',
-        email: 'dr.icaza@consultoriospaitilla.com',
-        role: 'ext_doctor',
-        licenseNumber: 'MED-10492-PA',
-        twoFactorEnabled: false
-      };
-      setCurrentUser(docUser as any);
-    } else if (portalParam === 'superadmin' || port === '3003') {
-      setIsAuthenticated(true);
-      setCurrentRole('abregotech_admin');
-      setActiveTab('dashboard');
-      setShowAllModules(true);
-      const adminUser = MOCK_USERS.find((u) => u.role === 'abregotech_admin') || {
-        id: 'usr-superadmin',
-        tenantId: 'lab-san-jose',
-        name: 'Súper Admin AbregoTech',
-        email: 'admin@abregotech.com',
-        role: 'abregotech_admin',
-        twoFactorEnabled: true
-      };
-      setCurrentUser(adminUser as any);
+      if (portalParam === 'patient' || port === '3001') {
+        if (currentRole !== 'patient') setCurrentRole('patient');
+        if (activeTab !== 'patient_results') setActiveTab('patient_results');
+        setShowAllModules(false);
+      } else if (portalParam === 'doctor' || port === '3002') {
+        if (currentRole !== 'ext_doctor') setCurrentRole('ext_doctor');
+        if (activeTab !== 'dashboard') setActiveTab('dashboard');
+        setShowAllModules(false);
+      } else if (portalParam === 'superadmin' || port === '3003') {
+        if (currentRole !== 'abregotech_admin') setCurrentRole('abregotech_admin');
+        if (activeTab !== 'dashboard') setActiveTab('dashboard');
+        setShowAllModules(true);
+      }
     }
   }, []);
 
@@ -336,9 +355,15 @@ export default function App() {
   const handleLogin = (user: User, tenant: Tenant, branch: Branch) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('lis_auth_active', 'true');
+      localStorage.setItem('lis_session_user', JSON.stringify(user));
+      localStorage.setItem('lis_session_role', user.role);
+      localStorage.setItem('lis_current_tenant_id', tenant.id);
+      localStorage.setItem('lis_current_branch_id', branch.id);
     }
     setCurrentUser(user);
     setCurrentRole(user.role);
+    setCurrentTenant(tenant);
+    setCurrentBranch(branch);
     setCurrentTenantId(tenant.id);
     setCurrentBranchId(branch.id);
     setSelectedBranchId(branch.id);
@@ -355,6 +380,11 @@ export default function App() {
   const handleConfirmBranchSelection = (branchId: string) => {
     setSelectedBranchId(branchId);
     setCurrentBranchId(branchId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_current_branch_id', branchId);
+    }
+    const br = currentTenant.branches.find((b) => b.id === branchId);
+    if (br) setCurrentBranch(br);
     setIsBranchModalOpen(false);
     triggerLoading();
   };
@@ -362,6 +392,10 @@ export default function App() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('lis_auth_active');
+      localStorage.removeItem('lis_session_user');
+      localStorage.removeItem('lis_session_role');
+      localStorage.removeItem('lis_session_locked');
+      localStorage.removeItem('lis_current_tab');
     }
     logout();
   };
@@ -369,9 +403,20 @@ export default function App() {
   const handleTenantChange = (tenantId: string) => {
     triggerLoading();
     setCurrentTenantId(tenantId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_current_tenant_id', tenantId);
+    }
     const tenant = tenants.find((t) => t.id === tenantId);
-    if (tenant && tenant.branches.length > 0) {
-      setCurrentBranchId(tenant.branches[0].id);
+    if (tenant) {
+      setCurrentTenant(tenant);
+      if (tenant.branches.length > 0) {
+        setCurrentBranchId(tenant.branches[0].id);
+        setSelectedBranchId(tenant.branches[0].id);
+        setCurrentBranch(tenant.branches[0]);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lis_current_branch_id', tenant.branches[0].id);
+        }
+      }
     }
   };
 
@@ -379,6 +424,11 @@ export default function App() {
     triggerLoading();
     setCurrentBranchId(branchId);
     setSelectedBranchId(branchId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_current_branch_id', branchId);
+    }
+    const br = currentTenant.branches.find((b) => b.id === branchId);
+    if (br) setCurrentBranch(br);
   };
 
   const handleTabChange = (newTab: string) => {
@@ -393,6 +443,10 @@ export default function App() {
     setCurrentRole(newRole);
     const matchingUser = MOCK_USERS.find((u) => u.role === newRole) || MOCK_USERS[0];
     setCurrentUser(matchingUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_session_role', newRole);
+      localStorage.setItem('lis_session_user', JSON.stringify(matchingUser));
+    }
     setActiveTab('dashboard');
   };
 
@@ -566,26 +620,32 @@ export default function App() {
     handleUpdateTenants([...tenants, newTenant]);
   };
 
-  const handleOrderPaid = (orderId: string) => {
+  const handleOrderPaid = async (orderId: string) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, paymentStatus: 'PAGADO' } : o))
     );
+    try {
+      await SupabaseService.orders.updateStatus(orderId, { payment_status: 'PAGADO' });
+    } catch (e) {
+      console.warn('Could not sync payment status to remote database, saved locally:', e);
+    }
   };
 
   const pdfOrder = orders.find((o) => o.id === previewOrderId) || orders[0];
-  const pdfPatient = patients.find((p) => p.id === pdfOrder.patientId) || patients[0];
-  const pdfResults = results.filter((r) => r.orderId === pdfOrder.id);
+  const pdfPatient = patients.find((p) => p.id === pdfOrder?.patientId) || patients[0];
+  const pdfResults = results.filter((r) => r.orderId === pdfOrder?.id);
 
   const allowedTabsForRole = ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
   const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
 
   // Auto-redirect unauthorized tab to user's primary default tab (Must be placed before any conditional returns to obey React Rules of Hooks)
   useEffect(() => {
+    if (!hasHydrated) return; // Prevent spurious redirect during store rehydration
     if (isAuthenticated && !isTabAuthorized) {
       const defaultTab = allowedTabsForRole[0] || 'dashboard';
       setActiveTab(defaultTab);
     }
-  }, [isAuthenticated, isTabAuthorized, currentRole]);
+  }, [hasHydrated, isAuthenticated, isTabAuthorized, currentRole]);
 
   const isServerCenterView = typeof window !== 'undefined' && (
     window.location.port === '3004' ||
@@ -604,13 +664,13 @@ export default function App() {
   const isDoctorPortal = typeof window !== 'undefined' && (
     window.location.port === '3002' ||
     new URLSearchParams(window.location.search).get('portal') === 'doctor' ||
-    currentRole === 'ext_doctor'
+    (isAuthenticated && currentRole === 'ext_doctor')
   );
 
   const isPatientPortal = typeof window !== 'undefined' && (
     window.location.port === '3001' ||
     new URLSearchParams(window.location.search).get('portal') === 'patient' ||
-    currentRole === 'patient'
+    (isAuthenticated && currentRole === 'patient')
   );
 
   // Si está en el Portal Médico (puerto 3002 o ?portal=doctor o rol ext_doctor), presentar pasarela médica aislada directamente
@@ -667,11 +727,114 @@ export default function App() {
     );
   }
 
+  // 🔒 PROTOCOLO DE SEGURIDAD ESTRICTA (ISO 15189 / Ley 81):
+  // Si la sesión está bloqueada (por inactividad de 5 min o bloqueo manual), presentar ÚNICAMENTE la pantalla de desbloqueo.
+  // El árbol DOM clínico queda COMPLETAMENTE DESMONTADO de memoria, impidiendo bypasses por inspección DevTools (F12).
+  if (isSessionLocked) {
+    return (
+      <div className="fixed inset-0 bg-slate-950/98 backdrop-blur-2xl z-[9999] flex items-center justify-center p-4 selection:bg-amber-500/30" onContextMenu={(e) => e.preventDefault()}>
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-3xl border border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              {autoLockReason === 'inactivity' ? '🔒 Bloqueo Automático por Inactividad (5 Min)' : 'Seguridad ISO 15189 • Sesión Bloqueada'}
+            </span>
+            <h2 className="text-2xl font-black text-white mt-1">Estación Protegida</h2>
+            <p className="text-xs text-slate-400">
+              {autoLockReason === 'inactivity' ? (
+                <>
+                  Se detectaron <strong className="text-amber-400">5 minutos de inactividad desatendida</strong>. Por protección de datos del paciente (ISO 15189 / Ley 81), la sesión se bloqueó automáticamente.
+                </>
+              ) : (
+                <>
+                  La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser.name}</strong> para reanudar la sesión.
+                </>
+              )}
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlockSession} className="space-y-4" onContextMenu={(e) => e.preventDefault()} noValidate>
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                <span>PIN de Desbloqueo (4 Dígitos)</span>
+                <span className="text-[10px] text-slate-500 font-mono">Clave de Idoneidad / Firma</span>
+              </label>
+              <input
+                type="password"
+                maxLength={4}
+                inputMode="numeric"
+                autoComplete="new-password"
+                value={'•'.repeat(unlockPinInput.length)}
+                onChange={(e) => {
+                  const rawVal = e.target.value;
+                  const prevLen = unlockPinInput.length;
+                  if (rawVal.length < prevLen) {
+                    setUnlockPinInput(unlockPinInput.slice(0, rawVal.length));
+                  } else {
+                    const added = rawVal.replace(/•/g, '').replace(/\D/g, '');
+                    if (added) {
+                      setUnlockPinInput((prev) => (prev + added).slice(0, 4));
+                    }
+                  }
+                  if (unlockError) setUnlockError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    setUnlockPinInput((prev) => prev.slice(0, -1));
+                    if (unlockError) setUnlockError(null);
+                  }
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+                  if (pasted) {
+                    setUnlockPinInput(pasted);
+                    if (unlockError) setUnlockError(null);
+                  }
+                }}
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-lg font-mono tracking-[0.5em] text-amber-400 focus:outline-none focus:border-amber-400"
+                placeholder="••••"
+                required
+                autoFocus
+              />
+            </div>
+
+            {unlockError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-bold">
+                {unlockError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <button
+                type="submit"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer"
+              >
+                Desbloquear Estación
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs transition cursor-pointer"
+              >
+                Cerrar Sesión e Ir a Inicio
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative overflow-x-hidden selection:bg-teal-500/30">
       {/* Dynamic Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px]"></div>
         <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] bg-blue-500/5 rounded-full blur-[100px]"></div>
         <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] bg-emerald-500/5 rounded-full blur-[110px]"></div>
       </div>
@@ -728,60 +891,62 @@ export default function App() {
 
                 <span className="font-extrabold text-white text-xs sm:text-sm tracking-tight truncate">
                   <span className="text-slate-400 font-medium">{language === 'EN' ? 'Module: ' : 'Módulo: '}</span>
-                  <span className="text-white underline decoration-cyan-500/40 underline-offset-4">{currentTabObj.label}</span>
+                  <span className="text-white underline decoration-cyan-500/40 underline-offset-4">
+                    {getTabLabel(currentTabObj.id, currentTabObj.label, language)}
+                  </span>
                 </span>
               </div>
 
               {/* Right: Quick Access Shortcuts Bar (⭐ ACCESOS RÁPIDOS 1-CLIC) */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
                 <span className="text-[9px] font-black uppercase text-amber-300 tracking-wider hidden 2xl:inline">
-                  ⭐ ACCESOS RÁPIDOS:
+                  {language === 'EN' ? '⭐ QUICK ACCESS:' : '⭐ ACCESOS RÁPIDOS:'}
                 </span>
 
                 <button
                   onClick={() => setActiveTab('billing')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Admisión & Facturación POS"
+                  title={language === 'EN' ? "POS Admission & Invoicing" : "Admisión & Facturación POS"}
                 >
-                  <span>🔬 Admisión POS</span>
+                  <span>{language === 'EN' ? '🔬 POS Admission' : '🔬 Admisión POS'}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('validation')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Resultados & Validación Médica"
+                  title={language === 'EN' ? "Results & Medical Validation" : "Resultados & Validación Médica"}
                 >
-                  <span>🧪 Validación</span>
+                  <span>{language === 'EN' ? '🧪 Validation' : '🧪 Validación'}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('his_command')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Command Center Hospitalario HIS"
+                  title={language === 'EN' ? "Hospital Command Center HIS" : "Command Center Hospitalario HIS"}
                 >
-                  <span>🏥 Command HIS</span>
+                  <span>{language === 'EN' ? '🏥 HIS Command' : '🏥 Command HIS'}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('his_triage')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Triage Urgencias Manchester"
+                  title={language === 'EN' ? "Manchester Emergency Triage" : "Triage Urgencias Manchester"}
                 >
-                  <span>🫀 Urgencias</span>
+                  <span>{language === 'EN' ? '🫀 ER / Triage' : '🫀 Urgencias'}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('his_beds')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Censo & Mapa de Camas"
+                  title={language === 'EN' ? "Bed Census & Map" : "Censo & Mapa de Camas"}
                 >
-                  <span>🛏️ Camas</span>
+                  <span>{language === 'EN' ? '🛏️ Beds' : '🛏️ Camas'}</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('his_ehr')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-white/10 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Historia Clínica EHR"
+                  title={language === 'EN' ? "Electronic Health Record EHR" : "Historia Clínica EHR"}
                 >
                   <span>📋 EHR</span>
                 </button>
@@ -789,13 +954,13 @@ export default function App() {
                 <button
                   onClick={() => setActiveTab('bloodbank')}
                   className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-sm"
-                  title="Centro Banco de Sangre"
+                  title={language === 'EN' ? "Blood Bank Center" : "Centro Banco de Sangre"}
                 >
-                  <span>🩸 Banco Sangre</span>
+                  <span>{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
                 </button>
 
                 <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[10px] shrink-0">
-                  {currentBranch?.name || 'Sede Vía España'}
+                  {getBranchName(currentBranch?.name, language)}
                 </span>
               </div>
 
@@ -819,11 +984,17 @@ export default function App() {
 
             <div className="space-y-2">
               <span className="text-[10px] sm:text-xs bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                403 Acceso Denegado • Ley 81 / RBAC
+                {language === 'EN' ? '403 Access Denied • Law 81 / RBAC' : '403 Acceso Denegado • Ley 81 / RBAC'}
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white">Módulo Restringido</h2>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                {language === 'EN' ? 'Restricted Module' : 'Módulo Restringido'}
+              </h2>
               <p className="text-[11px] sm:text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
-                Tu perfil actual (<strong className="text-teal-400">{ROLE_LABELS[currentRole].title}</strong>) no tiene permisos para <span className="font-mono text-amber-300 uppercase font-bold">{activeTab}</span>.
+                {language === 'EN' ? (
+                  <>Your current role (<strong className="text-teal-400">{getRoleLabel(currentRole, 'EN').title}</strong>) does not have permissions for <span className="font-mono text-amber-300 uppercase font-bold">{activeTab}</span>.</>
+                ) : (
+                  <>Tu perfil actual (<strong className="text-teal-400">{getRoleLabel(currentRole, 'ES').title}</strong>) no tiene permisos para <span className="font-mono text-amber-300 uppercase font-bold">{activeTab}</span>.</>
+                )}
               </p>
             </div>
 
@@ -832,7 +1003,7 @@ export default function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-teal-500/20 cursor-pointer"
               >
-                Volver a mi Dashboard
+                {language === 'EN' ? 'Back to my Dashboard' : 'Volver a mi Dashboard'}
               </button>
             </div>
           </div>
@@ -844,7 +1015,7 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-900/90 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-xl">
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
                     <button
-                      onClick={() => setDashboardSubMode('LIS')}
+                      onClick={() => handleDashboardSubModeChange('LIS')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
                         dashboardSubMode === 'LIS'
                           ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 font-black'
@@ -852,12 +1023,12 @@ export default function App() {
                       }`}
                     >
                       <Microscope className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'LIS' ? 'text-slate-950' : 'text-cyan-400'}`} />
-                      <span className="hidden sm:inline">Dashboard LIS (Laboratorio)</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'LIS Dashboard (Laboratory)' : 'Dashboard LIS (Laboratorio)'}</span>
                       <span className="sm:hidden font-mono font-black">🔬 LIS</span>
                     </button>
 
                     <button
-                      onClick={() => setDashboardSubMode('HIS')}
+                      onClick={() => handleDashboardSubModeChange('HIS')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
                         dashboardSubMode === 'HIS'
                           ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 font-black'
@@ -865,12 +1036,12 @@ export default function App() {
                       }`}
                     >
                       <Building2 className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'HIS' ? 'text-white' : 'text-indigo-400'}`} />
-                      <span className="hidden sm:inline">Dashboard HIS (Hospital)</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'HIS Dashboard (Hospital)' : 'Dashboard HIS (Hospital)'}</span>
                       <span className="sm:hidden font-mono font-black">🏥 HIS</span>
                     </button>
 
                     <button
-                      onClick={() => setDashboardSubMode('BLOODBANK')}
+                      onClick={() => handleDashboardSubModeChange('BLOODBANK')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
                         dashboardSubMode === 'BLOODBANK'
                           ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black'
@@ -878,8 +1049,8 @@ export default function App() {
                       }`}
                     >
                       <Droplets className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'BLOODBANK' ? 'text-white' : 'text-rose-400'}`} />
-                      <span className="hidden sm:inline">Dashboard Banco de Sangre</span>
-                      <span className="sm:hidden font-mono font-black">🩸 Banco Sangre</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'Blood Bank Dashboard' : 'Dashboard Banco de Sangre'}</span>
+                      <span className="sm:hidden font-mono font-black">{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
                     </button>
                   </div>
 
@@ -1010,25 +1181,24 @@ export default function App() {
             {activeTab === 'his_pharmacy' && <HospitalPharmacyDispensing />}
             {activeTab === 'his_discharge' && <DischargeManagementModule />}
             {activeTab === 'his_console' && <HISIntegrationConsole />}
-            {activeTab === 'shifts' && <StaffPunchClock />}
             {activeTab === 'punch_clock' && <StaffPunchClock />}
 
             {/* Blood Bank Sub-Modules */}
             {activeTab === 'bloodbank' && <BloodBankCenter />}
-            {activeTab === 'blood_donors' && <DonorScreeningForm />}
+            {activeTab === 'blood_donors' && <DonorScreeningForm onClose={() => setActiveTab('bloodbank')} onComplete={() => setActiveTab('bloodbank')} />}
             {activeTab === 'blood_deferral' && <DonorDeferralDashboard />}
             {activeTab === 'blood_apheresis' && <ApheresisDonationModule />}
             {activeTab === 'blood_drives' && <ExtramuralBloodDriveManager />}
-            {activeTab === 'blood_fractionation' && <UnitProcessingWorkspace />}
+            {activeTab === 'blood_fractionation' && <UnitProcessingWorkspace onClose={() => setActiveTab('bloodbank')} onRefresh={() => {}} />}
             {activeTab === 'blood_cold_chain' && <ColdChainMonitor />}
             {activeTab === 'blood_logistics' && <BloodLogisticsManager />}
-            {activeTab === 'blood_crossmatch' && <CrossmatchWorkflow />}
+            {activeTab === 'blood_crossmatch' && <BloodBankModule />}
             {activeTab === 'blood_serology' && <SerologyNatScreening />}
             {activeTab === 'blood_bedside' && <SmartBedsideTransfusion />}
             {activeTab === 'blood_hemovigilance' && <HemovigilanceAnalytics />}
             {activeTab === 'blood_waste' && <BiohazardWasteManager />}
             {activeTab === 'blood_chemical_waste' && <ChemicalWasteManager />}
-            {activeTab === 'blood_manifest' && <DisposalManifestPDF />}
+            {activeTab === 'blood_manifest' && <DisposalManifestPDF onClose={() => setActiveTab('blood_waste')} />}
             {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches || []} />}
             {activeTab === 'lis_referrals' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches || []} />}
 
@@ -1071,8 +1241,50 @@ export default function App() {
 
             {/* Other modules */}
             {activeTab === 'test_catalog' && <MasterTestCatalogManager />}
-            {activeTab === 'shifts' && <ShiftManagementModule />}
             {activeTab === 'tm_workbench' && <TechnologistWorkbench />}
+            {activeTab === 'shifts' && (
+              <div className="space-y-6">
+                <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShiftsViewMode('appointments')}
+                    className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      shiftsViewMode === 'appointments'
+                        ? 'bg-slate-900 text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Calendar size={16} className={shiftsViewMode === 'appointments' ? 'text-teal-400' : ''} />
+                    Agenda de Citas & Domicilios
+                  </button>
+                  <button
+                    onClick={() => setShiftsViewMode('shifts')}
+                    className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      shiftsViewMode === 'shifts'
+                        ? 'bg-slate-900 text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Users size={16} className={shiftsViewMode === 'shifts' ? 'text-teal-400' : ''} />
+                    Turnos de Personal del Laboratorio
+                  </button>
+                  <button
+                    onClick={() => setShiftsViewMode('phlebotomy')}
+                    className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                      shiftsViewMode === 'phlebotomy'
+                        ? 'bg-slate-900 text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Truck size={16} className={shiftsViewMode === 'phlebotomy' ? 'text-teal-400' : ''} />
+                    Flebotomía a Domicilio GPS en Vivo
+                  </button>
+                </div>
+
+                {shiftsViewMode === 'appointments' && <AppointmentCalendarManager />}
+                {shiftsViewMode === 'shifts' && <ShiftManagementModule />}
+                {shiftsViewMode === 'phlebotomy' && <HomePhlebotomyRouting />}
+              </div>
+            )}
             {activeTab === 'productivity' && (
               <LabProductivityDashboard
                 orders={orders}
@@ -1085,7 +1297,6 @@ export default function App() {
             {activeTab === 'phlebotomy' && <HomePhlebotomyRouting />}
             {activeTab === 'pathology' && <AnatomicalPathologyModule />}
             {activeTab === 'whatsapp' && <WhatsAppNotificationEngine />}
-            {activeTab === 'bloodbank' && <BloodBankModule />}
             {activeTab === 'schema' && <DatabaseSchemaViewer />}
             {activeTab === 'homologation' && <AnalyzerHomologation currentUser={currentUser} currentRole={currentRole} analyzers={MOCK_ANALYZERS} testCatalog={MOCK_TEST_CATALOG} mappings={analyzerMappings} onAddMapping={handleAddAnalyzerMapping} onUpdateMapping={handleUpdateAnalyzerMapping} onDeleteMapping={handleDeleteAnalyzerMapping} />}
             {activeTab === 'middleware' && <MiddlewareSimulator analyzers={MOCK_ANALYZERS} logs={middlewareLogs} orders={orders} onNewResultSimulated={handleNewResultSimulated} />}
@@ -1097,7 +1308,6 @@ export default function App() {
             {activeTab === 'inventory' && <ReagentInventoryModule tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'executive' && <ExecutiveAnalyticsAI tenant={currentTenant} branches={currentTenant.branches} orders={orders} results={results} />}
             {activeTab === 'audit' && <Ley81AuditVault tenant={currentTenant} branch={currentBranch} />}
-            {activeTab === 'routing' && <MultiBranchRouting tenant={currentTenant} branches={currentTenant.branches} />}
             {activeTab === 'fhir' && <FhirInteroperabilityStudio tenant={currentTenant} branch={currentBranch} orders={orders} results={results} patients={patients} />}
             {activeTab === 'ha_dr' && <HighAvailabilityDisasterRecovery tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'accreditation' && <Iso15189AccreditationPortal tenant={currentTenant} branch={currentBranch} />}
@@ -1146,75 +1356,7 @@ export default function App() {
         onConfirm={handleConfirmBranchSelection}
         onClose={() => setIsBranchModalOpen(false)}
       />
-      {/* Lock Screen Overlay */}
-      {isSessionLocked && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 shadow-2xl animate-fade-in">
-            <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-3xl border border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
-              <Lock className="w-8 h-8" />
-            </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                {autoLockReason === 'inactivity' ? '🔒 Bloqueo Automático por Inactividad (5 Min)' : 'Seguridad ISO 15189 • Sesión Bloqueada'}
-              </span>
-              <h2 className="text-2xl font-black text-white mt-1">Estación Protegida</h2>
-              <p className="text-xs text-slate-400">
-                {autoLockReason === 'inactivity' ? (
-                  <>
-                    Se detectaron <strong className="text-amber-400">5 minutos de inactividad desatendida</strong>. Por protección de datos del paciente (ISO 15189 / Ley 81), la sesión se bloqueó automáticamente.
-                  </>
-                ) : (
-                  <>
-                    La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser.name}</strong> para reanudar la sesión.
-                  </>
-                )}
-              </p>
-            </div>
-
-            <form onSubmit={handleUnlockSession} className="space-y-4">
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>PIN de Desbloqueo (4 Dígitos)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Demo: {currentUser.pinCode || '1234'}</span>
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  value={unlockPinInput}
-                  onChange={(e) => setUnlockPinInput(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-lg font-mono tracking-[0.5em] text-white focus:outline-none focus:border-amber-400"
-                  placeholder="••••"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              {unlockError && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-bold">
-                  {unlockError}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer"
-                >
-                  Desbloquear Estación
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs transition cursor-pointer"
-                >
-                  Cerrar Sesión e Ir a Inicio
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Floating Inter-Branch Secure Messaging Widget (WebSockets) */}
       {isAuthenticated && !isSessionLocked && (

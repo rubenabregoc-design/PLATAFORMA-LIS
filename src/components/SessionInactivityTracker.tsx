@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Clock, ShieldCheck, RefreshCw, AlertTriangle, Play, Sparkles, ChevronDown, X } from 'lucide-react';
+import { useLisStore } from '../store/useLisStore';
 
 interface SessionInactivityTrackerProps {
   onLockSession?: () => void;
@@ -10,6 +11,7 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
   onLockSession,
   timeoutSeconds = 300
 }) => {
+  const { language } = useLisStore();
   const [secondsLeft, setSecondsLeft] = useState<number>(timeoutSeconds);
   const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
   const [lastResetTime, setLastResetTime] = useState<Date>(new Date());
@@ -102,7 +104,7 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
       {/* Interactive Trigger Button */}
       <button
         onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-        title="Temporizador de Auto-Bloqueo de Sesión (5 min)"
+        title={language === 'EN' ? "Session Auto-Lock Inactivity Timer (5 min)" : "Temporizador de Auto-Bloqueo de Sesión (5 min)"}
         className={`flex items-center space-x-2 px-3 py-1.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer select-none group relative overflow-hidden ${getBadgeColor()}`}
       >
         <div className="flex items-center space-x-1.5 relative z-10">
@@ -111,7 +113,7 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
             {formatTime(secondsLeft)}
           </span>
           <span className="text-[9px] uppercase tracking-wider opacity-60 hidden xl:inline">
-            Bloqueo
+            {language === 'EN' ? 'Lock' : 'Bloqueo'}
           </span>
         </div>
 
@@ -151,8 +153,12 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-white">Temporizador de Inactividad</h4>
-                  <p className="text-[10px] text-slate-400">Protección de acceso desatendido (Ley 81 / ISO 15189)</p>
+                  <h4 className="font-bold text-sm text-white">
+                    {language === 'EN' ? 'Inactivity Timer' : 'Temporizador de Inactividad'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    {language === 'EN' ? 'Unattended clinical station security (Law 81 / ISO 15189)' : 'Protección de acceso desatendido (Ley 81 / ISO 15189)'}
+                  </p>
                 </div>
               </div>
               <button
@@ -172,7 +178,7 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
                 : 'bg-slate-900/90 border-slate-800'
             }`}>
               <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 block">
-                Tiempo Restante Antes del Bloqueo:
+                {language === 'EN' ? 'Remaining Time Before Auto-Lock:' : 'Tiempo Restante Antes del Bloqueo:'}
               </span>
               <div className={`text-4xl font-black font-mono tracking-tight ${
                 isUrgent ? 'text-rose-400 animate-pulse' : isWarning ? 'text-amber-300' : 'text-teal-300'
@@ -181,8 +187,8 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
               </div>
               <span className="text-[11px] text-slate-400 block">
                 {isUrgent
-                  ? '⚠️ La sesión está por bloquearse. Mueva el cursor o pulse "Extender".'
-                  : 'Cualquier interacción (teclado, mouse, escáner) reinicia el tiempo a 5:00 min.'}
+                  ? (language === 'EN' ? '⚠️ Session about to lock. Move cursor or click "Extend".' : '⚠️ La sesión está por bloquearse. Mueva el cursor o pulse "Extender".')
+                  : (language === 'EN' ? 'Any interaction (keyboard, mouse, scanner) resets the timer to 5:00 min.' : 'Cualquier interacción (teclado, mouse, escáner) reinicia el tiempo a 5:00 min.')}
               </span>
 
               {/* High-Resolution Progress Bar */}
@@ -193,9 +199,9 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
                 />
               </div>
               <div className="flex justify-between text-[9px] font-mono text-slate-500 pt-1">
-                <span>0:00 (Bloqueo)</span>
-                <span>{Math.round(percent)}% restante</span>
-                <span>5:00 (Máximo)</span>
+                <span>{language === 'EN' ? '0:00 (Lock)' : '0:00 (Bloqueo)'}</span>
+                <span>{Math.round(percent)}% {language === 'EN' ? 'remaining' : 'restante'}</span>
+                <span>{language === 'EN' ? '5:00 (Max)' : '5:00 (Máximo)'}</span>
               </div>
             </div>
 
@@ -206,7 +212,7 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
                 className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer shadow"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Extender +5 Min</span>
+                <span>{language === 'EN' ? 'Extend +5 Min' : 'Extender +5 Min'}</span>
               </button>
 
               <button
@@ -214,14 +220,14 @@ export const SessionInactivityTracker: React.FC<SessionInactivityTrackerProps> =
                 className="px-4 py-2.5 bg-slate-900 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-500/40 text-slate-300 border border-slate-800 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Bloquear Ahora</span>
+                <span>{language === 'EN' ? 'Lock Now' : 'Bloquear Ahora'}</span>
               </button>
             </div>
 
             {/* Compliance Footer */}
             <div className="pt-2 text-[10px] text-slate-400 flex items-center space-x-1.5 border-t border-slate-800/80">
               <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-              <span>Bloqueo automático obligatorio para proteger datos de salud de pacientes.</span>
+              <span>{language === 'EN' ? 'Mandatory auto-lock to protect patient clinical health data.' : 'Bloqueo automático obligatorio para proteger datos de salud de pacientes.'}</span>
             </div>
 
           </div>

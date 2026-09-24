@@ -574,8 +574,26 @@ export const MASTER_TESTS: LisMasterTest[] = [
 
 export const MasterTestCatalogManager: React.FC = () => {
   const [areas] = useState<LisArea[]>(MASTER_AREAS);
-  const [tests, setTests] = useState<LisMasterTest[]>(MASTER_TESTS);
-  const [selectedTest, setSelectedTest] = useState<LisMasterTest>(MASTER_TESTS[0]);
+  const [tests, setTests] = useState<LisMasterTest[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_master_catalog');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return MASTER_TESTS;
+  });
+  const [selectedTest, setSelectedTest] = useState<LisMasterTest>(() => {
+    try {
+      const saved = localStorage.getItem('lis_master_catalog');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      }
+    } catch {}
+    return MASTER_TESTS[0];
+  });
   const [activeTab, setActiveTab] = useState<'EXPLORER' | 'PANEL_INSPECTOR' | 'REFERENCE_RANGES' | 'CRITICAL_LIMITS' | 'CONTAINERS_TUBES' | 'SEED_EXPORT'>('EXPLORER');
   
   // Filtering states
@@ -640,8 +658,14 @@ export const MasterTestCatalogManager: React.FC = () => {
       parameters: []
     };
 
-    setTests([newTest, ...tests]);
+    const updated = [newTest, ...tests];
+    setTests(updated);
     setSelectedTest(newTest);
+    try {
+      localStorage.setItem('lis_master_catalog', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving master catalog to localStorage', e);
+    }
     setIsNewTestModalOpen(false);
     alert(`¡Examen ${formName} (${formCode}) registrado con éxito en el Catálogo Maestro LIS!`);
   };

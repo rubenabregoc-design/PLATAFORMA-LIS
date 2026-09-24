@@ -42,6 +42,38 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #334155;
   }
+
+  /* Eliminación global de parpadeos y animaciones distractoras (Zero-Flicker / Enterprise Clinical UI) */
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce,
+  *[class*="animate-pulse"],
+  *[class*="animate-ping"],
+  *[class*="animate-bounce"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Neutralización a nivel de keyframes e infraestructura visual para que nada parpadee */
+@keyframes pulse {
+  0%, 50%, 100% {
+    opacity: 1 !important;
+  }
+}
+
+@keyframes ping {
+  0%, 100% {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: none !important;
+  }
 }
 
 /* Printable US Letter configuration (8.5 x 11 inches) */

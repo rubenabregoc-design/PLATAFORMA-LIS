@@ -4,11 +4,11 @@ import { SupabaseService } from '../../../services/SupabaseService';
 import { ISBT128 } from '../../../utils/isbt128Generator';
 
 interface DonorScreeningFormProps {
-  onClose: () => void;
-  onComplete: () => void;
+  onClose?: () => void;
+  onComplete?: () => void;
 }
 
-const DonorScreeningForm: React.FC<DonorScreeningFormProps> = ({ onClose, onComplete }) => {
+const DonorScreeningForm: React.FC<DonorScreeningFormProps> = ({ onClose = () => {}, onComplete = () => {} }) => {
   const [step, setStep] = useState(1);
   const [donorData, setDonorData] = useState({
     firstName: '',

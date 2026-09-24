@@ -36,8 +36,8 @@ import {
 import { ResultTrendWidget } from './ResultTrendWidget';
 
 interface ResultsTelemetryDashboardProps {
-  order: Order;
-  patient: Patient;
+  order?: Order;
+  patient?: Patient;
   results: TestResult[];
   analyzers: Analyzer[];
   currentUser?: User;
@@ -65,8 +65,21 @@ export const ResultsTelemetryDashboard: React.FC<ResultsTelemetryDashboardProps>
 
   // Filter results belonging to this order
   const orderResults = useMemo(() => {
+    if (!order) return [];
     return results.filter(r => r.orderId === order.id);
-  }, [results, order.id]);
+  }, [results, order?.id]);
+
+  if (!order) {
+    return (
+      <div className="bg-[#020617] border border-slate-800 rounded-3xl p-12 text-center text-slate-400">
+        <Activity className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-slate-200">Telemetría de Analizadores</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mt-2">
+          No hay órdenes seleccionadas para visualizar telemetría de analizadores.
+        </p>
+      </div>
+    );
+  }
 
   // Statistical calculations for technologist
   const stats = useMemo(() => {

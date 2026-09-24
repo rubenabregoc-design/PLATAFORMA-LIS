@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -344,8 +344,43 @@ export const ShiftManagementModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'CALENDARIO' | 'PERSONAL' | 'COBERTURA' | 'ALERTAS'>('CALENDARIO');
 
   // Staff and Shift State
-  const [staffList, setStaffList] = useState<StaffMember[]>(MOCK_STAFF);
-  const [shifts, setShifts] = useState<WorkShift[]>(generateInitialShifts());
+  const [staffList, setStaffList] = useState<StaffMember[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_staff_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return MOCK_STAFF;
+  });
+
+  const [shifts, setShifts] = useState<WorkShift[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_staff_shifts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return generateInitialShifts();
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lis_staff_list', JSON.stringify(staffList));
+    } catch (e) {
+      console.error('Error saving staffList to localStorage', e);
+    }
+  }, [staffList]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lis_staff_shifts', JSON.stringify(shifts));
+    } catch (e) {
+      console.error('Error saving shifts to localStorage', e);
+    }
+  }, [shifts]);
 
   // Modal / Drawer States
   const [isShiftModalOpen, setIsShiftModalOpen] = useState<boolean>(false);

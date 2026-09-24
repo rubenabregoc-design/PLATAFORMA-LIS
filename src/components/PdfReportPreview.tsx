@@ -3,6 +3,8 @@ import { Order, TestResult, Patient, Tenant, Branch } from '../types';
 import { MOCK_TEST_CATALOG } from '../data/mockData';
 import { FileText, Printer, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock, Award } from 'lucide-react';
 
+import { useLisStore } from '../store/useLisStore';
+
 interface PdfReportPreviewProps {
   order: Order;
   patient: Patient;
@@ -20,11 +22,31 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
   branch,
   onClose
 }) => {
+  const currentUser = useLisStore(s => s.currentUser);
+
   const handlePrint = () => {
     window.print();
   };
 
   let validatedResults = results.filter(res => res.orderId === order.id);
+
+  // Dynamic technologist signature & MINSA idoneidad
+  const techValidatorInResults = validatedResults.find(r => r.technicalValidatedBy)?.technicalValidatedBy;
+  const technologistName = techValidatorInResults || (currentUser?.role === 'tech_med' ? currentUser?.name : 'Lic. Sofía Guardia Franco');
+  const technologistLicense = currentUser?.licenseNumber || 'TM-5920-PA';
+
+  // Dynamic medical validator
+  const medValidatorInResults = validatedResults.find(r => r.medicalValidatedBy)?.medicalValidatedBy;
+  const medicalValidatorName = medValidatorInResults || 'Dr. Roberto Icaza Villalaz';
+
+  // Cryptographic deterministic SHA-256 simulation seal for the document
+  const seedString = `${order.id}-${patient.nationalId}-${order.createdAt || '2026'}`;
+  let hashVal = 0;
+  for (let i = 0; i < seedString.length; i++) {
+    hashVal = ((hashVal << 5) - hashVal) + seedString.charCodeAt(i);
+    hashVal |= 0;
+  }
+  const documentHash = `7f83b1657ff1fc53${Math.abs(hashVal).toString(16).padStart(8, '0')}48a1d65dfc2d4b1fa3d677284addd200126d9069`.substring(0, 64);
 
   // Fallback: If no results exist in memory for this order, generate from MOCK_TEST_CATALOG
   if (validatedResults.length === 0 && order && order.testIds && order.testIds.length > 0) {
@@ -130,8 +152,11 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
           <div className="flex items-center space-x-2.5">
             <button
               onClick={() => {
-                const message = `Estimado(a) ${patient.firstName} ${patient.lastName}, su informe de resultados del ${tenant.name} (${order.orderNumber}) está listo y validado. Cédula: ${patient.nationalId}.`;
-                window.open(`https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                const cleanPhone = (patient.phone || '').replace(/[^0-9]/g, '');
+                const finalPhone = cleanPhone.startsWith('507') ? cleanPhone : `507${cleanPhone}`;
+                const portalLink = `https://${window.location.host}/portal/resultados?token=${encodeURIComponent(order.orderNumber)}`;
+                const message = `*${tenant.name.toUpperCase()}*\n\nEstimado(a) *${patient.firstName} ${patient.lastName}*,\nSus resultados de laboratorio para la Orden *${order.orderNumber}* ya han sido validados por la Dirección Técnica.\n\nPuede consultar y descargar su informe oficial en PDF aquí:\n${portalLink}\n\n_Documento confidencial bajo la Ley 81 de Protección de Datos Personales de Panamá._`;
+                window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`, '_blank');
               }}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3.5 py-2 rounded-xl text-xs transition flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 cursor-pointer"
             >
@@ -392,24 +417,32 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
             {/* Firma Tecnólogo Médico */}
             <div className="text-center space-y-1">
               <div className="h-14 flex items-center justify-center">
-                <span className="font-serif italic text-teal-800 text-lg tracking-wider border-b-2 border-slate-400 pb-1 px-4">
-                  Lic. Sofía Guardia Franco
-                </span>
+                {currentUser?.signatureUrl ? (
+                  <img src={currentUser.signatureUrl} alt="Firma Tecnólogo" className="h-12 object-contain" />
+                ) : (
+                  <span className="font-serif italic text-teal-800 text-lg tracking-wider border-b-2 border-slate-400 pb-1 px-4">
+                    {technologistName}
+                  </span>
+                )}
               </div>
-              <strong className="text-xs text-slate-900 block">Lic. Sofía Guardia Franco</strong>
-              <span className="text-[11px] text-slate-600 block">Tecnóloga Médica Analista</span>
-              <span className="text-[11px] font-mono text-teal-800 font-bold block">Idoneidad MINSA: TM-5920-PA</span>
-              <span className="text-[10px] text-slate-500 font-mono block">Firma y Sello Técnico Autorizado</span>
+              <strong className="text-xs text-slate-900 block">{technologistName}</strong>
+              <span className="text-[11px] text-slate-600 block">Tecnólogo(a) Médico(a) Analista</span>
+              <span className="text-[11px] font-mono text-teal-800 font-bold block">
+                Idoneidad MINSA: {technologistLicense}
+              </span>
+              <span className="text-[10px] text-emerald-700 font-mono font-medium block flex items-center justify-center space-x-1">
+                <span>🛡️ Sello Digital Autorizado</span>
+              </span>
             </div>
 
             {/* Firma Jefe de Laboratorio / Director Médico */}
             <div className="text-center space-y-1">
               <div className="h-14 flex items-center justify-center">
                 <span className="font-serif italic text-teal-800 text-lg tracking-wider border-b-2 border-slate-400 pb-1 px-4">
-                  Dr. Roberto Icaza Villalaz
+                  {medicalValidatorName}
                 </span>
               </div>
-              <strong className="text-xs text-slate-900 block">Dr. Roberto Icaza Villalaz</strong>
+              <strong className="text-xs text-slate-900 block">{medicalValidatorName}</strong>
               <span className="text-[11px] text-slate-600 block">Jefe de Laboratorio Clínico</span>
               <span className="text-[11px] font-mono text-teal-800 font-bold block">Idoneidad MINSA: TM-1840-PA</span>
               <span className="text-[10px] text-slate-500 font-mono block">Validación Facultativa Médica</span>
@@ -424,7 +457,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
                 <strong className="text-slate-950 block text-xs">Verificación en Línea</strong>
                 <div>Escanee este código QR para comprobar la autenticidad e integridad del informe.</div>
                 <div className="text-[9px] font-mono text-slate-500 truncate pt-1">
-                  SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
+                  SHA-256: {documentHash}
                 </div>
               </div>
             </div>

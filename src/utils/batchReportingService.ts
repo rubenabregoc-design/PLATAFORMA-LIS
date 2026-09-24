@@ -55,7 +55,7 @@ export class BatchReportingService {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'letter'
     });
 
     const totalOrders = orders.length;
@@ -122,7 +122,7 @@ export class BatchReportingService {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'letter'
     });
 
     this.drawSingleOrderReport(doc, order, patient, orderResults, tenant, branch, 1, 1);
@@ -187,7 +187,7 @@ export class BatchReportingService {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'letter'
       });
       this.drawSingleOrderReport(doc, order, patient, orderResults, tenant, branch, 1, 1);
       const pdfArrayBuffer = doc.output('arraybuffer');
@@ -426,12 +426,14 @@ export class BatchReportingService {
   // --- PRIVATE PDF RENDERING METHODS ---
 
   private drawCoverPage(doc: jsPDF, orders: Order[], tenant: Tenant, branch: Branch) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+
     // Header Banner
     doc.setFillColor(15, 23, 42); // slate-900
-    doc.rect(0, 0, 210, 45, 'F');
+    doc.rect(0, 0, pageWidth, 45, 'F');
 
     doc.setFillColor(20, 184, 166); // teal-500
-    doc.rect(0, 43, 210, 2, 'F');
+    doc.rect(0, 43, pageWidth, 2, 'F');
 
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
@@ -528,12 +530,15 @@ export class BatchReportingService {
     orderIndex: number,
     totalOrders: number
   ) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
     // 1. Header Banner
     doc.setFillColor(15, 23, 42); // slate-900
-    doc.rect(0, 0, 210, 32, 'F');
+    doc.rect(0, 0, pageWidth, 32, 'F');
 
     doc.setFillColor(20, 184, 166); // teal-500
-    doc.rect(0, 31, 210, 1.5, 'F');
+    doc.rect(0, 31, pageWidth, 1.5, 'F');
 
     // Tenant Header
     doc.setTextColor(255, 255, 255);
@@ -737,9 +742,9 @@ export class BatchReportingService {
     doc.text(
       `Orden ${orderIndex} de ${totalOrders} • Sistema LIS-Core AbregoTech • Imprimió: Sistema Automático`,
       14,
-      285
+      pageHeight - 8
     );
-    doc.text(`Página ${orderIndex}`, 185, 285);
+    doc.text(`Página ${orderIndex}`, pageWidth - 26, pageHeight - 8);
   }
 }
 

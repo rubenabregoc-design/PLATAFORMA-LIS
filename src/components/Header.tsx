@@ -9,6 +9,14 @@ import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
 import { getTimeBasedGreeting } from '../utils/greeting';
 import { ServerInfrastructureModal } from './Infrastructure/ServerInfrastructureModal';
+import {
+  ROLE_LABELS_MAP,
+  getRoleLabel,
+  getTabLabel as getI18nTabLabel,
+  getTabDescription,
+  getTabExample,
+  getBranchName
+} from '../utils/i18n';
 
 interface HeaderProps {
   onRoleChange: (role: Role) => void;
@@ -20,20 +28,8 @@ interface HeaderProps {
   setShowAllModules: (show: boolean) => void;
 }
 
-export const ROLE_LABELS: Record<Role, { title: string; color: string; desc: string }> = {
-  owner: { title: 'Dueño / Gerente', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', desc: 'Finanzas, métricas, gerencia' },
-  lab_chief: { title: 'Jefe de Laboratorio', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', desc: 'Validación médica final, QC' },
-  tech_med: { title: 'Tecnólogo Médico', color: 'bg-blue-500/15 text-blue-300 border-blue-500/30', desc: 'Validación técnica, analizadores' },
-  lab_tech: { title: 'Técnico de Lab', color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30', desc: 'Recepción, código de barras' },
-  receptionist: { title: 'Recepcionista', color: 'bg-purple-500/15 text-purple-300 border-purple-500/30', desc: 'Registro, órdenes, cobros' },
-  ext_doctor: { title: 'Médico Referente', color: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', desc: 'Portal médico externo' },
-  patient: { title: 'Paciente / Cliente', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30', desc: 'Portal personal' },
-  abregotech_admin: {
-    title: 'Senior Dev & Admin',
-    color: 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-500/40',
-    desc: 'Programador Senior & Súper-Admin SaaS'
-  }
-};
+export const ROLE_LABELS = ROLE_LABELS_MAP.ES;
+export { getRoleLabel };
 
 export const NAVIGATION_TABS = [
   // 🔬 LIS (Laboratorio Clínico)
@@ -206,80 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
       }
     }
 
-    if (language === 'EN') {
-      const EN_LABELS: Record<string, string> = {
-        dashboard: 'Main Dashboard',
-        reception: 'Patient Admission & Reception',
-        validation: 'Results & Validation',
-        tm_workbench: 'Technical Workbench',
-        lis_workstation: '3D Validation Workstation',
-        patient_results: 'Patient Results',
-        test_catalog: 'LIS Test Catalog',
-        qc: 'Quality Control QC',
-        middleware: 'ASTM Middleware',
-        homologation: 'Analyzer Mappings',
-        drivers: 'ASTM / HL7 Drivers',
-        phlebotomy: 'GPS Phlebotomy',
-        pathology: 'Anatomical Pathology',
-        batch_reporting: 'Batch PDF Reporting',
-        lis_hil: 'HIL Preanalytics',
-        lis_panic: 'Critical Values Registry',
-        lis_alerts_center: 'Alerts & Panic Center',
-        lis_calculators: 'Clinical Calculators',
-        lis_telemetry: 'Analyzer Telemetry',
-        delta: 'Delta Check & Panics',
-        lis_referrals: 'Sample Referral & Transfers',
-        his_command: 'Hospital Command Center',
-        his_triage: 'ER & Triage',
-        his_beds: 'Bed Census & Map',
-        his_ehr: 'EHR Clinical Record',
-        his_cpoe: 'CPOE & CDS Orders',
-        his_kardex: 'eMAR Nursing Kardex',
-        his_icu: 'ICU / Critical Care',
-        his_operating: 'Operating Rooms AIMS',
-        his_maternity: 'Maternity & Neonatal',
-        his_ris_pacs: 'Radiology RIS / PACS',
-        his_pharmacy: 'Hospital Pharmacy',
-        his_discharge: 'Discharge Management',
-        his_console: 'HL7 / FHIR Integration',
-        shifts: 'Shifts & Appointments',
-        bloodbank: 'Blood Bank Center',
-        blood_donors: 'Donor Questionnaire',
-        blood_deferral: 'Deferral & Ineligibility',
-        blood_apheresis: 'Apheresis & Extraction',
-        blood_drives: 'Extramural Blood Drives',
-        blood_fractionation: 'Component Processing',
-        blood_serology: 'Serology & NAT Screening',
-        blood_cold_chain: 'IoT Cold Chain',
-        blood_logistics: 'Hemocomponent Logistics',
-        blood_crossmatch: 'Immuno & Crossmatch',
-        blood_bedside: 'Smart Bedside Transfusion',
-        blood_hemovigilance: 'Hemovigilance Events',
-        blood_waste: 'Biohazard Waste',
-        blood_chemical_waste: 'Chemical Waste',
-        blood_manifest: 'Disposal Manifest PDF',
-        label_studio: 'ISBT 128 Label Studio',
-        routing: 'Inter-Branch Logistics',
-        billing: 'POS & Tax Invoicing',
-        inventory: 'FEFO Reagent Inventory',
-        executive: 'Executive BI Analytics',
-        productivity: 'Productivity & TAT Metrics',
-        minsa: 'Epidemiology Reports',
-        audit: 'Data Privacy Audit',
-        cmms: 'CMMS Equipment Maintenance',
-        eqa: 'EQA / PEEC Quality Control',
-        whatsapp: 'WhatsApp LIS Engine',
-        fhir: 'FHIR Interoperability',
-        ha_dr: 'HA/DR High Availability',
-        accreditation: 'ISO 15189 Accreditation',
-        schema: 'Database E-R Schema',
-        superadmin: 'Super-Admin Console',
-        punch_clock: 'Shift Clock In/Out'
-      };
-      return EN_LABELS[tab.id] || tab.label;
-    }
-
-    return tab.label;
+    return getI18nTabLabel(tab.id, tab.label, language);
   };
 
   const greeting = getTimeBasedGreeting(language);
@@ -379,14 +302,14 @@ export const Header: React.FC<HeaderProps> = ({
         card: 'bg-[#2a0815]/90 hover:bg-[#3b0b1e] border-rose-500/30 hover:border-rose-400 text-slate-100 hover:shadow-rose-500/20 hover:shadow-lg',
         iconBg: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
         badge: 'bg-rose-500/15 text-rose-300 border border-rose-500/30',
-        label: '🩸 BANCO SANGRE'
+        label: language === 'EN' ? '🩸 BLOOD BANK' : '🩸 BANCO SANGRE'
       };
     }
     return {
       card: 'bg-[#261502]/90 hover:bg-[#382003] border-amber-500/30 hover:border-amber-400 text-slate-100 hover:shadow-amber-500/20 hover:shadow-lg',
       iconBg: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
       badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
-      label: '💼 GESTIÓN & BI'
+      label: language === 'EN' ? '💼 BI & MANAGEMENT' : '💼 GESTIÓN & BI'
     };
   };
 
@@ -409,7 +332,7 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       <header className="bg-[#03091e]/95 backdrop-blur-3xl text-white border-b border-cyan-500/30 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.85)] w-full select-none">
       {/* Top Navbar Row */}
-      <div className="w-full px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-[1920px] mx-auto">
+      <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 h-14 sm:h-16 flex items-center justify-between gap-1.5 lg:gap-2 max-w-[1920px] mx-auto">
 
         {/* Brand Logo & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2 shrink-0">
@@ -420,7 +343,7 @@ export const Header: React.FC<HeaderProps> = ({
               setActiveCategoryMenu(isMenuOpen ? null : 'all');
             }}
             className="flex lg:hidden items-center justify-center w-8 h-8 rounded-xl bg-slate-900 border border-cyan-500/35 text-cyan-300 hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-            title="Abrir Menú de Módulos Clínicos"
+            title={language === 'EN' ? "Open Clinical Modules Menu" : "Abrir Menú de Módulos Clínicos"}
           >
             {isMenuOpen ? <X className="w-4 h-4 text-cyan-300" /> : <Menu className="w-4 h-4 text-cyan-300" />}
           </button>
@@ -447,43 +370,47 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Direct Dashboard Pill */}
           <button
             onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center space-x-1 px-2 xl:px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
+            title={language === 'EN' ? "Executive Dashboard" : "Dashboard Principal"}
           >
             <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider">Dashboard</span>
+            <span className="uppercase tracking-wider hidden 2xl:inline">Dashboard</span>
           </button>
 
-          {/* 4 Direct Suite Navigation Action Pills (Visible on all desktop/laptop lg+ screens) */}
+          {/* 4 Suite Navigation Action Pills (Clicking any opens/toggles that suite's module menu) */}
           <div className="flex items-center space-x-0.5">
             {DOMAIN_CATEGORIES.map((category) => {
               const CategoryIcon = category.icon;
               const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
+              const isCategoryOpen = isMenuOpen && activeCategoryMenu === category.id;
 
-              const handleCategoryDirectNav = () => {
-                setActiveCategoryMenu(null);
-                if (category.id === 'lis') setActiveTab('dashboard');
-                else if (category.id === 'his') setActiveTab('his_command');
-                else if (category.id === 'bloodbank') setActiveTab('bloodbank');
-                else if (category.id === 'bi') setActiveTab('executive');
+              const handleCategoryClick = () => {
+                setSearchQuery('');
+                setActiveCategoryMenu((prev) => (prev === category.id ? null : category.id));
               };
 
               return (
                 <button
                   key={category.id}
-                  onClick={handleCategoryDirectNav}
+                  onClick={handleCategoryClick}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    isCategoryActive
+                    isCategoryOpen
+                      ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.5)] ring-1 ring-cyan-300'
+                      : isCategoryActive
                       ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)] font-black'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
-                  title={`Ir directamente a la Suite ${category.label}`}
+                  title={language === 'EN' ? `View ${category.label} modules (${category.count})` : `Ver módulos de ${category.label} (${category.count})`}
                 >
-                  <CategoryIcon className={`w-3 h-3 shrink-0 ${isCategoryActive ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]' : 'text-cyan-400'}`} />
+                  <CategoryIcon className={`w-3 h-3 shrink-0 ${isCategoryOpen ? 'text-slate-950' : 'text-cyan-400'}`} />
                   <span className="uppercase tracking-wider font-extrabold">{category.shortLabel}</span>
+                  <span className={`text-[8.5px] font-mono px-1 rounded-full ${isCategoryOpen ? 'bg-slate-950/20 text-slate-950 font-black' : 'bg-cyan-500/15 text-cyan-300'}`}>
+                    {category.count}
+                  </span>
                 </button>
               );
             })}
@@ -500,43 +427,49 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
                 : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
             }`}
-            title={language === 'EN' ? "Press Ctrl+K to search anytime" : "Presione Ctrl+K para buscar en cualquier momento"}
+            title={language === 'EN' ? "View full clinical catalog (Ctrl+K)" : "Ver catálogo clínico completo (Ctrl+K)"}
           >
-            <Grid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <Grid className={`w-3.5 h-3.5 shrink-0 ${isMenuOpen && activeCategoryMenu === 'all' ? 'text-slate-950' : 'text-cyan-400'}`} />
             <span className="uppercase tracking-wider font-black">❖ {language === 'EN' ? 'CATALOG' : 'Catálogo'} ({visibleTabs.length})</span>
             <span className="text-[9px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
           </button>
         </nav>
 
         {/* Right Controls: Status, Language, User Profile & Actions */}
-        <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0 ml-auto">
+        <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0 ml-auto pr-1">
 
-          {/* Executive Clinical Mode Switcher (Producción Real vs Demostración Sintética) */}
-          <button
-            onClick={() => {
-              const nextMode = !isDemoMode;
-              toggleDemoMode();
-              useHisStore.getState().setHisDemoMode(nextMode);
-            }}
-            title={
-              isDemoMode
-                ? "Modo Demostración activo. Clic para cambiar a MODO PRODUCCIÓN (Pacientes Reales Panameños, Cédulas, Triage y Pruebas Cruzadas Reales)."
-                : "Modo Producción activo (Pacientes Reales Panameños con Cédula, Triage Manchester y Hemovigilancia). Clic para alternar a MODO DEMO."
-            }
-            className={`flex items-center space-x-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shrink-0 border ${
-              isDemoMode
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
-            <span className="uppercase tracking-wider font-extrabold hidden sm:inline">
-              {isDemoMode ? 'MODO DEMO' : 'PRODUCCIÓN (REAL)'}
-            </span>
-            <span className="uppercase tracking-wider font-extrabold sm:hidden">
-              {isDemoMode ? 'DEMO' : 'REAL'}
-            </span>
-          </button>
+          {/* Executive Clinical Mode Switcher (Producción Real vs Demostración Sintética) - Exclusivo para Super Administrador */}
+          {(currentRole === 'abregotech_admin' || (currentRole as string) === 'superadmin') && (
+            <button
+              onClick={() => {
+                const nextMode = !isDemoMode;
+                toggleDemoMode();
+                useHisStore.getState().setHisDemoMode(nextMode);
+              }}
+              title={
+                isDemoMode
+                  ? (language === 'EN'
+                      ? "Demo Mode active. Click to switch to PRODUCTION MODE (Real Panamanian Patients, IDs, Triage and Crossmatches)."
+                      : "Modo Demostración activo. Clic para cambiar a MODO PRODUCCIÓN (Pacientes Reales Panameños, Cédulas, Triage y Pruebas Cruzadas Reales).")
+                  : (language === 'EN'
+                      ? "Production Mode active (Real Panamanian Patients with ID, Manchester Triage and Hemovigilance). Click to switch to DEMO MODE."
+                      : "Modo Producción activo (Pacientes Reales Panameños con Cédula, Triage Manchester y Hemovigilancia). Clic para alternar a MODO DEMO.")
+              }
+              className={`flex items-center space-x-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shrink-0 border ${
+                isDemoMode
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+              <span className="uppercase tracking-wider font-extrabold hidden 2xl:inline">
+                {isDemoMode ? (language === 'EN' ? 'DEMO MODE' : 'MODO DEMO') : (language === 'EN' ? 'PRODUCTION (REAL)' : 'PRODUCCIÓN (REAL)')}
+              </span>
+              <span className="uppercase tracking-wider font-extrabold inline 2xl:hidden">
+                {isDemoMode ? 'DEMO' : 'PROD'}
+              </span>
+            </button>
+          )}
 
           {isSyncing && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
@@ -551,11 +484,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Server Infrastructure Health Monitor Pulse Button */}
           <button
             onClick={() => setIsServerHealthModalOpen(true)}
-            title="AbregoTech Server Health & Cluster Telemetry (PostgreSQL 16, PostgREST :8000, ACE :5100)"
-            className="flex items-center space-x-1 px-2 py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
+            title={language === 'EN' ? "AbregoTech Server Health & Cluster Telemetry (PostgreSQL 16, PostgREST :8000, ACE :5100)" : "Salud del Servidor y Telemetría de Clúster AbregoTech"}
+            className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
           >
             <Server className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
-            <span className="hidden 2xl:inline font-mono text-[10.5px]">SERVIDOR: ONLINE</span>
+            <span className="hidden 2xl:inline font-mono text-[10.5px]">{language === 'EN' ? 'SERVER: ONLINE' : 'SERVIDOR: ONLINE'}</span>
             <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">4.4ms</span>
           </button>
 
@@ -594,27 +527,25 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
-          {/* Inactivity Countdown Timer (Visible on xl+ screens to ensure zero crowding on laptops) */}
-          <div className="hidden xl:flex shrink-0">
+          {/* Inactivity Countdown Timer (Visible on 2xl+ screens to guarantee zero crowding on laptops/standard displays) */}
+          <div className="hidden 2xl:flex shrink-0">
             <SessionInactivityTracker onLockSession={onLockSession} timeoutSeconds={300} />
           </div>
 
-          <div className="h-5 w-px bg-white/10 hidden xl:block"></div>
+          <div className="h-5 w-px bg-white/10 hidden 2xl:block"></div>
 
-          {/* Clinical User Profile Badge (Full Name & Branch clearly visible) */}
+          {/* Clinical User Profile Badge (Compact on < 2xl, expanded on 2xl+) */}
           <div
             onClick={onOpenBranchModal}
-            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full px-2.5 sm:px-3 py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
-            title={`${rawUserName} • ${currentBranch?.name || 'Sede Vía España'} (${language === 'EN' ? 'Click to change branch' : 'Click para cambiar sede'})`}
+            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full p-0.5 2xl:px-2.5 2xl:py-1 gap-1.5 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            title={`${rawUserName} • ${getBranchName(currentBranch?.name, language)} (${language === 'EN' ? 'Click to change branch' : 'Click para cambiar sede'})`}
           >
-            <div className="hidden md:flex flex-col text-right min-w-0 max-w-[130px] lg:max-w-[160px] xl:max-w-[190px]">
+            <div className="hidden 2xl:flex flex-col text-right min-w-0 max-w-[140px]">
               <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate">
                 {cleanUserName}
               </span>
               <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate mt-1">
-                {language === 'EN'
-                  ? (currentBranch?.name?.replace('Sede Vía España', 'Via España Branch')?.replace('Sede Principal', 'Main Branch') || currentBranch?.name || 'Via España Branch')
-                  : (currentBranch?.name || 'Sede Vía España')}
+                {getBranchName(currentBranch?.name, language)}
               </span>
             </div>
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[11px] flex items-center justify-center shadow-md shrink-0">
@@ -622,25 +553,28 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Lock Session Button (Visible on lg+) */}
-          {onLockSession && (
-            <button
-              onClick={onLockSession}
-              title={language === 'EN' ? "Lock Station Manually" : "Bloquear Estación Manualmente"}
-              className="hidden lg:flex w-8 h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
-            >
-              <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
-            </button>
-          )}
+          {/* Lock & Logout Actions Container */}
+          <div className="flex items-center space-x-1 shrink-0 ml-0.5">
+            {/* Lock Session Button (Visible on lg+) */}
+            {onLockSession && (
+              <button
+                onClick={onLockSession}
+                title={language === 'EN' ? "Lock Station Manually" : "Bloquear Estación Manualmente"}
+                className="hidden lg:flex w-7 h-7 sm:w-8 sm:h-8 items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400 transition-all cursor-pointer group shrink-0"
+              >
+                <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform" />
+              </button>
+            )}
 
-          {/* Logout Button */}
-          <button
-            onClick={logout}
-            title={language === 'EN' ? "Sign Out" : "Cerrar Sesión"}
-            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/50 hover:text-rose-400 transition-all cursor-pointer group shrink-0"
-          >
-            <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-transform" />
-          </button>
+            {/* Logout Button (Distinctive luxury rose border, shrink-0 and explicit margin to guarantee it is never cut off) */}
+            <button
+              onClick={logout}
+              title={language === 'EN' ? "Sign Out" : "Cerrar Sesión"}
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-rose-500/40 hover:bg-rose-500/20 hover:border-rose-400 text-rose-300 hover:text-white transition-all cursor-pointer group shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400/90 group-hover:text-white transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -799,7 +733,7 @@ export const Header: React.FC<HeaderProps> = ({
                           </div>
                           {tab.desc && (
                             <p className={`text-[9.5px] line-clamp-1 leading-snug font-medium ${isSubActive ? 'text-slate-900 font-bold' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                              {tab.desc}
+                              {getTabDescription(tab.id, tab.desc, language)}
                             </p>
                           )}
                         </div>
@@ -807,7 +741,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {tab.example && (
                         <span className={`text-[8.5px] font-mono font-bold tracking-tight truncate px-1.5 py-0.2 rounded self-start ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-950/80 text-amber-300 border border-amber-500/20'}`}>
-                          {tab.example}
+                          {getTabExample(tab.id, tab.example, language)}
                         </span>
                       )}
                     </button>

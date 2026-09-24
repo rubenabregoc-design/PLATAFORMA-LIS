@@ -5,6 +5,7 @@ import {
   Stethoscope, Lock, ShieldCheck, KeyRound, AlertCircle,
   ArrowRight, LogOut, Award, CheckCircle2, UserCheck
 } from 'lucide-react';
+import { useLisStore } from '../../store/useLisStore';
 
 interface SecureDoctorPortalGatewayProps {
   orders: Order[];
@@ -25,12 +26,15 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
   onOpenPdf,
   onCreateOrder
 }) => {
+  const language = useLisStore((state) => state.language);
+  const isEn = language === 'EN';
+
   const [licenseNumber, setLicenseNumber] = useState('');
   const [accessPin, setAccessPin] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Authenticated doctor state — Inicializado de inmediato con sesión médica activa (Dr. Roberto Icaza)
+  // Authenticated doctor state — Inicia en null requiriendo autenticación médica estricta
   const [authenticatedDoctor, setAuthenticatedDoctor] = useState<{
     name: string;
     license: string;
@@ -38,16 +42,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
     specialty?: string;
     minsaVerified?: boolean;
     minsaRegistrationNumber?: string;
-  } | null>(() => {
-    return {
-      name: 'Dr. Roberto Icaza (Médico Especialista)',
-      license: 'MED-10492-PA',
-      clinic: 'Consultorios Médicos Paitilla — Sede Vía España',
-      specialty: 'Medicina Interna & Cuidados Críticos',
-      minsaVerified: true,
-      minsaRegistrationNumber: 'RM-5420-PA'
-    };
-  });
+  } | null>(null);
 
   const handleAuthenticate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,37 +52,39 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
     const cleanPin = accessPin.trim();
 
     if (!cleanLicense || !cleanPin) {
-      setErrorMsg('Por favor ingrese su número de Idoneidad Médica y su clave de acceso.');
+      setErrorMsg(
+        isEn
+          ? 'Please enter your Medical License ID and access PIN.'
+          : 'Por favor ingrese su número de Idoneidad Médica y su clave de acceso.'
+      );
       return;
     }
 
     setIsLoading(true);
 
     setTimeout(() => {
-      // Demo doctors credentials
+      // Valid doctors credentials
       const validDoctors = [
-        { license: 'MED-10492-PA', pin: '1234', name: 'Dr. Roberto Icaza (Médico Especialista)', clinic: 'Consultorios Médicos Paitilla', specialty: 'Medicina Interna & Cuidados Críticos', minsaRegistrationNumber: 'RM-5420-PA' },
-        { license: 'MED-8841-PA', pin: '1234', name: 'Dr. Roberto Eisenmann (Cirujano General)', clinic: 'Hospital Punta Pacífica', specialty: 'Cirugía General & Laparoscopía', minsaRegistrationNumber: 'RM-3910-PA' },
-        { license: 'MED-7712-PA', pin: '1234', name: 'Dra. Carmen Boyd (Pediatra)', clinic: 'Clínica Hospital San Fernando', specialty: 'Pediatría & Neonatología', minsaRegistrationNumber: 'RM-6102-PA' }
+        { license: 'MED-10492-PA', pin: '1049', name: 'Dr. Roberto Icaza (Médico Especialista)', clinic: 'Consultorios Médicos Paitilla', specialty: 'Medicina Interna & Cuidados Críticos', minsaRegistrationNumber: 'RM-5420-PA' },
+        { license: 'MED-8841-PA', pin: '8841', name: 'Dr. Roberto Eisenmann (Cirujano General)', clinic: 'Hospital Punta Pacífica', specialty: 'Cirugía General & Laparoscopía', minsaRegistrationNumber: 'RM-3910-PA' },
+        { license: 'MED-7712-PA', pin: '7712', name: 'Dra. Carmen Boyd (Pediatra)', clinic: 'Clínica Hospital San Fernando', specialty: 'Pediatría & Neonatología', minsaRegistrationNumber: 'RM-6102-PA' }
       ];
 
       const found = validDoctors.find(
         d => d.license.replace(/[-]/g, '') === cleanLicense.replace(/[-]/g, '') && d.pin === cleanPin
       );
 
-      if (!found && cleanPin !== 'DEMO' && cleanPin !== '1234') {
-        setErrorMsg('Credenciales médicas incorrectas. Verifique su número de idoneidad o clave asignada.');
+      if (!found) {
+        setErrorMsg(
+          isEn
+            ? 'Incorrect physician credentials. Verify your medical license number and access PIN.'
+            : 'Credenciales médicas incorrectas. Verifique su número de idoneidad y clave asignada.'
+        );
         setIsLoading(false);
         return;
       }
 
-      setAuthenticatedDoctor(found || {
-        license: cleanLicense,
-        name: 'Dr. Médico Colegiado (MINSA)',
-        clinic: 'Consultorio Privado Panamá',
-        specialty: 'Medicina General',
-        minsaRegistrationNumber: 'RM-PA-2026'
-      });
+      setAuthenticatedDoctor(found);
       setIsLoading(false);
     }, 400);
   };
@@ -110,7 +107,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
           <div className="flex items-center space-x-3">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
             <span className="text-xs text-slate-300 font-medium">
-              Portal Médico Conectado • <strong className="text-white">{authenticatedDoctor.name}</strong>
+              {isEn ? 'Connected Physician Portal' : 'Portal Médico Conectado'} • <strong className="text-white">{authenticatedDoctor.name}</strong>
             </span>
             <span className="text-xs text-indigo-300 font-mono font-bold bg-indigo-950/70 border border-indigo-500/30 px-2 py-0.5 rounded-md">
               {authenticatedDoctor.license}
@@ -122,7 +119,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             className="flex items-center space-x-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Cerrar Sesión / Cambiar Idoneidad</span>
+            <span>{isEn ? 'Sign Out / Switch License' : 'Cerrar Sesión / Cambiar Idoneidad'}</span>
           </button>
         </div>
 
@@ -151,10 +148,12 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             <Stethoscope className="w-8 h-8 text-indigo-400" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Portal Médico Referente
+            {isEn ? 'Referring Physician Portal' : 'Portal Médico Referente'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto font-medium">
-            Acceso seguro para médicos tratantes, emisión de requisiciones electrónicas y consulta de resultados.
+            {isEn
+              ? 'Secure access for treating physicians, electronic requisitions, and certified clinical results.'
+              : 'Acceso seguro para médicos tratantes, emisión de requisiciones electrónicas y consulta de resultados.'}
           </p>
         </div>
 
@@ -166,40 +165,69 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             {/* License Number Field */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                1. N° de Idoneidad Médica (MINSA):
+                {isEn ? '1. Medical License ID (MINSA):' : '1. N° de Idoneidad Médica (MINSA):'}
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={licenseNumber}
                   onChange={(e) => setLicenseNumber(e.target.value.toUpperCase())}
-                  placeholder="Ej. MED-10492-PA"
+                  placeholder={isEn ? 'e.g. MED-10492-PA' : 'Ej. MED-10492-PA'}
                   className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm font-mono font-bold text-indigo-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 uppercase transition"
                   autoComplete="off"
                 />
               </div>
               <p className="text-[11px] text-slate-500">
-                Número de registro profesional expedido por el Consejo Técnico de Salud.
+                {isEn
+                  ? 'Professional license number issued by the Technical Health Council.'
+                  : 'Número de registro profesional expedido por el Consejo Técnico de Salud.'}
               </p>
             </div>
 
             {/* PIN / Password Field */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                2. Clave de Acceso Médico o PIN:
+                {isEn ? '2. Physician Access Key or PIN:' : '2. Clave de Acceso Médico o PIN:'}
               </label>
-              <div className="relative">
+              <div className="relative" onContextMenu={(e) => e.preventDefault()}>
                 <input
                   type="password"
-                  value={accessPin}
-                  onChange={(e) => setAccessPin(e.target.value)}
+                  autoComplete="new-password"
+                  value={'•'.repeat(accessPin.length)}
+                  onChange={(e) => {
+                    const rawVal = e.target.value;
+                    const prevLen = accessPin.length;
+                    if (rawVal.length < prevLen) {
+                      setAccessPin(accessPin.slice(0, rawVal.length));
+                    } else {
+                      const added = rawVal.replace(/•/g, '');
+                      if (added) {
+                        setAccessPin((prev) => prev + added);
+                      }
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Backspace') {
+                      e.preventDefault();
+                      setAccessPin((prev) => prev.slice(0, -1));
+                    }
+                  }}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData('text');
+                    if (pasted) {
+                      setAccessPin((prev) => prev + pasted);
+                    }
+                  }}
                   placeholder="••••••••"
                   className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm font-semibold text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                 />
                 <KeyRound className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               <p className="text-[11px] text-slate-500">
-                Clave confidencial suministrada por la administración del laboratorio.
+                {isEn
+                  ? 'Confidential access PIN provided by laboratory executive administration.'
+                  : 'Clave confidencial suministrada por la administración del laboratorio.'}
               </p>
             </div>
 
@@ -218,10 +246,10 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
               className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-wider transition shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <span>Validando Idoneidad Médica...</span>
+                <span>{isEn ? 'Verifying Physician Credentials...' : 'Validando Idoneidad Médica...'}</span>
               ) : (
                 <>
-                  <span>Ingresar al Portal Médico</span>
+                  <span>{isEn ? 'Enter Physician Portal' : 'Ingresar al Portal Médico'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -231,7 +259,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
           {/* Quick Demo Test Access Button */}
           <div className="mt-6 pt-5 border-t border-slate-800">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
-              Acceso Rápido de Prueba (Dr. Roberto Icaza):
+              {isEn ? 'Quick Demo Access (Dr. Roberto Icaza):' : 'Acceso Rápido de Prueba (Dr. Roberto Icaza):'}
             </div>
             <button
               type="button"
@@ -244,10 +272,12 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
             >
               <div>
                 <div className="font-bold text-white">Dr. Roberto Icaza</div>
-                <div className="text-indigo-400 font-mono text-[11px]">Idoneidad: MED-10492-PA | PIN: 1234</div>
+                <div className="text-indigo-400 font-mono text-[11px]">
+                  {isEn ? 'License: MED-10492-PA | PIN: 1234' : 'Idoneidad: MED-10492-PA | PIN: 1234'}
+                </div>
               </div>
               <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded-lg font-bold">
-                Cargar Credenciales
+                {isEn ? 'Load Credentials' : 'Cargar Credenciales'}
               </span>
             </button>
           </div>
@@ -257,7 +287,11 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
         <div className="text-center space-y-2">
           <div className="inline-flex items-center space-x-2 text-[11px] text-slate-400 font-medium bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-full">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Firma Digital SHA-256 Habilitada • Trazabilidad de Requisiciones</span>
+            <span>
+              {isEn
+                ? 'SHA-256 Digital Signature Active • Full Requisition Audit Trail'
+                : 'Firma Digital SHA-256 Habilitada • Trazabilidad de Requisiciones'}
+            </span>
           </div>
         </div>
       </div>

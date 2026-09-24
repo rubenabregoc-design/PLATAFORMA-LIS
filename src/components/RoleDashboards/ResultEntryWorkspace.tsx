@@ -72,7 +72,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
   onConsultInterBranch, onUpdateOrderTests, allOrders = [], allPatients = []
 }) => {
-  const [activeOrderId, setActiveOrderId] = useState<string>(initialOrder.id);
+  const [activeOrderId, setActiveOrderId] = useState<string>(initialOrder?.id || allOrders[0]?.id || '');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'validated'>('all');
@@ -83,6 +83,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [showAuditLog, setShowAuditLog] = useState(false);
 
   useEffect(() => {
+    if (!activeOrderId && (initialOrder?.id || allOrders[0]?.id)) {
+      setActiveOrderId(initialOrder?.id || allOrders[0]?.id || '');
+    }
+  }, [initialOrder, allOrders, activeOrderId]);
+
+  useEffect(() => {
     if (showTrendViewer) {
       setIsTrendsLoading(true);
       const timer = setTimeout(() => setIsTrendsLoading(false), 300);
@@ -90,8 +96,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     }
   }, [showTrendViewer]);
 
-  const currentOrder = allOrders.find(o => o.id === activeOrderId) || initialOrder;
-  const currentPatient = allPatients.find(p => p.id === currentOrder.patientId) || initialPatient;
+  const currentOrder = (allOrders.length > 0 ? allOrders.find(o => o.id === activeOrderId) : undefined) || initialOrder || allOrders[0];
+  const currentPatient = (allPatients.length > 0 ? allPatients.find(p => p.id === currentOrder?.patientId) : undefined) || initialPatient || allPatients[0];
 
   // Reglas de propiedad y permisos según Especificación LIS/HIS:
   // - JL, Dueño y Admin: autoridad de supervisión total sin restricción de propiedad
@@ -383,22 +389,22 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               </div>
               <div>
                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-black text-white uppercase italic tracking-tight">{currentPatient.firstName} {currentPatient.lastName}</h2>
-                    {currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? (
+                    <h2 className="text-lg font-black text-white uppercase italic tracking-tight">{currentPatient ? `${currentPatient.firstName} ${currentPatient.lastName}` : 'Sin Paciente'}</h2>
+                    {currentOrder?.priority === 'STAT' || currentOrder?.priority === 'URGENTE' ? (
                        <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
                           <Zap className="w-3 h-3 fill-current" /> URGENTE
                        </span>
                     ) : (
                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">
-                          RUTINA
+                          {currentOrder?.priority || 'RUTINA'}
                        </span>
                     )}
                  </div>
 
                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-bold uppercase mt-1">
-                    <span className="flex items-center gap-1 text-teal-400"><Fingerprint className="w-3.5 h-3.5" />{currentPatient.nationalId}</span>
+                    <span className="flex items-center gap-1 text-teal-400"><Fingerprint className="w-3.5 h-3.5" />{currentPatient?.nationalId || 'N/A'}</span>
                     <span className="text-slate-600">•</span>
-                    <span className="text-slate-300">Orden: <strong className="text-white font-mono">{currentOrder.orderNumber}</strong></span>
+                    <span className="text-slate-300">Orden: <strong className="text-white font-mono">{currentOrder?.orderNumber || 'N/A'}</strong></span>
                     <span className="text-slate-600">•</span>
                     <span className="text-indigo-300">38 años / Femenino</span>
                     <span className="text-slate-600">•</span>

@@ -32,13 +32,13 @@ export const DatabaseSchemaViewer: React.FC = () => {
       </div>
 
       {/* Tenant Strategy Evaluation Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+      <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-teal-600" />
+          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+            <Layers className="w-5 h-5 text-teal-400" />
             <span>Evaluación de Estrategia Multi-Tenant para PostgreSQL</span>
           </h2>
-          <p className="text-slate-600 text-xs mt-1">
+          <p className="text-slate-400 text-xs mt-1">
             Seleccione una arquitectura para comparar pros/contras en el contexto del mercado de laboratorios en Panamá:
           </p>
         </div>
@@ -49,16 +49,16 @@ export const DatabaseSchemaViewer: React.FC = () => {
             onClick={() => setSelectedStrategy('discriminator')}
             className={`p-4 rounded-xl text-left border text-sm transition relative ${
               selectedStrategy === 'discriminator'
-                ? 'bg-teal-50 border-teal-600 ring-2 ring-teal-500/20'
-                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                ? 'bg-teal-500/15 border-teal-500 ring-2 ring-teal-500/30 text-white shadow-lg'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-400'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-slate-900">Estrategia A: Shared DB + Discriminator Column (`tenant_id`) + RLS</span>
-              {selectedStrategy === 'discriminator' && <span className="text-xs bg-teal-600 text-white font-bold px-2 py-0.5 rounded-full">RECOMENDADO MVP</span>}
+              <span className="font-bold text-white">Estrategia A: Shared DB + Discriminator Column (`tenant_id`) + RLS</span>
+              {selectedStrategy === 'discriminator' && <span className="text-xs bg-teal-500 text-slate-950 font-black px-2 py-0.5 rounded-full">RECOMENDADO MVP</span>}
             </div>
-            <p className="text-xs text-slate-600 leading-normal">
-              Todas las tablas incluyen <code className="bg-slate-200 text-slate-800 px-1 rounded">tenant_id</code>. PostgreSQL Row-Level Security (RLS) fuerza el aislamiento a nivel de motor SQL.
+            <p className="text-xs text-slate-400 leading-normal">
+              Todas las tablas incluyen <code className="bg-slate-800 text-teal-300 px-1 py-0.5 rounded border border-slate-700">tenant_id</code>. PostgreSQL Row-Level Security (RLS) fuerza el aislamiento a nivel de motor SQL.
             </p>
           </button>
 
@@ -66,12 +66,12 @@ export const DatabaseSchemaViewer: React.FC = () => {
             onClick={() => setSelectedStrategy('schema_per_tenant')}
             className={`p-4 rounded-xl text-left border text-sm transition ${
               selectedStrategy === 'schema_per_tenant'
-                ? 'bg-teal-50 border-teal-600 ring-2 ring-teal-500/20'
-                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                ? 'bg-teal-500/15 border-teal-500 ring-2 ring-teal-500/30 text-white shadow-lg'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-400'
             }`}
           >
-            <div className="font-bold text-slate-900 mb-2">Estrategia B: Schema por Tenant (`tenant_lab_a`, `tenant_lab_b`)</div>
-            <p className="text-xs text-slate-600 leading-normal">
+            <div className="font-bold text-white mb-2">Estrategia B: Schema por Tenant (`tenant_lab_a`, `tenant_lab_b`)</div>
+            <p className="text-xs text-slate-400 leading-normal">
               Un único PostgreSQL, pero cada laboratorio cliente posee su propio esquema de tablas dentro de la base de datos.
             </p>
           </button>
@@ -80,58 +80,58 @@ export const DatabaseSchemaViewer: React.FC = () => {
             onClick={() => setSelectedStrategy('db_per_tenant')}
             className={`p-4 rounded-xl text-left border text-sm transition ${
               selectedStrategy === 'db_per_tenant'
-                ? 'bg-teal-50 border-teal-600 ring-2 ring-teal-500/20'
-                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                ? 'bg-teal-500/15 border-teal-500 ring-2 ring-teal-500/30 text-white shadow-lg'
+                : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-400'
             }`}
           >
-            <div className="font-bold text-slate-900 mb-2">Estrategia C: Base de Datos Independiente por Tenant</div>
-            <p className="text-xs text-slate-600 leading-normal">
+            <div className="font-bold text-white mb-2">Estrategia C: Base de Datos Independiente por Tenant</div>
+            <p className="text-xs text-slate-400 leading-normal">
               Cada cliente tiene un PostgreSQL dedicado en un contenedor o instancia propia. Aislamiento físico total.
             </p>
           </button>
         </div>
 
         {/* Detailed Comparison Table */}
-        <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 text-xs space-y-4">
+        <div className="bg-slate-950/90 rounded-xl p-5 border border-slate-800 text-xs space-y-4">
           {selectedStrategy === 'discriminator' && (
             <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-800 font-bold text-sm">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>Pros de Estrategia A (`tenant_id` + Row Level Security):</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2">
-                <li><strong>Costo-Eficiencia Startup:</strong> Permite operar decenas de laboratorios en un solo cluster pequeño de PostgreSQL (ej. Cloud SQL Developer Instance).</li>
-                <li><strong>Mantenimiento de Migraciones:</strong> Un solo comando de migración (<code className="bg-slate-200 px-1">drizzle-kit push</code>) actualiza la estructura para todos los clientes en milisegundos.</li>
-                <li><strong>Consultas Globales AbregoTech:</strong> El SuperAdmin puede ejecutar reportes agregados y métricas SaaS sin uniones complejas multi-esquema.</li>
-                <li><strong>Seguridad RLS Automatizada:</strong> RLS intercepta cada consulta <code className="bg-slate-200 px-1">SELECT/UPDATE/DELETE</code> asegurando que un bug en el código jamás filtre pacientes entre laboratorios.</li>
+              <ul className="list-disc list-inside space-y-1 text-slate-300 pl-2">
+                <li><strong className="text-white">Costo-Eficiencia Startup:</strong> Permite operar decenas de laboratorios en un solo cluster pequeño de PostgreSQL (ej. Cloud SQL Developer Instance).</li>
+                <li><strong className="text-white">Mantenimiento de Migraciones:</strong> Un solo comando de migración (<code className="bg-slate-800 text-teal-300 px-1 py-0.5 rounded border border-slate-700">drizzle-kit push</code>) actualiza la estructura para todos los clientes en milisegundos.</li>
+                <li><strong className="text-white">Consultas Globales AbregoTech:</strong> El SuperAdmin puede ejecutar reportes agregados y métricas SaaS sin uniones complejas multi-esquema.</li>
+                <li><strong className="text-white">Seguridad RLS Automatizada:</strong> RLS intercepta cada consulta <code className="bg-slate-800 text-teal-300 px-1 py-0.5 rounded border border-slate-700">SELECT/UPDATE/DELETE</code> asegurando que un bug en el código jamás filtre pacientes entre laboratorios.</li>
               </ul>
 
-              <div className="flex items-center space-x-2 text-amber-800 font-bold text-sm pt-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm pt-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span>Contras y Mitigación:</span>
               </div>
-              <p className="text-slate-600 pl-2 leading-relaxed">
+              <p className="text-slate-400 pl-2 leading-relaxed">
                 <em>Riesgo:</em> "Noisy Neighbor" si un laboratorio grande satura el IOPS. <br />
-                <em>Solución:</em> Usar índices compuestos <code className="bg-slate-200 px-1">(tenant_id, national_id)</code> y particionamiento declarativo en tablas masivas como <code className="bg-slate-200 px-1">middleware_message_logs</code>.
+                <em>Solución:</em> Usar índices compuestos <code className="bg-slate-800 text-teal-300 px-1 py-0.5 rounded border border-slate-700">(tenant_id, national_id)</code> y particionamiento declarativo en tablas masivas como <code className="bg-slate-800 text-teal-300 px-1 py-0.5 rounded border border-slate-700">middleware_message_logs</code>.
               </p>
             </div>
           )}
 
           {selectedStrategy === 'schema_per_tenant' && (
             <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-800 font-bold text-sm">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>Pros de Estrategia B (Schema por Tenant):</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2">
+              <ul className="list-disc list-inside space-y-1 text-slate-300 pl-2">
                 <li>Aislamiento lógico más visible a nivel de cliente SQL.</li>
                 <li>Fácil respaldar o restaurar el esquema completo de un único cliente que solicite baja o auditoría.</li>
               </ul>
-              <div className="flex items-center space-x-2 text-amber-800 font-bold text-sm pt-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm pt-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span>Contras:</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2">
+              <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
                 <li>Complejidad alta de migraciones: al tener 100 clientes, se deben ejecutar 100 migraciones DDL consecutivas por cada deploy.</li>
                 <li>Agotamiento de pool de conexiones PostgreSQL y catálogo del sistema inflado.</li>
               </ul>
@@ -140,18 +140,18 @@ export const DatabaseSchemaViewer: React.FC = () => {
 
           {selectedStrategy === 'db_per_tenant' && (
             <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-800 font-bold text-sm">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>Pros de Estrategia C (DB por Tenant):</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2">
+              <ul className="list-disc list-inside space-y-1 text-slate-300 pl-2">
                 <li>Máxima seguridad física demandada por hospitales de alta complejidad o cadenas de salud multinacionales.</li>
               </ul>
-              <div className="flex items-center space-x-2 text-amber-800 font-bold text-sm pt-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm pt-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span>Contras:</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-2">
+              <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
                 <li>Costos de infraestructura excesivos para la fase MVP/Fase 1.</li>
                 <li>Casi imposible de mantener económicamente para laboratorios pequeños con suscripciones económicas.</li>
               </ul>
@@ -308,7 +308,12 @@ CREATE TABLE specimens (
     status VARCHAR(20) DEFAULT 'PENDIENTE',
     collected_at TIMESTAMPTZ,
     collected_by UUID REFERENCES users(id)
-);`}
+);
+
+-- 🚀 ÍNDICE COMPUESTO 1 (ALTO RENDIMIENTO >500 ÓRDENES/DÍA):
+-- Filtro instantáneo de bandejas de trabajo por sede, estado y orden cronológico
+CREATE INDEX idx_orders_tenant_branch_status_date ON medical_orders(tenant_id, branch_id, status, created_at DESC);
+CREATE INDEX idx_specimens_tenant_barcode ON specimens(tenant_id, barcode);`}
               </pre>
             </div>
           )}
@@ -343,6 +348,10 @@ CREATE TABLE specimens (
     signature_hash TEXT, -- Hash SHA256 de la firma biométrica/digital del Jefe de Lab
     status VARCHAR(20) DEFAULT 'PENDIENTE'
 );
+
+-- 🚀 ÍNDICE COMPUESTO 2 (ALTO RENDIMIENTO >500 ÓRDENES/DÍA):
+-- Optimiza delta-check histórico de pacientes y validación técnica/médica masiva
+CREATE INDEX idx_results_tenant_param_status_date ON test_results(tenant_id, parameter_id, status, created_at DESC);
 
 -- Trazabilidad de Cambios (Ley 81 Audit Trail)
 CREATE TABLE result_audit_trail (
@@ -388,7 +397,9 @@ CREATE TABLE middleware_raw_messages (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Índice JSONB para búsquedas ultra-rápidas por código de tubo
+-- 🚀 ÍNDICE COMPUESTO 3 (ALTO RENDIMIENTO >500 ÓRDENES/DÍA):
+-- Ingesta ASTM de alta frecuencia por analizador y búsqueda JSONB de códigos de barra
+CREATE INDEX idx_middleware_raw_tenant_analyzer_date ON middleware_raw_messages(tenant_id, analyzer_id, created_at DESC);
 CREATE INDEX idx_raw_messages_json ON middleware_raw_messages USING gin (parsed_json);`}
               </pre>
             </div>

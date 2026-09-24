@@ -25,7 +25,8 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({
   patients = [],
   onValidateTechnical
 }) => {
-  const { setActiveTab, setActiveOrder, validateResult, currentUser } = useLisStore();
+  const { setActiveTab, setActiveOrder, validateResult, currentUser, language } = useLisStore();
+  const isEn = language === 'EN';
   const [patientSearch, setPatientSearch] = useState('');
 
   // Local validated results tracker for real-time UI feedback
@@ -105,13 +106,19 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-black text-white uppercase tracking-tight">Estación de Trabajo — Tecnólogo Médico</span>
+              <span className="text-sm font-black text-white uppercase tracking-tight">
+                {isEn ? 'Workstation — Medical Technologist' : 'Estación de Trabajo — Tecnólogo Médico'}
+              </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
                 <span>👋</span>
-                <span>{getTimeBasedGreeting('ES')}, {currentUser?.name || 'Lic. Sofía Guardia'}!</span>
+                <span>{getTimeBasedGreeting(language)}, {currentUser?.name || (isEn ? 'Sofia Guardia, MT' : 'Lic. Sofía Guardia')}!</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Validación técnica de analitos, control de calidad y telemetría de analizadores.</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              {isEn
+                ? 'Technical analyte validation, quality control and analyzer telemetry.'
+                : 'Validación técnica de analitos, control de calidad y telemetría de analizadores.'}
+            </p>
           </div>
         </div>
       </div>
