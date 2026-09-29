@@ -152,12 +152,12 @@ export const OfflineSyncIndicator: React.FC = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         title={language === 'EN' ? "Offline Local Persistence & Synchronization Status" : "Estado de Sincronización y Persistencia Local Offline"}
-        className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer select-none shrink-0 ${
+        className={`h-8 px-2.5 rounded-xl text-xs font-medium transition-all border cursor-pointer select-none shrink-0 flex items-center space-x-1.5 shadow-sm ${
           !isOnline
-            ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/20 hover:bg-rose-900/80'
+            ? 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
             : pendingCount > 0
-            ? 'bg-amber-950/80 text-amber-300 border-amber-500/50 shadow-lg shadow-amber-500/20 hover:bg-amber-900/80'
-            : 'bg-slate-900/90 text-slate-300 border-white/10 hover:bg-slate-800 hover:text-white'
+            ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+            : 'bg-slate-900/60 text-slate-300 border-white/[0.08] hover:border-white/[0.18] hover:text-white'
         }`}
       >
         {isSyncing ? (
