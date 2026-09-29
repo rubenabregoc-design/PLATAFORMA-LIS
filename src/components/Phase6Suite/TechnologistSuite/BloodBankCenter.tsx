@@ -22,6 +22,7 @@ import HemovigilanceReportModal from './HemovigilanceReportModal';
 import DonorScreeningForm from './DonorScreeningForm';
 import HemovigilanceAnalytics from './HemovigilanceAnalytics';
 import UnitProcessingWorkspace from './UnitProcessingWorkspace';
+import { TransfusionEvolutionManager } from './TransfusionEvolutionManager';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const COLORS = ['#ef4444', '#f87171', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d', '#fca5a5', '#fee2e2'];
@@ -36,6 +37,7 @@ const BloodBankCenter: React.FC = () => {
   const [showDonorForm, setShowDonorForm] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
+  const [showTransfusionEvolution, setShowTransfusionEvolution] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -75,33 +77,40 @@ const BloodBankCenter: React.FC = () => {
           </h1>
           <p className="text-slate-500 mt-1">Gestión de Hemocomponentes, Trazabilidad Vena a Vena y Hemovigilancia</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            onClick={() => setShowTransfusionEvolution(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-2 rounded-lg hover:from-red-500 hover:to-rose-500 transition-all shadow-md shadow-red-200 font-black text-xs cursor-pointer"
+          >
+            <Droplets size={16} />
+            <span>Gestión / Evolución Transfusional (9 Etapas)</span>
+          </button>
           <button
             onClick={() => setShowAnalytics(true)}
-            className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-slate-800 text-white px-3.5 py-2 rounded-lg hover:bg-slate-700 transition-colors shadow-sm text-xs font-bold cursor-pointer"
           >
-            <Activity size={18} />
+            <Activity size={16} />
             Estadísticas
           </button>
           <button
             onClick={() => setShowProcessing(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-blue-600 text-white px-3.5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-xs font-bold cursor-pointer"
           >
-            <FlaskConical size={18} />
+            <FlaskConical size={16} />
             Procesar Serología
           </button>
           <button
             onClick={() => setShowHemovigilance(true)}
-            className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors shadow-md shadow-amber-100"
+            className="flex items-center gap-2 bg-amber-500 text-white px-3.5 py-2 rounded-lg hover:bg-amber-600 transition-colors shadow-md shadow-amber-100 text-xs font-bold cursor-pointer"
           >
-            <AlertTriangle size={18} />
+            <AlertTriangle size={16} />
             Reportar Reacción
           </button>
           <button
             onClick={() => setShowDonorForm(true)}
-            className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors shadow-sm text-xs font-bold cursor-pointer"
           >
-            <Users size={18} />
+            <Users size={16} />
             Registrar Donante
           </button>
         </div>
@@ -359,6 +368,20 @@ const BloodBankCenter: React.FC = () => {
           onClose={() => setShowProcessing(false)}
           onRefresh={fetchData}
         />
+      )}
+
+      {showTransfusionEvolution && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-950 rounded-3xl w-full max-w-7xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 border border-slate-800 shadow-2xl relative">
+            <button
+              onClick={() => setShowTransfusionEvolution(false)}
+              className="absolute top-6 right-6 z-10 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 cursor-pointer font-bold text-xs"
+            >
+              ✕ Cerrar Flujo
+            </button>
+            <TransfusionEvolutionManager />
+          </div>
+        </div>
       )}
     </div>
   );

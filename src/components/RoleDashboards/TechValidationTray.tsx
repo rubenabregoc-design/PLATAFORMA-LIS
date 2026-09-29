@@ -27,8 +27,8 @@ export const TechValidationTray: React.FC<TechValidationTrayProps> = ({
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'CRITICAL'>('ALL');
 
   const filteredResults = results.filter(r => {
-    if (filter === 'PENDING') return r.status === 'PENDIENTE';
-    if (filter === 'CRITICAL') return r.flag?.includes('CRITICO');
+    if (filter === 'PENDING') return r.status === 'PENDIENTE' || r.status === 'INGRESADO' || r.status === 'PRE-VALIDADO';
+    if (filter === 'CRITICAL') return r.flag?.includes('CRITICO') || r.flag === 'PANICO';
     return true;
   });
 
@@ -118,7 +118,7 @@ export const TechValidationTray: React.FC<TechValidationTrayProps> = ({
 
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border ${
-                        res.status === 'VALIDADO_TEC'
+                        res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO' || res.status === 'VALIDADO_MED' || res.status === 'LIBERADO'
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                           : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                       }`}>
@@ -152,7 +152,7 @@ export const TechValidationTray: React.FC<TechValidationTrayProps> = ({
                           <ShieldCheck className="w-4 h-4 opacity-50" />
                         </button>
 
-                        {res.status === 'VALIDADO_TEC' ? (
+                        {res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO' || res.status === 'VALIDADO_MED' || res.status === 'LIBERADO' ? (
                           <button
                             className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
                             title="Desvalidar"

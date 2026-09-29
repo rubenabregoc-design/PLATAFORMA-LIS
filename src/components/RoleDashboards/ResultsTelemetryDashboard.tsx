@@ -84,8 +84,8 @@ export const ResultsTelemetryDashboard: React.FC<ResultsTelemetryDashboardProps>
   // Statistical calculations for technologist
   const stats = useMemo(() => {
     const total = orderResults.length;
-    const validated = orderResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length;
-    const criticals = orderResults.filter(r => r.flag?.includes('CRITICO')).length;
+    const validated = orderResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO').length;
+    const criticals = orderResults.filter(r => r.flag?.includes('CRITICO') || r.flag === 'PANICO').length;
     const highs = orderResults.filter(r => r.flag === 'ALTO').length;
     const lows = orderResults.filter(r => r.flag === 'BAJO').length;
     const normals = orderResults.filter(r => !r.flag || r.flag === 'NORMAL').length;
@@ -546,7 +546,7 @@ export const ResultsTelemetryDashboard: React.FC<ResultsTelemetryDashboardProps>
 
                 {/* Quick Validate Button */}
                 <div className="pt-2">
-                  {selectedResult.status !== 'VALIDADO_TEC' && selectedResult.status !== 'VALIDADO_MED' ? (
+                  {selectedResult.status !== 'VALIDADO_TEC' && selectedResult.status !== 'VALIDADO_MED' && selectedResult.status !== 'VALIDADO' && selectedResult.status !== 'LIBERADO' ? (
                     <button
                       onClick={() => onQuickValidate?.(selectedResult.id)}
                       className="w-full py-3 bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 hover:brightness-110 transition-all cursor-pointer"

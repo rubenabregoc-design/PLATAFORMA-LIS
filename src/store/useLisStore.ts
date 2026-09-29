@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, Role, Tenant, Branch, Order, TestResult, Patient, AuditLogEntry, Permission, Specimen } from '../types';
-import { MOCK_USERS, MOCK_ORDERS, MOCK_RESULTS, MOCK_PATIENTS, MOCK_TENANTS } from '../data/mockData';
+import { MOCK_USERS, MOCK_ORDERS, MOCK_RESULTS, MOCK_PATIENTS, MOCK_TENANTS, MOCK_TEST_CATALOG } from '../data/mockData';
 import { REAL_PATIENTS, REAL_ORDERS, REAL_RESULTS } from '../data/realClinicalData';
 import { ResultEvaluator } from '../domain/ResultEvaluator';
 import { InterpretationEngine } from '../domain/InterpretationEngine';
@@ -158,16 +158,16 @@ export const useLisStore = create<LisState>()(
         return false;
       })(),
 
-      orders: [],
-      results: [],
-      patients: [],
+      orders: REAL_ORDERS,
+      results: REAL_RESULTS,
+      patients: REAL_PATIENTS,
 
       activeOrderId: (() => {
         if (typeof window !== 'undefined') {
           const savedOrder = localStorage.getItem('lis_current_order_id');
           if (savedOrder) return savedOrder;
         }
-        return '';
+        return REAL_ORDERS[0]?.id || '';
       })(),
 
       activeTab: (() => {
@@ -241,13 +241,13 @@ export const useLisStore = create<LisState>()(
           });
           useHisStore.getState().setHisDemoMode(true);
         } else {
-          console.info('🏥 LIS-CORE: Retornando a MODO PRODUCCIÓN REAL. Vaciando datos volátiles de demo.');
+          console.info('🏥 LIS-CORE: Retornando a MODO PRODUCCIÓN REAL (Dataset Clínico Panameño).');
           set({
             isDemoMode: false,
-            patients: [],
-            orders: [],
-            results: [],
-            activeOrderId: ''
+            patients: REAL_PATIENTS,
+            orders: REAL_ORDERS,
+            results: REAL_RESULTS,
+            activeOrderId: REAL_ORDERS[0]?.id || ''
           });
           useHisStore.getState().setHisDemoMode(false);
           // Recargar datos limpios directamente desde la base de datos de producción
@@ -287,6 +287,14 @@ export const useLisStore = create<LisState>()(
         // En caso de estar desconectado, preservar el estado local ya persistido sin sobreescribirlo
         if (!offlineSyncManager.getConnectionStatus()) {
           console.info('📡 LIS-CORE: Operando sin conexión de red (Offline). Conservando datos locales.');
+          if (get().orders.length === 0) {
+            set({
+              orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS,
+              patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
+              results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
+              activeOrderId: (get().isDemoMode ? MOCK_ORDERS[0]?.id : REAL_ORDERS[0]?.id) || ''
+            });
+          }
           return;
         }
 
@@ -303,13 +311,13 @@ export const useLisStore = create<LisState>()(
         }
 
         if (!isSupabaseConfigured) {
-          console.info('ℹ️ LIS-CORE: Supabase no configurado. Operando con almacén local.');
+          console.info('ℹ️ LIS-CORE: Supabase no configurado. Operando con dataset clínico activo.');
           if (get().orders.length === 0) {
             set({
-              orders: MOCK_ORDERS,
-              patients: MOCK_PATIENTS,
-              results: MOCK_RESULTS,
-              activeOrderId: MOCK_ORDERS[0]?.id || ''
+              orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS,
+              patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
+              results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
+              activeOrderId: (get().isDemoMode ? MOCK_ORDERS[0]?.id : REAL_ORDERS[0]?.id) || ''
             });
           }
           return;
@@ -357,22 +365,15 @@ export const useLisStore = create<LisState>()(
             });
             console.log('✅ LIS-CORE: Sincronización con Nube Exitosa.');
           } else {
-            console.info('ℹ️ LIS-CORE: Base de datos de producción limpia desde cero (0 órdenes encontradas).');
-            let cleanPatients: Patient[] = [];
-            try {
-              const dbPatients = await SupabaseService.patients.getAll();
-              if (dbPatients && dbPatients.length > 0) {
-                cleanPatients = dbPatients.map(mapDbPatientToFrontend);
-              }
-            } catch {
-              // Sin pacientes en BD
+            console.info('ℹ️ LIS-CORE: Base de datos remota sin órdenes. Conservando dataset clínico activo.');
+            if (get().orders.length === 0) {
+              set({
+                orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS,
+                patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
+                results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
+                activeOrderId: (get().isDemoMode ? MOCK_ORDERS[0]?.id : REAL_ORDERS[0]?.id) || ''
+              });
             }
-            set({
-              results: [],
-              patients: cleanPatients,
-              orders: [],
-              activeOrderId: ''
-            });
           }
         } catch (e: any) {
           const isNetworkOrSchemaError = 
@@ -388,6 +389,14 @@ export const useLisStore = create<LisState>()(
             console.warn('⚠️ [LIS-CORE] Conexión local / remota temporalmente no disponible (503 / schema cache). Operando en almacén local clínico seguro.');
           } else {
             console.error('Error de sincronización:', e);
+          }
+          if (get().orders.length === 0) {
+            set({
+              orders: get().isDemoMode ? MOCK_ORDERS : REAL_ORDERS,
+              patients: get().isDemoMode ? MOCK_PATIENTS : REAL_PATIENTS,
+              results: get().isDemoMode ? MOCK_RESULTS : REAL_RESULTS,
+              activeOrderId: (get().isDemoMode ? MOCK_ORDERS[0]?.id : REAL_ORDERS[0]?.id) || ''
+            });
           }
         } finally {
           set({ isSyncing: false });
@@ -541,7 +550,46 @@ export const useLisStore = create<LisState>()(
       },
 
       addOrder: (order) => {
-        set((state) => ({ orders: [order, ...state.orders] }));
+        // Generar resultados analíticos automáticos si la orden tiene testIds y aún no existen en el store
+        const existingResultParamIds = new Set(get().results.filter(r => r.orderId === order.id).map(r => r.parameterId));
+        const autoResults: TestResult[] = [];
+
+        (order.testIds || []).forEach((testId) => {
+          const catalogTest = MOCK_TEST_CATALOG.find((t) => t.id === testId);
+          if (catalogTest && catalogTest.parameters) {
+            catalogTest.parameters.forEach((param) => {
+              if (!existingResultParamIds.has(param.id)) {
+                existingResultParamIds.add(param.id);
+                autoResults.push({
+                  id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  orderId: order.id,
+                  testId: testId,
+                  parameterId: param.id,
+                  parameterCode: param.astmParamCode || param.id,
+                  parameterName: param.name,
+                  unit: param.unit,
+                  value: '',
+                  numericValue: undefined,
+                  flag: 'PENDIENTE',
+                  status: 'PENDIENTE',
+                  refRangeText: param.referenceRanges?.[0] ? `${param.referenceRanges[0].minValue} - ${param.referenceRanges[0].maxValue}` : 'Normal',
+                  source: 'RECEPCION_POS',
+                  analyzerName: 'Ingreso Manual / ACE'
+                });
+              }
+            });
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lis_current_order_id', order.id);
+        }
+
+        set((state) => ({
+          orders: [order, ...state.orders],
+          activeOrderId: order.id,
+          results: autoResults.length > 0 ? [...state.results, ...autoResults] : state.results
+        }));
 
         // En modo DEMO es puramente volátil en memoria para presentaciones: NUNCA sincronizar ni encolar
         if (get().isDemoMode) {

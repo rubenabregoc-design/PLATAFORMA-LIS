@@ -110,8 +110,8 @@ export interface TestCatalogItem {
   tenantId: string;
   code: string;
   name: string;
-  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION' | 'SEROLOGIA' | 'COPROLOGIA' | 'BANCO_SANGRE' | 'GASOMETRIA_STAT';
-  tubeType: 'EDTA_MORADO' | 'SUERO_ROJO' | 'CITRATO_AZUL' | 'ORINA' | 'HEPARINA_VERDE' | 'HECES' | 'LCR' | 'HISOPADO_MEDIO' | 'FRASCO_HEMOCULTIVO';
+  category: 'HEMATOLOGIA' | 'QUIMICA' | 'INMUNOLOGIA' | 'URINALISIS' | 'MICROBIOLOGIA' | 'COAGULACION' | 'SEROLOGIA' | 'COPROLOGIA' | 'BANCO_SANGRE' | 'GASOMETRIA_STAT' | 'BIOLOGIA_MOLECULAR' | 'TOXICOLOGIA' | 'ANATOMIA_PATOLOGICA' | 'CITOLOGIA' | 'ENDOCRINOLOGIA' | 'MARCADORES_TUMORALES' | 'ELECTROLITOS' | 'ESPECIALES';
+  tubeType: 'EDTA_MORADO' | 'SUERO_ROJO' | 'CITRATO_AZUL' | 'ORINA' | 'HEPARINA_VERDE' | 'HECES' | 'LCR' | 'HISOPADO_MEDIO' | 'FRASCO_HEMOCULTIVO' | 'FRASCO_ESTERIL' | 'FORMOL_10';
   price: number;
   specimenType: string;
   tatHours: number;
@@ -456,6 +456,102 @@ export interface BloodHemovigilance {
   createdAt: string;
 }
 
+export type TransfusionStage =
+  | 'SOLICITUD'
+  | 'EVALUACION'
+  | 'COMPATIBILIDAD'
+  | 'RESERVA'
+  | 'ENTREGA'
+  | 'TRANSFUSION'
+  | 'SEGUIMIENTO'
+  | 'REACCION'
+  | 'CIERRE';
+
+export interface TransfusionCase {
+  id: string;
+  caseNumber: string;
+  tenantId?: string;
+  branchId?: string;
+
+  // 1. Solicitud Transfusional
+  patientId: string;
+  patientName: string;
+  patientNationalId: string;
+  patientAge: number;
+  patientGender: 'M' | 'F';
+  ward: string;
+  bedNumber: string;
+  prescribingDoctor: string;
+  doctorLicense: string;
+  clinicalIndication: string;
+  componentRequested: 'CONCENTRADO_HEMATIES' | 'PLASMA_FRESCO' | 'PLAQUETAS' | 'CRIOPRECIPITADO';
+  unitsRequested: number;
+  urgencyLevel: 'EXTREMA_URGENCIA' | 'URGENTE' | 'PROGRAMADA';
+  requestedAt: string;
+
+  // 2. Evaluación & Tipificación Inmunohematológica
+  aboGroup?: 'A' | 'B' | 'AB' | 'O';
+  rhFactor?: 'POS' | 'NEG';
+  aboConfirmation?: 'CORRECTA' | 'DISCREPANCIA';
+  irregularAntibodiesScreening?: 'NEGATIVO' | 'POSITIVO';
+  identifiedAntibodies?: string[];
+  immunohematologist?: string;
+  evaluatedAt?: string;
+
+  // 3. Compatibilidad & Pruebas Pretransfusionales
+  assignedUnitCode?: string;
+  assignedUnitGroup?: string;
+  crossmatchMajor?: 'COMPATIBLE' | 'INCOMPATIBLE';
+  crossmatchMinor?: 'COMPATIBLE' | 'INCOMPATIBLE';
+  crossmatchMethod?: 'GEL' | 'TUBO';
+  coombsIndirect?: 'NEGATIVO' | 'POSITIVO';
+  crossmatchAt?: string;
+
+  // 4. Reserva
+  reservedUnitId?: string;
+  reservationExpiresAt?: string;
+  fridgeLocation?: string;
+  reservedAt?: string;
+
+  // 5. Entrega & Despacho
+  visualInspection?: 'CONFORME_SIN_COAGULOS' | 'RECHAZADA';
+  transportTempOk?: boolean;
+  dispatchedToStaff?: string;
+  dispatchedAt?: string;
+
+  // 6. Transfusión a Pie de Cama
+  bedsideDoubleCheckOk?: boolean;
+  transfusionFilterUsed?: boolean;
+  nurseAdmin?: string;
+  nurseWitness?: string;
+  transfusionStartedAt?: string;
+  transfusionEndedAt?: string;
+  vitalsBaseline?: { bp: string; hr: number; temp: number; spo2: number };
+  vitals15Min?: { bp: string; hr: number; temp: number; spo2: number };
+  vitals60Min?: { bp: string; hr: number; temp: number; spo2: number };
+  vitalsFinal?: { bp: string; hr: number; temp: number; spo2: number };
+
+  // 7. Seguimiento Post-Transfusional
+  postHbHctYield?: string;
+  patientCondition?: 'ESTABLE_SATISFACTORIA' | 'EN_OBSERVACION' | 'COMPLICADA';
+  evaluatedOutcomeAt?: string;
+
+  // 8. Reacción Transfusional (Hemovigilancia)
+  hasAdverseReaction: boolean;
+  reactionType?: 'NINGUNA' | 'FEBRIL_NO_HEMOLITICA' | 'ALERGICA_LEVE' | 'ANAFILAXIA' | 'HEMOLITICA_AGUDA' | 'TRALI' | 'TACO' | 'CONTAMINACION_BACTERIANA';
+  reactionSymptoms?: string;
+  reactionSeverity?: 'LEVE' | 'MODERADA' | 'SEVERA' | 'FATAL';
+  investigationSamplesTaken?: boolean;
+  investigationFindings?: string;
+  hemovigilanceReported?: boolean;
+
+  // 9. Cierre Transfusional
+  finalStatus: 'EN_PROCESO' | 'COMPLETADA_EXITOSA' | 'INTERRUMPIDA_REACCION' | 'DEVUELTA_NO_UTILIZADA' | 'DESCARTADA';
+  closedAt?: string;
+  closingNotes?: string;
+  currentStage: TransfusionStage;
+}
+
 export interface PatientImmediateNotificationRecord {
   orderId: string;
   orderNumber: string;
@@ -498,7 +594,7 @@ export interface HospitalBed {
   id: string;
   tenantId: string;
   branchId: string;
-  ward: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
+  ward: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA' | 'CONSULTA_EXTERNA';
   roomNumber: string;
   bedNumber: string;
   status: BedStatus;
@@ -567,7 +663,7 @@ export interface HospitalAdmission {
   assignedBedId?: string;
   bedLabel?: string;
   triageId?: string;
-  ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA';
+  ward?: 'URGENCIAS' | 'HOSPITALIZACION' | 'UCI' | 'PEDIATRIA' | 'MATERNIDAD' | 'CIRUGIA' | 'CONSULTA_EXTERNA';
   admittedAt?: string;                  // Timestamp de ingreso (campo original)
   admissionDate?: string;               // Alias usado por mock data y store
   dischargedAt?: string;

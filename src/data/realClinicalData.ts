@@ -847,6 +847,23 @@ export const REAL_ADMISSIONS: HospitalAdmission[] = [
     primaryDiagnosisIcd10: 'E11.9 — Diabetes Mellitus Tipo 2 no controlada',
     status: 'ACTIVA',
     allergies: ['Sulfas']
+  },
+  {
+    id: 'adm-real-003',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    admissionNumber: 'AMB-2026-103',
+    patientId: 'pat-real-003-amb',
+    patientName: 'Elena de Icaza',
+    patientNationalId: '8-710-3321',
+    ward: 'CONSULTA_EXTERNA',
+    admissionDate: '2026-09-08T09:00:00Z',
+    admittingDoctor: 'Dr. Roberto Icaza',
+    doctorLicense: 'MED-10492-PA',
+    assignedBedId: 'amb-consultorio-102',
+    primaryDiagnosisIcd10: 'Z00.0 — Examen médico general de rutina (Chequeo Anual Preventivo)',
+    status: 'ACTIVA',
+    allergies: ['Ninguna conocida']
   }
 ];
 

@@ -20,6 +20,7 @@ import {
   FlaskConical,
   TestTube
 } from 'lucide-react';
+import { TransfusionEvolutionManager } from './TechnologistSuite/TransfusionEvolutionManager';
 
 export interface BloodUnit {
   id: string;
@@ -139,6 +140,7 @@ export const BloodBankModule: React.FC = () => {
   });
   const [selectedGroup, setSelectedGroup] = useState<string>('TODOS');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [currentView, setCurrentView] = useState<'evolution' | 'inventory'>('evolution');
 
   useEffect(() => {
     try {
@@ -212,8 +214,39 @@ export const BloodBankModule: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-950 border border-rose-500/30 p-6 sm:p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden backdrop-blur-xl">
+      {/* Sub-view Navigation */}
+      <div className="flex border border-slate-800 bg-slate-900 rounded-2xl p-1.5 shadow-lg space-x-2 w-fit">
+        <button
+          onClick={() => setCurrentView('evolution')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
+            currentView === 'evolution'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Droplets className="w-4 h-4 text-rose-300" />
+          <span>Gestión / Evolución Transfusional (9 Etapas)</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentView('inventory')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
+            currentView === 'inventory'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <TestTube className="w-4 h-4 text-cyan-300" />
+          <span>Inventario de Hemocomponentes & Pruebas Cruzadas</span>
+        </button>
+      </div>
+
+      {currentView === 'evolution' ? (
+        <TransfusionEvolutionManager />
+      ) : (
+        <>
+          {/* Top Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-950 border border-rose-500/30 p-6 sm:p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden backdrop-blur-xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="text-rose-400 text-xs font-black uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
@@ -482,6 +515,8 @@ export const BloodBankModule: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

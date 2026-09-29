@@ -569,6 +569,499 @@ export const MASTER_TESTS: LisMasterTest[] = [
         criticalValue: { id: 'crit-vih', parameterName: 'Resultado VIH Combo', unit: 'Cualitativo', qualitativePanic: 'REACTIVO', actionRequired: 'ALERTA DE SEGURIDAD / LEY 81: Repetición obligatoria por duplicado + Protocolo Algoritmo Confirmatorio de Salud Pública' }
       }
     ]
+  },
+
+  // 9. ENDOCRINOLOGÍA - TSH Ultrasensible
+  {
+    id: 'test-endo-001',
+    code: 'ENDO-001',
+    loincCode: '3016-3',
+    loincName: 'Thyrotropin [Units/volume] in Serum or Plasma',
+    name: 'TSH Ultrasensible (Hormona Tiroestimulante 3ra Gen)',
+    shortName: 'TSH Ultrasensible',
+    synonyms: ['Tirotropina', 'TSH 3ra Generación', 'Hormona Tiroidea TSH'],
+    areaId: 'ENDO',
+    areaName: 'Endocrinología',
+    subarea: 'Perfil Tiroideo',
+    resultType: 'NUMERIC',
+    specimenType: 'Suero',
+    tubeType: 'SST_AMARILLO',
+    tubeColorHex: '#eab308',
+    tubeAdditive: 'Gel Separador / Activador de Coágulo',
+    minVolumeMl: 3.5,
+    method: 'Quimioluminiscencia de Micropartículas (CMIA) / ECLIA',
+    defaultUnit: 'µIU/mL',
+    fastingRequired: true,
+    tatHours: 4,
+    priceUsd: 22.00,
+    stabilityDetails: '7 días a 2°C–8°C. Congelado a -20°C por 1 mes.',
+    rejectionCriteria: 'Hemólisis severa, muestra no identificada o tubo erróneo.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-tsh',
+        code: 'TSH',
+        loincCode: '3016-3',
+        name: 'TSH Ultrasensible',
+        unit: 'µIU/mL',
+        resultType: 'NUMERIC',
+        referenceRanges: [
+          { id: 'ref-tsh-adult', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.40, maxValue: 4.50, unit: 'µIU/mL', source: 'ATA / NACB Guidelines' },
+          { id: 'ref-tsh-emb-t1', sex: 'FEMENINO', ageMinYears: 15, ageMaxYears: 45, condition: 'Embarazo 1er Trimestre', minValue: 0.10, maxValue: 2.50, unit: 'µIU/mL', source: 'ATA Pregnancy Guide' }
+        ],
+        criticalValue: { id: 'crit-tsh', parameterName: 'TSH', unit: 'µIU/mL', panicLow: 0.01, panicHigh: 50.0, actionRequired: 'Alerta Endocrina: Sospecha de tormenta tiroidea o coma mixedematoso. Notificar médico tratante.' }
+      }
+    ]
+  },
+
+  // 10. INMUNOLOGÍA - Ferritina Sérica
+  {
+    id: 'test-inm-001',
+    code: 'INM-001',
+    loincCode: '2276-4',
+    loincName: 'Ferritin [Mass/volume] in Serum or Plasma',
+    name: 'Ferritina Sérica Cuantitativa',
+    shortName: 'Ferritina Sérica',
+    synonyms: ['Ferritina', 'Depósitos de Hierro'],
+    areaId: 'INM',
+    areaName: 'Inmunología',
+    subarea: 'Inmunoglobulinas',
+    resultType: 'NUMERIC',
+    specimenType: 'Suero',
+    tubeType: 'SST_AMARILLO',
+    tubeColorHex: '#eab308',
+    tubeAdditive: 'Gel Separador / Activador de Coágulo',
+    minVolumeMl: 3.0,
+    method: 'Inmunoanálisis Quimioluminiscente / Turbidimétrico',
+    defaultUnit: 'ng/mL',
+    fastingRequired: true,
+    tatHours: 4,
+    priceUsd: 26.00,
+    stabilityDetails: '7 días a 2°C–8°C.',
+    rejectionCriteria: 'Hemólisis marcada o lipemia extrema.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-ferr',
+        code: 'FERRITIN',
+        loincCode: '2276-4',
+        name: 'Ferritina Sérica',
+        unit: 'ng/mL',
+        resultType: 'NUMERIC',
+        referenceRanges: [
+          { id: 'ref-ferr-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 30.0, maxValue: 400.0, unit: 'ng/mL', source: 'CLSI EP28-A3' },
+          { id: 'ref-ferr-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 15.0, maxValue: 150.0, unit: 'ng/mL', source: 'CLSI EP28-A3' }
+        ],
+        criticalValue: { id: 'crit-ferr', parameterName: 'Ferritina', unit: 'ng/mL', panicLow: 5.0, panicHigh: 1500.0, actionRequired: 'Valores > 1500 ng/mL sugestivos de Tormenta de Citoquinas / HLH / Hemocromatosis severa.' }
+      }
+    ]
+  },
+
+  // 11. COPROLOGÍA - Coprológico General
+  {
+    id: 'test-cop-001',
+    code: 'COP-001',
+    loincCode: '10701-1',
+    loincName: 'Ova and parasites panel - Stool',
+    name: 'Examen Coprológico General y Parasitoscópico Directo',
+    shortName: 'Coprológico General',
+    synonyms: ['Coproanálisis', 'Heces General', 'Parásitos en Heces'],
+    areaId: 'COP',
+    areaName: 'Coprología',
+    subarea: 'Examen Coprológico',
+    resultType: 'PANEL_MULTI_COMPONENT',
+    specimenType: 'Heces Fecales Frescas',
+    tubeType: 'FRASCO_ESTERIL',
+    tubeColorHex: '#06b6d4',
+    tubeAdditive: 'Sin Aditivo (Recipiente Estéril)',
+    minVolumeMl: 10.0,
+    method: 'Examen Macroscópico, Químico (pH/Azúcares) y Microscópico Directo',
+    defaultUnit: 'Cualitativo',
+    fastingRequired: false,
+    tatHours: 3,
+    priceUsd: 14.00,
+    stabilityDetails: 'Máximo 2 horas a temperatura ambiente; refrigerar hasta 12 horas.',
+    rejectionCriteria: 'Muestra contaminada con orina o agua del inodoro, o > 4 horas sin refrigerar.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-cop-cons',
+        code: 'COP_CONS',
+        loincCode: '9397-1',
+        name: 'Consistencia',
+        unit: 'Descriptivo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-cop-cons', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'FORMADA / PASTOSA', unit: 'Descriptivo', source: 'Consenso Lab Clínico' }]
+      },
+      {
+        id: 'p-cop-par',
+        code: 'COP_PAR',
+        loincCode: '10701-1',
+        name: 'Quistes, Trofozoítos y Huevos',
+        unit: 'Cualitativo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-cop-par', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'NO SE OBSERVAN PARÁSITOS', unit: 'Cualitativo', source: 'Consenso Lab Clínico' }],
+        criticalValue: { id: 'crit-cop-par', parameterName: 'Parásitos en Heces', unit: 'Cualitativo', qualitativePanic: 'TROFOZOITOS DE ENTAMOEBA HISTOLYTICA CON ERITROFAGOCITOSIS', actionRequired: 'Reportar inmediatamente sospecha de amebiasis invasora / disentería.' }
+      }
+    ]
+  },
+
+  // 12. BANCO DE SANGRE - Tipificación ABO/Rh
+  {
+    id: 'test-bds-001',
+    code: 'BDS-001',
+    loincCode: '883-9',
+    loincName: 'ABO and Rh group [Type] in Blood',
+    name: 'Tipificación de Grupo Sanguíneo ABO y Factor Rh (Doble Directa e Inversa)',
+    shortName: 'Grupo ABO y Factor Rh',
+    synonyms: ['Tipaje Sanguíneo', 'Grupo y Factor', 'ABO/Rh'],
+    areaId: 'BDS',
+    areaName: 'Banco de Sangre',
+    subarea: 'Grupo ABO/Rh',
+    resultType: 'QUALITATIVE',
+    specimenType: 'Sangre Total EDTA',
+    tubeType: 'EDTA_LILA',
+    tubeColorHex: '#a855f7',
+    tubeAdditive: 'K2-EDTA 1.8 mg/mL',
+    minVolumeMl: 4.0,
+    method: 'Aglutinación en Columna de Gel / Tubo Directo e Inverso con Du',
+    defaultUnit: 'Fenotipo',
+    fastingRequired: false,
+    tatHours: 1,
+    priceUsd: 16.00,
+    stabilityDetails: '48 horas a 2°C–8°C.',
+    rejectionCriteria: 'Hemólisis severa, muestra no identificada inequívocamente con doble firma de flebotomista.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-abo-directa',
+        code: 'ABO_DIR',
+        loincCode: '883-9',
+        name: 'Grupo ABO (Prueba Directa Anti-A, Anti-B)',
+        unit: 'Fenotipo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-abo', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'O, A, B o AB Positivo/Negativo', unit: 'Fenotipo', source: 'AABB / MINSA Panamá' }]
+      },
+      {
+        id: 'p-rh-factor',
+        code: 'RH_FACTOR',
+        loincCode: '882-1',
+        name: 'Factor Rh (Anti-D + Du Confirmatorio)',
+        unit: 'Fenotipo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-rh', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'POSITIVO o NEGATIVO', unit: 'Fenotipo', source: 'AABB' }]
+      }
+    ]
+  },
+
+  // 13. BIOLOGÍA MOLECULAR - Panel Respiratorio RT-PCR
+  {
+    id: 'test-mol-001',
+    code: 'MOL-001',
+    loincCode: '94500-6',
+    loincName: 'Respiratory virus multiplex RNA panel - Upper respiratory specimen by NAA with probe detection',
+    name: 'Panel Respiratorio Multiplex RT-PCR (SARS-CoV-2 / Flu A/B / VRS)',
+    shortName: 'Panel Viral Respiratorio PCR',
+    synonyms: ['PCR Multiplex Respiratorio', 'COVID + Flu PCR', 'Panel Viral'],
+    areaId: 'MOLE',
+    areaName: 'Biología Molecular',
+    subarea: 'RT-PCR Viral',
+    resultType: 'PANEL_MULTI_COMPONENT',
+    specimenType: 'Hisopado Nasofaríngeo en Medio de Transporte Viral (VTM)',
+    tubeType: 'FRASCO_ESTERIL',
+    tubeColorHex: '#06b6d4',
+    tubeAdditive: 'Medio de Transporte Viral Líquido (VTM/UTM)',
+    minVolumeMl: 2.0,
+    method: 'Transcripción Inversa y Reacción en Cadena de la Polimerasa en Tiempo Real (RT-qPCR)',
+    defaultUnit: 'Cualitativo',
+    fastingRequired: false,
+    tatHours: 4,
+    priceUsd: 95.00,
+    stabilityDetails: '72 horas a 2°C–8°C; congelado a -70°C para periodos prolongados.',
+    rejectionCriteria: 'Hisopos de alginato de calcio o mangos de madera; transporte sin refrigeración.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-sars-pcr',
+        code: 'SARS_PCR',
+        loincCode: '94500-6',
+        name: 'SARS-CoV-2 ARN',
+        unit: 'Cualitativo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-sars-neg', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'NO DETECTADO', unit: 'Cualitativo', source: 'CDC / OMS' }],
+        criticalValue: { id: 'crit-sars', parameterName: 'SARS-CoV-2 ARN', unit: 'Cualitativo', qualitativePanic: 'DETECTADO', actionRequired: 'Notificación obligatoria epidémica a Epidemiología MINSA / Aislamiento respiratorio.' }
+      },
+      {
+        id: 'p-flua-pcr',
+        code: 'FLUA_PCR',
+        loincCode: '92142-9',
+        name: 'Influenza A ARN',
+        unit: 'Cualitativo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-flua-neg', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'NO DETECTADO', unit: 'Cualitativo', source: 'CDC' }]
+      }
+    ]
+  },
+
+  // 14. GASES SANGUÍNEOS - Gasometría Arterial STAT
+  {
+    id: 'test-gas-001',
+    code: 'GAS-001',
+    loincCode: '24338-6',
+    loincName: 'Gas panel - Arterial blood',
+    name: 'Gasometría Arterial STAT con Lactato & Calcio Iónico',
+    shortName: 'Gasometría Arterial STAT',
+    synonyms: ['Gases Arteriales', 'ABG', 'Equilibrio Ácido-Base STAT'],
+    areaId: 'GAS',
+    areaName: 'Gases Sanguíneos',
+    subarea: 'Gasometría Arterial',
+    resultType: 'PANEL_MULTI_COMPONENT',
+    specimenType: 'Sangre Arterial Heparinizada en Jeringa Gasométrica',
+    tubeType: 'HEPARINA_VERDE',
+    tubeColorHex: '#22c55e',
+    tubeAdditive: 'Heparina de Litio Liofilizada Balanceada con Electrolitos',
+    minVolumeMl: 1.5,
+    method: 'Potenciometría Directa, Amperometría y Conductimetría en Analizador de Gases Críticos',
+    defaultUnit: 'Panel',
+    fastingRequired: false,
+    tatHours: 0.5,
+    priceUsd: 42.00,
+    stabilityDetails: 'Procesamiento inmediato (máximo 15 minutos en hielo fundente tras punción arterial). Muestra anaerobia estricta sin burbujas.',
+    rejectionCriteria: 'Burbujas de aire en la jeringa, muestra coagulada o tiempo de transporte > 30 min sin frío.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-gas-ph',
+        code: 'PH_ART',
+        loincCode: '2744-1',
+        name: 'pH Arterial',
+        unit: 'pH',
+        resultType: 'NUMERIC',
+        referenceRanges: [{ id: 'ref-ph', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, minValue: 7.35, maxValue: 7.45, unit: 'pH', source: 'CLSI C46-A2' }],
+        criticalValue: { id: 'crit-ph', parameterName: 'pH Arterial', unit: 'pH', panicLow: 7.20, panicHigh: 7.60, actionRequired: 'ALERTA VITAL: Acidosis o alcalosis extrema. Aviso verbal inmediato a Cuidados Intensivos.' }
+      },
+      {
+        id: 'p-gas-pco2',
+        code: 'PCO2_ART',
+        loincCode: '2019-8',
+        name: 'pCO2 Arterial',
+        unit: 'mmHg',
+        resultType: 'NUMERIC',
+        referenceRanges: [{ id: 'ref-pco2', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, minValue: 35.0, maxValue: 45.0, unit: 'mmHg', source: 'CLSI C46-A2' }],
+        criticalValue: { id: 'crit-pco2', parameterName: 'pCO2 Arterial', unit: 'mmHg', panicLow: 20.0, panicHigh: 70.0, actionRequired: 'Falla respiratoria aguda / retención de CO2 crítica.' }
+      },
+      {
+        id: 'p-gas-lac',
+        code: 'LAC_ART',
+        loincCode: '2524-7',
+        name: 'Lactato Arterial',
+        unit: 'mmol/L',
+        resultType: 'NUMERIC',
+        referenceRanges: [{ id: 'ref-lac', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, minValue: 0.5, maxValue: 1.6, unit: 'mmol/L', source: 'Surviving Sepsis Campaign' }],
+        criticalValue: { id: 'crit-lac', parameterName: 'Lactato Arterial', unit: 'mmol/L', panicHigh: 4.0, actionRequired: 'ALERTA SEPSIS / SHOCK: Hiperlactatemia severa > 4.0 mmol/L. Protocolo de reanimación hemodinámica.' }
+      }
+    ]
+  },
+
+  // 15. MARCADORES TUMORALES - PSA Total y Libre
+  {
+    id: 'test-mar-001',
+    code: 'MAR-001',
+    loincCode: '2857-1',
+    loincName: 'Prostate specific Ag [Mass/volume] in Serum or Plasma',
+    name: 'Antígeno Prostático Específico (PSA Total y Libre con % Relación)',
+    shortName: 'PSA Total y Libre',
+    synonyms: ['PSA Total', 'Marcador Prostático', 'Relación PSA Libre/Total'],
+    areaId: 'MAR',
+    areaName: 'Marcadores Tumorales',
+    subarea: 'Marcadores Séricos',
+    resultType: 'PANEL_MULTI_COMPONENT',
+    specimenType: 'Suero',
+    tubeType: 'SST_AMARILLO',
+    tubeColorHex: '#eab308',
+    tubeAdditive: 'Gel Separador / Activador de Coágulo',
+    minVolumeMl: 4.0,
+    method: 'Electroquimioluminiscencia (ECLIA) / Quimioluminiscencia de Micropartículas',
+    defaultUnit: 'ng/mL',
+    fastingRequired: true,
+    patientPreparation: 'Evitar relaciones sexuales, tacto rectal, ciclismo o instrumentación urológica durante las 48 horas previas.',
+    tatHours: 4,
+    priceUsd: 38.00,
+    stabilityDetails: 'Separar el suero en < 3 horas. Estable 5 días a 2°C–8°C.',
+    rejectionCriteria: 'Hemólisis severa o muestra tomada post-biopsia prostática inmediata.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-psa-tot',
+        code: 'PSA_TOT',
+        loincCode: '2857-1',
+        name: 'PSA Total',
+        unit: 'ng/mL',
+        resultType: 'NUMERIC',
+        referenceRanges: [
+          { id: 'ref-psa-m-young', sex: 'MASCULINO', ageMinYears: 40, ageMaxYears: 49, minValue: 0.0, maxValue: 2.5, unit: 'ng/mL', source: 'AUA / NCCN Guidelines' },
+          { id: 'ref-psa-m-mid', sex: 'MASCULINO', ageMinYears: 50, ageMaxYears: 69, minValue: 0.0, maxValue: 4.0, unit: 'ng/mL', source: 'AUA / NCCN Guidelines' }
+        ],
+        criticalValue: { id: 'crit-psa', parameterName: 'PSA Total', unit: 'ng/mL', panicHigh: 20.0, actionRequired: 'Sospecha oncológica urológica de alto riesgo. Notificar a urología.' }
+      },
+      {
+        id: 'p-psa-lib',
+        code: 'PSA_LIB',
+        loincCode: '10886-0',
+        name: 'PSA Libre',
+        unit: 'ng/mL',
+        resultType: 'NUMERIC',
+        referenceRanges: [{ id: 'ref-psa-lib', sex: 'MASCULINO', ageMinYears: 40, ageMaxYears: 99, minValue: 0.0, maxValue: 1.0, unit: 'ng/mL', source: 'NCCN' }]
+      }
+    ]
+  },
+
+  // 16. TOXICOLOGÍA - Panel de Drogas de Abuso
+  {
+    id: 'test-tox-001',
+    code: 'TOX-001',
+    loincCode: '19261-7',
+    loincName: 'Drugs of abuse 10 panel - Urine',
+    name: 'Panel Toxicológico de Drogas de Abuso en Orina (10 Paneles)',
+    shortName: 'Drogas de Abuso en Orina',
+    synonyms: ['Toxicología 10 Drogas', 'Antidoping', 'Panel Drogas'],
+    areaId: 'TOX',
+    areaName: 'Toxicología',
+    subarea: 'Drogas de Abuso',
+    resultType: 'PANEL_MULTI_COMPONENT',
+    specimenType: 'Orina Espontánea Recién Emitida bajo Cadena de Custodia',
+    tubeType: 'FRASCO_ESTERIL',
+    tubeColorHex: '#06b6d4',
+    tubeAdditive: 'Sin Aditivo (Frasco de Seguridad con Termómetro Integrado)',
+    minVolumeMl: 30.0,
+    method: 'Inmunoensayo Cromatográfico de Flujo Lateral Competitivo con Puntos de Corte SAMHSA/CLSI',
+    defaultUnit: 'Cualitativo (Cut-off)',
+    fastingRequired: false,
+    tatHours: 2,
+    priceUsd: 45.00,
+    stabilityDetails: 'Temperatura de emisión verificada entre 32°C–38°C en los primeros 4 minutos. 48h a 2°C–8°C.',
+    rejectionCriteria: 'Temperatura de orina fuera de rango (sospecha de adulteración/sustitución) o creatinina < 20 mg/dL.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-tox-coc',
+        code: 'TOX_COC',
+        loincCode: '19359-9',
+        name: 'Cocaína / Benzoilecgonina (Corte: 150 ng/mL)',
+        unit: 'Cualitativo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-coc-neg', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'NEGATIVO', unit: 'Cualitativo', source: 'SAMHSA Standards' }],
+        criticalValue: { id: 'crit-coc', parameterName: 'Cocaína en Orina', unit: 'Cualitativo', qualitativePanic: 'POSITIVO PRELIMINAR', actionRequired: 'Cadena de Custodia: Confirmación por GC-MS / LC-MS antes de informe legal definitivo.' }
+      },
+      {
+        id: 'p-tox-thc',
+        code: 'TOX_THC',
+        loincCode: '19415-9',
+        name: 'Marihuana / THC-COOH (Corte: 50 ng/mL)',
+        unit: 'Cualitativo',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-thc-neg', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'NEGATIVO', unit: 'Cualitativo', source: 'SAMHSA Standards' }]
+      }
+    ]
+  },
+
+  // 17. ANATOMÍA PATOLÓGICA - Biopsia Quirúrgica
+  {
+    id: 'test-ap-001',
+    code: 'AP-001',
+    loincCode: '22633-2',
+    loincName: 'Pathology report - Surgical specimen',
+    name: 'Estudio Histopatológico de Biopsia Quirúrgica / Pieza Operatoria',
+    shortName: 'Biopsia Quirúrgica',
+    synonyms: ['Estudio de Biopsia', 'Histopatología', 'Patología Quirúrgica'],
+    areaId: 'AP',
+    areaName: 'Anatomía Patológica',
+    subarea: 'Biopsias Quirúrgicas',
+    resultType: 'PATHOLOGY_REPORT',
+    specimenType: 'Tejido Biopsiado Fijado en Formalina al 10%',
+    tubeType: 'FORMOL_10',
+    tubeColorHex: '#f43f5e',
+    tubeAdditive: 'Formaldehído al 10% Tamponado Neutro (Formol)',
+    minVolumeMl: 50.0,
+    method: 'Procesamiento Tisular en Procesador Automático, Inclusión en Parafina, Microtomía (3-4 µm) y Tinción Hematoxilina & Eosina (H&E)',
+    defaultUnit: 'Informe Histopatológico',
+    fastingRequired: false,
+    tatHours: 72,
+    priceUsd: 75.00,
+    stabilityDetails: 'Fijación óptima entre 6 y 48 horas en proporción 10:1 (volumen de formol respecto al tejido).',
+    rejectionCriteria: 'Tejido sin fijador, tejido seco, fijación en alcohol o frasco sin rotulación anatómica precisa.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-ap-macro',
+        code: 'AP_MACRO',
+        loincCode: '22634-0',
+        name: 'Examen Macroscópico',
+        unit: 'Texto',
+        resultType: 'TEXT',
+        referenceRanges: [{ id: 'ref-ap-mac', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'Descripción morfométrica formal', unit: 'Texto', source: 'CAP Guidelines' }]
+      },
+      {
+        id: 'p-ap-diag',
+        code: 'AP_DIAG',
+        loincCode: '22637-3',
+        name: 'Diagnóstico Histopatológico Definitivo',
+        unit: 'Diagnóstico Patólogo',
+        resultType: 'PATHOLOGY',
+        referenceRanges: [{ id: 'ref-ap-diag', sex: 'AMBOS', ageMinYears: 0, ageMaxYears: 99, textReference: 'Sin evidencia de malignidad / Histología preservada', unit: 'Diagnóstico', source: 'CAP / WHO Classification' }],
+        criticalValue: { id: 'crit-ap-malig', parameterName: 'Diagnóstico Patológico', unit: 'Diagnóstico', qualitativePanic: 'HALLAZGO INESPERADO DE MALIGNIDAD / MARGEN QUIRÚRGICO POSITIVO', actionRequired: 'ALERTA ONCOLÓGICA: Comunicación verbal directa con cirujano o médico tratante.' }
+      }
+    ]
+  },
+
+  // 18. CITOLOGÍA - Citología Cervicovaginal en Base Líquida
+  {
+    id: 'test-cit-001',
+    code: 'CIT-001',
+    loincCode: '10524-7',
+    loincName: 'Cervical or vaginal cytology study in ThinPrep',
+    name: 'Citología Cervicovaginal en Base Líquida (Papanicolaou ThinPrep / Bethesda)',
+    shortName: 'Citología Líquida PAP',
+    synonyms: ['Papanicolaou', 'PAP en Base Líquida', 'Citología Bethesda'],
+    areaId: 'CIT',
+    areaName: 'Citología',
+    subarea: 'Citología Cervicovaginal',
+    resultType: 'PATHOLOGY_REPORT',
+    specimenType: 'Muestra Citológica de Exocérvix y Endocérvix en PreservCyt',
+    tubeType: 'FRASCO_ESTERIL',
+    tubeColorHex: '#06b6d4',
+    tubeAdditive: 'Solución Preservante Metanólica (PreservCyt / SurePath)',
+    minVolumeMl: 20.0,
+    method: 'Filtración y Dispersión Automatizada en Capa Delgada (Monocapa) + Tinción de Papanicolaou Multicromática',
+    defaultUnit: 'Sistema Bethesda',
+    fastingRequired: false,
+    patientPreparation: 'No realizar duchas vaginales, relaciones sexuales ni colocación de medicamentos tópicos durante las 48 horas previas. No realizar durante menstruación.',
+    tatHours: 48,
+    priceUsd: 30.00,
+    stabilityDetails: 'Estable hasta 6 semanas a 15°C–30°C en solución preservante.',
+    rejectionCriteria: 'Vial derramado o roto, muestra sin células endocervicales/zona de transformación identificable.',
+    active: true,
+    parameters: [
+      {
+        id: 'p-cit-calidad',
+        code: 'CIT_QUAL',
+        loincCode: '10525-4',
+        name: 'Adecuación de la Muestra',
+        unit: 'Criterio Bethesda',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-cit-qual', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, textReference: 'SATISFACTORIA PARA EVALUACIÓN (Zona de transformación presente)', unit: 'Criterio', source: 'The Bethesda System 2026' }]
+      },
+      {
+        id: 'p-cit-diag',
+        code: 'CIT_DIAG',
+        loincCode: '10524-7',
+        name: 'Interpretación / Resultado Bethesda',
+        unit: 'Diagnóstico Citológico',
+        resultType: 'QUALITATIVE',
+        referenceRanges: [{ id: 'ref-cit-diag', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, textReference: 'NEGATIVO PARA LESIÓN INTRAEPITELIAL O MALIGNIDAD (NILM)', unit: 'Diagnóstico', source: 'The Bethesda System 2026' }],
+        criticalValue: { id: 'crit-cit-hsil', parameterName: 'Resultado Citológico', unit: 'Diagnóstico', qualitativePanic: 'LESIÓN INTRAEPITELIAL DE ALTO GRADO (HSIL) / CARCINOMA', actionRequired: 'Derivación urgente a colposcopía y biopsia dirigida según norma nacional MINSA.' }
+      }
+    ]
   }
 ];
 
@@ -579,7 +1072,7 @@ export const MasterTestCatalogManager: React.FC = () => {
       const saved = localStorage.getItem('lis_master_catalog');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= MASTER_TESTS.length) return parsed;
       }
     } catch {}
     return MASTER_TESTS;

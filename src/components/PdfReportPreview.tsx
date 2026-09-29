@@ -28,6 +28,22 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     window.print();
   };
 
+  if (!order || !patient) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full text-center space-y-4">
+          <p className="text-sm text-slate-300 font-bold">No se encontró la orden médica o el paciente seleccionado para generar el informe.</p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-teal-500 text-slate-950 font-black rounded-xl text-xs uppercase cursor-pointer"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   let validatedResults = results.filter(res => res.orderId === order.id);
 
   // Dynamic technologist signature & MINSA idoneidad
@@ -40,7 +56,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
   const medicalValidatorName = medValidatorInResults || 'Dr. Roberto Icaza Villalaz';
 
   // Cryptographic deterministic SHA-256 simulation seal for the document
-  const seedString = `${order.id}-${patient.nationalId}-${order.createdAt || '2026'}`;
+  const seedString = `${order.id}-${patient.nationalId || patient.id}-${order.createdAt || '2026'}`;
   let hashVal = 0;
   for (let i = 0; i < seedString.length; i++) {
     hashVal = ((hashVal << 5) - hashVal) + seedString.charCodeAt(i);

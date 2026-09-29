@@ -262,7 +262,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           o.orderNumber.toLowerCase().includes(orderSearchQuery.toLowerCase());
 
       const orderResults = results.filter(r => r.orderId === o.id);
-      const isPending = orderResults.some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED');
+      const isPending = orderResults.some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
 
       if (orderStatusFilter === 'pending') return matchesSearch && isPending;
       if (orderStatusFilter === 'validated') return matchesSearch && !isPending;
@@ -272,7 +272,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   const pendingCount = useMemo(() => {
     return allOrders.filter(o =>
-      results.filter(r => r.orderId === o.id).some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED')
+      results.filter(r => r.orderId === o.id).some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO')
     ).length;
   }, [allOrders, results]);
 
@@ -555,7 +555,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
                  <div>
                     <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">Pendientes</span>
-                    <span className="text-xl font-black text-cyan-300 font-mono">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED').length} <span className="text-xs text-slate-400 font-normal">/ {patientResults.length}</span></span>
+                    <span className="text-xl font-black text-cyan-300 font-mono">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO').length} <span className="text-xs text-slate-400 font-normal">/ {patientResults.length}</span></span>
                  </div>
                  <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
                     <Microscope className="w-5 h-5" />
@@ -1138,7 +1138,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               {(() => {
                 const res = results.find(r => r.id === activeTraceabilityId);
                 if (!res) return null;
-                const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+                const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO' || res.status === 'LIBERADO';
 
                 return (
                   <>
@@ -1323,8 +1323,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                    {(() => {
                       const idsToRevoke = activeTraceabilityId ? [activeTraceabilityId] : selectedResults.filter(id => {
                         const res = results.find(r => r.id === id);
-                        const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
-                        return isValidated && (currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name);
+                        const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO' || res?.status === 'LIBERADO';
+                        return isValidated && (currentUser?.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser?.name);
                       });
 
                       return idsToRevoke.map(id => {
@@ -1368,8 +1368,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                      onClick={() => {
                         const idsToRevoke = activeTraceabilityId ? [activeTraceabilityId] : selectedResults.filter(id => {
                           const res = results.find(r => r.id === id);
-                          const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED';
-                          const canUnvalidate = currentUser.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser.name || res?.medicalValidatedBy === currentUser.name;
+                          const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO' || res?.status === 'LIBERADO';
+                          const canUnvalidate = currentUser?.role === 'abregotech_admin' || currentUser?.role === 'lab_chief' || res?.technicalValidatedBy === currentUser?.name || res?.medicalValidatedBy === currentUser?.name;
                           return isValidated && canUnvalidate;
                         });
 
@@ -1380,7 +1380,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                         idsToRevoke.forEach(id => {
                           onUpdateResultStatus(id, 'INGRESADO');
-                          console.log(`[ISO 15189 AUDIT] Result ${id} REVOKED by ${currentUser.name}. Reason: ${unvalidateReason}`);
+                          console.log(`[ISO 15189 AUDIT] Result ${id} REVOKED by ${currentUser?.name || 'Sistema'}. Reason: ${unvalidateReason}`);
                         });
 
                         setShowUnvalidateModal(false);

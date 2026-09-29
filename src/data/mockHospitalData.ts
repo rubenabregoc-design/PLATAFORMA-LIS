@@ -285,6 +285,22 @@ export const MOCK_HOSPITAL_ADMISSIONS: HospitalAdmission[] = [
     primaryDiagnosisIcd10: 'J96.0 - Insuficiencia Respiratoria Aguda / Neumonía Grave',
     allergies: ['Ciprofloxacina'],
     status: 'ACTIVA'
+  },
+  {
+    id: 'adm-005',
+    tenantId: 'lab-san-jose',
+    branchId: 'branch-via-espana',
+    patientId: 'pat-005-amb',
+    patientName: 'Elena de Icaza',
+    patientNationalId: '8-710-3321',
+    bedId: 'amb-consultorio-102',
+    ward: 'CONSULTA_EXTERNA',
+    admittingDoctorName: 'Dr. Roberto Icaza (Idoneidad MED-10492-PA)',
+    admittingDoctorLicense: 'MED-10492-PA',
+    admissionDate: '2026-09-08T09:00:00Z',
+    primaryDiagnosisIcd10: 'Z00.0 - Examen médico general de rutina (Chequeo Anual Preventivo)',
+    allergies: ['Ninguna conocida'],
+    status: 'ACTIVA'
   }
 ];
 

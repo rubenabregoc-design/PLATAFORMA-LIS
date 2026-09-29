@@ -3,7 +3,7 @@ import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import { useHisStore } from '../store/useHisStore';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu
+  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu, ShoppingBag
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
@@ -73,6 +73,7 @@ export const NAVIGATION_TABS = [
 
   // 🩸 BANCO DE SANGRE (Medicina Transfusional)
   { id: 'bloodbank', label: 'Centro Banco de Sangre', icon: Droplets, category: 'bloodbank', desc: 'Panel central de medicina transfusional y serología.' },
+  { id: 'blood_evolution', label: 'Gestión / Evolución Transfusional', icon: Droplets, category: 'bloodbank', desc: 'Ciclo completo de 9 etapas: Solicitud → Evaluación → Compatibilidad → Reserva → Entrega → Transfusión → Seguimiento → Reacción → Cierre.' },
   { id: 'blood_donors', label: 'Cuestionario Donantes', icon: FileText, category: 'bloodbank', desc: 'Entrevista, signos vitales y elegibilidad de donantes.' },
   { id: 'blood_deferral', label: 'Diferimiento e Inaptitud', icon: AlertTriangle, category: 'bloodbank', desc: 'Registro de diferimientos temporales y permanentes.' },
   { id: 'blood_apheresis', label: 'Aféresis & Extracción', icon: Activity, category: 'bloodbank', desc: 'Procedimientos de plaquetoféresis y sangría total.' },
@@ -93,6 +94,7 @@ export const NAVIGATION_TABS = [
   // 💼 GESTIÓN & BI (Administración)
   { id: 'billing', label: 'Facturación POS & DGI', icon: Receipt, category: 'bi', desc: 'Caja POS, facturación electrónica e integración DGI Panamá.' },
   { id: 'inventory', label: 'Inventario Reactivos FEFO', icon: Package, category: 'bi', desc: 'Kardex de insumos con semaforización FEFO y lotes.' },
+  { id: 'purchasing', label: 'Órdenes de Compra & Suministros', icon: ShoppingBag, category: 'bi', desc: 'Control de órdenes de compra (OC), proveedores homologados y recepción de reactivos.' },
   { id: 'executive', label: 'Analítica BI & Ejecutivo', icon: BrainCircuit, category: 'bi', desc: 'Tableros ejecutivos, costos por prueba e ingresos.' },
   { id: 'productivity', label: 'Productividad & Métricas', icon: BarChart3, category: 'bi', desc: 'Tiempos de respuesta (TAT) y carga por sección.' },
   { id: 'minsa', label: 'Reportes MINSA', icon: FileCheck2, category: 'bi', desc: 'Exportación de boletines epidemiológicos obligatorios.' },
@@ -120,11 +122,11 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
     'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy',
     'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_alerts_center',
     'lis_calculators', 'lis_telemetry', 'delta', 'lis_referrals',
-    'bloodbank', 'blood_donors', 'blood_deferral', 'blood_apheresis', 'blood_drives',
+    'bloodbank', 'blood_evolution', 'blood_donors', 'blood_deferral', 'blood_apheresis', 'blood_drives',
     'blood_fractionation', 'blood_cold_chain', 'blood_logistics', 'blood_crossmatch',
     'blood_hemovigilance', 'blood_waste', 'blood_chemical_waste', 'blood_manifest',
     'label_studio', 'routing', 'his_ehr', 'his_console', 'his_triage', 'his_ris_pacs',
-    'shifts', 'inventory', 'cmms', 'eqa', 'minsa', 'accreditation'
+    'shifts', 'inventory', 'purchasing', 'cmms', 'eqa', 'minsa', 'accreditation'
   ],
 
   // 🔬 Técnico de Laboratorio / Flebotomista
@@ -140,7 +142,7 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 
   // 🩺 Médico Referente
   ext_doctor: [
-    'dashboard', 'patient_results', 'batch_reporting', 'his_ehr'
+    'dashboard', 'patient_results', 'batch_reporting', 'his_ehr', 'blood_evolution'
   ],
 
   // 👤 Paciente / Cliente

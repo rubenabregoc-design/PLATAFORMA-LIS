@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Order, TestResult, Patient } from '../../types';
+import { Order, TestResult, Patient, Specimen } from '../../types';
 import {
   ResponsiveContainer,
   LineChart,
@@ -93,7 +93,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
       }
       if (statusFilter === 'PANIC') {
         const orderResults = results.filter((r) => r.orderId === ord.id);
-        return orderResults.some((r) => r.flag === 'PANICO' || r.flag === 'CRITICO');
+        return orderResults.some((r) => r.flag === 'PANICO' || r.flag === 'CRITICO' || r.flag?.includes('CRITICO'));
       }
 
       return true;
@@ -105,7 +105,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
     const totalPatients = new Set(orders.map((o) => o.patientNationalId || o.patientId)).size;
     const validatedOrders = orders.filter((o) => o.status === 'VALIDADA_MED').length;
     const pendingOrders = orders.filter((o) => o.status !== 'VALIDADA_MED').length;
-    const panicAlerts = results.filter((r) => r.flag === 'PANICO' || r.flag === 'CRITICO').length;
+    const panicAlerts = results.filter((r) => r.flag === 'PANICO' || r.flag === 'CRITICO' || r.flag?.includes('CRITICO')).length;
 
     return { totalPatients, validatedOrders, pendingOrders, panicAlerts };
   }, [orders, results]);
@@ -113,9 +113,39 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
   const handleCreateRequisition = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newOrderId = `ord-doc-${Date.now()}`;
     const newOrderNumber = `REQ-DOC-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const testNameToIdMap: Record<string, string> = {
+      'Hemograma Completo con Plaquetas': 'test-hemograma',
+      'Glucosa en Ayunas': 'test-glucosa',
+      'Perfil Lipídico Completo': 'test-lipidico',
+      'Creatinina Sérica': 'test-creatinina',
+      'Nitrógeno de Urea (BUN)': 'test-urea',
+      'Ácido Úrico': 'test-acido-urico',
+      'Examen General de Orina (EGO)': 'test-uri',
+      'HBA1c (Hemoglobina Glicosilada)': 'test-hba1c',
+      'Perfil Tiroideo (TSH, T4L, T3)': 'test-tsh',
+      'Electrolitos Séricos (Na, K, Cl)': 'test-electrolitos'
+    };
+
+    const mappedTestIds = selectedTests.map((t, idx) => testNameToIdMap[t] || `test-custom-${idx}`);
+    const resolvedTestIds = mappedTestIds.length > 0 ? mappedTestIds : ['test-hemograma', 'test-glucosa'];
+
+    const tubeBarcode = `BC-${Math.floor(100000 + Math.random() * 900000)}`;
+    const specimens: Specimen[] = [
+      {
+        id: `spec-${Date.now()}`,
+        orderId: newOrderId,
+        barcode: tubeBarcode,
+        tubeType: 'EDTA_MORADO',
+        status: 'PENDIENTE',
+        collectedAt: new Date().toISOString()
+      }
+    ];
+
     const newOrder: Order = {
-      id: `ord-doc-${Date.now()}`,
+      id: newOrderId,
       tenantId: 'lab-san-jose',
       branchId: 'branch-via-espana',
       orderNumber: newOrderNumber,
@@ -129,10 +159,10 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
       priority: priorityOrder,
       status: 'REGISTRADA',
       createdAt: new Date().toISOString(),
-      totalAmount: selectedTests.length * 15,
+      totalAmount: resolvedTestIds.length * 15,
       paymentStatus: 'PENDIENTE',
-      specimens: [],
-      testIds: selectedTests.map((_, i) => `test-custom-${i}`)
+      specimens,
+      testIds: resolvedTestIds
     };
 
     if (onCreateOrder) {

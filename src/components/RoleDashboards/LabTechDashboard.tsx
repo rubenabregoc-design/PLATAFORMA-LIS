@@ -171,9 +171,9 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
   });
 
   // Calculate overall metrics
-  const totalPendingResults = localResults.filter((r) => r.status === 'PENDIENTE').length;
-  const criticalPendingResults = localResults.filter((r) => r.status === 'PENDIENTE' && r.flag?.includes('CRITICO')).length;
-  const validatedTodayCount = localResults.filter((r) => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED').length;
+  const totalPendingResults = localResults.filter((r) => r.status === 'PENDIENTE' || r.status === 'INGRESADO' || r.status === 'PRE-VALIDADO').length;
+  const criticalPendingResults = localResults.filter((r) => (r.status === 'PENDIENTE' || r.status === 'INGRESADO' || r.status === 'PRE-VALIDADO') && (r.flag?.includes('CRITICO') || r.flag === 'PANICO')).length;
+  const validatedTodayCount = localResults.filter((r) => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO').length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative">
@@ -327,9 +327,9 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
             filteredOrders.map((order) => {
               const patient = patients.find((p) => p.id === order.patientId);
               const orderResults = getOrderResults(order.id);
-              const pendingResults = orderResults.filter((r) => r.status === 'PENDIENTE');
-              const validatedResults = orderResults.filter((r) => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED');
-              const criticals = pendingResults.filter((r) => r.flag?.includes('CRITICO'));
+              const pendingResults = orderResults.filter((r) => r.status === 'PENDIENTE' || r.status === 'INGRESADO' || r.status === 'PRE-VALIDADO');
+              const validatedResults = orderResults.filter((r) => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO');
+              const criticals = pendingResults.filter((r) => r.flag?.includes('CRITICO') || r.flag === 'PANICO');
               const isExpanded = !!expandedOrders[order.id];
 
               const selectedForOrder = selectedResultsByOrder[order.id] || [];
@@ -471,9 +471,9 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                           </thead>
                           <tbody className="divide-y divide-slate-800/80 font-medium text-slate-300">
                             {orderResults.map((res) => {
-                              const isPending = res.status === 'PENDIENTE';
+                              const isPending = res.status === 'PENDIENTE' || res.status === 'INGRESADO' || res.status === 'PRE-VALIDADO';
                               const isDesvalidado = res.status === 'DESVALIDADO';
-                              const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED';
+                              const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO' || res.status === 'LIBERADO';
                               const isSelected = (selectedResultsByOrder[order.id] || []).includes(res.id);
                               const isCritical = res.flag?.includes('CRITICO');
 

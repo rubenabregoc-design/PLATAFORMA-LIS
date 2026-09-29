@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   HeartPulse,
@@ -49,6 +49,21 @@ export const EmergencyTriageModule: React.FC = () => {
   const [admittingDoctor, setAdmittingDoctor] = useState<string>('Dr. Alejandro Icaza');
   const [doctorLicense, setDoctorLicense] = useState<string>('MP-6612-PA');
   const [admissionDiagnosis, setAdmissionDiagnosis] = useState<string>('Evaluación y Monitoreo en Urgencias');
+
+  useEffect(() => {
+    if (patients.length > 0 && (!selectedPatientId || !patients.some((p) => p.id === selectedPatientId))) {
+      setSelectedPatientId(patients[0].id);
+      setPatientName(`${patients[0].firstName} ${patients[0].lastName}`);
+      setPatientCedula(patients[0].nationalId);
+    }
+  }, [patients, selectedPatientId]);
+
+  useEffect(() => {
+    if (beds.length > 0 && (!targetBedId || !beds.some((b) => b.id === targetBedId))) {
+      const avail = beds.find((b) => b.status === 'DISPONIBLE');
+      if (avail) setTargetBedId(avail.id);
+    }
+  }, [beds, targetBedId]);
 
   const handlePatientSelect = (patId: string) => {
     setSelectedPatientId(patId);

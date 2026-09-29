@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useHisStore } from '../../store/useHisStore';
 import { useLisStore } from '../../store/useLisStore';
+import { Order } from '../../types';
 
 export const CpoeCdsModule: React.FC = () => {
   const { admissions, selectedAdmissionId, addMedicationOrder } = useHisStore();
@@ -61,17 +62,36 @@ export const CpoeCdsModule: React.FC = () => {
 
     // Send to LIS if Laboratory Order
     if (orderCategory === 'LAB') {
-      const newLisOrder: any = {
-        id: `ord-cpoe-${Date.now()}`,
+      const orderId = `ord-cpoe-${Date.now()}`;
+      const barcode = `BC-HIS-${Math.floor(100000 + Math.random() * 900000)}`;
+      const newLisOrder: Order = {
+        id: orderId,
+        tenantId: 'lab-san-jose',
+        branchId: 'branch-via-espana',
         orderNumber: `ORD-HIS-${Math.floor(1000 + Math.random() * 9000)}`,
         patientId: activeAdmission?.patientId || 'pat-101',
         patientName: activeAdmission?.patientName || 'Paciente Hospitalizado',
-        orderDate: new Date().toISOString(),
+        patientNationalId: activeAdmission?.patientNationalId || activeAdmission?.patientCedula || '8-765-4321',
+        patientGender: 'M',
+        patientAge: 45,
+        doctorId: currentUser?.id || 'doc-hospital',
+        doctorName: currentUser?.name || 'Dr. Interconsultor Hospitalario',
+        createdAt: new Date().toISOString(),
         priority: 'STAT',
-        status: 'PENDIENTE',
+        status: 'REGISTRADA',
         paymentStatus: 'PAGADO',
-        tests: [{ id: 'test-cpoe-1', code: 'CBC', name: 'Hemograma Completo', category: 'HEM' }],
-        specimens: []
+        totalAmount: 35.00,
+        testIds: ['test-hemograma', 'test-glucosa'],
+        specimens: [
+          {
+            id: `spec-cpoe-${Date.now()}`,
+            orderId,
+            barcode,
+            tubeType: 'EDTA_MORADO',
+            status: 'PENDIENTE',
+            collectedAt: new Date().toISOString()
+          }
+        ]
       };
       addOrder(newLisOrder);
     }

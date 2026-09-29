@@ -216,7 +216,7 @@ export const ResultTrendWidget: React.FC<ResultTrendWidgetProps> = ({
       deltaPercent: Number(curDelta.toFixed(1)),
       isCurrent: true,
       branchName: 'Sede Central (Mesa Actual)',
-      validatedBy: activeResult.status === 'VALIDADO_TEC' ? 'Lic. Sofía Guardia (TM-4410)' : 'Pendiente Validación'
+      validatedBy: (activeResult.status === 'VALIDADO_TEC' || activeResult.status === 'VALIDADO' || activeResult.status === 'VALIDADO_MED' || activeResult.status === 'LIBERADO') ? (activeResult.technicalValidatedBy || activeResult.medicalValidatedBy || 'Lic. Sofía Guardia (TM-4410)') : 'Pendiente Validación'
     };
 
     return [p3, p2, p1, currentPoint];

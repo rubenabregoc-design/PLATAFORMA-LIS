@@ -1483,6 +1483,3047 @@ export const MOCK_TEST_CATALOG: TestCatalogItem[] = [
     parameters: [
       { id: 'p-probnp', name: 'NT-proBNP Cuantitativo', unit: 'pg/mL', astmParamCode: 'PROBNP', referenceRanges: [{ id: 'rr-bnp', gender: 'TODOS', minValue: 0, maxValue: 125, unit: 'pg/mL' }] }
     ]
+  },
+  // =========================================================================
+  // 11. ÁREA DE BIOLOGÍA MOLECULAR Y GENÉTICA
+  // =========================================================================
+  {
+    id: 'test-pcr-respiratorio',
+    tenantId: 'lab-san-jose',
+    code: '9001',
+    name: 'Panel Respiratorio Multiplex RT-PCR (SARS-CoV-2 / Flu A/B / VRS)',
+    category: 'BIOLOGIA_MOLECULAR',
+    tubeType: 'HISOPADO_MEDIO',
+    price: 95.00,
+    specimenType: 'Hisopado Nasofaríngeo en Medio Viral',
+    tatHours: 4,
+    astmMappingCode: 'RT_PCR_RESP',
+    parameters: [
+      { id: 'p-pcr-sars', name: 'SARS-CoV-2 RNA', unit: 'Cualitativo', astmParamCode: 'SARS_RNA', referenceRanges: [{ id: 'rr-sars', gender: 'TODOS', minValue: 0, maxValue: 0, unit: 'Cualitativo' }] },
+      { id: 'p-pcr-flua', name: 'Influenza A RNA', unit: 'Cualitativo', astmParamCode: 'FLUA_RNA', referenceRanges: [{ id: 'rr-flua', gender: 'TODOS', minValue: 0, maxValue: 0, unit: 'Cualitativo' }] },
+      { id: 'p-pcr-flub', name: 'Influenza B RNA', unit: 'Cualitativo', astmParamCode: 'FLUB_RNA', referenceRanges: [{ id: 'rr-flub', gender: 'TODOS', minValue: 0, maxValue: 0, unit: 'Cualitativo' }] },
+      { id: 'p-pcr-vrs', name: 'Virus Sincitial Respiratorio (VRS)', unit: 'Cualitativo', astmParamCode: 'VRS_RNA', referenceRanges: [{ id: 'rr-vrs', gender: 'TODOS', minValue: 0, maxValue: 0, unit: 'Cualitativo' }] }
+    ]
+  },
+  {
+    id: 'test-carga-viral-hiv',
+    tenantId: 'lab-san-jose',
+    code: '9002',
+    name: 'Carga Viral VIH-1 por RT-qPCR Cuantitativo (copias/mL)',
+    category: 'BIOLOGIA_MOLECULAR',
+    tubeType: 'EDTA_MORADO',
+    price: 130.00,
+    specimenType: 'Plasma EDTA',
+    tatHours: 24,
+    astmMappingCode: 'HIV_VL_PCR',
+    parameters: [
+      { id: 'p-hiv-vl-copies', name: 'VIH-1 ARN (Copias/mL)', unit: 'copias/mL', astmParamCode: 'HIV_COPIES', referenceRanges: [{ id: 'rr-hiv-cp', gender: 'TODOS', minValue: 0, maxValue: 40, unit: 'copias/mL' }] },
+      { id: 'p-hiv-vl-log', name: 'VIH-1 ARN Log10', unit: 'Log10 copias/mL', astmParamCode: 'HIV_LOG', referenceRanges: [{ id: 'rr-hiv-log', gender: 'TODOS', minValue: 0, maxValue: 1.6, unit: 'Log10' }] }
+    ]
+  },
+  {
+    id: 'test-pcr-vph',
+    tenantId: 'lab-san-jose',
+    code: '9003',
+    name: 'Tipificación de VPH Alto Riesgo por RT-PCR en Tiempo Real',
+    category: 'BIOLOGIA_MOLECULAR',
+    tubeType: 'HISOPADO_MEDIO',
+    price: 85.00,
+    specimenType: 'Cepillado Cervical en PreservCyt',
+    tatHours: 24,
+    astmMappingCode: 'HPV_HR_PCR',
+    parameters: [
+      { id: 'p-vph-16', name: 'VPH Genotipo 16', unit: 'Cualitativo', astmParamCode: 'HPV16', referenceRanges: [] },
+      { id: 'p-vph-18', name: 'VPH Genotipo 18', unit: 'Cualitativo', astmParamCode: 'HPV18', referenceRanges: [] },
+      { id: 'p-vph-otros', name: 'Panel Otros Alto Riesgo (31, 33, 45, 52, 58)', unit: 'Cualitativo', astmParamCode: 'HPV_OTHER_HR', referenceRanges: [] }
+    ]
+  },
+  // =========================================================================
+  // 12. ÁREA DE TOXICOLOGÍA & MONITOREO DE FÁRMACOS
+  // =========================================================================
+  {
+    id: 'test-drogas-abuso',
+    tenantId: 'lab-san-jose',
+    code: '9101',
+    name: 'Panel Toxicológico de Drogas de Abuso en Orina (10 Paneles)',
+    category: 'TOXICOLOGIA',
+    tubeType: 'ORINA',
+    price: 45.00,
+    specimenType: 'Orina Espontánea con Cadena de Custodia',
+    tatHours: 2,
+    astmMappingCode: 'TOX_10_PANEL',
+    parameters: [
+      { id: 'p-tox-thc', name: 'Canabinoides (THC/Marihuana)', unit: 'ng/mL', astmParamCode: 'TOX_THC', referenceRanges: [{ id: 'rr-thc', gender: 'TODOS', minValue: 0, maxValue: 50, unit: 'ng/mL' }] },
+      { id: 'p-tox-coc', name: 'Cocaína (Benzoilecgonina)', unit: 'ng/mL', astmParamCode: 'TOX_COC', referenceRanges: [{ id: 'rr-coc', gender: 'TODOS', minValue: 0, maxValue: 150, unit: 'ng/mL' }] },
+      { id: 'p-tox-amp', name: 'Anfetaminas (AMP)', unit: 'ng/mL', astmParamCode: 'TOX_AMP', referenceRanges: [{ id: 'rr-amp', gender: 'TODOS', minValue: 0, maxValue: 500, unit: 'ng/mL' }] },
+      { id: 'p-tox-opi', name: 'Opiáceos (Morfina / Heroína)', unit: 'ng/mL', astmParamCode: 'TOX_OPI', referenceRanges: [{ id: 'rr-opi', gender: 'TODOS', minValue: 0, maxValue: 300, unit: 'ng/mL' }] },
+      { id: 'p-tox-bzd', name: 'Benzodiacepinas (BZD)', unit: 'ng/mL', astmParamCode: 'TOX_BZD', referenceRanges: [{ id: 'rr-bzd', gender: 'TODOS', minValue: 0, maxValue: 200, unit: 'ng/mL' }] }
+    ]
+  },
+  {
+    id: 'test-alcohol-sangre',
+    tenantId: 'lab-san-jose',
+    code: '9102',
+    name: 'Alcoholemia Cuantitativa en Sangre Total (Etanol Enzimático)',
+    category: 'TOXICOLOGIA',
+    tubeType: 'SUERO_ROJO',
+    price: 32.00,
+    specimenType: 'Sangre Total Fluoruro de Sodio / Suero',
+    tatHours: 1,
+    astmMappingCode: 'ETHANOL_STAT',
+    parameters: [
+      { id: 'p-etanol', name: 'Etanol / Alcohol Etílico', unit: 'mg/dL', astmParamCode: 'ALC_ETOH', referenceRanges: [{ id: 'rr-etoh', gender: 'TODOS', minValue: 0, maxValue: 10, unit: 'mg/dL' }] }
+    ]
+  },
+  // =========================================================================
+  // 13. ÁREA DE ANATOMÍA PATOLÓGICA & HISTOPATOLOGÍA
+  // =========================================================================
+  {
+    id: 'test-biopsia-quirurgica',
+    tenantId: 'lab-san-jose',
+    code: '9201',
+    name: 'Estudio Histopatológico de Biopsia Quirúrgica / Pieza Operatoria',
+    category: 'ANATOMIA_PATOLOGICA',
+    tubeType: 'FORMOL_10',
+    price: 75.00,
+    specimenType: 'Tejido Fijado en Formalina al 10% Tamponada',
+    tatHours: 72,
+    astmMappingCode: 'HISTOPATH_BIOPSY',
+    parameters: [
+      { id: 'p-ap-macro', name: 'Descripción Macroscópica', unit: 'Texto Descriptivo', astmParamCode: 'AP_MACRO', referenceRanges: [] },
+      { id: 'p-ap-micro', name: 'Descripción Microscópica', unit: 'Texto Descriptivo', astmParamCode: 'AP_MICRO', referenceRanges: [] },
+      { id: 'p-ap-diag', name: 'Diagnóstico Histopatológico Definitivo', unit: 'Diagnóstico Patólogo', astmParamCode: 'AP_DIAG', referenceRanges: [] }
+    ]
+  },
+  // =========================================================================
+  // 14. ÁREA DE CITOLOGÍA CERVICOVAGINAL & LÍQUIDOS
+  // =========================================================================
+  {
+    id: 'test-papanicolau',
+    tenantId: 'lab-san-jose',
+    code: '9301',
+    name: 'Citología Cervicovaginal en Base Líquida (Papanicolaou Bethesda)',
+    category: 'CITOLOGIA',
+    tubeType: 'FRASCO_ESTERIL',
+    price: 30.00,
+    specimenType: 'Muestra Citológica Exocérvix y Endocérvix en PreservCyt',
+    tatHours: 48,
+    astmMappingCode: 'PAP_BETHESDA',
+    parameters: [
+      { id: 'p-pap-calidad', name: 'Calidad de la Muestra', unit: 'Criterio Bethesda', astmParamCode: 'PAP_QUAL', referenceRanges: [] },
+      { id: 'p-pap-diag', name: 'Categoría General / Diagnóstico Citológico', unit: 'Criterio Bethesda', astmParamCode: 'PAP_DIAG', referenceRanges: [] }
+    ]
+  }
+,
+  {
+    id: "test-cortisol-am",
+    tenantId: "lab-san-jose",
+    code: "3101",
+    name: "Cortisol Sérico Matutino (AM - 8:00 AM)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CORT_AM",
+    parameters: [
+      {
+        id: "p-cort-am",
+        name: "Cortisol AM",
+        unit: "µg/dL",
+        astmParamCode: "CORT_AM",
+        referenceRanges: [
+          {
+            id: "rr-cort-am",
+            gender: "TODOS",
+            minValue: 4.5,
+            maxValue: 22,
+            unit: "µg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-cortisol-pm",
+    tenantId: "lab-san-jose",
+    code: "3102",
+    name: "Cortisol Sérico Vespertino (PM - 4:00 PM)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CORT_PM",
+    parameters: [
+      {
+        id: "p-cort-pm",
+        name: "Cortisol PM",
+        unit: "µg/dL",
+        astmParamCode: "CORT_PM",
+        referenceRanges: [
+          {
+            id: "rr-cort-pm",
+            gender: "TODOS",
+            minValue: 3,
+            maxValue: 10,
+            unit: "µg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-acth",
+    tenantId: "lab-san-jose",
+    code: "3103",
+    name: "Hormona Adrenocorticotropa (ACTH Plasmática)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "EDTA_MORADO",
+    price: 38,
+    specimenType: "Plasma EDTA Congelado",
+    tatHours: 24,
+    astmMappingCode: "ACTH_PLAS",
+    parameters: [
+      {
+        id: "p-acth",
+        name: "ACTH Plasmática",
+        unit: "pg/mL",
+        astmParamCode: "ACTH",
+        referenceRanges: [
+          {
+            id: "rr-acth",
+            gender: "TODOS",
+            minValue: 7.2,
+            maxValue: 63.3,
+            unit: "pg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-prolactina",
+    tenantId: "lab-san-jose",
+    code: "3104",
+    name: "Prolactina Sérica",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "PRL",
+    parameters: [
+      {
+        id: "p-prl",
+        name: "Prolactina",
+        unit: "ng/mL",
+        astmParamCode: "PRL",
+        referenceRanges: [
+          {
+            id: "rr-prl-m",
+            gender: "M",
+            minValue: 2,
+            maxValue: 18,
+            unit: "ng/mL"
+          },
+          {
+            id: "rr-prl-f",
+            gender: "F",
+            minValue: 3,
+            maxValue: 25,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-fsh",
+    tenantId: "lab-san-jose",
+    code: "3105",
+    name: "Hormona Foliculoestimulante (FSH)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "FSH",
+    parameters: [
+      {
+        id: "p-fsh",
+        name: "FSH",
+        unit: "mIU/mL",
+        astmParamCode: "FSH",
+        referenceRanges: [
+          {
+            id: "rr-fsh",
+            gender: "TODOS",
+            minValue: 1.5,
+            maxValue: 12.4,
+            unit: "mIU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-lh",
+    tenantId: "lab-san-jose",
+    code: "3106",
+    name: "Hormona Luteinizante (LH)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "LH",
+    parameters: [
+      {
+        id: "p-lh",
+        name: "LH",
+        unit: "mIU/mL",
+        astmParamCode: "LH",
+        referenceRanges: [
+          {
+            id: "rr-lh",
+            gender: "TODOS",
+            minValue: 1.7,
+            maxValue: 8.6,
+            unit: "mIU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-estradiol",
+    tenantId: "lab-san-jose",
+    code: "3107",
+    name: "Estradiol Sérico (E2)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 25,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "E2_ESTRA",
+    parameters: [
+      {
+        id: "p-e2",
+        name: "Estradiol (E2)",
+        unit: "pg/mL",
+        astmParamCode: "E2",
+        referenceRanges: [
+          {
+            id: "rr-e2",
+            gender: "TODOS",
+            minValue: 15,
+            maxValue: 350,
+            unit: "pg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-progesterona",
+    tenantId: "lab-san-jose",
+    code: "3108",
+    name: "Progesterona Sérica",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "PROG",
+    parameters: [
+      {
+        id: "p-prog",
+        name: "Progesterona",
+        unit: "ng/mL",
+        astmParamCode: "PROG",
+        referenceRanges: [
+          {
+            id: "rr-prog",
+            gender: "TODOS",
+            minValue: 0.2,
+            maxValue: 25,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-testosterona-total",
+    tenantId: "lab-san-jose",
+    code: "3109",
+    name: "Testosterona Total",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 25,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "TESTO_TOT",
+    parameters: [
+      {
+        id: "p-testo-tot",
+        name: "Testosterona Total",
+        unit: "ng/dL",
+        astmParamCode: "TESTO",
+        referenceRanges: [
+          {
+            id: "rr-testo-m",
+            gender: "M",
+            minValue: 280,
+            maxValue: 1100,
+            unit: "ng/dL"
+          },
+          {
+            id: "rr-testo-f",
+            gender: "F",
+            minValue: 15,
+            maxValue: 70,
+            unit: "ng/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-testosterona-libre",
+    tenantId: "lab-san-jose",
+    code: "3110",
+    name: "Testosterona Libre Calculada / Diálisis",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 36,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "TESTO_FREE",
+    parameters: [
+      {
+        id: "p-testo-free",
+        name: "Testosterona Libre",
+        unit: "pg/mL",
+        astmParamCode: "TESTO_F",
+        referenceRanges: [
+          {
+            id: "rr-testo-free",
+            gender: "TODOS",
+            minValue: 4.5,
+            maxValue: 25,
+            unit: "pg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-dhea-so4",
+    tenantId: "lab-san-jose",
+    code: "3111",
+    name: "DHEA-SO4 (Dehidroepiandrosterona Sulfato)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "DHEAS",
+    parameters: [
+      {
+        id: "p-dheas",
+        name: "DHEA-SO4",
+        unit: "µg/dL",
+        astmParamCode: "DHEAS",
+        referenceRanges: [
+          {
+            id: "rr-dheas",
+            gender: "TODOS",
+            minValue: 35,
+            maxValue: 430,
+            unit: "µg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-17-oh-prog",
+    tenantId: "lab-san-jose",
+    code: "3112",
+    name: "17-Hidroxiprogesterona (17-OHP)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 32,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "17_OHP",
+    parameters: [
+      {
+        id: "p-17ohp",
+        name: "17-OH Progesterona",
+        unit: "ng/mL",
+        astmParamCode: "17OHP",
+        referenceRanges: [
+          {
+            id: "rr-17ohp",
+            gender: "TODOS",
+            minValue: 0.2,
+            maxValue: 2.3,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-insulina",
+    tenantId: "lab-san-jose",
+    code: "3113",
+    name: "Insulina Basal en Ayunas",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "INSULIN",
+    parameters: [
+      {
+        id: "p-ins",
+        name: "Insulina Basal",
+        unit: "µIU/mL",
+        astmParamCode: "INS",
+        referenceRanges: [
+          {
+            id: "rr-ins",
+            gender: "TODOS",
+            minValue: 2.6,
+            maxValue: 24.9,
+            unit: "µIU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-homa-ir",
+    tenantId: "lab-san-jose",
+    code: "3114",
+    name: "Índice HOMA-IR (Resistencia a la Insulina)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 30,
+    specimenType: "Suero (Glucosa + Insulina)",
+    tatHours: 4,
+    astmMappingCode: "HOMA_IR",
+    parameters: [
+      {
+        id: "p-homa",
+        name: "Índice HOMA-IR",
+        unit: "Índice",
+        astmParamCode: "HOMA",
+        referenceRanges: [
+          {
+            id: "rr-homa",
+            gender: "TODOS",
+            minValue: 0.5,
+            maxValue: 2.5,
+            unit: "Índice"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-peptido-c",
+    tenantId: "lab-san-jose",
+    code: "3115",
+    name: "Péptido C Cuantitativo",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "C_PEPTIDE",
+    parameters: [
+      {
+        id: "p-cpep",
+        name: "Péptido C",
+        unit: "ng/mL",
+        astmParamCode: "CPEP",
+        referenceRanges: [
+          {
+            id: "rr-cpep",
+            gender: "TODOS",
+            minValue: 1.1,
+            maxValue: 4.4,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-pth",
+    tenantId: "lab-san-jose",
+    code: "3116",
+    name: "Paratohormona Intacta (PTH)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "EDTA_MORADO",
+    price: 35,
+    specimenType: "Plasma EDTA",
+    tatHours: 4,
+    astmMappingCode: "PTH_INTACT",
+    parameters: [
+      {
+        id: "p-pth",
+        name: "PTH Intacta",
+        unit: "pg/mL",
+        astmParamCode: "PTH",
+        referenceRanges: [
+          {
+            id: "rr-pth",
+            gender: "TODOS",
+            minValue: 15,
+            maxValue: 65,
+            unit: "pg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-gh",
+    tenantId: "lab-san-jose",
+    code: "3117",
+    name: "Hormona del Crecimiento (GH / Somatotropina)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 26,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "GH_HORM",
+    parameters: [
+      {
+        id: "p-gh",
+        name: "Hormona de Crecimiento",
+        unit: "ng/mL",
+        astmParamCode: "GH",
+        referenceRanges: [
+          {
+            id: "rr-gh",
+            gender: "TODOS",
+            minValue: 0.05,
+            maxValue: 5,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-igf1",
+    tenantId: "lab-san-jose",
+    code: "3118",
+    name: "Factor de Crecimiento Insulínico tipo 1 (IGF-1 / Somatomedina C)",
+    category: "ENDOCRINOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 36,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "IGF1_SOM",
+    parameters: [
+      {
+        id: "p-igf1",
+        name: "IGF-1",
+        unit: "ng/mL",
+        astmParamCode: "IGF1",
+        referenceRanges: [
+          {
+            id: "rr-igf1",
+            gender: "TODOS",
+            minValue: 115,
+            maxValue: 307,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-cea",
+    tenantId: "lab-san-jose",
+    code: "3201",
+    name: "Antígeno Carcinoembrionario (CEA)",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CEA_TUMOR",
+    parameters: [
+      {
+        id: "p-cea",
+        name: "CEA",
+        unit: "ng/mL",
+        astmParamCode: "CEA",
+        referenceRanges: [
+          {
+            id: "rr-cea-nf",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 3,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-afp",
+    tenantId: "lab-san-jose",
+    code: "3202",
+    name: "Alfa-Fetoproteína (AFP)",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "AFP_TUMOR",
+    parameters: [
+      {
+        id: "p-afp",
+        name: "Alfa-Fetoproteína",
+        unit: "ng/mL",
+        astmParamCode: "AFP",
+        referenceRanges: [
+          {
+            id: "rr-afp",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 8,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ca125",
+    tenantId: "lab-san-jose",
+    code: "3203",
+    name: "Antígeno CA 125 (Marcador Ovárico)",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 32,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CA_125",
+    parameters: [
+      {
+        id: "p-ca125",
+        name: "CA 125",
+        unit: "U/mL",
+        astmParamCode: "CA125",
+        referenceRanges: [
+          {
+            id: "rr-ca125",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 35,
+            unit: "U/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ca19-9",
+    tenantId: "lab-san-jose",
+    code: "3204",
+    name: "Antígeno CA 19-9 (Marcador Gastrointestinal / Pancreático)",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 34,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CA_19_9",
+    parameters: [
+      {
+        id: "p-ca199",
+        name: "CA 19-9",
+        unit: "U/mL",
+        astmParamCode: "CA199",
+        referenceRanges: [
+          {
+            id: "rr-ca199",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 37,
+            unit: "U/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ca15-3",
+    tenantId: "lab-san-jose",
+    code: "3205",
+    name: "Antígeno CA 15-3 (Marcador Mamario)",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 32,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CA_15_3",
+    parameters: [
+      {
+        id: "p-ca153",
+        name: "CA 15-3",
+        unit: "U/mL",
+        astmParamCode: "CA153",
+        referenceRanges: [
+          {
+            id: "rr-ca153",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 31,
+            unit: "U/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-tiroglobulina",
+    tenantId: "lab-san-jose",
+    code: "3206",
+    name: "Tiroglobulina Sérica Cuantitativa",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 34,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "TG_SERUM",
+    parameters: [
+      {
+        id: "p-tg",
+        name: "Tiroglobulina",
+        unit: "ng/mL",
+        astmParamCode: "TG",
+        referenceRanges: [
+          {
+            id: "rr-tg",
+            gender: "TODOS",
+            minValue: 1.4,
+            maxValue: 78,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-beta2-micro",
+    tenantId: "lab-san-jose",
+    code: "3207",
+    name: "Beta-2 Microglobulina Sérica",
+    category: "MARCADORES_TUMORALES",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "B2_MICRO",
+    parameters: [
+      {
+        id: "p-b2m",
+        name: "Beta-2 Microglobulina",
+        unit: "mg/L",
+        astmParamCode: "B2M",
+        referenceRanges: [
+          {
+            id: "rr-b2m",
+            gender: "TODOS",
+            minValue: 0.8,
+            maxValue: 2.2,
+            unit: "mg/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-vitamina-b12",
+    tenantId: "lab-san-jose",
+    code: "3301",
+    name: "Vitamina B12 (Cianocobalamina)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 26,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "VIT_B12",
+    parameters: [
+      {
+        id: "p-b12",
+        name: "Vitamina B12",
+        unit: "pg/mL",
+        astmParamCode: "B12",
+        referenceRanges: [
+          {
+            id: "rr-b12",
+            gender: "TODOS",
+            minValue: 200,
+            maxValue: 900,
+            unit: "pg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-acido-folico",
+    tenantId: "lab-san-jose",
+    code: "3302",
+    name: "Ácido Fólico Sérico (Folato)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "FOLATE",
+    parameters: [
+      {
+        id: "p-fol",
+        name: "Ácido Fólico",
+        unit: "ng/mL",
+        astmParamCode: "FOL",
+        referenceRanges: [
+          {
+            id: "rr-fol",
+            gender: "TODOS",
+            minValue: 3.1,
+            maxValue: 17.5,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-iga",
+    tenantId: "lab-san-jose",
+    code: "3303",
+    name: "Inmunoglobulina A (IgA Cuantitativa)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "IGA_QUANT",
+    parameters: [
+      {
+        id: "p-iga",
+        name: "IgA",
+        unit: "mg/dL",
+        astmParamCode: "IGA",
+        referenceRanges: [
+          {
+            id: "rr-iga",
+            gender: "TODOS",
+            minValue: 70,
+            maxValue: 400,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-igg",
+    tenantId: "lab-san-jose",
+    code: "3304",
+    name: "Inmunoglobulina G (IgG Cuantitativa)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "IGG_QUANT",
+    parameters: [
+      {
+        id: "p-igg",
+        name: "IgG",
+        unit: "mg/dL",
+        astmParamCode: "IGG",
+        referenceRanges: [
+          {
+            id: "rr-igg",
+            gender: "TODOS",
+            minValue: 700,
+            maxValue: 1600,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-igm",
+    tenantId: "lab-san-jose",
+    code: "3305",
+    name: "Inmunoglobulina M (IgM Cuantitativa)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "IGM_QUANT",
+    parameters: [
+      {
+        id: "p-igm",
+        name: "IgM",
+        unit: "mg/dL",
+        astmParamCode: "IGM",
+        referenceRanges: [
+          {
+            id: "rr-igm",
+            gender: "TODOS",
+            minValue: 40,
+            maxValue: 230,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ige-total",
+    tenantId: "lab-san-jose",
+    code: "3306",
+    name: "Inmunoglobulina E Total (IgE Alergia)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 25,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "IGE_TOTAL",
+    parameters: [
+      {
+        id: "p-ige",
+        name: "IgE Total",
+        unit: "IU/mL",
+        astmParamCode: "IGE",
+        referenceRanges: [
+          {
+            id: "rr-ige",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 100,
+            unit: "IU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-c3",
+    tenantId: "lab-san-jose",
+    code: "3307",
+    name: "Complemento C3",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "COMP_C3",
+    parameters: [
+      {
+        id: "p-c3",
+        name: "Complemento C3",
+        unit: "mg/dL",
+        astmParamCode: "C3",
+        referenceRanges: [
+          {
+            id: "rr-c3",
+            gender: "TODOS",
+            minValue: 90,
+            maxValue: 180,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-c4",
+    tenantId: "lab-san-jose",
+    code: "3308",
+    name: "Complemento C4",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "COMP_C4",
+    parameters: [
+      {
+        id: "p-c4",
+        name: "Complemento C4",
+        unit: "mg/dL",
+        astmParamCode: "C4",
+        referenceRanges: [
+          {
+            id: "rr-c4",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 40,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ana",
+    tenantId: "lab-san-jose",
+    code: "3309",
+    name: "Anticuerpos Antinucleares (ANA Hep-2 por IFI)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 35,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "ANA_IFI",
+    parameters: [
+      {
+        id: "p-ana-res",
+        name: "Resultado ANA",
+        unit: "Cualitativo",
+        astmParamCode: "ANA_RES",
+        referenceRanges: []
+      },
+      {
+        id: "p-ana-tit",
+        name: "Título y Patrón IFI",
+        unit: "Título/Patrón",
+        astmParamCode: "ANA_TIT",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-anti-dna",
+    tenantId: "lab-san-jose",
+    code: "3310",
+    name: "Anticuerpos Anti-DNA Doble Cadena (dsDNA Cuantitativo)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 34,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "ANTI_DSDNA",
+    parameters: [
+      {
+        id: "p-dsdna",
+        name: "Anti-dsDNA",
+        unit: "IU/mL",
+        astmParamCode: "DSDNA",
+        referenceRanges: [
+          {
+            id: "rr-dsdna",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 20,
+            unit: "IU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-anti-ccp",
+    tenantId: "lab-san-jose",
+    code: "3311",
+    name: "Anticuerpos Anti-Péptido Cíclico Citrulinado (Anti-CCP Artritis)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 36,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "ANTI_CCP",
+    parameters: [
+      {
+        id: "p-ccp",
+        name: "Anti-CCP",
+        unit: "U/mL",
+        astmParamCode: "CCP",
+        referenceRanges: [
+          {
+            id: "rr-ccp",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 17,
+            unit: "U/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-anti-tpo",
+    tenantId: "lab-san-jose",
+    code: "3312",
+    name: "Anticuerpos Anti-Tiroperoxidasa (Anti-TPO Tiroides)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "ANTI_TPO",
+    parameters: [
+      {
+        id: "p-tpo",
+        name: "Anti-TPO",
+        unit: "IU/mL",
+        astmParamCode: "TPO",
+        referenceRanges: [
+          {
+            id: "rr-tpo",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 34,
+            unit: "IU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-anti-tg",
+    tenantId: "lab-san-jose",
+    code: "3313",
+    name: "Anticuerpos Anti-Tiroglobulina (Anti-TG)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "ANTI_TG",
+    parameters: [
+      {
+        id: "p-anti-tg",
+        name: "Anti-Tiroglobulina",
+        unit: "IU/mL",
+        astmParamCode: "ANTITG",
+        referenceRanges: [
+          {
+            id: "rr-antitg",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 115,
+            unit: "IU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-anti-transglutaminasa",
+    tenantId: "lab-san-jose",
+    code: "3314",
+    name: "Anticuerpos Anti-Transglutaminasa Tisular IgA (Enfermedad Celíaca)",
+    category: "INMUNOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 36,
+    specimenType: "Suero",
+    tatHours: 24,
+    astmMappingCode: "TTG_IGA",
+    parameters: [
+      {
+        id: "p-ttg-iga",
+        name: "Anti-tTG IgA",
+        unit: "U/mL",
+        astmParamCode: "TTG",
+        referenceRanges: [
+          {
+            id: "rr-ttg",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 10,
+            unit: "U/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-sodio",
+    tenantId: "lab-san-jose",
+    code: "3401",
+    name: "Sodio Sérico (Na+)",
+    category: "ELECTROLITOS",
+    tubeType: "SUERO_ROJO",
+    price: 9,
+    specimenType: "Suero",
+    tatHours: 1,
+    astmMappingCode: "NA_ISE",
+    parameters: [
+      {
+        id: "p-na-ind",
+        name: "Sodio Sérico",
+        unit: "mEq/L",
+        astmParamCode: "NA",
+        referenceRanges: [
+          {
+            id: "rr-na",
+            gender: "TODOS",
+            minValue: 135,
+            maxValue: 145,
+            unit: "mEq/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-potasio",
+    tenantId: "lab-san-jose",
+    code: "3402",
+    name: "Potasio Sérico (K+)",
+    category: "ELECTROLITOS",
+    tubeType: "SUERO_ROJO",
+    price: 9,
+    specimenType: "Suero",
+    tatHours: 1,
+    astmMappingCode: "K_ISE",
+    parameters: [
+      {
+        id: "p-k-ind",
+        name: "Potasio Sérico",
+        unit: "mEq/L",
+        astmParamCode: "K",
+        referenceRanges: [
+          {
+            id: "rr-k",
+            gender: "TODOS",
+            minValue: 3.5,
+            maxValue: 5.1,
+            unit: "mEq/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-cloro",
+    tenantId: "lab-san-jose",
+    code: "3403",
+    name: "Cloro Sérico (Cl-)",
+    category: "ELECTROLITOS",
+    tubeType: "SUERO_ROJO",
+    price: 9,
+    specimenType: "Suero",
+    tatHours: 1,
+    astmMappingCode: "CL_ISE",
+    parameters: [
+      {
+        id: "p-cl-ind",
+        name: "Cloro Sérico",
+        unit: "mEq/L",
+        astmParamCode: "CL",
+        referenceRanges: [
+          {
+            id: "rr-cl",
+            gender: "TODOS",
+            minValue: 98,
+            maxValue: 107,
+            unit: "mEq/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-bicarbonato",
+    tenantId: "lab-san-jose",
+    code: "3404",
+    name: "Bicarbonato Sérico / CO2 Total",
+    category: "ELECTROLITOS",
+    tubeType: "SUERO_ROJO",
+    price: 12,
+    specimenType: "Suero",
+    tatHours: 1,
+    astmMappingCode: "CO2_BICARB",
+    parameters: [
+      {
+        id: "p-co2",
+        name: "CO2 Total (Bicarbonato)",
+        unit: "mEq/L",
+        astmParamCode: "CO2",
+        referenceRanges: [
+          {
+            id: "rr-co2",
+            gender: "TODOS",
+            minValue: 22,
+            maxValue: 29,
+            unit: "mEq/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-osmolalidad",
+    tenantId: "lab-san-jose",
+    code: "3405",
+    name: "Osmolalidad Sérica",
+    category: "ELECTROLITOS",
+    tubeType: "SUERO_ROJO",
+    price: 18,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "OSMOL_SERUM",
+    parameters: [
+      {
+        id: "p-osmol",
+        name: "Osmolalidad Sérica",
+        unit: "mOsm/kg",
+        astmParamCode: "OSMOL",
+        referenceRanges: [
+          {
+            id: "rr-osmol",
+            gender: "TODOS",
+            minValue: 275,
+            maxValue: 295,
+            unit: "mOsm/kg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-antitrombina-3",
+    tenantId: "lab-san-jose",
+    code: "4101",
+    name: "Antitrombina III Funcional (Cromogénica)",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 38,
+    specimenType: "Plasma Citratado",
+    tatHours: 4,
+    astmMappingCode: "AT_III",
+    parameters: [
+      {
+        id: "p-at3",
+        name: "Antitrombina III",
+        unit: "%",
+        astmParamCode: "AT3",
+        referenceRanges: [
+          {
+            id: "rr-at3",
+            gender: "TODOS",
+            minValue: 80,
+            maxValue: 120,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-proteina-c",
+    tenantId: "lab-san-jose",
+    code: "4102",
+    name: "Proteína C de la Coagulación (Actividad)",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 42,
+    specimenType: "Plasma Citratado",
+    tatHours: 24,
+    astmMappingCode: "PROT_C",
+    parameters: [
+      {
+        id: "p-prot-c",
+        name: "Proteína C Actividad",
+        unit: "%",
+        astmParamCode: "PROTC",
+        referenceRanges: [
+          {
+            id: "rr-protc",
+            gender: "TODOS",
+            minValue: 70,
+            maxValue: 140,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-proteina-s",
+    tenantId: "lab-san-jose",
+    code: "4103",
+    name: "Proteína S Libre Funcional",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 42,
+    specimenType: "Plasma Citratado",
+    tatHours: 24,
+    astmMappingCode: "PROT_S",
+    parameters: [
+      {
+        id: "p-prot-s",
+        name: "Proteína S Libre",
+        unit: "%",
+        astmParamCode: "PROTS",
+        referenceRanges: [
+          {
+            id: "rr-prots",
+            gender: "TODOS",
+            minValue: 60,
+            maxValue: 130,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-anticoagulante-lupico",
+    tenantId: "lab-san-jose",
+    code: "4104",
+    name: "Anticoagulante Lúpico (dRVVT Pantalla / Confirmación)",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 48,
+    specimenType: "Plasma Citratado Doble Centrifugado",
+    tatHours: 24,
+    astmMappingCode: "DRVVT_LAC",
+    parameters: [
+      {
+        id: "p-lac-screen",
+        name: "dRVVT Pantalla",
+        unit: "Segundos",
+        astmParamCode: "LAC_SCR",
+        referenceRanges: [
+          {
+            id: "rr-lac-scr",
+            gender: "TODOS",
+            minValue: 30,
+            maxValue: 45,
+            unit: "seg"
+          }
+        ]
+      },
+      {
+        id: "p-lac-ratio",
+        name: "Ratio Normalizado",
+        unit: "Ratio",
+        astmParamCode: "LAC_RAT",
+        referenceRanges: [
+          {
+            id: "rr-lac-rat",
+            gender: "TODOS",
+            minValue: 0.8,
+            maxValue: 1.2,
+            unit: "Ratio"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-factor-8",
+    tenantId: "lab-san-jose",
+    code: "4105",
+    name: "Factor VIII Coagulante (Actividad)",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 45,
+    specimenType: "Plasma Citratado Congelado",
+    tatHours: 24,
+    astmMappingCode: "FACTOR_VIII",
+    parameters: [
+      {
+        id: "p-f8",
+        name: "Factor VIII",
+        unit: "%",
+        astmParamCode: "FVIII",
+        referenceRanges: [
+          {
+            id: "rr-f8",
+            gender: "TODOS",
+            minValue: 50,
+            maxValue: 150,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-von-willebrand",
+    tenantId: "lab-san-jose",
+    code: "4106",
+    name: "Factor von Willebrand (Antígeno vWF:Ag)",
+    category: "COAGULACION",
+    tubeType: "CITRATO_AZUL",
+    price: 48,
+    specimenType: "Plasma Citratado Congelado",
+    tatHours: 24,
+    astmMappingCode: "VWF_AG",
+    parameters: [
+      {
+        id: "p-vwf",
+        name: "vWF Antígeno",
+        unit: "%",
+        astmParamCode: "VWF",
+        referenceRanges: [
+          {
+            id: "rr-vwf",
+            gender: "TODOS",
+            minValue: 50,
+            maxValue: 150,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-citoquimico-lcr",
+    tenantId: "lab-san-jose",
+    code: "4201",
+    name: "Citoquímico y Cuentas Celulares de Líquido Cefalorraquídeo (LCR)",
+    category: "ESPECIALES",
+    tubeType: "LCR",
+    price: 45,
+    specimenType: "Líquido Cefalorraquídeo (LCR)",
+    tatHours: 1,
+    astmMappingCode: "CSF_ANALYSIS",
+    parameters: [
+      {
+        id: "p-lcr-leu",
+        name: "Leucocitos en LCR",
+        unit: "/µL",
+        astmParamCode: "CSF_WBC",
+        referenceRanges: [
+          {
+            id: "rr-lcr-wbc",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 5,
+            unit: "/µL"
+          }
+        ]
+      },
+      {
+        id: "p-lcr-glu",
+        name: "Glucosa en LCR",
+        unit: "mg/dL",
+        astmParamCode: "CSF_GLU",
+        referenceRanges: [
+          {
+            id: "rr-lcr-glu",
+            gender: "TODOS",
+            minValue: 40,
+            maxValue: 70,
+            unit: "mg/dL"
+          }
+        ]
+      },
+      {
+        id: "p-lcr-prot",
+        name: "Proteínas Totales en LCR",
+        unit: "mg/dL",
+        astmParamCode: "CSF_PROT",
+        referenceRanges: [
+          {
+            id: "rr-lcr-prot",
+            gender: "TODOS",
+            minValue: 15,
+            maxValue: 45,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-citoquimico-pleural",
+    tenantId: "lab-san-jose",
+    code: "4202",
+    name: "Citoquímico de Líquido Pleural (Criterios de Light)",
+    category: "ESPECIALES",
+    tubeType: "LCR",
+    price: 40,
+    specimenType: "Líquido Pleural",
+    tatHours: 2,
+    astmMappingCode: "PLEURAL_FLUID",
+    parameters: [
+      {
+        id: "p-pleur-ldh",
+        name: "LDH Líquido Pleural",
+        unit: "U/L",
+        astmParamCode: "PL_LDH",
+        referenceRanges: []
+      },
+      {
+        id: "p-pleur-prot",
+        name: "Proteínas Líquido Pleural",
+        unit: "g/dL",
+        astmParamCode: "PL_PROT",
+        referenceRanges: []
+      },
+      {
+        id: "p-pleur-clasif",
+        name: "Clasificación (Trasudado vs Exudado)",
+        unit: "Criterio",
+        astmParamCode: "PL_CLAS",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-espermograma",
+    tenantId: "lab-san-jose",
+    code: "4203",
+    name: "Espermograma Completo (Análisis Seminal según Criterios OMS / Kruger)",
+    category: "ESPECIALES",
+    tubeType: "FRASCO_ESTERIL",
+    price: 45,
+    specimenType: "Semen Recién Emitido por Masturbación tras 3-5 días abstinencia",
+    tatHours: 4,
+    astmMappingCode: "SEMEN_ANALYSIS",
+    parameters: [
+      {
+        id: "p-spm-vol",
+        name: "Volumen",
+        unit: "mL",
+        astmParamCode: "SPM_VOL",
+        referenceRanges: [
+          {
+            id: "rr-spm-vol",
+            gender: "M",
+            minValue: 1.5,
+            maxValue: 6,
+            unit: "mL"
+          }
+        ]
+      },
+      {
+        id: "p-spm-conc",
+        name: "Concentración Espermática",
+        unit: "x10^6/mL",
+        astmParamCode: "SPM_CONC",
+        referenceRanges: [
+          {
+            id: "rr-spm-conc",
+            gender: "M",
+            minValue: 15,
+            maxValue: 250,
+            unit: "x10^6/mL"
+          }
+        ]
+      },
+      {
+        id: "p-spm-mot",
+        name: "Movilidad Progresiva (PR)",
+        unit: "%",
+        astmParamCode: "SPM_MOT",
+        referenceRanges: [
+          {
+            id: "rr-spm-mot",
+            gender: "M",
+            minValue: 32,
+            maxValue: 100,
+            unit: "%"
+          }
+        ]
+      },
+      {
+        id: "p-spm-morf",
+        name: "Morfología Normal (Criterio Kruger)",
+        unit: "%",
+        astmParamCode: "SPM_MORF",
+        referenceRanges: [
+          {
+            id: "rr-spm-morf",
+            gender: "M",
+            minValue: 4,
+            maxValue: 100,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-valproico",
+    tenantId: "lab-san-jose",
+    code: "4301",
+    name: "Nivel Sérico de Ácido Valproico (Depakene)",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero (Antes de la siguiente dosis)",
+    tatHours: 4,
+    astmMappingCode: "VALPROIC_ACID",
+    parameters: [
+      {
+        id: "p-valp",
+        name: "Ácido Valproico",
+        unit: "µg/mL",
+        astmParamCode: "VALP",
+        referenceRanges: [
+          {
+            id: "rr-valp",
+            gender: "TODOS",
+            minValue: 50,
+            maxValue: 100,
+            unit: "µg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-carbamazepina",
+    tenantId: "lab-san-jose",
+    code: "4302",
+    name: "Nivel Sérico de Carbamazepina (Tegretol)",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CARBAMAZEPINE",
+    parameters: [
+      {
+        id: "p-carb",
+        name: "Carbamazepina",
+        unit: "µg/mL",
+        astmParamCode: "CARB",
+        referenceRanges: [
+          {
+            id: "rr-carb",
+            gender: "TODOS",
+            minValue: 4,
+            maxValue: 12,
+            unit: "µg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-fenitoina",
+    tenantId: "lab-san-jose",
+    code: "4303",
+    name: "Nivel Sérico de Fenitoína (Difenilhidantoína / Epamin)",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 28,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "PHENYTOIN",
+    parameters: [
+      {
+        id: "p-fen",
+        name: "Fenitoína Total",
+        unit: "µg/mL",
+        astmParamCode: "FEN",
+        referenceRanges: [
+          {
+            id: "rr-fen",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 20,
+            unit: "µg/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-litio",
+    tenantId: "lab-san-jose",
+    code: "4304",
+    name: "Nivel Sérico de Litio",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 22,
+    specimenType: "Suero (Tubo sin gel)",
+    tatHours: 4,
+    astmMappingCode: "LITHIUM",
+    parameters: [
+      {
+        id: "p-lit",
+        name: "Litio Sérico",
+        unit: "mEq/L",
+        astmParamCode: "LIT",
+        referenceRanges: [
+          {
+            id: "rr-lit",
+            gender: "TODOS",
+            minValue: 0.6,
+            maxValue: 1.2,
+            unit: "mEq/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-digoxina",
+    tenantId: "lab-san-jose",
+    code: "4305",
+    name: "Nivel Sérico de Digoxina",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 26,
+    specimenType: "Suero (6-8h post-dosis)",
+    tatHours: 4,
+    astmMappingCode: "DIGOXIN",
+    parameters: [
+      {
+        id: "p-dig",
+        name: "Digoxina",
+        unit: "ng/mL",
+        astmParamCode: "DIG",
+        referenceRanges: [
+          {
+            id: "rr-dig",
+            gender: "TODOS",
+            minValue: 0.8,
+            maxValue: 2,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-vancomicina",
+    tenantId: "lab-san-jose",
+    code: "4306",
+    name: "Nivel Sérico de Vancomicina (Nivel Valle)",
+    category: "TOXICOLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 32,
+    specimenType: "Suero (30 min antes de la dosis)",
+    tatHours: 4,
+    astmMappingCode: "VANCOMYCIN",
+    parameters: [
+      {
+        id: "p-vanc",
+        name: "Vancomicina Valle",
+        unit: "µg/mL",
+        astmParamCode: "VANC",
+        referenceRanges: [
+          {
+            id: "rr-vanc",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 20,
+            unit: "µg/mL"
+          }
+        ]
+      }
+    ]
+  }
+,
+  {
+    id: "test-colesterol-total",
+    tenantId: "lab-san-jose",
+    code: "3011",
+    name: "Colesterol Total",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 10,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "CHOL_TOT",
+    parameters: [
+      {
+        id: "p-chol",
+        name: "Colesterol Total",
+        unit: "mg/dL",
+        astmParamCode: "CHOL",
+        referenceRanges: [
+          {
+            id: "rr-chol",
+            gender: "TODOS",
+            minValue: 100,
+            maxValue: 200,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-colesterol-hdl",
+    tenantId: "lab-san-jose",
+    code: "3012",
+    name: "Colesterol HDL (Lipoproteínas de Alta Densidad)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 12,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "HDL_DIR",
+    parameters: [
+      {
+        id: "p-hdl",
+        name: "Colesterol HDL",
+        unit: "mg/dL",
+        astmParamCode: "HDL",
+        referenceRanges: [
+          {
+            id: "rr-hdl-m",
+            gender: "M",
+            minValue: 40,
+            maxValue: 90,
+            unit: "mg/dL"
+          },
+          {
+            id: "rr-hdl-f",
+            gender: "F",
+            minValue: 50,
+            maxValue: 100,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-colesterol-ldl",
+    tenantId: "lab-san-jose",
+    code: "3013",
+    name: "Colesterol LDL Directo",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 14,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "LDL_DIR",
+    parameters: [
+      {
+        id: "p-ldl",
+        name: "Colesterol LDL Directo",
+        unit: "mg/dL",
+        astmParamCode: "LDL",
+        referenceRanges: [
+          {
+            id: "rr-ldl",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 100,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-trigliceridos",
+    tenantId: "lab-san-jose",
+    code: "3014",
+    name: "Triglicéridos Séricos",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 10,
+    specimenType: "Suero (Ayuno 12h)",
+    tatHours: 2,
+    astmMappingCode: "TRIG_SER",
+    parameters: [
+      {
+        id: "p-trig",
+        name: "Triglicéridos",
+        unit: "mg/dL",
+        astmParamCode: "TRIG",
+        referenceRanges: [
+          {
+            id: "rr-trig",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 150,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-bilirrubinas",
+    tenantId: "lab-san-jose",
+    code: "3015",
+    name: "Bilirrubinas Total, Directa e Indirecta",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 14,
+    specimenType: "Suero Protegido de la Luz",
+    tatHours: 2,
+    astmMappingCode: "BILI_PANEL",
+    parameters: [
+      {
+        id: "p-tbili",
+        name: "Bilirrubina Total",
+        unit: "mg/dL",
+        astmParamCode: "TBIL",
+        referenceRanges: [
+          {
+            id: "rr-tbili",
+            gender: "TODOS",
+            minValue: 0.2,
+            maxValue: 1.2,
+            unit: "mg/dL"
+          }
+        ]
+      },
+      {
+        id: "p-dbili",
+        name: "Bilirrubina Directa",
+        unit: "mg/dL",
+        astmParamCode: "DBIL",
+        referenceRanges: [
+          {
+            id: "rr-dbili",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 0.3,
+            unit: "mg/dL"
+          }
+        ]
+      },
+      {
+        id: "p-ibili",
+        name: "Bilirrubina Indirecta",
+        unit: "mg/dL",
+        astmParamCode: "IBIL",
+        referenceRanges: [
+          {
+            id: "rr-ibili",
+            gender: "TODOS",
+            minValue: 0.2,
+            maxValue: 0.9,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ast-tgo",
+    tenantId: "lab-san-jose",
+    code: "3016",
+    name: "Transaminasa Glutámico Oxalacética (AST / TGO)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 10,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "AST_TGO",
+    parameters: [
+      {
+        id: "p-ast",
+        name: "AST / TGO",
+        unit: "U/L",
+        astmParamCode: "AST",
+        referenceRanges: [
+          {
+            id: "rr-ast",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 40,
+            unit: "U/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-alt-tgp",
+    tenantId: "lab-san-jose",
+    code: "3017",
+    name: "Transaminasa Glutámico Pirúvica (ALT / TGP)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 10,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "ALT_TGP",
+    parameters: [
+      {
+        id: "p-alt-ind",
+        name: "ALT / TGP",
+        unit: "U/L",
+        astmParamCode: "ALT",
+        referenceRanges: [
+          {
+            id: "rr-alt",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 45,
+            unit: "U/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-fosfatasa-alcalina",
+    tenantId: "lab-san-jose",
+    code: "3018",
+    name: "Fosfatasa Alcalina (ALP)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 12,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "ALP_SER",
+    parameters: [
+      {
+        id: "p-alp",
+        name: "Fosfatasa Alcalina",
+        unit: "U/L",
+        astmParamCode: "ALP",
+        referenceRanges: [
+          {
+            id: "rr-alp",
+            gender: "TODOS",
+            minValue: 40,
+            maxValue: 130,
+            unit: "U/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ggt",
+    tenantId: "lab-san-jose",
+    code: "3019",
+    name: "Gamma Glutamil Transferasa (GGT)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 12,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "GGT_SER",
+    parameters: [
+      {
+        id: "p-ggt",
+        name: "GGT",
+        unit: "U/L",
+        astmParamCode: "GGT",
+        referenceRanges: [
+          {
+            id: "rr-ggt-m",
+            gender: "M",
+            minValue: 11,
+            maxValue: 50,
+            unit: "U/L"
+          },
+          {
+            id: "rr-ggt-f",
+            gender: "F",
+            minValue: 7,
+            maxValue: 32,
+            unit: "U/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-proteinas-totales",
+    tenantId: "lab-san-jose",
+    code: "3020",
+    name: "Proteínas Totales y Relación Albúmina/Globulina (A/G)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 12,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "PROT_TOT_AG",
+    parameters: [
+      {
+        id: "p-pt",
+        name: "Proteínas Totales",
+        unit: "g/dL",
+        astmParamCode: "TP",
+        referenceRanges: [
+          {
+            id: "rr-pt",
+            gender: "TODOS",
+            minValue: 6.4,
+            maxValue: 8.3,
+            unit: "g/dL"
+          }
+        ]
+      },
+      {
+        id: "p-alb",
+        name: "Albúmina Sérica",
+        unit: "g/dL",
+        astmParamCode: "ALB",
+        referenceRanges: [
+          {
+            id: "rr-alb",
+            gender: "TODOS",
+            minValue: 3.5,
+            maxValue: 5.2,
+            unit: "g/dL"
+          }
+        ]
+      },
+      {
+        id: "p-glob",
+        name: "Globulinas",
+        unit: "g/dL",
+        astmParamCode: "GLOB",
+        referenceRanges: [
+          {
+            id: "rr-glob",
+            gender: "TODOS",
+            minValue: 2.3,
+            maxValue: 3.5,
+            unit: "g/dL"
+          }
+        ]
+      },
+      {
+        id: "p-ag-ratio",
+        name: "Relación A/G",
+        unit: "Ratio",
+        astmParamCode: "AG_RATIO",
+        referenceRanges: [
+          {
+            id: "rr-ag",
+            gender: "TODOS",
+            minValue: 1.2,
+            maxValue: 2.2,
+            unit: "Ratio"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ck-total",
+    tenantId: "lab-san-jose",
+    code: "3021",
+    name: "Creatina Quinasa Total (CK / CPK)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 14,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "CK_TOTAL",
+    parameters: [
+      {
+        id: "p-ck-tot",
+        name: "Creatina Quinasa Total",
+        unit: "U/L",
+        astmParamCode: "CK",
+        referenceRanges: [
+          {
+            id: "rr-ck-m",
+            gender: "M",
+            minValue: 39,
+            maxValue: 308,
+            unit: "U/L"
+          },
+          {
+            id: "rr-ck-f",
+            gender: "F",
+            minValue: 26,
+            maxValue: 192,
+            unit: "U/L"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ck-mb",
+    tenantId: "lab-san-jose",
+    code: "3022",
+    name: "Creatina Quinasa Fracción MB (CK-MB Masa)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 20,
+    specimenType: "Suero",
+    tatHours: 1,
+    astmMappingCode: "CK_MB_MASS",
+    parameters: [
+      {
+        id: "p-ckmb",
+        name: "CK-MB Masa",
+        unit: "ng/mL",
+        astmParamCode: "CKMB",
+        referenceRanges: [
+          {
+            id: "rr-ckmb",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 5,
+            unit: "ng/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-calcio-total",
+    tenantId: "lab-san-jose",
+    code: "3023",
+    name: "Calcio Sérico Total",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 9,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "CA_TOTAL",
+    parameters: [
+      {
+        id: "p-ca-tot",
+        name: "Calcio Total",
+        unit: "mg/dL",
+        astmParamCode: "CA",
+        referenceRanges: [
+          {
+            id: "rr-ca",
+            gender: "TODOS",
+            minValue: 8.5,
+            maxValue: 10.2,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-fosforo",
+    tenantId: "lab-san-jose",
+    code: "3024",
+    name: "Fósforo Sérico Inorgánico",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 9,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "PHOS_SER",
+    parameters: [
+      {
+        id: "p-phos",
+        name: "Fósforo Sérico",
+        unit: "mg/dL",
+        astmParamCode: "PHOS",
+        referenceRanges: [
+          {
+            id: "rr-phos",
+            gender: "TODOS",
+            minValue: 2.5,
+            maxValue: 4.5,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-magnesio",
+    tenantId: "lab-san-jose",
+    code: "3025",
+    name: "Magnesio Sérico",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 10,
+    specimenType: "Suero",
+    tatHours: 2,
+    astmMappingCode: "MG_SER",
+    parameters: [
+      {
+        id: "p-mg",
+        name: "Magnesio Sérico",
+        unit: "mg/dL",
+        astmParamCode: "MG",
+        referenceRanges: [
+          {
+            id: "rr-mg",
+            gender: "TODOS",
+            minValue: 1.6,
+            maxValue: 2.6,
+            unit: "mg/dL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-hierro-tibc",
+    tenantId: "lab-san-jose",
+    code: "3026",
+    name: "Hierro Sérico y Capacidad Total de Fijación (TIBC)",
+    category: "QUIMICA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "IRON_TIBC",
+    parameters: [
+      {
+        id: "p-fe",
+        name: "Hierro Sérico",
+        unit: "µg/dL",
+        astmParamCode: "FE",
+        referenceRanges: [
+          {
+            id: "rr-fe",
+            gender: "TODOS",
+            minValue: 60,
+            maxValue: 170,
+            unit: "µg/dL"
+          }
+        ]
+      },
+      {
+        id: "p-tibc",
+        name: "TIBC (Capacidad Total de Fijación)",
+        unit: "µg/dL",
+        astmParamCode: "TIBC",
+        referenceRanges: [
+          {
+            id: "rr-tibc",
+            gender: "TODOS",
+            minValue: 240,
+            maxValue: 450,
+            unit: "µg/dL"
+          }
+        ]
+      },
+      {
+        id: "p-sat-fe",
+        name: "% Saturación de Transferrina",
+        unit: "%",
+        astmParamCode: "FE_SAT",
+        referenceRanges: [
+          {
+            id: "rr-fe-sat",
+            gender: "TODOS",
+            minValue: 20,
+            maxValue: 50,
+            unit: "%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-cultivo-faringeo",
+    tenantId: "lab-san-jose",
+    code: "6101",
+    name: "Cultivo de Exudado Faríngeo + Antibiograma",
+    category: "MICROBIOLOGIA",
+    tubeType: "HISOPADO_MEDIO",
+    price: 28,
+    specimenType: "Hisopado Faríngeo en Medio Stuart / Amies",
+    tatHours: 48,
+    astmMappingCode: "THROAT_CULTURE",
+    parameters: [
+      {
+        id: "p-cul-far",
+        name: "Aislamiento e Identificación",
+        unit: "Descriptivo",
+        astmParamCode: "THROAT_ID",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-cultivo-vaginal",
+    tenantId: "lab-san-jose",
+    code: "6102",
+    name: "Cultivo de Secreción Vaginal + Examen al Fresco y Antibiograma",
+    category: "MICROBIOLOGIA",
+    tubeType: "HISOPADO_MEDIO",
+    price: 32,
+    specimenType: "Flujo Vaginal / Cervical",
+    tatHours: 48,
+    astmMappingCode: "VAG_CULTURE",
+    parameters: [
+      {
+        id: "p-cul-vag-fresco",
+        name: "Examen al Fresco (Levaduras/Trichomonas)",
+        unit: "Cualitativo",
+        astmParamCode: "VAG_WET",
+        referenceRanges: []
+      },
+      {
+        id: "p-cul-vag-bact",
+        name: "Flora Bacteriana / Patógeno Aislado",
+        unit: "Descriptivo",
+        astmParamCode: "VAG_BACT",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-cultivo-hongos",
+    tenantId: "lab-san-jose",
+    code: "6103",
+    name: "Cultivo Micológico para Hongos y Levaduras + Examen KOH",
+    category: "MICROBIOLOGIA",
+    tubeType: "FRASCO_ESTERIL",
+    price: 35,
+    specimenType: "Raspado de Uña / Piel / Escamas / Cabello",
+    tatHours: 336,
+    astmMappingCode: "MYCOLOGY_CULT",
+    parameters: [
+      {
+        id: "p-koh-directo",
+        name: "Examen Directo con KOH al 10%",
+        unit: "Cualitativo",
+        astmParamCode: "KOH_DIR",
+        referenceRanges: []
+      },
+      {
+        id: "p-cult-hongo",
+        name: "Cultivo en Agar Sabouraud Dextrosa",
+        unit: "Descriptivo",
+        astmParamCode: "FUNG_ID",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-cultivo-esputo",
+    tenantId: "lab-san-jose",
+    code: "6104",
+    name: "Cultivo de Esputo con Antibiograma Automatizado",
+    category: "MICROBIOLOGIA",
+    tubeType: "FRASCO_ESTERIL",
+    price: 36,
+    specimenType: "Esputo Espontáneo Matutino (Criterio de Murray-Washington)",
+    tatHours: 48,
+    astmMappingCode: "SPUTUM_CULT",
+    parameters: [
+      {
+        id: "p-esputo-qual",
+        name: "Calidad Citológica (Murray-Washington)",
+        unit: "Criterio",
+        astmParamCode: "SPUT_QUAL",
+        referenceRanges: []
+      },
+      {
+        id: "p-esputo-micro",
+        name: "Aislamiento Bacteriano & CMI",
+        unit: "Descriptivo",
+        astmParamCode: "SPUT_ID",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-antihbs",
+    tenantId: "lab-san-jose",
+    code: "5101",
+    name: "Hepatitis B - Anticuerpos contra el Antígeno de Superficie (Anti-HBs Cuantitativo)",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 24,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "ANTI_HBS",
+    parameters: [
+      {
+        id: "p-ahbs",
+        name: "Anti-HBs Cuantitativo",
+        unit: "mIU/mL",
+        astmParamCode: "AHBS",
+        referenceRanges: [
+          {
+            id: "rr-ahbs",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 1000,
+            unit: "mIU/mL"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-antihbc-igm",
+    tenantId: "lab-san-jose",
+    code: "5102",
+    name: "Hepatitis B - Anticuerpos IgM contra el Core (Anti-HBc IgM Infección Aguda)",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 26,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "HBCORE_IGM",
+    parameters: [
+      {
+        id: "p-hbc-igm",
+        name: "Anti-HBc IgM",
+        unit: "Index S/CO",
+        astmParamCode: "HBCIGM",
+        referenceRanges: [
+          {
+            id: "rr-hbcigm",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 0.99,
+            unit: "Index"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-cmv",
+    tenantId: "lab-san-jose",
+    code: "5103",
+    name: "Citomegalovirus (CMV) Anticuerpos IgG e IgM",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 36,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "CMV_PANEL",
+    parameters: [
+      {
+        id: "p-cmv-igg",
+        name: "CMV IgG",
+        unit: "IU/mL",
+        astmParamCode: "CMV_IGG",
+        referenceRanges: []
+      },
+      {
+        id: "p-cmv-igm",
+        name: "CMV IgM",
+        unit: "Index S/CO",
+        astmParamCode: "CMV_IGM",
+        referenceRanges: [
+          {
+            id: "rr-cmv-igm",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 0.99,
+            unit: "Index"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-ebv",
+    tenantId: "lab-san-jose",
+    code: "5104",
+    name: "Virus Epstein-Barr (EBV VCA IgG, IgM y EBNA)",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 38,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "EBV_PANEL",
+    parameters: [
+      {
+        id: "p-ebv-vca-igg",
+        name: "EBV VCA IgG",
+        unit: "U/mL",
+        astmParamCode: "EBV_IGG",
+        referenceRanges: []
+      },
+      {
+        id: "p-ebv-vca-igm",
+        name: "EBV VCA IgM",
+        unit: "Index",
+        astmParamCode: "EBV_IGM",
+        referenceRanges: []
+      },
+      {
+        id: "p-ebv-ebna",
+        name: "EBV EBNA IgG",
+        unit: "U/mL",
+        astmParamCode: "EBNA",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-rubeola",
+    tenantId: "lab-san-jose",
+    code: "5105",
+    name: "Rubeola Anticuerpos IgG e IgM",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 32,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "RUBELLA_PANEL",
+    parameters: [
+      {
+        id: "p-rub-igg",
+        name: "Rubeola IgG",
+        unit: "IU/mL",
+        astmParamCode: "RUB_IGG",
+        referenceRanges: [
+          {
+            id: "rr-rub-igg",
+            gender: "TODOS",
+            minValue: 10,
+            maxValue: 500,
+            unit: "IU/mL"
+          }
+        ]
+      },
+      {
+        id: "p-rub-igm",
+        name: "Rubeola IgM",
+        unit: "Index S/CO",
+        astmParamCode: "RUB_IGM",
+        referenceRanges: [
+          {
+            id: "rr-rub-igm",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 0.99,
+            unit: "Index"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-herpes",
+    tenantId: "lab-san-jose",
+    code: "5106",
+    name: "Herpes Simplex Virus 1 y 2 (HSV-1 / HSV-2 IgG e IgM)",
+    category: "SEROLOGIA",
+    tubeType: "SUERO_ROJO",
+    price: 38,
+    specimenType: "Suero",
+    tatHours: 4,
+    astmMappingCode: "HSV_PANEL",
+    parameters: [
+      {
+        id: "p-hsv1-igg",
+        name: "HSV-1 IgG",
+        unit: "Index",
+        astmParamCode: "HSV1_G",
+        referenceRanges: []
+      },
+      {
+        id: "p-hsv2-igg",
+        name: "HSV-2 IgG",
+        unit: "Index",
+        astmParamCode: "HSV2_G",
+        referenceRanges: []
+      },
+      {
+        id: "p-hsv-igm",
+        name: "HSV 1/2 IgM",
+        unit: "Index",
+        astmParamCode: "HSV_M",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-hpylori-heces",
+    tenantId: "lab-san-jose",
+    code: "5107",
+    name: "Helicobacter pylori en Heces (Antígeno Monoclonal Rápido)",
+    category: "SEROLOGIA",
+    tubeType: "HECES",
+    price: 28,
+    specimenType: "Heces Frescas",
+    tatHours: 2,
+    astmMappingCode: "HPYLORI_STOOL",
+    parameters: [
+      {
+        id: "p-hp-stool",
+        name: "Antígeno H. pylori en Heces",
+        unit: "Cualitativo",
+        astmParamCode: "HP_STOOL",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-strep-a",
+    tenantId: "lab-san-jose",
+    code: "5108",
+    name: "Streptococcus pyogenes Ag Rápido en Faringe (Strep A STAT)",
+    category: "SEROLOGIA",
+    tubeType: "HISOPADO_MEDIO",
+    price: 20,
+    specimenType: "Hisopado Faríngeo Seco",
+    tatHours: 0.5,
+    astmMappingCode: "STREP_A_STAT",
+    parameters: [
+      {
+        id: "p-strep-a",
+        name: "Antígeno Strep A",
+        unit: "Cualitativo",
+        astmParamCode: "STREP_A",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-pcr-hbv",
+    tenantId: "lab-san-jose",
+    code: "9004",
+    name: "Carga Viral Hepatitis B (HBV DNA Cuantitativo por RT-PCR)",
+    category: "BIOLOGIA_MOLECULAR",
+    tubeType: "EDTA_MORADO",
+    price: 140,
+    specimenType: "Plasma EDTA",
+    tatHours: 48,
+    astmMappingCode: "HBV_DNA_PCR",
+    parameters: [
+      {
+        id: "p-hbv-dna-iu",
+        name: "HBV DNA (IU/mL)",
+        unit: "IU/mL",
+        astmParamCode: "HBV_IU",
+        referenceRanges: [
+          {
+            id: "rr-hbv-iu",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 10,
+            unit: "IU/mL"
+          }
+        ]
+      },
+      {
+        id: "p-hbv-dna-log",
+        name: "HBV DNA Log10",
+        unit: "Log10 IU/mL",
+        astmParamCode: "HBV_LOG",
+        referenceRanges: [
+          {
+            id: "rr-hbv-log",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 1,
+            unit: "Log10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-pcr-hcv",
+    tenantId: "lab-san-jose",
+    code: "9005",
+    name: "Carga Viral Hepatitis C (HCV RNA Cuantitativo por RT-PCR)",
+    category: "BIOLOGIA_MOLECULAR",
+    tubeType: "EDTA_MORADO",
+    price: 140,
+    specimenType: "Plasma EDTA",
+    tatHours: 48,
+    astmMappingCode: "HCV_RNA_PCR",
+    parameters: [
+      {
+        id: "p-hcv-rna-iu",
+        name: "HCV RNA (IU/mL)",
+        unit: "IU/mL",
+        astmParamCode: "HCV_IU",
+        referenceRanges: [
+          {
+            id: "rr-hcv-iu",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 15,
+            unit: "IU/mL"
+          }
+        ]
+      },
+      {
+        id: "p-hcv-rna-log",
+        name: "HCV RNA Log10",
+        unit: "Log10 IU/mL",
+        astmParamCode: "HCV_LOG",
+        referenceRanges: [
+          {
+            id: "rr-hcv-log",
+            gender: "TODOS",
+            minValue: 0,
+            maxValue: 1.18,
+            unit: "Log10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "test-pcr-std",
+    tenantId: "lab-san-jose",
+    code: "9006",
+    name: "Detección Molecular de Chlamydia trachomatis & Neisseria gonorrhoeae (CT/NG PCR)",
+    category: "BIOLOGIA_MOLECULAR",
+    tubeType: "HISOPADO_MEDIO",
+    price: 75,
+    specimenType: "Hisopado Endocervical / Uretral / Primera Fracción de Orina",
+    tatHours: 24,
+    astmMappingCode: "CT_NG_PCR",
+    parameters: [
+      {
+        id: "p-ct-pcr",
+        name: "Chlamydia trachomatis ADN",
+        unit: "Cualitativo",
+        astmParamCode: "CT_DNA",
+        referenceRanges: []
+      },
+      {
+        id: "p-ng-pcr",
+        name: "Neisseria gonorrhoeae ADN",
+        unit: "Cualitativo",
+        astmParamCode: "NG_DNA",
+        referenceRanges: []
+      }
+    ]
+  },
+  {
+    id: "test-pcr-tb",
+    tenantId: "lab-san-jose",
+    code: "9007",
+    name: "Detección Molecular de M. tuberculosis y Resistencia a Rifampicina (GeneXpert MTB/RIF)",
+    category: "BIOLOGIA_MOLECULAR",
+    tubeType: "FRASCO_ESTERIL",
+    price: 85,
+    specimenType: "Esputo / Lavado Broncoalveolar",
+    tatHours: 4,
+    astmMappingCode: "MTB_RIF_XPERT",
+    parameters: [
+      {
+        id: "p-mtb-dna",
+        name: "Mycobacterium tuberculosis ADN",
+        unit: "Cualitativo",
+        astmParamCode: "MTB_DNA",
+        referenceRanges: []
+      },
+      {
+        id: "p-rif-res",
+        name: "Resistencia a Rifampicina",
+        unit: "Cualitativo",
+        astmParamCode: "RIF_RES",
+        referenceRanges: []
+      }
+    ]
   }
 ];
 

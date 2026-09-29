@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TestResult, Order, Patient } from '../../types';
 import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Lock, Key, Award, Sparkles, User, Activity, ExternalLink } from 'lucide-react';
 import { getTimeBasedGreeting } from '../../utils/greeting';
@@ -29,6 +29,12 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
   const selectedOrder = orders.find((o) => o.id === selectedOrderId) || orders[0];
   const orderResults = results.filter((r) => r.orderId === selectedOrder?.id);
   const patient = patients.find((p) => p.id === selectedOrder?.patientId) || patients[0];
+
+  useEffect(() => {
+    if (orders.length > 0 && (!selectedOrderId || !orders.some((o) => o.id === selectedOrderId))) {
+      setSelectedOrderId(orders[0].id);
+    }
+  }, [orders, selectedOrderId]);
 
   const handleSignOff = () => {
     if (!signaturePin) {
@@ -167,8 +173,9 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
               </div>
 
               <button
-                onClick={() => onOpenPdf(selectedOrder.id)}
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs transition flex items-center space-x-2 shadow-md shadow-cyan-500/20 cursor-pointer"
+                disabled={!selectedOrder}
+                onClick={() => selectedOrder?.id && onOpenPdf(selectedOrder.id)}
+                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs transition flex items-center space-x-2 shadow-md shadow-cyan-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <FileText className="w-4 h-4 text-slate-950" />
                 <span>{isEn ? 'Generate Official PDF' : 'Generar PDF Oficial'}</span>

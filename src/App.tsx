@@ -70,6 +70,7 @@ import { RisPacsRadiologyStudio } from './components/HospitalSuite/RisPacsRadiol
 import { HospitalPharmacyDispensing } from './components/HospitalSuite/HospitalPharmacyDispensing';
 
 import BloodBankCenter from './components/Phase6Suite/TechnologistSuite/BloodBankCenter';
+import { TransfusionEvolutionManager } from './components/Phase6Suite/TechnologistSuite/TransfusionEvolutionManager';
 import DonorScreeningForm from './components/Phase6Suite/TechnologistSuite/DonorScreeningForm';
 import DonorDeferralDashboard from './components/Phase6Suite/TechnologistSuite/DonorDeferralDashboard';
 import ApheresisDonationModule from './components/Phase6Suite/TechnologistSuite/ApheresisDonationModule';
@@ -85,6 +86,7 @@ import HISIntegrationConsole from './components/Phase6Suite/TechnologistSuite/HI
 
 import ChemicalWasteManager from './components/Phase6Suite/TechnologistSuite/ChemicalWasteManager';
 import DisposalManifestPDF from './components/Phase6Suite/TechnologistSuite/DisposalManifestPDF';
+import SupplierPurchasingManager from './components/Phase6Suite/TechnologistSuite/SupplierPurchasingManager';
 import { ReagentsHilPreanalytics } from './components/Phase6Suite/TechnologistSuite/ReagentsHilPreanalytics';
 import { CriticalValueRegistry } from './components/Phase3Suite/CriticalValueRegistry';
 
@@ -519,7 +521,7 @@ export default function App() {
           ? {
               ...r,
               status: 'VALIDADO',
-              medicalValidatedBy: `${currentUser.name} (${currentUser.licenseNumber || 'TM-3109-PA'})`,
+              medicalValidatedBy: `${currentUser?.name || 'Director Médico'} (${currentUser?.licenseNumber || 'TM-3109-PA'})`,
               medicalValidatedAt: new Date().toISOString()
             }
           : r
@@ -751,7 +753,7 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser.name}</strong> para reanudar la sesión.
+                  La estación de trabajo ha sido protegida. Ingrese el PIN de usuario de <strong className="text-teal-300">{currentUser?.name || 'Usuario'}</strong> para reanudar la sesión.
                 </>
               )}
             </p>
@@ -1186,6 +1188,7 @@ export default function App() {
 
             {/* Blood Bank Sub-Modules */}
             {activeTab === 'bloodbank' && <BloodBankCenter />}
+            {activeTab === 'blood_evolution' && <TransfusionEvolutionManager />}
             {activeTab === 'blood_donors' && <DonorScreeningForm onClose={() => setActiveTab('bloodbank')} onComplete={() => setActiveTab('bloodbank')} />}
             {activeTab === 'blood_deferral' && <DonorDeferralDashboard />}
             {activeTab === 'blood_apheresis' && <ApheresisDonationModule />}
@@ -1307,6 +1310,7 @@ export default function App() {
             {activeTab === 'delta' && <DeltaPanicAlerts orders={orders} results={results} patients={patients} />}
             {activeTab === 'minsa' && <MinsaEpidemiology orders={orders} results={results} patients={patients} />}
             {activeTab === 'inventory' && <ReagentInventoryModule tenant={currentTenant} branch={currentBranch} />}
+            {activeTab === 'purchasing' && <SupplierPurchasingManager />}
             {activeTab === 'executive' && <ExecutiveAnalyticsAI tenant={currentTenant} branches={currentTenant.branches} orders={orders} results={results} />}
             {activeTab === 'audit' && <Ley81AuditVault tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'fhir' && <FhirInteroperabilityStudio tenant={currentTenant} branch={currentBranch} orders={orders} results={results} patients={patients} />}

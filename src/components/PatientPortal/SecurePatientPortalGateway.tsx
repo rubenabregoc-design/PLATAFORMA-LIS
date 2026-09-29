@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, Patient, TestResult, Tenant, Branch } from '../../types';
 import {
   Lock, ShieldCheck, HeartPulse, FileText, CheckCircle2,
@@ -112,11 +112,28 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
       const cleanCedula = initialPatient.nationalId ? initialPatient.nationalId.replace(/[-]/g, '') : '';
       return orders.filter(
         o => o.patientId === initialPatient.id ||
-             (cleanCedula && o.patientNationalId.replace(/[-]/g, '') === cleanCedula)
+             (cleanCedula && (o.patientNationalId || '').replace(/[-]/g, '') === cleanCedula)
       );
     }
     return [];
   });
+
+  useEffect(() => {
+    if (initialPatient) {
+      setAuthenticatedPatient(initialPatient);
+    }
+  }, [initialPatient]);
+
+  useEffect(() => {
+    if (authenticatedPatient) {
+      const cleanCedula = authenticatedPatient.nationalId ? authenticatedPatient.nationalId.replace(/[-]/g, '') : '';
+      const matching = orders.filter(
+        o => o.patientId === authenticatedPatient.id ||
+             (cleanCedula && (o.patientNationalId || '').replace(/[-]/g, '') === cleanCedula)
+      );
+      setPatientOrders(matching);
+    }
+  }, [orders, authenticatedPatient]);
   const [activeTab, setActiveTab] = useState<'results' | 'privacy'>('results');
   const [searchAnalyteQuery, setSearchAnalyteQuery] = useState('');
 
@@ -169,15 +186,15 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
       // Find matching orders for this patient
       const matchingOrders = orders.filter(
         o => o.patientId === foundPatient.id ||
-             o.patientNationalId.replace(/[-]/g, '') === cleanCedula.replace(/[-]/g, '')
+             ((o.patientNationalId || '').replace(/[-]/g, '') === cleanCedula.replace(/[-]/g, ''))
       );
 
       // Verify if accessCode matches any order number OR receipt PIN OR order ID
       const orderMatch = matchingOrders.find(o => {
-        const orderNumClean = o.orderNumber.toUpperCase();
+        const orderNumClean = (o.orderNumber || '').toUpperCase();
         if (orderNumClean === cleanCode) return true;
         if (orderNumClean.endsWith(cleanCode)) return true;
-        if (o.id.toUpperCase() === cleanCode) return true;
+        if ((o.id || '').toUpperCase() === cleanCode) return true;
         return false;
       });
 
