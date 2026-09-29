@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Tenant, Analyzer, MiddlewareMessageLog, User, Role, Branch } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
 import { MOCK_USERS, MOCK_TEST_CATALOG } from '../../data/mockData';
+import { validateEthicalPin, generateSecurePin } from '../../utils/securityHarden';
 import {
   Shield, Building2, Cpu, Activity, Plus, Server, CheckCircle2,
   AlertTriangle, Layers, Award, Globe, ExternalLink, Copy, Check, QrCode,
@@ -75,132 +76,900 @@ interface BloodIotFreezer {
 
 const DEFAULT_REFERENCE_TESTS: CustomReferenceTest[] = [
   {
-    id: 'test-glu',
-    code: 'GLU-001',
-    loincCode: '1558-6',
-    name: 'Glucosa Sérica en Ayunas',
-    department: 'Química Clínica',
-    unit: 'mg/dL',
-    tubeType: 'Suero Gel Oro / SST Amarillo',
-    minMale: 70,
-    maxMale: 99,
-    minFemale: 70,
-    maxFemale: 99,
-    panicLow: 45,
-    panicHigh: 400,
-    panicAction: 'Aviso inmediato a médico en < 5 min + Repetición por duplicado'
+    "id": "test-hb",
+    "code": "HEM-001-HB",
+    "loincCode": "718-7",
+    "name": "Hemoglobina (Hb)",
+    "department": "Hematología",
+    "unit": "g/dL",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 13.5,
+    "maxMale": 17.5,
+    "minFemale": 12,
+    "maxFemale": 15.5,
+    "panicLow": 6.5,
+    "panicHigh": 20,
+    "panicAction": "Notificación de urgencia crítica + Verificación de coágulo en tubo"
   },
   {
-    id: 'test-hb',
-    code: 'HEM-001-HB',
-    loincCode: '718-7',
-    name: 'Hemoglobina (Hb)',
-    department: 'Hematología',
-    unit: 'g/dL',
-    tubeType: 'Tubo Lila K2-EDTA',
-    minMale: 13.5,
-    maxMale: 17.5,
-    minFemale: 12.0,
-    maxFemale: 15.5,
-    panicLow: 6.5,
-    panicHigh: 20.0,
-    panicAction: 'Notificación de urgencia crítica + Verificación de coágulo en tubo'
+    "id": "test-hct",
+    "code": "HEM-002-HCT",
+    "loincCode": "4544-3",
+    "name": "Hematocrito (Hct)",
+    "department": "Hematología",
+    "unit": "%",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 41,
+    "maxMale": 50,
+    "minFemale": 36,
+    "maxFemale": 45,
+    "panicLow": 20,
+    "panicHigh": 60,
+    "panicAction": "Alerta de choque hipovolémico severo o policitemia absoluta"
   },
   {
-    id: 'test-k',
-    code: 'ELE-002-K',
-    loincCode: '2823-3',
-    name: 'Potasio Sérico (K+)',
-    department: 'Electrolitos',
-    unit: 'mmol/L',
-    tubeType: 'Suero Libre de Hemólisis',
-    minMale: 3.5,
-    maxMale: 5.1,
-    minFemale: 3.5,
-    maxFemale: 5.1,
-    panicLow: 2.8,
-    panicHigh: 6.2,
-    panicAction: 'Riesgo inminente de arritmia cardíaca. Llamar a estación médica'
+    "id": "test-leuco",
+    "code": "HEM-003-WBC",
+    "loincCode": "6690-2",
+    "name": "Leucocitos Totales (WBC)",
+    "department": "Hematología",
+    "unit": "x10³/µL",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 4.5,
+    "maxMale": 11,
+    "minFemale": 4.5,
+    "maxFemale": 11,
+    "panicLow": 2,
+    "panicHigh": 30,
+    "panicAction": "Alerta de neutropenia febril o reacción leucemoide / blastos"
   },
   {
-    id: 'test-crea',
-    code: 'QCL-003-CREA',
-    loincCode: '2160-0',
-    name: 'Creatinina Sérica (Jaffé)',
-    department: 'Química Clínica',
-    unit: 'mg/dL',
-    tubeType: 'Suero Gel Oro / Heparina',
-    minMale: 0.7,
-    maxMale: 1.3,
-    minFemale: 0.5,
-    maxFemale: 1.1,
-    panicLow: 0.3,
-    panicHigh: 5.0,
-    panicAction: 'Alerta de falla renal aguda. Verificar cálculo de filtrado eGFR'
+    "id": "test-plaq",
+    "code": "HEM-004-PLT",
+    "loincCode": "777-3",
+    "name": "Recuento de Plaquetas (PLT)",
+    "department": "Hematología",
+    "unit": "x10³/µL",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 150,
+    "maxMale": 450,
+    "minFemale": 150,
+    "maxFemale": 450,
+    "panicLow": 20,
+    "panicHigh": 1000,
+    "panicAction": "Riesgo inminente de hemorragia espontánea. Notificar a banco de sangre"
   },
   {
-    id: 'test-leuco',
-    code: 'HEM-001-WBC',
-    loincCode: '6690-2',
-    name: 'Leucocitos Totales (WBC)',
-    department: 'Hematología',
-    unit: 'x10³/µL',
-    tubeType: 'Tubo Lila K2-EDTA',
-    minMale: 4.5,
-    maxMale: 11.0,
-    minFemale: 4.5,
-    maxFemale: 11.0,
-    panicLow: 2.0,
-    panicHigh: 30.0,
-    panicAction: 'Alerta de neutropenia febril o reacción leucemoide'
+    "id": "test-vcm",
+    "code": "HEM-005-VCM",
+    "loincCode": "787-2",
+    "name": "Volumen Corpuscular Medio (VCM)",
+    "department": "Hematología",
+    "unit": "fL",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 80,
+    "maxMale": 98,
+    "minFemale": 80,
+    "maxFemale": 98,
+    "panicLow": 60,
+    "panicHigh": 120,
+    "panicAction": "Revisión morfológica obligatoria en frotis de sangre periférica"
   },
   {
-    id: 'test-plaq',
-    code: 'HEM-001-PLT',
-    loincCode: '777-3',
-    name: 'Recuento de Plaquetas (PLT)',
-    department: 'Hematología',
-    unit: 'x10³/µL',
-    tubeType: 'Tubo Lila K2-EDTA',
-    minMale: 150,
-    maxMale: 450,
-    minFemale: 150,
-    maxFemale: 450,
-    panicLow: 20,
-    panicHigh: 1000,
-    panicAction: 'Riesgo inminente de hemorragia espontánea. Notificar a banco de sangre'
+    "id": "test-neut",
+    "code": "HEM-006-NEUT",
+    "loincCode": "751-8",
+    "name": "Neutrófilos Absolutos (ANC)",
+    "department": "Hematología",
+    "unit": "x10³/µL",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 1.8,
+    "maxMale": 7.5,
+    "minFemale": 1.8,
+    "maxFemale": 7.5,
+    "panicLow": 0.5,
+    "panicHigh": 20,
+    "panicAction": "CRÍTICO: Neutropenia severa / Activar aislamiento protector de inmediato"
   },
   {
-    id: 'test-tsh',
-    code: 'ENDO-001-TSH',
-    loincCode: '3016-3',
-    name: 'TSH Ultrasensible 3ra Gen',
-    department: 'Endocrinología',
-    unit: 'µUI/mL',
-    tubeType: 'Suero Gel Oro / SST Amarillo',
-    minMale: 0.4,
-    maxMale: 4.2,
-    minFemale: 0.4,
-    maxFemale: 4.2,
-    panicLow: 0.01,
-    panicHigh: 20.0,
-    panicAction: 'Sospecha de tormenta tiroidea o coma mixedematoso'
+    "id": "test-vsg",
+    "code": "HEM-007-VSG",
+    "loincCode": "30341-2",
+    "name": "Velocidad de Sedimentación Globular (VSG)",
+    "department": "Hematología",
+    "unit": "mm/h",
+    "tubeType": "Tubo Negro Citrato 4:1 / EDTA",
+    "minMale": 0,
+    "maxMale": 15,
+    "minFemale": 0,
+    "maxFemale": 20,
+    "panicLow": 0,
+    "panicHigh": 100,
+    "panicAction": "Sospecha de arteritis de células gigantes, mieloma múltiple o sepsis"
   },
   {
-    id: 'test-troponin',
-    code: 'CARD-001-TNI',
-    loincCode: '42757-5',
-    name: 'Troponina I de Alta Sensibilidad',
-    department: 'Marcadores Cardíacos',
-    unit: 'ng/L',
-    tubeType: 'Plasma Heparina / Suero',
-    minMale: 0,
-    maxMale: 34,
-    minFemale: 0,
-    maxFemale: 16,
-    panicLow: 0,
-    panicHigh: 100,
-    panicAction: 'PROTOCOLO CÓDIGO INFARTO: Notificación prioritaria a cardiología / urgencias'
+    "id": "test-tp",
+    "code": "COA-001-TP",
+    "loincCode": "5902-2",
+    "name": "Tiempo de Protrombina (TP)",
+    "department": "Coagulación",
+    "unit": "seg",
+    "tubeType": "Tubo Celeste Citrato 3.2%",
+    "minMale": 11,
+    "maxMale": 13.5,
+    "minFemale": 11,
+    "maxFemale": 13.5,
+    "panicLow": 9,
+    "panicHigh": 35,
+    "panicAction": "Riesgo hemorrágico severo. Verificar estado de anticoagulación oral"
+  },
+  {
+    "id": "test-inr",
+    "code": "COA-002-INR",
+    "loincCode": "6301-6",
+    "name": "Razón Internacional Normalizada (INR)",
+    "department": "Coagulación",
+    "unit": "INR",
+    "tubeType": "Tubo Celeste Citrato 3.2%",
+    "minMale": 0.8,
+    "maxMale": 1.2,
+    "minFemale": 0.8,
+    "maxFemale": 1.2,
+    "panicLow": 0.5,
+    "panicHigh": 5,
+    "panicAction": "Alerta de sobreanticoagulación con warfarina. Valorar vitamina K / PFC"
+  },
+  {
+    "id": "test-tpt",
+    "code": "COA-003-TPT",
+    "loincCode": "3173-2",
+    "name": "Tiempo de Tromboplastina Parcial Activada (TTPa)",
+    "department": "Coagulación",
+    "unit": "seg",
+    "tubeType": "Tubo Celeste Citrato 3.2%",
+    "minMale": 25,
+    "maxMale": 35,
+    "minFemale": 25,
+    "maxFemale": 35,
+    "panicLow": 18,
+    "panicHigh": 80,
+    "panicAction": "Prolongación crítica: riesgo quirúrgico alto o sobredosis de heparina"
+  },
+  {
+    "id": "test-fib",
+    "code": "COA-004-FIB",
+    "loincCode": "3255-7",
+    "name": "Fibrinógeno Derivado (Clauss)",
+    "department": "Coagulación",
+    "unit": "mg/dL",
+    "tubeType": "Tubo Celeste Citrato 3.2%",
+    "minMale": 200,
+    "maxMale": 400,
+    "minFemale": 200,
+    "maxFemale": 400,
+    "panicLow": 100,
+    "panicHigh": 700,
+    "panicAction": "Sospecha inminente de Coagulación Intravascular Diseminada (CID)"
+  },
+  {
+    "id": "test-dd",
+    "code": "COA-005-DD",
+    "loincCode": "48065-7",
+    "name": "Dímero D Cuantitativo",
+    "department": "Coagulación",
+    "unit": "ng/mL FEU",
+    "tubeType": "Tubo Celeste Citrato 3.2%",
+    "minMale": 0,
+    "maxMale": 500,
+    "minFemale": 0,
+    "maxFemale": 500,
+    "panicLow": 0,
+    "panicHigh": 2000,
+    "panicAction": "Sospecha de Tromboembolismo Pulmonar (TEP) o Trombosis Venosa Profunda"
+  },
+  {
+    "id": "test-glu",
+    "code": "QCL-001-GLU",
+    "loincCode": "1558-6",
+    "name": "Glucosa Sérica en Ayunas",
+    "department": "Química Clínica",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 70,
+    "maxMale": 99,
+    "minFemale": 70,
+    "maxFemale": 99,
+    "panicLow": 45,
+    "panicHigh": 400,
+    "panicAction": "Crisis hipoglucémica o Cetoacidosis. Aviso inmediato al médico en < 5 min"
+  },
+  {
+    "id": "test-hba1c",
+    "code": "QCL-002-HBA1C",
+    "loincCode": "4548-4",
+    "name": "Hemoglobina Glicosilada (HbA1c)",
+    "department": "Química Clínica",
+    "unit": "%",
+    "tubeType": "Tubo Lila K2-EDTA",
+    "minMale": 4,
+    "maxMale": 5.6,
+    "minFemale": 4,
+    "maxFemale": 5.6,
+    "panicLow": 3.5,
+    "panicHigh": 14,
+    "panicAction": "Descontrol glucémico extremo. Valorar ingreso endocrinológico"
+  },
+  {
+    "id": "test-crea",
+    "code": "QCL-003-CREA",
+    "loincCode": "2160-0",
+    "name": "Creatinina Sérica (Jaffé IDMS)",
+    "department": "Química Clínica",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro / Heparina",
+    "minMale": 0.7,
+    "maxMale": 1.3,
+    "minFemale": 0.5,
+    "maxFemale": 1.1,
+    "panicLow": 0.3,
+    "panicHigh": 5,
+    "panicAction": "Injuria Renal Aguda KDIGO 3. Notificar a nefrología inmediatamente"
+  },
+  {
+    "id": "test-bun",
+    "code": "QCL-004-BUN",
+    "loincCode": "3094-0",
+    "name": "Nitrógeno Ureico en Sangre (BUN)",
+    "department": "Química Clínica",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 7,
+    "maxMale": 20,
+    "minFemale": 7,
+    "maxFemale": 20,
+    "panicLow": 3,
+    "panicHigh": 80,
+    "panicAction": "Uremia severa o sospecha de hemorragia digestiva alta masiva"
+  },
+  {
+    "id": "test-acu",
+    "code": "QCL-005-ACU",
+    "loincCode": "3084-1",
+    "name": "Ácido Úrico Sérico",
+    "department": "Química Clínica",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 3.5,
+    "maxMale": 7.2,
+    "minFemale": 2.6,
+    "maxFemale": 6,
+    "panicLow": 1.5,
+    "panicHigh": 12,
+    "panicAction": "Riesgo de nefropatía por cristales de urato o síndrome de lisis tumoral"
+  },
+  {
+    "id": "test-pt",
+    "code": "QCL-006-PT",
+    "loincCode": "2885-2",
+    "name": "Proteínas Totales Séricas",
+    "department": "Química Clínica",
+    "unit": "g/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 6.4,
+    "maxMale": 8.3,
+    "minFemale": 6.4,
+    "maxFemale": 8.3,
+    "panicLow": 4,
+    "panicHigh": 11,
+    "panicAction": "Desnutrición extrema, síndrome nefrótico o sospecha de mieloma múltiple"
+  },
+  {
+    "id": "test-bt",
+    "code": "HEP-001-BT",
+    "loincCode": "1975-2",
+    "name": "Bilirrubina Total",
+    "department": "Perfil Hepático",
+    "unit": "mg/dL",
+    "tubeType": "Suero Protegido de la Luz",
+    "minMale": 0.2,
+    "maxMale": 1.2,
+    "minFemale": 0.2,
+    "maxFemale": 1.2,
+    "panicLow": 0.1,
+    "panicHigh": 15,
+    "panicAction": "Hiperbilirrubinemia severa / Ictericia obstructiva o hemolítica masiva"
+  },
+  {
+    "id": "test-bd",
+    "code": "HEP-002-BD",
+    "loincCode": "1968-7",
+    "name": "Bilirrubina Directa (Conjugada)",
+    "department": "Perfil Hepático",
+    "unit": "mg/dL",
+    "tubeType": "Suero Protegido de la Luz",
+    "minMale": 0,
+    "maxMale": 0.3,
+    "minFemale": 0,
+    "maxFemale": 0.3,
+    "panicLow": 0,
+    "panicHigh": 8,
+    "panicAction": "Colestasis intrahepática o extrahepática grave. Evaluar vía biliar"
+  },
+  {
+    "id": "test-ast",
+    "code": "HEP-003-AST",
+    "loincCode": "1920-8",
+    "name": "AST / Aspartato Aminotransferasa (TGO)",
+    "department": "Perfil Hepático",
+    "unit": "U/L",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 10,
+    "maxMale": 40,
+    "minFemale": 9,
+    "maxFemale": 32,
+    "panicLow": 5,
+    "panicHigh": 500,
+    "panicAction": "Falla hepática fulminante o hepatitis tóxica/isquémica aguda"
+  },
+  {
+    "id": "test-alt",
+    "code": "HEP-004-ALT",
+    "loincCode": "1742-6",
+    "name": "ALT / Alanina Aminotransferasa (TGP)",
+    "department": "Perfil Hepático",
+    "unit": "U/L",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 10,
+    "maxMale": 45,
+    "minFemale": 7,
+    "maxFemale": 35,
+    "panicLow": 5,
+    "panicHigh": 500,
+    "panicAction": "Citólisis hepática severa. Contactar urgentemente con hepatología"
+  },
+  {
+    "id": "test-alp",
+    "code": "HEP-005-ALP",
+    "loincCode": "6768-6",
+    "name": "Fosfatasa Alcalina (ALP)",
+    "department": "Perfil Hepático",
+    "unit": "U/L",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 40,
+    "maxMale": 130,
+    "minFemale": 35,
+    "maxFemale": 105,
+    "panicLow": 20,
+    "panicHigh": 600,
+    "panicAction": "Obstrucción biliar aguda o patología ósea de alto recambio"
+  },
+  {
+    "id": "test-ggt",
+    "code": "HEP-006-GGT",
+    "loincCode": "2324-2",
+    "name": "Gamma-Glutamil Transferasa (GGT)",
+    "department": "Perfil Hepático",
+    "unit": "U/L",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 10,
+    "maxMale": 55,
+    "minFemale": 8,
+    "maxFemale": 38,
+    "panicLow": 5,
+    "panicHigh": 400,
+    "panicAction": "Afectación colestásica profunda o toxicidad alcohólica aguda"
+  },
+  {
+    "id": "test-alb",
+    "code": "HEP-007-ALB",
+    "loincCode": "1751-7",
+    "name": "Albúmina Sérica",
+    "department": "Perfil Hepático",
+    "unit": "g/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 3.5,
+    "maxMale": 5,
+    "minFemale": 3.5,
+    "maxFemale": 5,
+    "panicLow": 1.8,
+    "panicHigh": 6,
+    "panicAction": "Hipoalbuminemia crítica: riesgo de edema pulmonar y tercer espacio"
+  },
+  {
+    "id": "test-col",
+    "code": "LIP-001-COL",
+    "loincCode": "2093-3",
+    "name": "Colesterol Total",
+    "department": "Perfil Lipídico",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro en Ayunas",
+    "minMale": 120,
+    "maxMale": 200,
+    "minFemale": 120,
+    "maxFemale": 200,
+    "panicLow": 80,
+    "panicHigh": 400,
+    "panicAction": "Dislipidemia severa o sospecha de hipercolesterolemia familiar"
+  },
+  {
+    "id": "test-trig",
+    "code": "LIP-002-TRIG",
+    "loincCode": "2571-8",
+    "name": "Triglicéridos Séricos",
+    "department": "Perfil Lipídico",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro en Ayunas",
+    "minMale": 40,
+    "maxMale": 150,
+    "minFemale": 35,
+    "maxFemale": 140,
+    "panicLow": 30,
+    "panicHigh": 1000,
+    "panicAction": "RIESGO INMINENTE DE PANCREATITIS AGUDA INDUCIDA POR HIPERTRIGLICERIDEMIA"
+  },
+  {
+    "id": "test-hdl",
+    "code": "LIP-003-HDL",
+    "loincCode": "2085-9",
+    "name": "Colesterol HDL (Alta Densidad)",
+    "department": "Perfil Lipídico",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 40,
+    "maxMale": 60,
+    "minFemale": 50,
+    "maxFemale": 70,
+    "panicLow": 15,
+    "panicHigh": 110,
+    "panicAction": "Riesgo cardiovascular aterogénico elevado"
+  },
+  {
+    "id": "test-ldl",
+    "code": "LIP-004-LDL",
+    "loincCode": "13457-7",
+    "name": "Colesterol LDL Calculado (Friedewald)",
+    "department": "Perfil Lipídico",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 60,
+    "maxMale": 130,
+    "minFemale": 60,
+    "maxFemale": 130,
+    "panicLow": 30,
+    "panicHigh": 250,
+    "panicAction": "Aterogénesis avanzada: recomendación de estatinas de alta potencia"
+  },
+  {
+    "id": "test-vldl",
+    "code": "LIP-005-VLDL",
+    "loincCode": "13458-5",
+    "name": "Colesterol VLDL",
+    "department": "Perfil Lipídico",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 5,
+    "maxMale": 30,
+    "minFemale": 5,
+    "maxFemale": 30,
+    "panicLow": 2,
+    "panicHigh": 80,
+    "panicAction": "Alteración severa del metabolismo de partículas aterogénicas ricas en triglicéridos"
+  },
+  {
+    "id": "test-na",
+    "code": "ELE-001-NA",
+    "loincCode": "2951-2",
+    "name": "Sodio Sérico (Na+)",
+    "department": "Electrolitos",
+    "unit": "mmol/L",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 135,
+    "maxMale": 145,
+    "minFemale": 135,
+    "maxFemale": 145,
+    "panicLow": 120,
+    "panicHigh": 160,
+    "panicAction": "Emergencia neurológica crítica: riesgo inminente de edema cerebral o mielinólisis"
+  },
+  {
+    "id": "test-k",
+    "code": "ELE-002-K",
+    "loincCode": "2823-3",
+    "name": "Potasio Sérico (K+)",
+    "department": "Electrolitos",
+    "unit": "mmol/L",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 3.5,
+    "maxMale": 5.1,
+    "minFemale": 3.5,
+    "maxFemale": 5.1,
+    "panicLow": 2.8,
+    "panicHigh": 6.2,
+    "panicAction": "RIESGO INMINENTE DE PARO CARDÍACO POR ARRITMIA / FIBRILACIÓN VENTRICULAR"
+  },
+  {
+    "id": "test-cl",
+    "code": "ELE-003-CL",
+    "loincCode": "2075-0",
+    "name": "Cloro Sérico (Cl-)",
+    "department": "Electrolitos",
+    "unit": "mmol/L",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 98,
+    "maxMale": 107,
+    "minFemale": 98,
+    "maxFemale": 107,
+    "panicLow": 80,
+    "panicHigh": 125,
+    "panicAction": "Trastorno ácido-base severo o deshidratación hipernatrémica grave"
+  },
+  {
+    "id": "test-ca",
+    "code": "ELE-004-CA",
+    "loincCode": "17861-6",
+    "name": "Calcio Total Sérico",
+    "department": "Electrolitos",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 8.5,
+    "maxMale": 10.2,
+    "minFemale": 8.5,
+    "maxFemale": 10.2,
+    "panicLow": 6.5,
+    "panicHigh": 13,
+    "panicAction": "Riesgo de tetania, laringoespasmo o crisis hipercalcémica con coma"
+  },
+  {
+    "id": "test-mg",
+    "code": "ELE-005-MG",
+    "loincCode": "2601-3",
+    "name": "Magnesio Sérico (Mg++)",
+    "department": "Electrolitos",
+    "unit": "mg/dL",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 1.7,
+    "maxMale": 2.4,
+    "minFemale": 1.7,
+    "maxFemale": 2.4,
+    "panicLow": 1,
+    "panicHigh": 4.5,
+    "panicAction": "Riesgo de arritmias ventriculares (Torsades de Pointes) o bloqueo cardíaco"
+  },
+  {
+    "id": "test-p",
+    "code": "ELE-006-P",
+    "loincCode": "2777-1",
+    "name": "Fósforo Inorgánico",
+    "department": "Electrolitos",
+    "unit": "mg/dL",
+    "tubeType": "Suero Gel Oro en Ayunas",
+    "minMale": 2.5,
+    "maxMale": 4.5,
+    "minFemale": 2.5,
+    "maxFemale": 4.5,
+    "panicLow": 1,
+    "panicHigh": 7.5,
+    "panicAction": "Síndrome de realimentación aguda o insuficiencia renal terminal avanzada"
+  },
+  {
+    "id": "test-troponin",
+    "code": "CARD-001-TNI",
+    "loincCode": "42757-5",
+    "name": "Troponina I de Alta Sensibilidad (hs-cTnI)",
+    "department": "Marcadores Cardíacos",
+    "unit": "ng/L",
+    "tubeType": "Plasma Heparina / Suero",
+    "minMale": 0,
+    "maxMale": 34,
+    "minFemale": 0,
+    "maxFemale": 16,
+    "panicLow": 0,
+    "panicHigh": 100,
+    "panicAction": "PROTOCOLO CÓDIGO INFARTO: Notificación prioritaria < 3 min a cardiología / urgencias"
+  },
+  {
+    "id": "test-ckmb",
+    "code": "CARD-002-CKMB",
+    "loincCode": "13969-1",
+    "name": "CK-MB Masa Cuantitativa",
+    "department": "Marcadores Cardíacos",
+    "unit": "ng/mL",
+    "tubeType": "Suero / Plasma Heparina",
+    "minMale": 0,
+    "maxMale": 5,
+    "minFemale": 0,
+    "maxFemale": 3.8,
+    "panicLow": 0,
+    "panicHigh": 25,
+    "panicAction": "Marcador de reinfarto agudo de miocardio o daño miocárdico en evolución"
+  },
+  {
+    "id": "test-bnp",
+    "code": "CARD-003-BNP",
+    "loincCode": "33762-6",
+    "name": "NT-proBNP Péptido Natriurético",
+    "department": "Marcadores Cardíacos",
+    "unit": "pg/mL",
+    "tubeType": "Suero / Plasma EDTA",
+    "minMale": 0,
+    "maxMale": 125,
+    "minFemale": 0,
+    "maxFemale": 125,
+    "panicLow": 0,
+    "panicHigh": 1800,
+    "panicAction": "Insuficiencia Cardíaca Congestiva Aguda Descompensada"
+  },
+  {
+    "id": "test-pct",
+    "code": "CARD-004-PCT",
+    "loincCode": "33959-8",
+    "name": "Procalcitonina Cuantitativa (PCT)",
+    "department": "Marcadores Cardíacos",
+    "unit": "ng/mL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 0,
+    "maxMale": 0.05,
+    "minFemale": 0,
+    "maxFemale": 0.05,
+    "panicLow": 0,
+    "panicHigh": 2,
+    "panicAction": "Alerta de Sepsis / Choque Séptico bacteriano y riesgo de fallo multiorgánico"
+  },
+  {
+    "id": "test-pcrus",
+    "code": "CARD-005-PCRUS",
+    "loincCode": "30522-7",
+    "name": "Proteína C Reactiva Ultrasensible (hs-CRP)",
+    "department": "Marcadores Cardíacos",
+    "unit": "mg/L",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 0,
+    "maxMale": 3,
+    "minFemale": 0,
+    "maxFemale": 3,
+    "panicLow": 0,
+    "panicHigh": 50,
+    "panicAction": "Proceso inflamatorio sistémico hiperagudo o bacteriemia invasiva"
+  },
+  {
+    "id": "test-tsh",
+    "code": "ENDO-001-TSH",
+    "loincCode": "3016-3",
+    "name": "TSH Ultrasensible 3ra Gen",
+    "department": "Endocrinología",
+    "unit": "µUI/mL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 0.4,
+    "maxMale": 4.2,
+    "minFemale": 0.4,
+    "maxFemale": 4.2,
+    "panicLow": 0.01,
+    "panicHigh": 25,
+    "panicAction": "Sospecha crítica de Tormenta Tiroidea o Coma Mixedematoso"
+  },
+  {
+    "id": "test-t4l",
+    "code": "ENDO-002-T4L",
+    "loincCode": "3024-7",
+    "name": "Tiroxina Libre (T4 Libre)",
+    "department": "Endocrinología",
+    "unit": "ng/dL",
+    "tubeType": "Suero Gel Oro / SST Amarillo",
+    "minMale": 0.89,
+    "maxMale": 1.76,
+    "minFemale": 0.89,
+    "maxFemale": 1.76,
+    "panicLow": 0.3,
+    "panicHigh": 4,
+    "panicAction": "Disfunción tiroidea periférica crítica. Evaluar sintomatología cardiovascular"
+  },
+  {
+    "id": "test-cort",
+    "code": "ENDO-003-CORT",
+    "loincCode": "2143-6",
+    "name": "Cortisol Sérico Basal (8:00 AM)",
+    "department": "Endocrinología",
+    "unit": "µg/dL",
+    "tubeType": "Suero en Ayunas (8 AM)",
+    "minMale": 6,
+    "maxMale": 23,
+    "minFemale": 6,
+    "maxFemale": 23,
+    "panicLow": 2,
+    "panicHigh": 45,
+    "panicAction": "Sospecha de Crisis Suprarrenal Aguda (Addison) o hipercortisolismo severo"
+  },
+  {
+    "id": "test-ins",
+    "code": "ENDO-004-INS",
+    "loincCode": "2472-8",
+    "name": "Insulina en Ayunas",
+    "department": "Endocrinología",
+    "unit": "µUI/mL",
+    "tubeType": "Suero Gel Oro en Ayunas",
+    "minMale": 2.6,
+    "maxMale": 24.9,
+    "minFemale": 2.6,
+    "maxFemale": 24.9,
+    "panicLow": 1,
+    "panicHigh": 150,
+    "panicAction": "Sospecha de Insulinoma activo o resistencia extrema a la insulina"
+  },
+  {
+    "id": "test-ferr",
+    "code": "ENDO-005-FERR",
+    "loincCode": "2276-4",
+    "name": "Ferritina Sérica",
+    "department": "Endocrinología",
+    "unit": "ng/mL",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 30,
+    "maxMale": 400,
+    "minFemale": 15,
+    "maxFemale": 150,
+    "panicLow": 5,
+    "panicHigh": 1500,
+    "panicAction": "Sospecha de Síndrome de Activación Macrofágica o hemocromatosis grave"
+  },
+  {
+    "id": "test-vitd",
+    "code": "ENDO-006-VITD",
+    "loincCode": "14635-7",
+    "name": "Vitamina D 25-Hidroxi (25-OH)",
+    "department": "Endocrinología",
+    "unit": "ng/mL",
+    "tubeType": "Suero Protegido de la Luz",
+    "minMale": 30,
+    "maxMale": 100,
+    "minFemale": 30,
+    "maxFemale": 100,
+    "panicLow": 10,
+    "panicHigh": 150,
+    "panicAction": "Déficit severo con osteomalacia o riesgo de intoxicación hipercalcémica"
+  },
+  {
+    "id": "test-ego",
+    "code": "URO-001-EGO",
+    "loincCode": "24356-8",
+    "name": "Examen General de Orina Fisicoquímico",
+    "department": "Uroanálisis",
+    "unit": "pH / U",
+    "tubeType": "Orina Frasco Estéril",
+    "minMale": 5,
+    "maxMale": 7.5,
+    "minFemale": 5,
+    "maxFemale": 7.5,
+    "panicLow": 4.5,
+    "panicHigh": 8.5,
+    "panicAction": "Leucocituria masiva, hematuria franca o presencia de cilindros patológicos"
+  },
+  {
+    "id": "test-mau",
+    "code": "URO-002-MAU",
+    "loincCode": "14957-5",
+    "name": "Microalbuminuria en Orina Ocasional",
+    "department": "Uroanálisis",
+    "unit": "mg/L",
+    "tubeType": "Orina Primera de la Mañana",
+    "minMale": 0,
+    "maxMale": 20,
+    "minFemale": 0,
+    "maxFemale": 20,
+    "panicLow": 0,
+    "panicHigh": 300,
+    "panicAction": "Marcador de daño glomerular avanzado / Nefropatía diabética grado III"
+  },
+  {
+    "id": "test-dep",
+    "code": "URO-003-DEP",
+    "loincCode": "2164-2",
+    "name": "Depuración de Creatinina en Orina 24h",
+    "department": "Uroanálisis",
+    "unit": "mL/min",
+    "tubeType": "Orina de 24 Horas + Suero",
+    "minMale": 90,
+    "maxMale": 140,
+    "minFemale": 80,
+    "maxFemale": 125,
+    "panicLow": 15,
+    "panicHigh": 200,
+    "panicAction": "Tasa de Filtración Glomerular terminal: valorar terapia de sustitución renal"
+  },
+  {
+    "id": "test-vih",
+    "code": "INM-001-VIH",
+    "loincCode": "56888-1",
+    "name": "VIH 1/2 Ag p24 + Anticuerpos (4ta Gen)",
+    "department": "Serología & Inmunología",
+    "unit": "S/CO",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 0,
+    "maxMale": 0.99,
+    "minFemale": 0,
+    "maxFemale": 0.99,
+    "panicLow": 0,
+    "panicHigh": 1,
+    "panicAction": "RESULTADO REACTIVO: Requiere algoritmo confirmatorio Western Blot / Carga Viral"
+  },
+  {
+    "id": "test-vdrl",
+    "code": "INM-002-VDRL",
+    "loincCode": "20507-0",
+    "name": "VDRL / RPR Cualitativo (Sífilis)",
+    "department": "Serología & Inmunología",
+    "unit": "Diluciones",
+    "tubeType": "Suero Libre de Hemólisis",
+    "minMale": 0,
+    "maxMale": 0,
+    "minFemale": 0,
+    "maxFemale": 0,
+    "panicLow": 0,
+    "panicHigh": 8,
+    "panicAction": "Título reactivo > 1:8 dils: Notificación inmediata a Epidemiología y control prenatal"
+  },
+  {
+    "id": "test-hbsag",
+    "code": "INM-003-HBSAG",
+    "loincCode": "5196-1",
+    "name": "Hepatitis B Antígeno de Superficie (HBsAg)",
+    "department": "Serología & Inmunología",
+    "unit": "S/CO",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 0,
+    "maxMale": 0.99,
+    "minFemale": 0,
+    "maxFemale": 0.99,
+    "panicLow": 0,
+    "panicHigh": 1,
+    "panicAction": "Alerta de infección activa por Virus Hepatitis B. Protocolo de bioseguridad"
+  },
+  {
+    "id": "test-deng",
+    "code": "INM-004-DENG",
+    "loincCode": "75378-0",
+    "name": "Dengue Dúo (Antígeno NS1 + IgM / IgG)",
+    "department": "Serología & Inmunología",
+    "unit": "Index",
+    "tubeType": "Suero Gel Oro",
+    "minMale": 0,
+    "maxMale": 0.99,
+    "minFemale": 0,
+    "maxFemale": 0.99,
+    "panicLow": 0,
+    "panicHigh": 1,
+    "panicAction": "ALERTA EPIDEMIOLÓGICA: Dengue con signos de alarma / Monitorear plaquetas"
+  },
+  {
+    "id": "test-egh",
+    "code": "COP-001-EGH",
+    "loincCode": "10701-1",
+    "name": "Examen General de Heces Coprológico",
+    "department": "Coprología & Parasitología",
+    "unit": "Semik",
+    "tubeType": "Heces Frasco Hermético",
+    "minMale": 0,
+    "maxMale": 0,
+    "minFemale": 0,
+    "maxFemale": 0,
+    "panicLow": 0,
+    "panicHigh": 1,
+    "panicAction": "Presencia de trofozoítos de Entamoeba histolytica o Giardia lamblia"
+  },
+  {
+    "id": "test-soh",
+    "code": "COP-002-SOH",
+    "loincCode": "27926-5",
+    "name": "Sangre Oculta en Heces Inmunológica (FOBT)",
+    "department": "Coprología & Parasitología",
+    "unit": "ng/mL",
+    "tubeType": "Heces Frasco Hermético",
+    "minMale": 0,
+    "maxMale": 50,
+    "minFemale": 0,
+    "maxFemale": 50,
+    "panicLow": 0,
+    "panicHigh": 200,
+    "panicAction": "Hemorragia digestiva oculta / Criterio de prioridad para colonoscopia"
   }
 ];
 
@@ -238,6 +1007,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   onUpdateTenants
 }) => {
   const { setActiveTab, language } = useLisStore();
+  const isEn = language === 'EN';
 
   // Sub-pestaña de la Consola Súper-Admin
   const [adminTab, setAdminTab] = useState<'TENANTS_BRANCHES' | 'LIS_CATALOG' | 'HIS_BEDS' | 'BLOOD_BANK' | 'USERS' | 'PORTS'>('TENANTS_BRANCHES');
@@ -263,7 +1033,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('lis_custom_test_ranges');
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length >= DEFAULT_REFERENCE_TESTS.length) {
+            return parsed;
+          }
+        }
       } catch (e) {}
     }
     return DEFAULT_REFERENCE_TESTS;
@@ -775,6 +1550,17 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     const targetBranch = newUserBranch || targetTenant?.branches[0]?.id || 'branch-via-espana';
 
     const cleanPin = newUserPin.trim();
+    if (cleanPin) {
+      const pinCheck = validateEthicalPin(cleanPin);
+      if (!pinCheck.isValid) {
+        window.dispatchEvent(
+          new CustomEvent('lis-global-toast', {
+            detail: { message: pinCheck.error || 'PIN denegado por seguridad ética.', type: 'error' }
+          })
+        );
+        return;
+      }
+    }
     const cleanUsername = newUserUsername.trim().toLowerCase().replace(/\s+/g, '') || newUserEmail.trim().split('@')[0].toLowerCase();
     const newUser: User = {
       id: `usr-${Date.now()}`,
@@ -842,10 +1628,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const handleDownloadTemplate = () => {
     const headers = 'Nombre Completo,Usuario (@login),Correo Electrónico,Rol,Contraseña,PIN,Idoneidad MINSA,Cliente ID,Sede ID\n';
     const examples = [
-      'Lic. Carlos Mendoza,cmendoza,carlos.mendoza@labsanjose.com,tech_med,Clave2026*,1234,TM-4821-PA,lab-san-jose,br-via-espana',
-      'Dra. Marcela Guardia,mguardia,marcela.guardia@labsanjose.com,lab_chief,Clave2026*,5678,TM-1120-PA,lab-san-jose,br-costa-del-este',
-      'Ana Cristina Boyd,aboyd,ana.boyd@labsanjose.com,receptionist,Clave2026*,9999,,lab-san-jose,br-via-espana',
-      'Dr. Rodrigo De León,rdeleon,rodrigo.deleon@clinica.com,ext_doctor,Clave2026*,4321,MD-9812-PA,lab-san-jose,br-via-espana'
+      'Lic. Carlos Mendoza,cmendoza,carlos.mendoza@labsanjose.com,tech_med,Clave2026*,6140,TM-4821-PA,lab-san-jose,br-via-espana',
+      'Dra. Marcela Guardia,mguardia,marcela.guardia@labsanjose.com,lab_chief,Clave2026*,1120,TM-1120-PA,lab-san-jose,br-costa-del-este',
+      'Ana Cristina Boyd,aboyd,ana.boyd@labsanjose.com,receptionist,Clave2026*,8329,,lab-san-jose,br-via-espana',
+      'Dr. Rodrigo De León,rdeleon,rodrigo.deleon@clinica.com,ext_doctor,Clave2026*,9812,MD-9812-PA,lab-san-jose,br-via-espana'
     ].join('\n');
 
     const notes = '\n\n# NOTAS PARA EXCEL:\n# Roles permitidos: owner, lab_chief, tech_med, lab_tech, receptionist, ext_doctor, abregotech_admin\n# Clientes disponibles: ' + tenants.map(t => `${t.id} (${t.name})`).join(' | ') + '\n# Sedes disponibles: ' + tenants.flatMap(t => t.branches.map(b => `${b.id} (${b.name})`)).join(' | ');
@@ -914,7 +1700,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           const targetTenantObj = tenants.find(t => t.id === validTenant);
           const validBranch = targetTenantObj?.branches.find(b => b.id === branchId)?.id || targetTenantObj?.branches[0]?.id || 'branch-via-espana';
           const pwd = password || 'Clave2026*';
-          const cleanPin = pin ? pin.replace(/\D/g, '').slice(0, 4) : '1234';
+          const candidatePin = pin ? pin.replace(/\D/g, '').slice(0, 4) : '';
+          const pinCheck = candidatePin ? validateEthicalPin(candidatePin) : { isValid: false };
+          const cleanPin = pinCheck.isValid ? candidatePin : generateSecurePin();
 
           newUsersList.push({
             id: `usr-${Date.now()}-${i}`,
@@ -1104,14 +1892,27 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const doctorPortalUrl = `http://${currentHost}:3002`;
   const superAdminUrl = `http://${currentHost}:3003`;
 
-  const filteredTests = customTests.filter((t) => {
-    const matchesSearch =
-      t.name.toLowerCase().includes(testSearch.toLowerCase()) ||
-      t.code.toLowerCase().includes(testSearch.toLowerCase()) ||
-      t.loincCode.toLowerCase().includes(testSearch.toLowerCase());
-    const matchesDept = testDeptFilter === 'TODOS' || t.department === testDeptFilter;
-    return matchesSearch && matchesDept;
-  });
+  const [testCurrentPage, setTestCurrentPage] = useState<number>(1);
+  const [testsPerPage, setTestsPerPage] = useState<number>(10);
+
+  const filteredTests = useMemo(() => {
+    return customTests.filter((t) => {
+      const q = testSearch.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        t.name.toLowerCase().includes(q) ||
+        t.code.toLowerCase().includes(q) ||
+        t.loincCode.toLowerCase().includes(q);
+      const matchesDept = testDeptFilter === 'TODOS' || t.department === testDeptFilter;
+      return matchesSearch && matchesDept;
+    });
+  }, [customTests, testSearch, testDeptFilter]);
+
+  const totalTestPages = Math.max(1, Math.ceil(filteredTests.length / testsPerPage));
+  const paginatedTests = useMemo(() => {
+    const start = (testCurrentPage - 1) * testsPerPage;
+    return filteredTests.slice(start, start + testsPerPage);
+  }, [filteredTests, testCurrentPage, testsPerPage]);
 
   const filteredBeds = hisBeds.filter((b) => bedDeptFilter === 'TODOS' || b.department === bedDeptFilter);
 
@@ -1126,32 +1927,34 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         <div>
           <div className="text-cyan-400 text-xs font-black uppercase tracking-widest mb-1.5 flex items-center space-x-2">
             <Shield className="w-4 h-4 text-cyan-400" />
-            <span>Plataforma Súper-Admin Maestro — Ing. Rubén Abrego / AbregoTech Systems</span>
+            <span>{isEn ? 'Master Super-Admin Platform — Ing. Rubén Abrego / AbregoTech Systems' : 'Plataforma Súper-Admin Maestro — Ing. Rubén Abrego / AbregoTech Systems'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Control Maestro de Clientes, Multisede, LIS, HIS & Banco de Sangre
+            {isEn ? 'Master Control for Clients, Multi-Branch, LIS, HIS & Blood Bank' : 'Control Maestro de Clientes, Multisede, LIS, HIS & Banco de Sangre'}
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl font-medium leading-relaxed">
-            Consola central de gobernanza médica y tecnológica: creación y modificación de clientes hospitalarios, sucursales en tiempo real, catálogo analítico con valores de referencia y límites de pánico, camas HIS y hemovigilancia.
+            {isEn
+              ? 'Central medical & technology governance console: real-time hospital clients & branches creation, analytical test catalog with reference ranges & panic limits, HIS beds, and hemovigilance.'
+              : 'Consola central de gobernanza médica y tecnológica: creación y modificación de clientes hospitalarios, sucursales en tiempo real, catálogo analítico con valores de referencia y límites de pánico, camas HIS y hemovigilancia.'}
           </p>
         </div>
 
         {/* Métricas Rápidas en Tiempo Real */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-950/80 border border-cyan-500/30 p-3.5 rounded-2xl text-xs shrink-0">
           <div className="space-y-0.5">
-            <span className="text-[10px] text-slate-400 uppercase font-black">Clientes / Labs</span>
+            <span className="text-[10px] text-slate-400 uppercase font-black">{isEn ? 'Clients / Labs' : 'Clientes / Labs'}</span>
             <div className="text-base font-black text-white">{tenants.length}</div>
           </div>
           <div className="space-y-0.5">
-            <span className="text-[10px] text-cyan-400 uppercase font-black">Sedes Activas</span>
+            <span className="text-[10px] text-cyan-400 uppercase font-black">{isEn ? 'Active Branches' : 'Sedes Activas'}</span>
             <div className="text-base font-black text-cyan-300">{totalBranches}</div>
           </div>
           <div className="space-y-0.5">
-            <span className="text-[10px] text-emerald-400 uppercase font-black">Pruebas LIS</span>
+            <span className="text-[10px] text-emerald-400 uppercase font-black">{isEn ? 'LIS Tests' : 'Pruebas LIS'}</span>
             <div className="text-base font-black text-emerald-300">{customTests.length}</div>
           </div>
           <div className="space-y-0.5">
-            <span className="text-[10px] text-amber-400 uppercase font-black">Camas HIS</span>
+            <span className="text-[10px] text-amber-400 uppercase font-black">{isEn ? 'HIS Beds' : 'Camas HIS'}</span>
             <div className="text-base font-black text-amber-300">{hisBeds.length}</div>
           </div>
         </div>
@@ -1168,7 +1971,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <Building2 className="w-4 h-4" />
-          <span>🏢 Clientes & Multisede ({totalBranches} Sedes)</span>
+          <span>🏢 {isEn ? `Clients & Multi-Branch (${totalBranches} Branches)` : `Clientes & Multisede (${totalBranches} Sedes)`}</span>
         </button>
 
         <button
@@ -1180,7 +1983,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <TestTube className="w-4 h-4" />
-          <span>🧪 Catálogo LIS & Valores de Referencia</span>
+          <span>🧪 {isEn ? 'LIS Catalog & Reference Ranges' : 'Catálogo LIS & Valores de Referencia'}</span>
         </button>
 
         <button
@@ -1192,7 +1995,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <HeartPulse className="w-4 h-4" />
-          <span>🏥 Suite Hospitalaria HIS & Camas</span>
+          <span>🏥 {isEn ? 'Hospital HIS Suite & Beds' : 'Suite Hospitalaria HIS & Camas'}</span>
         </button>
 
         <button
@@ -1204,7 +2007,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <Droplets className="w-4 h-4" />
-          <span>🩸 Configuración Banco de Sangre</span>
+          <span>🩸 {isEn ? 'Blood Bank Configuration' : 'Configuración Banco de Sangre'}</span>
         </button>
 
         <button
@@ -1216,7 +2019,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>👥 Usuarios & Seguridad ({realUsers.length})</span>
+          <span>👥 {isEn ? `Users & Security (${realUsers.length})` : `Usuarios & Seguridad (${realUsers.length})`}</span>
         </button>
 
         <button
@@ -1228,7 +2031,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           }`}
         >
           <Globe className="w-4 h-4" />
-          <span>🌐 Puertos & Red Dedicada</span>
+          <span>🌐 {isEn ? 'Dedicated Ports & Network' : 'Puertos & Red Dedicada'}</span>
         </button>
       </div>
 
@@ -1617,7 +2420,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 type="text"
                 placeholder="Buscar por código, LOINC o examen..."
                 value={testSearch}
-                onChange={(e) => setTestSearch(e.target.value)}
+                onChange={(e) => { setTestSearch(e.target.value); setTestCurrentPage(1); }}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
@@ -1626,15 +2429,21 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <Filter className="w-4 h-4 text-slate-400 shrink-0" />
               <select
                 value={testDeptFilter}
-                onChange={(e) => setTestDeptFilter(e.target.value)}
+                onChange={(e) => { setTestDeptFilter(e.target.value); setTestCurrentPage(1); }}
                 className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
               >
                 <option value="TODOS">Todas las Especialidades ({customTests.length})</option>
-                <option value="Química Clínica">Química Clínica</option>
                 <option value="Hematología">Hematología</option>
+                <option value="Coagulación">Coagulación</option>
+                <option value="Química Clínica">Química Clínica</option>
+                <option value="Perfil Hepático">Perfil Hepático</option>
+                <option value="Perfil Lipídico">Perfil Lipídico</option>
                 <option value="Electrolitos">Electrolitos</option>
-                <option value="Endocrinología">Endocrinología</option>
                 <option value="Marcadores Cardíacos">Marcadores Cardíacos</option>
+                <option value="Endocrinología">Endocrinología</option>
+                <option value="Uroanálisis">Uroanálisis</option>
+                <option value="Serología & Inmunología">Serología & Inmunología</option>
+                <option value="Coprología & Parasitología">Coprología & Parasitología</option>
               </select>
             </div>
           </div>
@@ -1656,7 +2465,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
-                  {filteredTests.map((test) => (
+                  {paginatedTests.map((test) => (
                     <tr key={test.id} className="hover:bg-slate-800/40 transition">
                       <td className="p-4 font-mono font-bold">
                         <span className="text-cyan-300 block">{test.code}</span>
@@ -1667,7 +2476,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         <div className="text-[10px] text-slate-400">{test.tubeType}</div>
                       </td>
                       <td className="p-4">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap inline-block">
                           {test.department}
                         </span>
                       </td>
@@ -1701,143 +2510,206 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 </tbody>
               </table>
             </div>
+
+            {/* Paginación Clínica del Catálogo */}
+            <div className="bg-slate-950 p-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs text-slate-400 font-medium">
+                Mostrando <span className="text-white font-bold">{filteredTests.length === 0 ? 0 : (testCurrentPage - 1) * testsPerPage + 1}</span> a <span className="text-white font-bold">{Math.min(testCurrentPage * testsPerPage, filteredTests.length)}</span> de <span className="text-cyan-300 font-bold">{filteredTests.length}</span> pruebas clínicas
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                  <span>Por página:</span>
+                  <select
+                    value={testsPerPage}
+                    onChange={(e) => {
+                      setTestsPerPage(Number(e.target.value));
+                      setTestCurrentPage(1);
+                    }}
+                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => setTestCurrentPage(1)}
+                    disabled={testCurrentPage === 1}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    « Primero
+                  </button>
+                  <button
+                    onClick={() => setTestCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={testCurrentPage === 1}
+                    className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    ‹ Anterior
+                  </button>
+                  <span className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold">
+                    {testCurrentPage} / {totalTestPages}
+                  </span>
+                  <button
+                    onClick={() => setTestCurrentPage((prev) => Math.min(prev + 1, totalTestPages))}
+                    disabled={testCurrentPage >= totalTestPages}
+                    className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Siguiente ›
+                  </button>
+                  <button
+                    onClick={() => setTestCurrentPage(totalTestPages)}
+                    disabled={testCurrentPage >= totalTestPages}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Último »
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Modal para Editar Prueba / Valores de Referencia */}
           {editingTest && (
-            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+              <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl max-w-xl w-full shadow-2xl max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-cyan-500/30">
+                <div className="flex items-center justify-between border-b border-slate-800 p-4 sm:p-5 shrink-0 bg-slate-950/60">
                   <h3 className="font-black text-white text-sm flex items-center space-x-2">
                     <Edit3 className="w-4 h-4 text-cyan-400" />
                     <span>Valores de Referencia: {editingTest.name}</span>
                   </h3>
-                  <button onClick={() => setEditingTest(null)} className="text-slate-400 hover:text-white p-1">
+                  <button onClick={() => setEditingTest(null)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div className="col-span-2 space-y-1">
-                    <label className="font-bold text-slate-300 block">Nombre del Examen:</label>
-                    <input
-                      type="text"
-                      value={editingTest.name}
-                      onChange={(e) => setEditingTest({ ...editingTest, name: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold"
-                    />
-                  </div>
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs custom-scroll">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2 space-y-1">
+                      <label className="font-bold text-slate-300 block">Nombre del Examen:</label>
+                      <input
+                        type="text"
+                        value={editingTest.name}
+                        onChange={(e) => setEditingTest({ ...editingTest, name: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold"
+                      />
+                    </div>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Unidad de Medida (UCUM):</label>
-                    <input
-                      type="text"
-                      value={editingTest.unit}
-                      onChange={(e) => setEditingTest({ ...editingTest, unit: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold"
-                    />
-                  </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Unidad de Medida (UCUM):</label>
+                      <input
+                        type="text"
+                        value={editingTest.unit}
+                        onChange={(e) => setEditingTest({ ...editingTest, unit: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold"
+                      />
+                    </div>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Tubo / Recipiente:</label>
-                    <input
-                      type="text"
-                      value={editingTest.tubeType}
-                      onChange={(e) => setEditingTest({ ...editingTest, tubeType: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium"
-                    />
-                  </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Tubo / Recipiente:</label>
+                      <input
+                        type="text"
+                        value={editingTest.tubeType}
+                        onChange={(e) => setEditingTest({ ...editingTest, tubeType: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium"
+                      />
+                    </div>
 
-                  {/* Rangos Hombres */}
-                  <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 space-y-2">
-                    <div className="font-bold text-cyan-300">Rango Hombres (M):</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400">Mínimo:</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.minMale}
-                          onChange={(e) => setEditingTest({ ...editingTest, minMale: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-cyan-300 font-mono"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400">Máximo:</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.maxMale}
-                          onChange={(e) => setEditingTest({ ...editingTest, maxMale: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-cyan-300 font-mono"
-                        />
+                    {/* Rangos Hombres */}
+                    <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 space-y-2">
+                      <div className="font-bold text-cyan-300">Rango Hombres (M):</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400">Mínimo:</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.minMale}
+                            onChange={(e) => setEditingTest({ ...editingTest, minMale: parseFloat(e.target.value) || 0 })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-cyan-300 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400">Máximo:</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.maxMale}
+                            onChange={(e) => setEditingTest({ ...editingTest, maxMale: parseFloat(e.target.value) || 0 })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-cyan-300 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Rangos Mujeres */}
-                  <div className="p-3 rounded-xl bg-pink-950/30 border border-pink-500/20 space-y-2">
-                    <div className="font-bold text-pink-300">Rango Mujeres (F):</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400">Mínimo:</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.minFemale}
-                          onChange={(e) => setEditingTest({ ...editingTest, minFemale: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-pink-300 font-mono"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400">Máximo:</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.maxFemale}
-                          onChange={(e) => setEditingTest({ ...editingTest, maxFemale: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-pink-300 font-mono"
-                        />
+                    {/* Rangos Mujeres */}
+                    <div className="p-3 rounded-xl bg-pink-950/30 border border-pink-500/20 space-y-2">
+                      <div className="font-bold text-pink-300">Rango Mujeres (F):</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400">Mínimo:</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.minFemale}
+                            onChange={(e) => setEditingTest({ ...editingTest, minFemale: parseFloat(e.target.value) || 0 })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-pink-300 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400">Máximo:</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.maxFemale}
+                            onChange={(e) => setEditingTest({ ...editingTest, maxFemale: parseFloat(e.target.value) || 0 })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-pink-300 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Límites Críticos de Pánico */}
-                  <div className="col-span-2 p-3 rounded-xl bg-rose-950/30 border border-rose-500/20 space-y-2">
-                    <div className="font-bold text-rose-300 flex items-center space-x-1.5">
-                      <AlertTriangle className="w-4 h-4 text-rose-400" />
-                      <span>Límites de Alerta de Pánico (Disparo de Alarma Inmediata):</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400">Pánico Bajo (&lt;):</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.panicLow ?? ''}
-                          onChange={(e) => setEditingTest({ ...editingTest, panicLow: e.target.value ? parseFloat(e.target.value) : undefined })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-rose-300 font-mono"
-                        />
+                    {/* Límites Críticos de Pánico */}
+                    <div className="col-span-2 p-3 rounded-xl bg-rose-950/30 border border-rose-500/20 space-y-2">
+                      <div className="font-bold text-rose-300 flex items-center space-x-1.5">
+                        <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        <span>Límites de Alerta de Pánico (Disparo de Alarma Inmediata):</span>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400">Pánico Alto (&gt;):</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={editingTest.panicHigh ?? ''}
-                          onChange={(e) => setEditingTest({ ...editingTest, panicHigh: e.target.value ? parseFloat(e.target.value) : undefined })}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-rose-300 font-mono"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400">Pánico Bajo (&lt;):</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.panicLow ?? ''}
+                            onChange={(e) => setEditingTest({ ...editingTest, panicLow: e.target.value ? parseFloat(e.target.value) : undefined })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-rose-300 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400">Pánico Alto (&gt;):</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editingTest.panicHigh ?? ''}
+                            onChange={(e) => setEditingTest({ ...editingTest, panicHigh: e.target.value ? parseFloat(e.target.value) : undefined })}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-rose-300 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                  <button onClick={() => setEditingTest(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">
+                {/* Footer Fijo */}
+                <div className="flex items-center justify-end space-x-3 p-4 border-t border-slate-800 shrink-0 bg-slate-950/90">
+                  <button onClick={() => setEditingTest(null)} className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
                     Cancelar
                   </button>
-                  <button onClick={() => handleSaveReferenceTest(editingTest)} className="px-5 py-2 rounded-xl bg-teal-500 text-slate-950 text-xs font-black">
+                  <button onClick={() => handleSaveReferenceTest(editingTest)} className="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black shadow-lg shadow-teal-500/20 transition cursor-pointer">
                     Guardar Valores
                   </button>
                 </div>
@@ -1847,118 +2719,123 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
           {/* Modal para Crear Nueva Prueba */}
           {isCreatingTest && (
-            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-              <form onSubmit={handleCreateNewTest} className="bg-slate-900 border border-teal-500/40 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+              <form onSubmit={handleCreateNewTest} className="bg-slate-900 border border-teal-500/40 rounded-3xl max-w-xl w-full shadow-2xl max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-teal-500/30">
+                <div className="flex items-center justify-between border-b border-slate-800 p-4 sm:p-5 shrink-0 bg-slate-950/60">
                   <h3 className="font-black text-white text-sm flex items-center space-x-2">
                     <Plus className="w-4 h-4 text-teal-400" />
                     <span>Incorporar Nuevo Examen al Catálogo</span>
                   </h3>
-                  <button type="button" onClick={() => setIsCreatingTest(false)} className="text-slate-400 hover:text-white p-1">
+                  <button type="button" onClick={() => setIsCreatingTest(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Código Interno:</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. QCL-050"
-                      value={newTestCode}
-                      onChange={(e) => setNewTestCode(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-cyan-300 font-mono font-bold"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Código LOINC:</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. 1751-7"
-                      value={newTestLoinc}
-                      onChange={(e) => setNewTestLoinc(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold"
-                    />
-                  </div>
-
-                  <div className="col-span-2 space-y-1">
-                    <label className="font-bold text-slate-300 block">Nombre Completo del Examen:</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Albúmina Sérica"
-                      value={newTestName}
-                      onChange={(e) => setNewTestName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Especialidad / Sección:</label>
-                    <select
-                      value={newTestDept}
-                      onChange={(e) => setNewTestDept(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
-                    >
-                      <option value="Química Clínica">Química Clínica</option>
-                      <option value="Hematología">Hematología</option>
-                      <option value="Electrolitos">Electrolitos</option>
-                      <option value="Endocrinología">Endocrinología</option>
-                      <option value="Inmunología">Inmunología</option>
-                      <option value="Marcadores Cardíacos">Marcadores Cardíacos</option>
-                      <option value="Uroanálisis">Uroanálisis</option>
-                      <option value="Microbiología">Microbiología</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">Unidad (UCUM):</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. g/dL"
-                      value={newTestUnit}
-                      onChange={(e) => setNewTestUnit(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-amber-300 font-mono font-bold"
-                      required
-                    />
-                  </div>
-
-                  <div className="col-span-2 space-y-1">
-                    <label className="font-bold text-slate-300 block">Tubo / Anticoagulante:</label>
-                    <input
-                      type="text"
-                      value={newTestTube}
-                      onChange={(e) => setNewTestTube(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white"
-                    />
-                  </div>
-
-                  {/* Rangos Hombres */}
-                  <div className="space-y-1">
-                    <label className="font-bold text-cyan-300 block">Hombres (Mín - Máx):</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input type="number" step="any" value={newTestMinM} onChange={(e) => setNewTestMinM(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono" />
-                      <input type="number" step="any" value={newTestMaxM} onChange={(e) => setNewTestMaxM(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono" />
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs custom-scroll">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Código Interno:</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. QCL-050"
+                        value={newTestCode}
+                        onChange={(e) => setNewTestCode(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-cyan-300 font-mono font-bold"
+                        required
+                      />
                     </div>
-                  </div>
 
-                  {/* Rangos Mujeres */}
-                  <div className="space-y-1">
-                    <label className="font-bold text-pink-300 block">Mujeres (Mín - Máx):</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input type="number" step="any" value={newTestMinF} onChange={(e) => setNewTestMinF(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-pink-300 font-mono" />
-                      <input type="number" step="any" value={newTestMaxF} onChange={(e) => setNewTestMaxF(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-pink-300 font-mono" />
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Código LOINC:</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. 1751-7"
+                        value={newTestLoinc}
+                        onChange={(e) => setNewTestLoinc(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold"
+                      />
+                    </div>
+
+                    <div className="col-span-2 space-y-1">
+                      <label className="font-bold text-slate-300 block">Nombre Completo del Examen:</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Albúmina Sérica"
+                        value={newTestName}
+                        onChange={(e) => setNewTestName(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Especialidad / Sección:</label>
+                      <select
+                        value={newTestDept}
+                        onChange={(e) => setNewTestDept(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold cursor-pointer"
+                      >
+                        <option value="Hematología">Hematología</option>
+                        <option value="Coagulación">Coagulación</option>
+                        <option value="Química Clínica">Química Clínica</option>
+                        <option value="Perfil Hepático">Perfil Hepático</option>
+                        <option value="Perfil Lipídico">Perfil Lipídico</option>
+                        <option value="Electrolitos">Electrolitos</option>
+                        <option value="Marcadores Cardíacos">Marcadores Cardíacos</option>
+                        <option value="Endocrinología">Endocrinología</option>
+                        <option value="Uroanálisis">Uroanálisis</option>
+                        <option value="Serología & Inmunología">Serología & Inmunología</option>
+                        <option value="Coprología & Parasitología">Coprología & Parasitología</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-300 block">Unidad (UCUM):</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. g/dL"
+                        value={newTestUnit}
+                        onChange={(e) => setNewTestUnit(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-amber-300 font-mono font-bold"
+                        required
+                      />
+                    </div>
+
+                    <div className="col-span-2 space-y-1">
+                      <label className="font-bold text-slate-300 block">Tubo / Anticoagulante:</label>
+                      <input
+                        type="text"
+                        value={newTestTube}
+                        onChange={(e) => setNewTestTube(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white"
+                      />
+                    </div>
+
+                    {/* Rangos Hombres */}
+                    <div className="space-y-1">
+                      <label className="font-bold text-cyan-300 block">Hombres (Mín - Máx):</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="number" step="any" value={newTestMinM} onChange={(e) => setNewTestMinM(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono" />
+                        <input type="number" step="any" value={newTestMaxM} onChange={(e) => setNewTestMaxM(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono" />
+                      </div>
+                    </div>
+
+                    {/* Rangos Mujeres */}
+                    <div className="space-y-1">
+                      <label className="font-bold text-pink-300 block">Mujeres (Mín - Máx):</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="number" step="any" value={newTestMinF} onChange={(e) => setNewTestMinF(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-pink-300 font-mono" />
+                        <input type="number" step="any" value={newTestMaxF} onChange={(e) => setNewTestMaxF(parseFloat(e.target.value))} className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-pink-300 font-mono" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
-                  <button type="button" onClick={() => setIsCreatingTest(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">
+                <div className="flex items-center justify-end space-x-3 p-4 border-t border-slate-800 shrink-0 bg-slate-950/90">
+                  <button type="button" onClick={() => setIsCreatingTest(false)} className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
                     Cancelar
                   </button>
-                  <button type="submit" className="px-5 py-2.5 rounded-xl bg-teal-500 text-slate-950 text-xs font-black">
+                  <button type="submit" className="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black shadow-lg shadow-teal-500/20 transition cursor-pointer">
                     Registrar Examen
                   </button>
                 </div>

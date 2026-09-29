@@ -154,7 +154,7 @@ export const OfflineSyncIndicator: React.FC = () => {
         title={language === 'EN' ? "Offline Local Persistence & Synchronization Status" : "Estado de Sincronización y Persistencia Local Offline"}
         className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer select-none shrink-0 ${
           !isOnline
-            ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/20 hover:bg-rose-900/80 animate-pulse'
+            ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/20 hover:bg-rose-900/80'
             : pendingCount > 0
             ? 'bg-amber-950/80 text-amber-300 border-amber-500/50 shadow-lg shadow-amber-500/20 hover:bg-amber-900/80'
             : 'bg-slate-900/90 text-slate-300 border-white/10 hover:bg-slate-800 hover:text-white'
@@ -193,10 +193,10 @@ export const OfflineSyncIndicator: React.FC = () => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-3 w-96 sm:w-[440px] bg-slate-950/95 border border-slate-800 rounded-3xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-200 text-slate-200 space-y-4">
+          <div className="absolute right-0 top-full mt-3 w-96 sm:w-[440px] bg-slate-950/95 border border-slate-800 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-200 text-slate-200 flex flex-col overflow-hidden max-h-[85vh]">
             
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            {/* Header: Fixed at top */}
+            <div className="flex items-center justify-between border-b border-slate-800 p-4 sm:p-5 pb-3 shrink-0">
               <div className="flex items-center space-x-2">
                 <HardDrive className="w-5 h-5 text-teal-400" />
                 <div>
@@ -216,203 +216,220 @@ export const OfflineSyncIndicator: React.FC = () => {
               </button>
             </div>
 
-            {/* Connection Status Card */}
-            <div
-              className={`p-4 rounded-2xl border space-y-2 ${
-                !isOnline
-                  ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
-                  : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="flex items-center space-x-2">
-                  {!isOnline ? <WifiOff className="w-4 h-4 text-rose-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
-                  <span>{language === 'EN' ? 'Middleware & Sockets Link:' : 'Enlace Middleware & Sockets:'}</span>
-                </span>
-                <span className="font-mono uppercase font-black">
-                  {!isOnline
-                    ? (language === 'EN' ? '🔴 Disconnected (Local Mode)' : '🔴 Desconectado (Modo Local)')
-                    : (language === 'EN' ? '🟢 ACTIVE CONNECTION (SOCKET 3000)' : '🟢 CONEXIÓN ACTIVA (SOCKET 3000)')}
-                </span>
-              </div>
-              <p className="text-[11px] opacity-85 leading-relaxed">
-                {!isOnline
-                  ? (language === 'EN'
-                      ? 'Technologists can continue processing analytes and scanning tubes. Everything is persisted in the encrypted client buffer until the central server is restored.'
-                      : 'Los tecnólogos pueden continuar procesando analitos y escaneando tubos. Se guardan en el buffer criptográfico IndexedDB hasta restablecer el servidor central.')
-                  : (language === 'EN'
-                      ? 'Real-time telemetry and bidirectional ASTM/HL7 analyzer link with local PostgreSQL database.'
-                      : 'El enlace con los analizadores ASTM/HL7 y el servidor PostgreSQL local está sincronizado en tiempo real.')}
-              </p>
-            </div>
+            {/* Scrollable Body with custom-scrollbar */}
+            <div className="p-4 sm:p-5 pt-3 space-y-4 overflow-y-auto custom-scrollbar flex-1">
 
-            {/* Persistence Architecture Badge (PostgreSQL 15 Local + IndexedDB) */}
-            <div className="space-y-2">
-              <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
-                Arquitectura Híbrida de Persistencia (On-Premises):
-              </div>
-
-              {/* Layer 1: PostgreSQL 15 Local */}
-              <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-blue-500/30">
-                <div className="flex items-center space-x-2">
-                  <Database className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[11px] text-slate-200 font-bold">Base de Datos Central:</span>
-                </div>
-                <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-500/40">
-                  🐘 PostgreSQL 15 (Port 5432)
-                </span>
-              </div>
-
-              {/* Layer 2: IndexedDB Browser Buffer */}
-              <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-teal-500/30">
-                <div className="flex items-center space-x-2">
-                  <HardDrive className="w-3.5 h-3.5 text-teal-400" />
-                  <span className="text-[11px] text-slate-200 font-bold">Buffer Cliente Offline:</span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-500/40">
-                    {storageEngine === 'IndexedDB' ? '🗄️ IndexedDB Enterprise' : '💾 localStorage'}
+              {/* Connection Status Card */}
+              <div
+                className={`p-4 rounded-2xl border space-y-2 ${
+                  !isOnline
+                    ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                    : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center space-x-2">
+                    {!isOnline ? <WifiOff className="w-4 h-4 text-rose-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
+                    <span>{language === 'EN' ? 'Middleware & Sockets Link:' : 'Enlace Middleware & Sockets:'}</span>
                   </span>
-                  {storageQuota && (
-                    <span className="text-[9px] font-mono text-slate-400">
-                      ({storageQuota.usageMb}MB)
+                  <span className="font-mono uppercase font-black">
+                    {!isOnline
+                      ? (language === 'EN' ? '🔴 Disconnected (Local Mode)' : '🔴 Desconectado (Modo Local)')
+                      : (language === 'EN' ? '🟢 ACTIVE CONNECTION (SOCKET 3000)' : '🟢 CONEXIÓN ACTIVA (SOCKET 3000)')}
+                  </span>
+                </div>
+                <p className="text-[11px] opacity-85 leading-relaxed">
+                  {!isOnline
+                    ? (language === 'EN'
+                        ? 'Technologists can continue processing analytes and scanning tubes. Everything is persisted in the encrypted client buffer until the central server is restored.'
+                        : 'Los tecnólogos pueden continuar procesando analitos y escaneando tubos. Se guardan en el buffer criptográfico IndexedDB hasta restablecer el servidor central.')
+                    : (language === 'EN'
+                        ? 'Real-time telemetry and bidirectional ASTM/HL7 analyzer link with local PostgreSQL database.'
+                        : 'El enlace con los analizadores ASTM/HL7 y el servidor PostgreSQL local está sincronizado en tiempo real.')}
+                </p>
+              </div>
+
+              {/* Persistence Architecture Badge (PostgreSQL 15 Local + IndexedDB) */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
+                  {language === 'EN' ? 'Hybrid Persistence Architecture (On-Premises):' : 'Arquitectura Híbrida de Persistencia (On-Premises):'}
+                </div>
+
+                {/* Layer 1: PostgreSQL 15 Local */}
+                <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-blue-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Database className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-[11px] text-slate-200 font-bold">
+                      {language === 'EN' ? 'Central Database:' : 'Base de Datos Central:'}
                     </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-500/40">
+                    🐘 PostgreSQL 15 (Port 5432)
+                  </span>
+                </div>
+
+                {/* Layer 2: IndexedDB Browser Buffer */}
+                <div className="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-xl border border-teal-500/30">
+                  <div className="flex items-center space-x-2">
+                    <HardDrive className="w-3.5 h-3.5 text-teal-400" />
+                    <span className="text-[11px] text-slate-200 font-bold">
+                      {language === 'EN' ? 'Offline Client Buffer:' : 'Buffer Cliente Offline:'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-500/40">
+                      {storageEngine === 'IndexedDB' ? '🗄️ IndexedDB Enterprise' : '💾 localStorage'}
+                    </span>
+                    {storageQuota && (
+                      <span className="text-[9px] font-mono text-slate-400">
+                        ({storageQuota.usageMb}MB)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Storage Telemetry Stats */}
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 block uppercase">
+                    {language === 'EN' ? 'Queued:' : 'En Cola:'}
+                  </span>
+                  <span className="text-base font-black font-mono text-white">{pendingCount} ops</span>
+                </div>
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 block uppercase">
+                    {language === 'EN' ? 'Buffer Used:' : 'Buffer Utilizado:'}
+                  </span>
+                  <span className="text-base font-black font-mono text-teal-300">{storageKb} KB</span>
+                </div>
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 block uppercase">
+                    {language === 'EN' ? 'Capacity:' : 'Capacidad:'}
+                  </span>
+                  <span className="text-base font-black font-mono text-emerald-400">
+                    {storageEngine === 'IndexedDB' ? 'Multi-GB' : '~5 MB'}
+                  </span>
+                </div>
+              </div>
+
+              {/* FORCE EMERGENCY EXPORT (DRP) CALLOUT BUTTON */}
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950/70 via-amber-950/40 to-slate-900 border border-rose-500/40 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-1.5 font-bold text-rose-300">
+                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                    <span>{language === 'EN' ? 'Contingency Protocol / Server Outage' : 'Protocolo de Contingencia / Caída de Servidor'}</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30 uppercase">
+                    DRP ISO 15189
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {language === 'EN'
+                    ? 'If the central server experiences a complete outage or catastrophic failure, force export of the cryptographically signed JSON package to maintain chain of custody.'
+                    : 'Si el servidor central experimenta una caída total o falla catastrófica, fuerce la exportación del paquete JSON con firma criptográfica para preservar la custodia de los datos.'}
+                </p>
+
+                <button
+                  onClick={handleTriggerEmergencyExport}
+                  className="w-full py-2.5 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-rose-600/30"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span>{language === 'EN' ? 'Force Emergency Export (JSON DRP)' : 'Forzar Exportación de Emergencia (JSON DRP)'}</span>
+                </button>
+              </div>
+
+              {/* Pending Queue List */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                  <span>{language === 'EN' ? 'Operations Awaiting Transmission:' : 'Operaciones en Espera de Transmisión:'}</span>
+                  <span className="text-[10px] font-mono">{pendingCount} {language === 'EN' ? 'records' : 'registros'}</span>
+                </div>
+
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 text-xs custom-scrollbar">
+                  {queue.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 text-center text-slate-400 text-xs flex flex-col items-center space-y-1">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <span className="font-bold text-white">{language === 'EN' ? 'Buffer Up to Date' : 'Buffer al día'}</span>
+                      <span className="text-[10px]">{language === 'EN' ? 'No operations pending synchronization.' : 'No hay operaciones pendientes de sincronización.'}</span>
+                    </div>
+                  ) : (
+                    queue.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs space-x-2"
+                      >
+                        <div className="space-y-0.5 truncate">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-500/30">
+                              {item.type}
+                            </span>
+                            <span className="font-mono font-bold text-white truncate">{item.sampleBarcode || (language === 'EN' ? 'NO_BARCODE' : 'SIN_CODIGO')}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {item.patientName || item.testCode || (language === 'EN' ? 'Technical operation' : 'Operación técnica')}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                          {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Storage Telemetry Stats */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[9px] font-mono text-slate-400 block uppercase">En Cola:</span>
-                <span className="text-base font-black font-mono text-white">{pendingCount} ops</span>
-              </div>
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[9px] font-mono text-slate-400 block uppercase">Buffer Utilizado:</span>
-                <span className="text-base font-black font-mono text-teal-300">{storageKb} KB</span>
-              </div>
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[9px] font-mono text-slate-400 block uppercase">Capacidad:</span>
-                <span className="text-base font-black font-mono text-emerald-400">
-                  {storageEngine === 'IndexedDB' ? 'Multi-GB' : '~5 MB'}
-                </span>
-              </div>
-            </div>
+              {/* Actions Grid */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    onClick={handleForceSync}
+                    disabled={isSyncing || !isOnline}
+                    className="px-3 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer shadow"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{language === 'EN' ? 'Sync Now' : 'Sincronizar Ahora'}</span>
+                  </button>
 
-            {/* FORCE EMERGENCY EXPORT (DRP) CALLOUT BUTTON */}
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950/70 via-amber-950/40 to-slate-900 border border-rose-500/40 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-1.5 font-bold text-rose-300">
-                  <ShieldAlert className="w-4 h-4 text-rose-400" />
-                  <span>Protocolo de Contingencia / Caída de Servidor</span>
+                  <button
+                    onClick={handleToggleOffline}
+                    className={`px-3 py-2 font-bold rounded-xl transition flex items-center justify-center space-x-1.5 border cursor-pointer ${
+                      isSimulated
+                        ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900'
+                        : 'bg-rose-950/70 border-rose-500/40 text-rose-300 hover:bg-rose-900'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>{isSimulated ? (language === 'EN' ? 'Reconnect Server' : 'Reconectar Servidor') : (language === 'EN' ? 'Simulate Offline' : 'Simular Offline')}</span>
+                  </button>
                 </div>
-                <span className="text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30 uppercase">
-                  DRP ISO 15189
-                </span>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    onClick={handleSeedMockData}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer text-[11px]"
+                  >
+                    <span>{language === 'EN' ? '+ Offline Sample' : '+ Muestra Offline'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleClear}
+                    disabled={queue.length === 0}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/50 disabled:opacity-30 text-rose-300 border border-slate-800 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer text-[11px]"
+                  >
+                    <Trash2 className="w-3 h-3 text-rose-400" />
+                    <span>{language === 'EN' ? 'Clear Buffer' : 'Limpiar Buffer'}</span>
+                  </button>
+                </div>
               </div>
 
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Si el servidor central experimenta una caída total o falla catastrófica, fuerce la exportación del paquete JSON con firma criptográfica para preservar la custodia de los datos.
-              </p>
-
-              <button
-                onClick={handleTriggerEmergencyExport}
-                className="w-full py-2.5 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-rose-600/30"
-              >
-                <FileDown className="w-4 h-4" />
-                <span>Forzar Exportación de Emergencia (JSON DRP)</span>
-              </button>
-            </div>
-
-            {/* Pending Queue List */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-                <span>Operaciones en Espera de Transmisión:</span>
-                <span className="text-[10px] font-mono">{pendingCount} registros</span>
+              {/* ISO Footer Info */}
+              <div className="pt-2 text-[10px] text-slate-400 flex items-center space-x-1.5 border-t border-slate-800/80">
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>{language === 'EN' ? 'Operational continuity guarantee & zero data loss compliant with ISO 15189:2022 §7.2.' : 'Garantía de continuidad operativa y cero pérdida de datos según ISO 15189:2022 §7.2.'}</span>
               </div>
 
-              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 text-xs">
-                {queue.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 text-center text-slate-400 text-xs flex flex-col items-center space-y-1">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    <span className="font-bold text-white">Buffer al día</span>
-                    <span className="text-[10px]">No hay operaciones pendientes de sincronización.</span>
-                  </div>
-                ) : (
-                  queue.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs space-x-2"
-                    >
-                      <div className="space-y-0.5 truncate">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-500/30">
-                            {item.type}
-                          </span>
-                          <span className="font-mono font-bold text-white truncate">{item.sampleBarcode || 'SIN_CODIGO'}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 truncate">
-                          {item.patientName || item.testCode || 'Operación técnica'}
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                        {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Actions Grid */}
-            <div className="pt-2 border-t border-slate-800 space-y-2">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  onClick={handleForceSync}
-                  disabled={isSyncing || !isOnline}
-                  className="px-3 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer shadow"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>Sincronizar Ahora</span>
-                </button>
-
-                <button
-                  onClick={handleToggleOffline}
-                  className={`px-3 py-2 font-bold rounded-xl transition flex items-center justify-center space-x-1.5 border cursor-pointer ${
-                    isSimulated
-                      ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900'
-                      : 'bg-rose-950/70 border-rose-500/40 text-rose-300 hover:bg-rose-900'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>{isSimulated ? 'Reconectar Servidor' : 'Simular Offline'}</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  onClick={handleSeedMockData}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer text-[11px]"
-                >
-                  <span>+ Muestra Offline</span>
-                </button>
-
-                <button
-                  onClick={handleClear}
-                  disabled={queue.length === 0}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/50 disabled:opacity-30 text-rose-300 border border-slate-800 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer text-[11px]"
-                >
-                  <Trash2 className="w-3 h-3 text-rose-400" />
-                  <span>Limpiar Buffer</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ISO Footer Info */}
-            <div className="pt-2 text-[10px] text-slate-400 flex items-center space-x-1.5 border-t border-slate-800/80">
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-              <span>Garantía de continuidad operativa y cero pérdida de datos según ISO 15189:2022 §7.2.</span>
             </div>
 
           </div>
@@ -422,7 +439,7 @@ export const OfflineSyncIndicator: React.FC = () => {
       {/* EMERGENCY EXPORT MODAL & VERIFICATION DOSSIER */}
       {showEmergencyModal && lastExportMetadata && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border-2 border-rose-500/50 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-100 relative overflow-hidden">
+          <div className="bg-slate-900 border-2 border-rose-500/50 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-100 relative overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
             
             <div className="flex items-start justify-between border-b border-white/10 pb-3">
               <div className="space-y-1">
@@ -432,12 +449,12 @@ export const OfflineSyncIndicator: React.FC = () => {
                     <span>Disaster Recovery Package (DRP)</span>
                   </span>
                   <span className="text-[10px] font-mono text-emerald-400">
-                    ✓ Archivo Generado
+                    {language === 'EN' ? '✓ File Generated' : '✓ Archivo Generado'}
                   </span>
                 </div>
                 <h3 className="text-lg font-black text-white flex items-center space-x-2">
                   <ShieldAlert className="w-5 h-5 text-rose-400" />
-                  <span>Paquete de Emergencia Exportado</span>
+                  <span>{language === 'EN' ? 'Emergency Package Exported' : 'Paquete de Emergencia Exportado'}</span>
                 </h3>
               </div>
 
@@ -451,25 +468,27 @@ export const OfflineSyncIndicator: React.FC = () => {
 
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
               <div className="flex justify-between items-center text-slate-400">
-                <span>Nombre de archivo:</span>
+                <span>{language === 'EN' ? 'Filename:' : 'Nombre de archivo:'}</span>
                 <span className="font-mono text-teal-300 font-bold">{lastExportMetadata.fileName}</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Registros respaldados:</span>
-                <span className="font-mono text-white font-bold">{lastExportMetadata.totalRecords} operaciones</span>
+                <span>{language === 'EN' ? 'Backed-up records:' : 'Registros respaldados:'}</span>
+                <span className="font-mono text-white font-bold">{lastExportMetadata.totalRecords} {language === 'EN' ? 'ops' : 'operaciones'}</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Firma Hash SHA-256:</span>
+                <span>{language === 'EN' ? 'SHA-256 Hash Signature:' : 'Firma Hash SHA-256:'}</span>
                 <span className="font-mono text-amber-300 text-[10px] font-bold">{lastExportMetadata.checksum}</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Estándar de contingencia:</span>
+                <span>{language === 'EN' ? 'Contingency standard:' : 'Estándar de contingencia:'}</span>
                 <span className="font-mono text-slate-300 text-[10px]">ISO 15189:2022 §7.2 / CLSI AUTO10-A</span>
               </div>
             </div>
 
             <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl text-[11px] text-amber-200 leading-relaxed">
-              Conserve este archivo en una unidad USB externa o envíelo a la dirección técnica de contingencia. Contiene todas las validaciones de frotis, escaneos de tubos y estados de muestras ejecutados durante el corte del servidor.
+              {language === 'EN'
+                ? 'Save this file to an external USB drive or transmit it to the technical contingency team. It contains all smear validations, tube scans, and specimen states executed during the server outage.'
+                : 'Conserve este archivo en una unidad USB externa o envíelo a la dirección técnica de contingencia. Contiene todas las validaciones de frotis, escaneos de tubos y estados de muestras ejecutados durante el corte del servidor.'}
             </div>
 
             <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
@@ -478,7 +497,7 @@ export const OfflineSyncIndicator: React.FC = () => {
                 className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
               >
                 {copiedJson ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedJson ? 'Copiado' : 'Copiar JSON'}</span>
+                <span>{copiedJson ? (language === 'EN' ? 'Copied' : 'Copiado') : (language === 'EN' ? 'Copy JSON' : 'Copiar JSON')}</span>
               </button>
 
               <div className="flex items-center space-x-2">
@@ -487,14 +506,14 @@ export const OfflineSyncIndicator: React.FC = () => {
                   className="px-4 py-2.5 bg-rose-500 hover:bg-rose-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-lg shadow-rose-500/25"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Descargar Otra Copia</span>
+                  <span>{language === 'EN' ? 'Download Another Copy' : 'Descargar Otra Copia'}</span>
                 </button>
 
                 <button
                   onClick={() => setShowEmergencyModal(false)}
                   className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
                 >
-                  Entendido
+                  {language === 'EN' ? 'Dismiss' : 'Entendido'}
                 </button>
               </div>
             </div>

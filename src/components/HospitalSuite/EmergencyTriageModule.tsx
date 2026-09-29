@@ -327,28 +327,93 @@ export const EmergencyTriageModule: React.FC = () => {
             {/* Clasificación Protocolo Manchester */}
             <div>
               <label className="text-xs font-bold text-slate-300 block mb-2">Clasificación de Prioridad (Protocolo Manchester)</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {[
-                  { id: 'NIVEL_1_ROJO', label: 'Nivel 1 • Rojo (Inmediato)', desc: 'Paro, shock, inconsciencia', bg: 'hover:border-rose-500' },
-                  { id: 'NIVEL_2_NARANJA', label: 'Nivel 2 • Naranja (10-15 min)', desc: 'Dolor torácico severo, disnea', bg: 'hover:border-amber-500' },
-                  { id: 'NIVEL_3_AMARILLO', label: 'Nivel 3 • Amarillo (60 min)', desc: 'Fiebre alta, dolor moderado', bg: 'hover:border-yellow-400' },
-                  { id: 'NIVEL_4_VERDE', label: 'Nivel 4 • Verde (120 min)', desc: 'Traumatismos leves, vómitos', bg: 'hover:border-emerald-500' },
-                  { id: 'NIVEL_5_AZUL', label: 'Nivel 5 • Azul (240 min)', desc: 'Trámites, recetas, no urgente', bg: 'hover:border-blue-500' }
-                ].map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={() => setPriority(item.id as TriagePriority)}
-                    className={`p-2.5 rounded-xl border text-left text-xs transition cursor-pointer ${
-                      priority === item.id
-                        ? 'bg-white/10 border-rose-500 text-white shadow-lg'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <div className="font-bold">{item.label}</div>
-                    <div className="text-[10px] text-slate-500">{item.desc}</div>
-                  </button>
-                ))}
+                  {
+                    id: 'NIVEL_1_ROJO',
+                    level: 'Nivel 1',
+                    colorName: 'Rojo',
+                    timeLimit: 'Inmediato (0 min)',
+                    desc: 'Paro, shock, inconsciencia',
+                    activeClass: 'bg-rose-950/80 border-2 border-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)] ring-2 ring-rose-500/50',
+                    inactiveClass: 'bg-rose-950/20 border border-rose-900/40 text-rose-300 hover:border-rose-500/60 hover:bg-rose-950/40',
+                    dotClass: 'bg-rose-500 animate-ping',
+                    badgeClass: 'bg-rose-500 text-white font-black'
+                  },
+                  {
+                    id: 'NIVEL_2_NARANJA',
+                    level: 'Nivel 2',
+                    colorName: 'Naranja',
+                    timeLimit: '10 - 15 min',
+                    desc: 'Dolor torácico severo, disnea',
+                    activeClass: 'bg-orange-950/80 border-2 border-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] ring-2 ring-orange-500/50',
+                    inactiveClass: 'bg-orange-950/20 border border-orange-900/40 text-orange-300 hover:border-orange-500/60 hover:bg-orange-950/40',
+                    dotClass: 'bg-orange-500',
+                    badgeClass: 'bg-orange-500 text-slate-950 font-black'
+                  },
+                  {
+                    id: 'NIVEL_3_AMARILLO',
+                    level: 'Nivel 3',
+                    colorName: 'Amarillo',
+                    timeLimit: '60 min',
+                    desc: 'Fiebre alta, dolor moderado',
+                    activeClass: 'bg-amber-950/80 border-2 border-amber-400 text-white shadow-[0_0_20px_rgba(251,191,36,0.4)] ring-2 ring-amber-400/50',
+                    inactiveClass: 'bg-amber-950/20 border border-amber-900/40 text-amber-300 hover:border-amber-400/60 hover:bg-amber-950/40',
+                    dotClass: 'bg-amber-400',
+                    badgeClass: 'bg-amber-400 text-slate-950 font-black'
+                  },
+                  {
+                    id: 'NIVEL_4_VERDE',
+                    level: 'Nivel 4',
+                    colorName: 'Verde',
+                    timeLimit: '120 min',
+                    desc: 'Traumatismos leves, vómitos',
+                    activeClass: 'bg-emerald-950/80 border-2 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/50',
+                    inactiveClass: 'bg-emerald-950/20 border border-emerald-900/40 text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-950/40',
+                    dotClass: 'bg-emerald-400',
+                    badgeClass: 'bg-emerald-500 text-slate-950 font-black'
+                  },
+                  {
+                    id: 'NIVEL_5_AZUL',
+                    level: 'Nivel 5',
+                    colorName: 'Azul',
+                    timeLimit: '240 min',
+                    desc: 'Trámites, recetas, no urgente',
+                    activeClass: 'bg-blue-950/80 border-2 border-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/50',
+                    inactiveClass: 'bg-blue-950/20 border border-blue-900/40 text-blue-300 hover:border-blue-500/60 hover:bg-blue-950/40',
+                    dotClass: 'bg-blue-400',
+                    badgeClass: 'bg-blue-500 text-white font-black'
+                  }
+                ].map((item) => {
+                  const isSelected = priority === item.id;
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => setPriority(item.id as TriagePriority)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden group ${
+                        isSelected ? item.activeClass : item.inactiveClass
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1.5 mb-1">
+                        <div className="flex items-center space-x-2">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isSelected ? item.dotClass : 'bg-current opacity-60'}`} />
+                          <span className="font-black text-xs">
+                            {item.level} • {item.colorName}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-mono uppercase ${
+                          isSelected ? item.badgeClass : 'bg-slate-900/80 text-slate-300 border border-slate-700/50'
+                        }`}>
+                          {item.timeLimit}
+                        </span>
+                      </div>
+                      <div className={`text-[11px] leading-tight ${isSelected ? 'text-slate-200' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                        {item.desc}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -396,28 +461,42 @@ export const EmergencyTriageModule: React.FC = () => {
                     </p>
 
                     {/* Vitals Summary Pill */}
-                    <div className="flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-900/80 p-2 rounded-xl">
-                      <span>PA: <strong className="text-white">{t.vitalSigns.systolicBp}/{t.vitalSigns.diastolicBp}</strong></span>
-                      <span>• FC: <strong className="text-white">{t.vitalSigns.heartRate}</strong></span>
-                      <span>• SpO2: <strong className={t.vitalSigns.oxygenSaturation < 95 ? 'text-rose-400 font-bold' : 'text-emerald-400'}>{t.vitalSigns.oxygenSaturation}%</strong></span>
-                      <span>• Temp: <strong className="text-white">{t.vitalSigns.temperature}°C</strong></span>
-                    </div>
+                    {(() => {
+                      const vitals = t.vitalSigns || (t as any).vitals;
+                      const sys = vitals?.systolicBp ?? vitals?.systolic ?? '—';
+                      const dia = vitals?.diastolicBp ?? vitals?.diastolic ?? '—';
+                      const hr = vitals?.heartRate ?? '—';
+                      const spo2 = vitals?.oxygenSaturation ?? vitals?.spo2;
+                      const temp = vitals?.temperature ?? '—';
+                      const assessed = t.assessedAt || (t as any).triageTime;
 
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        {new Date(t.assessedAt).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })} • {t.status}
-                      </span>
+                      return (
+                        <>
+                          <div className="flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-900/80 p-2 rounded-xl">
+                            <span>PA: <strong className="text-white">{sys}/{dia}</strong></span>
+                            <span>• FC: <strong className="text-white">{hr}</strong></span>
+                            <span>• SpO2: <strong className={spo2 && spo2 < 95 ? 'text-rose-400 font-bold' : 'text-emerald-400'}>{spo2 !== undefined ? `${spo2}%` : '—'}</strong></span>
+                            <span>• Temp: <strong className="text-white">{temp}°C</strong></span>
+                          </div>
 
-                      {t.status !== 'INGRESADO' && (
-                        <button
-                          onClick={() => setSelectedTriageForAdmission(t)}
-                          className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-[10px] font-black transition cursor-pointer flex items-center space-x-1"
-                        >
-                          <BedDouble className="w-3 h-3" />
-                          <span>Asignar Cama</span>
-                        </button>
-                      )}
-                    </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {assessed ? new Date(assessed).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' }) : 'Hora N/A'} • {t.status}
+                            </span>
+
+                            {t.status !== 'INGRESADO' && (
+                              <button
+                                onClick={() => setSelectedTriageForAdmission(t)}
+                                className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-[10px] font-black transition cursor-pointer flex items-center space-x-1"
+                              >
+                                <BedDouble className="w-3 h-3" />
+                                <span>Asignar Cama</span>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 );
               })}

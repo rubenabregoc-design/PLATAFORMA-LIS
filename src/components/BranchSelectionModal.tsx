@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useLisStore } from '../store/useLisStore';
 import { getRoleLabel, getBranchName } from '../utils/i18n';
+import { validateEthicalPin } from '../utils/securityHarden';
 
 interface BranchSelectionModalProps {
   isOpen: boolean;
@@ -99,8 +100,9 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
         setSecError(isEn ? 'Current signature PIN is incorrect.' : 'El PIN de firma actual es incorrecto.');
         return;
       }
-      if (trimmedNewPin.length !== 4 || !/^\d{4}$/.test(trimmedNewPin)) {
-        setSecError(isEn ? 'New PIN must be exactly 4 digits.' : 'El nuevo PIN debe contener exactamente 4 dígitos numéricos.');
+      const pinValidation = validateEthicalPin(trimmedNewPin);
+      if (!pinValidation.isValid) {
+        setSecError(pinValidation.error || (isEn ? 'Invalid PIN.' : 'PIN no permitido por políticas de seguridad ética.'));
         return;
       }
       if (trimmedNewPin !== trimmedConfirmPin) {
@@ -168,15 +170,17 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
   const selectedBranch = currentTenant.branches.find(b => b.id === activeBranchId) || currentTenant.branches[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#020617]/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#03091e]/95 border-2 border-cyan-400/40 rounded-3xl max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,240,255,0.25)] ring-1 ring-cyan-500/30 relative space-y-4 sm:space-y-6">
+    <div className="fixed inset-0 z-50 bg-[#020617]/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-[#03091e]/95 border-2 border-cyan-400/40 rounded-3xl max-w-xl w-full max-h-[85vh] sm:max-h-[88vh] shadow-[0_25px_70px_rgba(0,240,255,0.25)] ring-1 ring-cyan-500/30 relative overflow-hidden flex flex-col">
         
         {/* Glow backdrop decoration matching Hospital Sunset Background */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-600/20 rounded-full blur-[90px] pointer-events-none"></div>
 
-        {/* Modal Header */}
-        <div className="space-y-2 relative z-10">
+        {/* Inner Scrollable Container with clipped scrollbar */}
+        <div className="overflow-y-auto p-6 sm:p-8 space-y-4 sm:space-y-6 relative z-10 flex-1 custom-scrollbar">
+          {/* Modal Header */}
+          <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 font-bold rounded-full text-[11px] uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
@@ -543,6 +547,7 @@ export const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({
           </form>
         )}
 
+        </div>
       </div>
     </div>
   );

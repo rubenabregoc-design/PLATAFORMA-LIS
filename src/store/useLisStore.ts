@@ -303,7 +303,15 @@ export const useLisStore = create<LisState>()(
         }
 
         if (!isSupabaseConfigured) {
-          console.info('ℹ️ LIS-CORE: Supabase no configurado. Operando con almacén local limpio.');
+          console.info('ℹ️ LIS-CORE: Supabase no configurado. Operando con almacén local.');
+          if (get().orders.length === 0) {
+            set({
+              orders: MOCK_ORDERS,
+              patients: MOCK_PATIENTS,
+              results: MOCK_RESULTS,
+              activeOrderId: MOCK_ORDERS[0]?.id || ''
+            });
+          }
           return;
         }
 
@@ -371,11 +379,13 @@ export const useLisStore = create<LisState>()(
             e?.message?.includes('Failed to fetch') || 
             e?.message?.includes('ERR_NAME_NOT_RESOLVED') || 
             e?.message?.includes('521') ||
+            e?.message?.includes('503') ||
+            e?.message?.includes('schema cache') ||
             e?.message?.includes('CORS') ||
             e?.message?.includes('PGRST') ||
             !navigator.onLine;
           if (isNetworkOrSchemaError) {
-            console.warn('⚠️ [LIS-CORE] Conexión remota temporalmente no disponible. Operando en motor local seguro (1-3 ms).');
+            console.warn('⚠️ [LIS-CORE] Conexión local / remota temporalmente no disponible (503 / schema cache). Operando en almacén local clínico seguro.');
           } else {
             console.error('Error de sincronización:', e);
           }

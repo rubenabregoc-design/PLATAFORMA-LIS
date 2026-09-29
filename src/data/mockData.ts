@@ -38,9 +38,9 @@ export const MOCK_USERS: User[] = [
     username: 'rabrego',
     email: 'rabrego@abregotech.com',
     role: 'abregotech_admin',
-    licenseNumber: 'DEV-SR-9999',
+    licenseNumber: 'DEV-SR-2429',
     password: 'Manzana2429@@',
-    pinCode: '9999',
+    pinCode: '2429',
     twoFactorEnabled: true
   },
   {
@@ -52,8 +52,8 @@ export const MOCK_USERS: User[] = [
     email: 'developer@abregotech.com',
     role: 'abregotech_admin',
     licenseNumber: 'DEV-LEAD-2026',
-    password: 'admin',
-    pinCode: '9999',
+    password: 'DevLead2026!#',
+    pinCode: '7391',
     twoFactorEnabled: true
   },
   {
@@ -64,8 +64,8 @@ export const MOCK_USERS: User[] = [
     username: 'admin',
     email: 'admin@abregotech.com',
     role: 'abregotech_admin',
-    password: 'admin123',
-    pinCode: '9999',
+    password: 'AdminSys2026!#',
+    pinCode: '8420',
     twoFactorEnabled: true
   },
   // 🔬 Jefe de Laboratorio / Director Médico
@@ -159,8 +159,8 @@ export const MOCK_USERS: User[] = [
     username: 'amorales',
     email: 'ana.morales@labsanjose.com',
     role: 'receptionist',
-    password: '123456',
-    pinCode: '1234',
+    password: 'ClaveClinica2026!',
+    pinCode: '7182',
     twoFactorEnabled: false
   },
   // 🩺 Médico Referente

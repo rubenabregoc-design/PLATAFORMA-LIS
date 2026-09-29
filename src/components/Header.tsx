@@ -155,6 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
   showAllModules,
 }) => {
   const [activeCategoryMenu, setActiveCategoryMenu] = useState<string | null>(null);
+  const [isMoreSuitesDropdownOpen, setIsMoreSuitesDropdownOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isServerHealthModalOpen, setIsServerHealthModalOpen] = useState<boolean>(false);
 
@@ -238,6 +239,13 @@ export const Header: React.FC<HeaderProps> = ({
     }
   ];
 
+  // Active secondary suite (HIS, Blood Bank, Management/BI) for compact laptop mode
+  const activeSecondaryCategory = DOMAIN_CATEGORIES.slice(1).find(c => 
+    visibleTabs.some(t => t.category === c.id && t.id === activeTab)
+  );
+  const totalSecondaryCount = DOMAIN_CATEGORIES.slice(1).reduce((acc, c) => acc + c.count, 0);
+  const SecondaryActiveIcon = activeSecondaryCategory?.icon || Grid;
+
   // Filter modules based on Category AND Search Query
   const filteredModules = visibleTabs.filter((tab) => {
     const matchesCategory =
@@ -318,10 +326,12 @@ export const Header: React.FC<HeaderProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setActiveCategoryMenu(null);
+        setIsMoreSuitesDropdownOpen(false);
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setActiveCategoryMenu((prev) => (prev ? null : 'all'));
+        setIsMoreSuitesDropdownOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -365,12 +375,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Floating Luxury Glass Navigation Bar (Desktop & Laptop lg+) */}
-        <nav className="hidden lg:flex items-center space-x-0.5 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full p-0.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink-0">
+        <nav className="hidden lg:flex items-center space-x-1 bg-[#02071a]/85 backdrop-blur-3xl border border-white/10 rounded-full px-1.5 py-0.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_25px_rgba(0,0,0,0.8)] shrink-0">
 
-          {/* Direct Dashboard Pill */}
+          {/* Botón Independiente: Dashboard Principal */}
           <button
-            onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); }}
-            className={`flex items-center space-x-1 px-2 xl:px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); setIsMoreSuitesDropdownOpen(false); }}
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -378,14 +388,138 @@ export const Header: React.FC<HeaderProps> = ({
             title={language === 'EN' ? "Executive Dashboard" : "Dashboard Principal"}
           >
             <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider hidden 2xl:inline">Dashboard</span>
+            <span className="uppercase tracking-wider font-extrabold">{language === 'EN' ? 'Dashboard' : 'Principal'}</span>
           </button>
 
-          {/* 4 Suite Navigation Action Pills (Clicking any opens/toggles that suite's module menu) */}
-          <div className="flex items-center space-x-0.5">
+          {/* Divisor Visual Separador entre Principal y Módulos Clínicos */}
+          <div className="h-4 w-[1px] bg-slate-700/80 mx-0.5 shrink-0" />
+
+          {/* 1. MODO LAPTOP / PANTALLAS ESTÁNDAR (< 2xl): Píldora LIS + Desplegable "Más Suites" para garantizar espacio total a la derecha */}
+          <div className="flex 2xl:hidden items-center space-x-1 relative">
+            {/* Botón LIS Directo */}
+            {(() => {
+              const lisCat = DOMAIN_CATEGORIES[0];
+              const isLisActive = activeTab !== 'dashboard' && visibleTabs.some(t => t.category === 'lis' && t.id === activeTab);
+              const isLisOpen = isMenuOpen && activeCategoryMenu === 'lis';
+              return (
+                <button
+                  key="lis-compact"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsMoreSuitesDropdownOpen(false);
+                    setActiveCategoryMenu((prev) => (prev === 'lis' ? null : 'lis'));
+                  }}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isLisOpen
+                      ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.5)] ring-1 ring-cyan-300'
+                      : isLisActive
+                      ? 'bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-cyan-500/30 text-cyan-200 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,240,255,0.3)] font-black'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                  title={language === 'EN' ? `View LIS modules (${lisCat.count})` : `Ver módulos de LIS (${lisCat.count})`}
+                >
+                  <Microscope className={`w-3 h-3 shrink-0 ${isLisOpen ? 'text-slate-950' : 'text-cyan-400'}`} />
+                  <span className="uppercase tracking-wider font-extrabold">LIS</span>
+                  <span className={`text-[8.5px] font-mono px-1 rounded-full ${isLisOpen ? 'bg-slate-950/20 text-slate-950 font-black' : 'bg-cyan-500/15 text-cyan-300'}`}>
+                    {lisCat.count}
+                  </span>
+                </button>
+              );
+            })()}
+
+            {/* Desplegable Agrupador: "Más Suites" (HIS, Sangre, Gestión, Catálogo) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsMoreSuitesDropdownOpen((prev) => !prev)}
+                className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  isMoreSuitesDropdownOpen
+                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.3)]'
+                    : activeSecondaryCategory
+                    ? 'bg-gradient-to-r from-indigo-500/30 via-purple-500/20 to-rose-500/30 text-cyan-100 border border-cyan-400/50 font-black'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+                title={language === 'EN' ? "Hospital, Blood Bank, Management & Unified Catalog Suites" : "Suites Hospitalaria, Banco de Sangre, Gestión y Catálogo Completo"}
+              >
+                <SecondaryActiveIcon className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="uppercase tracking-wider font-extrabold">
+                  {activeSecondaryCategory ? activeSecondaryCategory.shortLabel : (language === 'EN' ? 'More Suites' : 'Más Suites')}
+                </span>
+                <span className="text-[8.5px] font-mono px-1 rounded-full bg-cyan-500/15 text-cyan-300">
+                  {activeSecondaryCategory ? activeSecondaryCategory.count : totalSecondaryCount}
+                </span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isMoreSuitesDropdownOpen ? 'rotate-180 text-cyan-400' : ''}`} />
+              </button>
+
+              {/* Menú Flotante Desplegable para Laptops */}
+              {isMoreSuitesDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setIsMoreSuitesDropdownOpen(false)}
+                  />
+                  <div className="absolute top-full mt-2 left-0 min-w-[260px] bg-[#02071a]/95 border border-cyan-500/40 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-40 flex flex-col space-y-1 ring-1 ring-cyan-500/20 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2.5 py-1 text-[9px] font-mono uppercase tracking-widest text-slate-400 border-b border-slate-800">
+                      {language === 'EN' ? 'CLINICAL SUITES' : 'SUITES CLÍNICAS'}
+                    </div>
+
+                    {DOMAIN_CATEGORIES.slice(1).map((cat) => {
+                      const CatIcon = cat.icon;
+                      const isCatActive = activeTab !== 'dashboard' && visibleTabs.some(t => t.category === cat.id && t.id === activeTab);
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setSearchQuery('');
+                            setIsMoreSuitesDropdownOpen(false);
+                            setActiveCategoryMenu(cat.id);
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isCatActive
+                              ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/50'
+                              : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <CatIcon className="w-4 h-4 text-cyan-400" />
+                            <span>{cat.label}</span>
+                          </div>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300">
+                            {cat.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+
+                    <div className="h-px bg-slate-800 my-1" />
+
+                    {/* Acceso al Catálogo Completo */}
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setIsMoreSuitesDropdownOpen(false);
+                        setActiveCategoryMenu('all');
+                      }}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-black text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Grid className="w-4 h-4 text-cyan-400" />
+                        <span>❖ {language === 'EN' ? 'Unified Catalog' : 'Catálogo Unificado'}</span>
+                      </div>
+                      <span className="text-[9.5px] font-mono bg-cyan-500/20 text-cyan-200 px-1.5 py-0.5 rounded-full border border-cyan-400/30">
+                        {visibleTabs.length} (⌘K)
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 2. MODO ULTRA-WIDE / PANTALLAS GRANDES (2xl+ >= 1536px): Todas las Píldoras Expandidas */}
+          <div className="hidden 2xl:flex items-center space-x-1">
             {DOMAIN_CATEGORIES.map((category) => {
               const CategoryIcon = category.icon;
-              const isCategoryActive = visibleTabs.some(t => t.category === category.id && t.id === activeTab);
+              const isCategoryActive = activeTab !== 'dashboard' && visibleTabs.some(t => t.category === category.id && t.id === activeTab);
               const isCategoryOpen = isMenuOpen && activeCategoryMenu === category.id;
 
               const handleCategoryClick = () => {
@@ -397,7 +531,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   key={category.id}
                   onClick={handleCategoryClick}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryOpen
                       ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(0,240,255,0.5)] ring-1 ring-cyan-300'
                       : isCategoryActive
@@ -414,25 +548,28 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               );
             })}
-          </div>
 
-          {/* Unified All Modules Button with Search Tip */}
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
-            }}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              isMenuOpen && activeCategoryMenu === 'all'
-                ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
-                : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
-            }`}
-            title={language === 'EN' ? "View full clinical catalog (Ctrl+K)" : "Ver catálogo clínico completo (Ctrl+K)"}
-          >
-            <Grid className={`w-3.5 h-3.5 shrink-0 ${isMenuOpen && activeCategoryMenu === 'all' ? 'text-slate-950' : 'text-cyan-400'}`} />
-            <span className="uppercase tracking-wider font-black">❖ {language === 'EN' ? 'CATALOG' : 'Catálogo'} ({visibleTabs.length})</span>
-            <span className="text-[9px] font-mono opacity-70 hidden 2xl:inline bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
-          </button>
+            {/* Divisor Visual hacia el Catálogo Completo */}
+            <div className="h-4 w-[1px] bg-slate-700/80 mx-0.5 shrink-0" />
+
+            {/* Botón Catálogo Unificado */}
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
+              }}
+              className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                isMenuOpen && activeCategoryMenu === 'all'
+                  ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,240,255,0.5)]'
+                  : 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30'
+              }`}
+              title={language === 'EN' ? "View full clinical catalog (Ctrl+K)" : "Ver catálogo clínico completo (Ctrl+K)"}
+            >
+              <Grid className={`w-3.5 h-3.5 shrink-0 ${isMenuOpen && activeCategoryMenu === 'all' ? 'text-slate-950' : 'text-cyan-400'}`} />
+              <span className="uppercase tracking-wider font-black">❖ {language === 'EN' ? 'CATALOG' : 'Catálogo'} ({visibleTabs.length})</span>
+              <span className="text-[9px] font-mono opacity-70 bg-slate-900/60 px-1 py-0.2 rounded border border-white/10">⌘K</span>
+            </button>
+          </div>
         </nav>
 
         {/* Right Controls: Status, Language, User Profile & Actions */}
@@ -458,10 +595,10 @@ export const Header: React.FC<HeaderProps> = ({
               className={`flex items-center space-x-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shrink-0 border ${
                 isDemoMode
                   ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400 shadow-[0_0_6px_#34d399]'}`} />
               <span className="uppercase tracking-wider font-extrabold hidden 2xl:inline">
                 {isDemoMode ? (language === 'EN' ? 'DEMO MODE' : 'MODO DEMO') : (language === 'EN' ? 'PRODUCTION (REAL)' : 'PRODUCCIÓN (REAL)')}
               </span>
@@ -471,23 +608,16 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {isSyncing && (
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full animate-pulse">
-               <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
-               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-tighter hidden xl:inline">Sync</span>
-            </div>
-          )}
-
           {/* Offline Sync Indicator */}
           <OfflineSyncIndicator />
 
-          {/* Server Infrastructure Health Monitor Pulse Button */}
+          {/* Server Infrastructure Health Monitor Button (Sin parpadeo) */}
           <button
             onClick={() => setIsServerHealthModalOpen(true)}
             title={language === 'EN' ? "AbregoTech Server Health & Cluster Telemetry (PostgreSQL 16, PostgREST :8000, ACE :5100)" : "Salud del Servidor y Telemetría de Clúster AbregoTech"}
-            className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
+            className="hidden 2xl:flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-slate-900 border border-cyan-500/40 hover:bg-cyan-500/20 hover:border-cyan-400 text-cyan-300 transition-all cursor-pointer font-bold text-xs shrink-0 shadow-sm"
           >
-            <Server className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
+            <Server className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="hidden 2xl:inline font-mono text-[10.5px]">{language === 'EN' ? 'SERVER: ONLINE' : 'SERVIDOR: ONLINE'}</span>
             <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">4.4ms</span>
           </button>
@@ -523,7 +653,7 @@ export const Header: React.FC<HeaderProps> = ({
             title={language === 'EN' ? "Shift Clock In/Out (Biometric / PIN)" : "Marcaje Digital de Entrada y Salida de Turno (Biométrico / PIN)"}
             className="hidden 2xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-300 transition-all cursor-pointer font-extrabold text-xs shrink-0 shadow-sm"
           >
-            <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+            <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span className="uppercase tracking-wider text-[10.5px]">{language === 'EN' ? 'Clock In/Out' : 'Marcaje Turno'}</span>
           </button>
 
@@ -534,27 +664,27 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-5 w-px bg-white/10 hidden 2xl:block"></div>
 
-          {/* Clinical User Profile Badge (Compact on < 2xl, expanded on 2xl+) */}
+          {/* Clinical User Profile Badge (Visible name on md+ screens, initials avatar on mobile, bounded width) */}
           <div
             onClick={onOpenBranchModal}
-            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full p-0.5 2xl:px-2.5 2xl:py-1 gap-1.5 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
+            className="flex items-center bg-[#02071a]/95 border border-cyan-500/40 rounded-full p-1 px-1.5 md:px-3 md:py-1 gap-2 shadow-md shrink-0 cursor-pointer hover:border-cyan-400 transition-colors"
             title={`${rawUserName} • ${getBranchName(currentBranch?.name, language)} (${language === 'EN' ? 'Click to change branch' : 'Click para cambiar sede'})`}
           >
-            <div className="hidden 2xl:flex flex-col text-right min-w-0 max-w-[140px]">
-              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate">
+            <div className="hidden md:flex flex-col text-right min-w-0 max-w-[110px] xl:max-w-[140px] 2xl:max-w-[200px]">
+              <span className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate" title={cleanUserName}>
                 {cleanUserName}
               </span>
               <span className="text-[9px] text-cyan-300 font-bold uppercase tracking-wider leading-none truncate mt-1">
                 {getBranchName(currentBranch?.name, language)}
               </span>
             </div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-[11px] flex items-center justify-center shadow-md shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0 border border-cyan-300/40">
               {userInitials}
             </div>
           </div>
 
-          {/* Lock & Logout Actions Container */}
-          <div className="flex items-center space-x-1 shrink-0 ml-0.5">
+          {/* Lock & Logout Actions Container (Always visible, shrink-0 guaranteed) */}
+          <div className="flex items-center space-x-1 shrink-0 ml-1">
             {/* Lock Session Button (Visible on lg+) */}
             {onLockSession && (
               <button
@@ -566,11 +696,11 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Logout Button (Distinctive luxury rose border, shrink-0 and explicit margin to guarantee it is never cut off) */}
+            {/* Logout Button (Distinctive luxury rose border, shrink-0 and explicit margin to guarantee it is NEVER cut off) */}
             <button
               onClick={logout}
               title={language === 'EN' ? "Sign Out" : "Cerrar Sesión"}
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-rose-500/40 hover:bg-rose-500/20 hover:border-rose-400 text-rose-300 hover:text-white transition-all cursor-pointer group shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-rose-500/50 hover:bg-rose-500/20 hover:border-rose-400 text-rose-300 hover:text-white transition-all cursor-pointer group shrink-0 shadow-sm"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-400/90 group-hover:text-white transition-transform" />
             </button>

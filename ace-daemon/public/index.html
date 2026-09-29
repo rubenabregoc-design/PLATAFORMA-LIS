@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ACE Local Daemon Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2314b8a6'><path d='M13 10V3L4 14h7v7l9-11h-7z'/></svg>">
+    <script>
+        // Silenciar advertencia de desarrollo de Tailwind CDN
+        const _warn = console.warn;
+        console.warn = function(...args) {
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+            _warn.apply(console, args);
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -81,7 +90,30 @@
     </main>
 
     <script>
-        const socket = io();
+        const socket = io({
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000
+        });
+
+        // Manejo resiliente de ciclo de vida BFCache (Back-Forward Cache)
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                console.info('🔄 [ACE-DAEMON] Página restaurada desde BFCache. Reconectando WebSocket...');
+                if (!socket.connected) {
+                    socket.connect();
+                }
+            }
+        });
+
+        window.addEventListener('pagehide', () => {
+            if (socket.connected) {
+                socket.disconnect();
+            }
+        });
+
         const terminal = document.getElementById('terminal');
         const nodesContainer = document.getElementById('nodes-container');
         let txCount = 0;

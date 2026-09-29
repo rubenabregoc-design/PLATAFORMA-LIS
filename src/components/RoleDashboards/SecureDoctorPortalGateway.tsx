@@ -265,7 +265,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
               type="button"
               onClick={() => {
                 setLicenseNumber('MED-10492-PA');
-                setAccessPin('1234');
+                setAccessPin('1049');
                 setErrorMsg(null);
               }}
               className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/40 text-xs transition cursor-pointer flex items-center justify-between"
@@ -273,7 +273,7 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
               <div>
                 <div className="font-bold text-white">Dr. Roberto Icaza</div>
                 <div className="text-indigo-400 font-mono text-[11px]">
-                  {isEn ? 'License: MED-10492-PA | PIN: 1234' : 'Idoneidad: MED-10492-PA | PIN: 1234'}
+                  {isEn ? 'License: MED-10492-PA | PIN: 1049' : 'Idoneidad: MED-10492-PA | PIN: 1049'}
                 </div>
               </div>
               <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded-lg font-bold">

@@ -16,6 +16,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // URL del Webhook y API LIS Core (Apuntando a nuestro simulador en la nube)
 const LIS_API_URL = process.env.LIS_API_URL || 'http://localhost:4000/v1/analyzer';

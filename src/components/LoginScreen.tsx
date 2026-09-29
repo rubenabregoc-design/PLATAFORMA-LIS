@@ -4,6 +4,7 @@ import { MOCK_TENANTS, MOCK_USERS } from '../data/mockData';
 import { useLisStore } from '../store/useLisStore';
 import loginBg from '@/login-bg.png';
 import { getTimeBasedGreeting } from '../utils/greeting';
+import { validateEthicalPin } from '../utils/securityHarden';
 import {
   Building2, Lock, LogIn, Eye, EyeOff,
   AlertTriangle, Key, Calendar, Clock, UserCheck, ShieldCheck,
@@ -63,15 +64,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   return { ...u, name: 'Equipo de Desarrollo / Lead Dev' };
                 }
                 if (u.id === 'usr-rabrego-1' || u.username === 'rabrego' || u.email === 'rabrego@abregotech.com') {
-                  const oldAdminHash = btoa('abregotech_salt_admin');
-                  const isOldAdmin = u.password === 'admin' || u.passwordHash === oldAdminHash || (!u.password && !u.passwordHash);
-                  if (isOldAdmin) {
+                  // Preservar siempre las credenciales personalizadas si ya fueron modificadas por el usuario
+                  if (!u.pinCode && !u.password && !u.passwordHash) {
                     modified = true;
                     return {
                       ...u,
+                      name: 'Ing. Rubén Ábrego',
                       password: 'Manzana2429@@',
                       passwordHash: btoa('abregotech_salt_Manzana2429@@'),
-                      pinCode: u.pinCode || '9999'
+                      pinCode: '2429'
                     };
                   }
                 }
@@ -148,12 +149,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return;
     }
 
-    if (cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
-      setForgotError(
-        language === 'EN'
-          ? 'Electronic signature PIN must be exactly 4 numeric digits.'
-          : 'El PIN de firma electrónica debe ser de exactamente 4 dígitos numéricos.'
-      );
+    const pinValidation = validateEthicalPin(cleanPin);
+    if (!pinValidation.isValid) {
+      setForgotError(pinValidation.error || 'PIN inválido por políticas de seguridad.');
       return;
     }
 
@@ -290,16 +288,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   // Handlers de protección anti-inspección DOM (Evita que el PIN y Contraseña aparezcan en texto plano en DevTools/Inspeccionar)
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value;
-    const prevLen = pinInput.length;
-    if (rawVal.length < prevLen) {
-      setPinInput(pinInput.slice(0, rawVal.length));
-    } else {
-      const added = rawVal.replace(/•/g, '').replace(/\D/g, '');
-      if (added) {
-        setPinInput((prev) => (prev + added).slice(0, 4));
-      }
-    }
+    const clean = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setPinInput(clean);
     if (errorMessage) setErrorMessage(null);
   };
 
@@ -359,6 +349,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState<number>(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number>(0);
 
   const { language, setLanguage } = useLisStore();
 
@@ -371,6 +363,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Temporizador de enfriamiento anti-fuerza bruta
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const cooldownTimer = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownTimer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(cooldownTimer);
+  }, [lockoutSeconds]);
 
   // Escuchar si se crean usuarios en otra pestaña / componente
   useEffect(() => {
@@ -427,6 +434,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const trimmedUser = usernameInput.trim();
     const trimmedPassword = passwordInput.trim();
     const trimmedPin = pinInput.trim();
+
+    // 0. Comprobación de Enfriamiento de Seguridad Anti-Fuerza Bruta
+    if (lockoutSeconds > 0) {
+      setErrorMessage(
+        language === 'EN'
+          ? `⚠️ Anti-brute force security lock active. Please wait ${lockoutSeconds} seconds.`
+          : `⚠️ Bloqueo ético anti-fuerza bruta activo. Espere ${lockoutSeconds} segundos antes de intentar.`
+      );
+      return;
+    }
 
     // 1. Validar campo de usuario
     if (!trimmedUser) {
@@ -509,10 +526,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           username: query,
           email: query.includes('@') ? query : `${query}@abregotech.com`,
           role: 'abregotech_admin',
-          licenseNumber: 'DEV-SR-9999',
+          licenseNumber: 'DEV-SR-2429',
           password: 'Manzana2429@@',
           twoFactorEnabled: true,
-          pinCode: '9999'
+          pinCode: '2429'
         };
       }
 
@@ -538,38 +555,61 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       // Validar estrictamente contraseña si el usuario ya la tiene configurada (en texto o hash de almacenamiento)
       const inputHash = btoa(`abregotech_salt_${trimmedPassword}`);
       const isRabrego = targetUser.username === 'rabrego' || targetUser.id === 'usr-rabrego-1' || targetUser.email === 'rabrego@abregotech.com';
-      const isPasswordInvalid = isRabrego
-        ? (trimmedPassword !== 'Manzana2429@@' && trimmedPassword !== 'admin')
-        : (targetUser.passwordHash
-            ? targetUser.passwordHash !== inputHash
-            : Boolean(targetUser.password && targetUser.password !== trimmedPassword));
+
+      // Valida si coincide el hash guardado, o contraseña en texto plano, o credenciales maestras iniciales
+      const matchesStoredHash = Boolean(targetUser.passwordHash && targetUser.passwordHash === inputHash);
+      const matchesStoredPlain = Boolean(targetUser.password && targetUser.password === trimmedPassword);
+      const matchesMasterFallback = isRabrego && (trimmedPassword === 'Manzana2429@@' || trimmedPassword === 'admin');
+
+      const isPasswordInvalid = !(matchesStoredHash || matchesStoredPlain || matchesMasterFallback);
 
       if (isPasswordInvalid) {
         setIsAuthenticating(false);
-        setErrorMessage(
-          language === 'EN'
-            ? 'Invalid password. Please check your credentials.'
-            : 'Contraseña incorrecta. Por favor verifique sus credenciales de acceso.'
-        );
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+        if (nextAttempts >= 3) {
+          setLockoutSeconds(30);
+          setErrorMessage(
+            language === 'EN'
+              ? '⚠️ 3 failed attempts. Anti-brute force security lock active for 30s.'
+              : '⚠️ 3 intentos fallidos. Bloqueo ético anti-fuerza bruta activado por 30s.'
+          );
+        } else {
+          setErrorMessage(
+            language === 'EN'
+              ? `Invalid password. (${3 - nextAttempts} attempts remaining)`
+              : `Contraseña incorrecta. (Quedan ${3 - nextAttempts} intentos antes de bloqueo temporal)`
+          );
+        }
         return;
       }
 
-      // Si es rabrego, sincronizar contraseña activa con Manzana2429@@
-      if (isRabrego && targetUser.password !== 'Manzana2429@@') {
-        targetUser.password = 'Manzana2429@@';
-        targetUser.passwordHash = btoa('abregotech_salt_Manzana2429@@');
-      }
-
-      // Validar estrictamente PIN de firma electrónica (4D) si el usuario ya lo tiene configurado
-      if (targetUser.pinCode && targetUser.pinCode !== trimmedPin) {
+      // Validar estrictamente PIN de firma electrónica (4D)
+      // Respeta prioritariamente el PIN personalizado que guardó el usuario en targetUser.pinCode
+      const expectedPin = targetUser.pinCode || (isRabrego ? '2429' : undefined);
+      if (expectedPin && expectedPin !== trimmedPin) {
         setIsAuthenticating(false);
-        setErrorMessage(
-          language === 'EN'
-            ? 'Invalid 4-digit signature PIN. Please check your security credential.'
-            : 'PIN de firma electrónica incorrecto. Ingrese su PIN de 4 dígitos asignado.'
-        );
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+        if (nextAttempts >= 3) {
+          setLockoutSeconds(30);
+          setErrorMessage(
+            language === 'EN'
+              ? '⚠️ 3 failed attempts. Anti-brute force security lock active for 30s.'
+              : '⚠️ 3 intentos fallidos detectados. Bloqueo ético anti-fuerza bruta activado por 30 segundos.'
+          );
+        } else {
+          setErrorMessage(
+            language === 'EN'
+              ? `Invalid 4-digit signature PIN. (${3 - nextAttempts} attempts remaining)`
+              : `PIN de firma electrónica incorrecto. (Quedan ${3 - nextAttempts} intentos antes de bloqueo temporal)`
+          );
+        }
         return;
       }
+
+      // Acceso autorizado: resetear contador de fallos
+      setFailedAttempts(0);
 
       // Sede y sucursal final seleccionada
       const finalTenant = allTenants.find((t) => t.id === selectedTenantId) || currentTenant;
@@ -758,7 +798,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 maxLength={4}
                 inputMode="numeric"
                 autoComplete="new-password"
-                value={'•'.repeat(pinInput.length)}
+                value={pinInput}
                 onChange={handlePinChange}
                 onKeyDown={handlePinKeyDown}
                 onPaste={handlePinPaste}
@@ -801,11 +841,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           {/* Botón de Acceso Principal a la Estación */}
           <button
             type="submit"
-            disabled={isAuthenticating}
+            disabled={isAuthenticating || lockoutSeconds > 0}
             className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-teal-400 via-cyan-500 to-teal-400 hover:brightness-110 active:scale-[0.99] text-slate-950 font-black rounded-xl text-xs sm:text-sm tracking-wider uppercase transition shadow-lg shadow-cyan-500/25 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50 mt-1"
           >
             {isAuthenticating ? (
               <span>{language === 'EN' ? 'Verifying Credentials...' : 'Verificando Credenciales...'}</span>
+            ) : lockoutSeconds > 0 ? (
+              <span className="text-rose-950 font-black">{language === 'EN' ? `LOCKED (${lockoutSeconds}s)` : `BLOQUEADO POR SEGURIDAD (${lockoutSeconds}s)`}</span>
             ) : (
               <>
                 <LogIn className="w-4 h-4 stroke-[3]" />

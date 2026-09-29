@@ -2,7 +2,7 @@
 
 @layer base {
   html {
-    font-size: 15px; /* Base scaling for optimal clinical legibility */
+    font-size: 16px; /* Universal browser standard at 100% zoom */
     scroll-behavior: smooth;
     color-scheme: dark;
   }
@@ -28,19 +28,24 @@
 
   /* Custom subtle scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #020617;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #334155;
     border-radius: 9999px;
-    border: 2px solid #020617;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #475569;
+  }
+
+  /* Standard Firefox thin scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
   }
 
   /* Eliminación global de parpadeos y animaciones distractoras (Zero-Flicker / Enterprise Clinical UI) */

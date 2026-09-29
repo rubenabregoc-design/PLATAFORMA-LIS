@@ -103,7 +103,9 @@ pause`;
 <body class="bg-slate-950 text-white p-8"><h1 class="text-2xl text-teal-400 font-bold mb-4">ACE Local Daemon</h1>
 <div id="terminal" class="bg-slate-900 p-4 font-mono text-xs rounded-xl h-96 overflow-y-auto"></div>
 <script>
-    const socket = io();
+    const socket = io({ reconnection: true, reconnectionAttempts: Infinity, timeout: 20000 });
+    window.addEventListener('pageshow', (e) => { if (e.persisted && !socket.connected) socket.connect(); });
+    window.addEventListener('pagehide', () => { if (socket.connected) socket.disconnect(); });
     socket.on('terminal_log', data => {
         document.getElementById('terminal').innerHTML += \`<div class="text-slate-400">[\${data.timestamp}] \${data.message}</div>\`;
     });

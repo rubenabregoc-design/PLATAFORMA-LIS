@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLisStore } from '../store/useLisStore';
 import { SmtpConfig, SmtpConfigService } from '../services/SmtpConfigService';
 import {
   Mail,
@@ -27,6 +29,8 @@ export const SmtpConfigModal: React.FC<SmtpConfigModalProps> = ({
   const [testEmail, setTestEmail] = useState<string>(config.fromEmail || '');
   const [testStatus, setTestStatus] = useState<'IDLE' | 'SENDING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [testMessage, setTestMessage] = useState<string>('');
+  const { language } = useLisStore();
+  const isEn = language === 'EN';
 
   if (!isOpen) return null;
 
@@ -90,24 +94,24 @@ export const SmtpConfigModal: React.FC<SmtpConfigModalProps> = ({
     }, 1200);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-teal-500/30 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  const modalContent = (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-teal-500/40 w-full max-w-2xl rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-5 border-b border-teal-800/40 flex items-center justify-between text-white">
+        <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-5 border-b border-teal-800/40 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-teal-500/20 border border-teal-400/30 rounded-xl text-teal-300">
               <Server className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold flex items-center space-x-2">
-                <span>Configuración de Servidor SMTP (Correos)</span>
+                <span>{isEn ? 'SMTP Server Configuration (Email)' : 'Configuración de Servidor SMTP (Correos)'}</span>
                 <span className="text-[10px] bg-teal-500/20 text-teal-300 border border-teal-500/30 px-2 py-0.5 rounded-full font-mono">
-                  Protocolo RFC 5321
+                  RFC 5321
                 </span>
               </h2>
               <p className="text-xs text-teal-200/80">
-                Configure su servidor de correo para el envío de Facturas DGI y Notificaciones de Resultados
+                {isEn ? 'Configure your outbound email server for electronic invoices and patient reports' : 'Configure su servidor de correo para el envío de Facturas DGI y Notificaciones de Resultados'}
               </p>
             </div>
           </div>
