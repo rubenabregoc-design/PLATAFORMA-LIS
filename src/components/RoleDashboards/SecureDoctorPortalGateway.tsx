@@ -100,27 +100,65 @@ export const SecureDoctorPortalGateway: React.FC<SecureDoctorPortalGatewayProps>
   // VIEW 1: AUTHENTICATED DOCTOR DASHBOARD (Pasarela Médica Inmediata)
   // ─────────────────────────────────────────────────────────────────────────
   if (authenticatedDoctor) {
+    const currentHour = new Date().getHours();
+    let dynamicGreeting = '';
+    if (currentHour >= 5 && currentHour < 12) {
+      dynamicGreeting = isEn ? 'Good morning' : '¡Buenos días';
+    } else if (currentHour >= 12 && currentHour < 19) {
+      dynamicGreeting = isEn ? 'Good afternoon' : '¡Buenas tardes';
+    } else {
+      dynamicGreeting = isEn ? 'Good evening' : '¡Buenas noches';
+    }
+
     return (
       <div className="space-y-6">
-        {/* Doctor Session Top Bar */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-          <div className="flex items-center space-x-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
-            <span className="text-xs text-slate-300 font-medium">
-              {isEn ? 'Connected Physician Portal' : 'Portal Médico Conectado'} • <strong className="text-white">{authenticatedDoctor.name}</strong>
-            </span>
-            <span className="text-xs text-indigo-300 font-mono font-bold bg-indigo-950/70 border border-indigo-500/30 px-2 py-0.5 rounded-md">
-              {authenticatedDoctor.license}
-            </span>
+        {/* Doctor Session Top Bar - Alta Visibilidad Ejecutiva & Saludo Personalizado */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/40 rounded-3xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+
+          <div className="flex items-center space-x-4 relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-600/25 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shadow-inner shrink-0">
+              <Stethoscope className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse ring-4 ring-emerald-400/20"></span>
+                <span className="text-[11px] uppercase tracking-wider font-black text-emerald-400 font-mono">
+                  {isEn ? 'Physician Portal Online • Verified Session' : 'Portal Médico Oficial • Conexión Activa y Segura'}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {dynamicGreeting}, <span className="text-indigo-300">{authenticatedDoctor.name}</span>
+              </h2>
+
+              <div className="text-xs text-slate-300 flex flex-wrap items-center gap-2 pt-0.5">
+                <span className="font-semibold text-slate-200">{authenticatedDoctor.clinic}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-indigo-300 font-medium">{authenticatedDoctor.specialty}</span>
+                <span className="text-slate-600">•</span>
+                <span className="font-mono font-bold text-cyan-300 bg-slate-950/90 px-2.5 py-0.5 rounded-md border border-cyan-500/30 text-[11px]">
+                  Idoneidad: {authenticatedDoctor.license}
+                </span>
+                {authenticatedDoctor.minsaRegistrationNumber && (
+                  <span className="font-mono text-emerald-300 bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-500/30 text-[11px]">
+                    MINSA: {authenticatedDoctor.minsaRegistrationNumber}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl transition cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{isEn ? 'Sign Out / Switch License' : 'Cerrar Sesión / Cambiar Idoneidad'}</span>
-          </button>
+          <div className="flex items-center space-x-3 relative z-10 ml-auto sm:ml-0">
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-xs sm:text-sm font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/30 px-4 py-2.5 rounded-xl transition cursor-pointer shadow-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{isEn ? 'Sign Out / Switch License' : 'Cerrar Sesión / Cambiar Idoneidad'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Render Doctor Portal */}

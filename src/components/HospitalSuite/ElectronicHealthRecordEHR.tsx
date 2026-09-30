@@ -651,7 +651,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
       {/* Modal Directorio Clínico de Pacientes (Búsqueda Rápida) */}
       {isPatientModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2.5">
@@ -708,7 +708,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
             </div>
 
             {/* Patient List */}
-            <div className="overflow-y-auto space-y-2 flex-1 pr-1 max-h-[380px]">
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 max-h-[420px]">
               {filteredAdmissions.map((adm) => {
                 const isSelected = adm.id === activeAdmission.id;
                 const wardLabel = getWardLocationLabel(adm);
@@ -724,41 +724,63 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                         })
                       );
                     }}
-                    className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
-                        ? 'bg-indigo-950/40 border-indigo-500 text-white shadow-md'
+                        ? 'bg-indigo-950/40 border-indigo-500 text-white shadow-md ring-1 ring-indigo-500/50'
                         : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 text-slate-300 hover:bg-slate-950'
                     }`}
                   >
-                    <div className="flex items-center space-x-3 truncate">
-                      <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-indigo-400 shrink-0">
+                    <div className="flex items-start space-x-3.5 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-300 shrink-0 mt-0.5">
                         {adm.patientName.charAt(0)}
                       </div>
-                      <div className="truncate">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-white text-xs truncate">{adm.patientName}</span>
-                          <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md font-mono">
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        {/* Fila 1: Paciente, Cédula y Ubicación */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-white text-sm">{adm.patientName}</span>
+                          <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded-md border border-slate-700/60">
                             {adm.patientNationalId}
                           </span>
+                          <span className="text-[10px] font-semibold bg-cyan-950/60 text-cyan-300 border border-cyan-800/40 px-2 py-0.5 rounded-md">
+                            📍 {wardLabel}
+                          </span>
                         </div>
-                        <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 mt-0.5">
-                          <span className="text-cyan-400 font-medium">📍 {wardLabel}</span>
-                          <span>• Dx: <strong className="text-slate-300">{adm.primaryDiagnosisIcd10}</strong></span>
-                          <span>• Dr. {adm.admittingDoctorName}</span>
+
+                        {/* Fila 2: Diagnóstico CIE-10 Completo */}
+                        <div className="text-xs flex items-baseline gap-1.5 leading-relaxed">
+                          <span className="text-indigo-400 font-bold text-[11px] shrink-0">Dx:</span>
+                          <span className="text-slate-300 font-medium">{adm.primaryDiagnosisIcd10}</span>
+                        </div>
+
+                        {/* Fila 3: Médico Tratante Completo (sin cortes) */}
+                        <div className="text-[11px] flex items-center gap-1.5 text-slate-400">
+                          <span className="text-emerald-400 font-semibold shrink-0">🩺 Médico:</span>
+                          <span className="text-slate-200 font-medium">
+                            {adm.admittingDoctorName || 'Dr. Médico Adscrito / Turno'}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ml-2 ${
-                        isSelected
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                      }`}
-                    >
-                      {isSelected ? '✓ Activo' : 'Abrir →'}
-                    </button>
+                    <div className="shrink-0 self-center ml-2">
+                      <button
+                        type="button"
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 ${
+                          isSelected
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <span>✓ Activo</span>
+                        ) : (
+                          <>
+                            <span>Abrir</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 );
               })}

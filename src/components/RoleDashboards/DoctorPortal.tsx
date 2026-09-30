@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Order, TestResult, Patient, Specimen } from '../../types';
 import {
   ResponsiveContainer,
@@ -13,8 +13,10 @@ import {
   UserCheck, FileText, Download, Search, CheckCircle2, Plus,
   Stethoscope, ShieldAlert, Award, ShieldCheck, QrCode,
   Calendar, Clock, AlertTriangle, Eye, ChevronDown, ChevronUp,
-  Building2, Hash, Sparkles, Filter, Check, RefreshCw, Activity, TrendingUp
+  Building2, Hash, Sparkles, Filter, Check, RefreshCw, Activity, TrendingUp,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
+import { ElectronicHealthRecordEHR } from '../HospitalSuite/ElectronicHealthRecordEHR';
 
 export interface DoctorPortalProps {
   orders: Order[];
@@ -47,12 +49,29 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
     minsaRegistrationNumber: 'RM-5420-PA'
   }
 }) => {
-  const [activeTab, setActiveTab] = useState<'expedientes' | 'idoneidad' | 'requisition' | 'batch' | 'evolutivo'>('expedientes');
+  const [activeTab, setActiveTab] = useState<'expedientes' | 'idoneidad' | 'requisition' | 'batch' | 'evolutivo' | 'ehr'>('expedientes');
   const [selectedEvolutivoPatientId, setSelectedEvolutivoPatientId] = useState<string>('');
   const [selectedAnalyte, setSelectedAnalyte] = useState<string>('Glucosa');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'VALIDADA_MED' | 'EN_PROCESO' | 'PANIC'>('ALL');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  // Paginación reactiva de órdenes
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Saludo dinámico según horario del día
+  const doctorGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return '¡Buenos días';
+    if (hour >= 12 && hour < 19) return '¡Buenas tardes';
+    return '¡Buenas noches';
+  }, []);
+
+  // Resetear a página 1 al filtrar o buscar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   // Formulario de nueva requisición electrónica
   const [patientCedula, setPatientCedula] = useState('8-812-4432');
@@ -99,6 +118,13 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
       return true;
     });
   }, [orders, results, searchQuery, statusFilter]);
+
+  // Cálculo de Paginación de Órdenes
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, currentPage, pageSize]);
 
   // Contadores analíticos del portal médico
   const metrics = useMemo(() => {
@@ -197,14 +223,21 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/90 border border-indigo-400/40 text-xs font-bold text-indigo-300 shadow-inner">
-              <Stethoscope className="w-3.5 h-3.5 text-indigo-400" />
-              <span>MINSA República de Panamá • Consejo Técnico de Salud</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-emerald-400 flex items-center space-x-1">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Idoneidad Verificada</span>
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/90 border border-indigo-400/40 text-xs font-bold text-indigo-300 shadow-inner">
+                <Stethoscope className="w-3.5 h-3.5 text-indigo-400" />
+                <span>MINSA República de Panamá • Consejo Técnico de Salud</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-emerald-400 flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Idoneidad Verificada</span>
+                </span>
+              </div>
+
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-xs font-bold text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{doctorGreeting}, Dr. Roberto Icaza</span>
+              </div>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center space-x-3">
@@ -270,6 +303,20 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
           >
             <FileText className="w-4 h-4" />
             <span>Pasarela de Expedientes & Resultados</span>
+          </button>
+
+          {/* Botón 📋 EHR solicitado para el Portal del Doctor */}
+          <button
+            onClick={() => setActiveTab('ehr')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+              activeTab === 'ehr'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+            }`}
+            title="Expediente Clínico Electrónico (EHR / Historia Clínica)"
+          >
+            <span className="text-base leading-none">📋</span>
+            <span>EHR</span>
           </button>
 
           <button
@@ -415,7 +462,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.map((ord) => {
+                    paginatedOrders.map((ord) => {
                       const orderResults = results.filter((r) => r.orderId === ord.id);
                       const hasPanic = orderResults.some((r) => r.flag === 'PANICO' || r.flag === 'CRITICO');
                       const isExpanded = expandedOrderId === ord.id;
@@ -547,6 +594,91 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* 📑 Barra de Paginación Médica Integral */}
+            <div className="bg-slate-950/90 border-t border-slate-800 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-slate-400">
+                <span>
+                  Mostrando{' '}
+                  <strong className="text-white font-mono">
+                    {filteredOrders.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+                  </strong>{' '}
+                  a{' '}
+                  <strong className="text-white font-mono">
+                    {Math.min(currentPage * pageSize, filteredOrders.length)}
+                  </strong>{' '}
+                  de{' '}
+                  <strong className="text-white font-mono">{filteredOrders.length}</strong>{' '}
+                  órdenes clínicas
+                </span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <div className="hidden sm:flex items-center space-x-1.5">
+                  <span>Por página:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-slate-900 border border-slate-800 text-slate-200 font-bold rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-1.5 ml-auto sm:ml-0">
+                <span className="text-slate-400 mr-2 font-medium">
+                  Página <strong className="text-white font-mono">{currentPage}</strong> de{' '}
+                  <strong className="text-white font-mono">{totalPages}</strong>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage <= 1}
+                  className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                  title="Primera página"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer flex items-center space-x-1 font-semibold"
+                  title="Página anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Anterior</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer flex items-center space-x-1 font-semibold"
+                  title="Página siguiente"
+                >
+                  <span className="hidden sm:inline">Siguiente</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage >= totalPages}
+                  className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                  title="Última página"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1136,6 +1268,40 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* PESTAÑA 6: EHR (EXPEDIENTE CLÍNICO ELECTRÓNICO UNIFICADO)           */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'ehr' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                📋
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 font-mono">
+                    Acceso Clínico Directo
+                  </span>
+                </div>
+                <h2 className="text-lg font-black text-white">Historia Clínica & Expediente Electrónico (EHR)</h2>
+                <p className="text-xs text-slate-400">
+                  Evolución SOAP con telemetría en tiempo real, mapa anatómico interactivo, constantes vitales, órdenes diagnósticas LIS y fármacos.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-xl font-mono font-bold">
+                {doctorInfo.name} • {doctorInfo.license}
+              </span>
+            </div>
+          </div>
+
+          <ElectronicHealthRecordEHR onOpenPdf={onOpenPdf} />
         </div>
       )}
     </div>
