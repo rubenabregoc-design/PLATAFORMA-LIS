@@ -1637,12 +1637,12 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
   }, [queue]);
 
   return (
-    <div className={`space-y-6 ${printableDocument ? 'no-print' : ''}`}>
+    <div className="space-y-6">
       {/* ============================================================== */}
       {/* CASO 1: VISTA CLÍNICA EXCLUSIVA DEL PACIENTE EN ATENCIÓN       */}
       {/* ============================================================== */}
       {activePatient ? (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className={`space-y-5 animate-in fade-in duration-200 ${printableDocument ? 'no-print' : ''}`}>
           {/* Header Superior Bloqueado al Paciente Activo */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-900 border-2 border-indigo-500/50 rounded-3xl p-5 shadow-2xl space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -3222,7 +3222,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
         /* ============================================================== */
         /* CASO 2: TABLERO DE ATENCIÓN DEL MÉDICO (SALA DE ESPERA / COLA) */
         /* ============================================================== */
-        <div className="space-y-6">
+        <div className={`space-y-6 ${printableDocument ? 'no-print' : ''}`}>
           {/* Tarjetas de Métricas de la Consulta */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 text-center space-y-1">
