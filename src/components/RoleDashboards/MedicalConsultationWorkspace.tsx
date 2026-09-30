@@ -1637,7 +1637,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
   }, [queue]);
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${printableDocument ? 'no-print' : ''}`}>
       {/* ============================================================== */}
       {/* CASO 1: VISTA CLÍNICA EXCLUSIVA DEL PACIENTE EN ATENCIÓN       */}
       {/* ============================================================== */}
@@ -3667,27 +3667,71 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
       {/* MODAL: RESUMEN / IMPRESIÓN OFICIAL (RECETA, INCAPACIDAD, SOAP) */}
       {/* ============================================================== */}
       {printableDocument && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div id="medical-print-modal-container" className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
           {/* Estilos estrictos para tamaño Carta (US Letter 8.5 x 11 in) con fondo blanco oficial */}
           <style>{`
             @media print {
               @page {
                 size: letter portrait;
-                margin: 10mm 12mm;
+                margin: 8mm 10mm;
               }
               html, body {
-                width: 8.5in;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: #ffffff !important;
+                background-color: #ffffff !important;
                 color: #0f172a !important;
                 font-size: 10pt !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                overflow: visible !important;
               }
-              .no-print {
+              .no-print,
+              .no-print *,
+              header,
+              nav,
+              aside,
+              footer {
                 display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              #medical-print-modal-container,
+              .fixed.inset-0.z-50 {
+                position: static !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                border: none !important;
+                display: block !important;
+                inset: auto !important;
+              }
+              #medical-print-modal-container > div {
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                max-height: none !important;
+                min-height: auto !important;
               }
               #printable-medical-document {
                 position: static !important;
+                display: block !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 width: 100% !important;
@@ -3695,6 +3739,8 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 box-shadow: none !important;
                 border: none !important;
                 background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #0f172a !important;
               }
             }
           `}</style>

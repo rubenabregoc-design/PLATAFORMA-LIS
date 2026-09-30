@@ -289,7 +289,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
   return (
     <div className="space-y-6 select-none font-sans">
       {/* 🌟 Banner Superior Único y Consolidado: Pasarela Médica Oficial e Idoneidad */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden no-print">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-600"></div>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -381,7 +381,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
       </div>
 
       {/* 🎛️ Barra de Pestañas Principales del Portal del Médico */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3 no-print">
         <div className="flex flex-wrap items-center gap-2">
           {/* Módulo Principal Unificado: Consulta Médica & Expediente Clínico (EHR) */}
           <button
@@ -465,13 +465,13 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
           </button>
         </div>
 
-        <div className="text-xs text-slate-400 font-mono">
+        <div className="text-xs text-slate-400 font-mono no-print">
           Sesión Activa: <strong className="text-white">{doctorInfo.license}</strong>
         </div>
       </div>
 
       {orderCreatedSuccess && (
-        <div className="p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-200 text-sm font-bold flex items-center space-x-3 animate-in fade-in">
+        <div className="p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-200 text-sm font-bold flex items-center space-x-3 animate-in fade-in no-print">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span>¡Requisición médica {orderCreatedSuccess} transmitida con éxito al sistema LIS del laboratorio!</span>
         </div>

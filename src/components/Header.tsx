@@ -347,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="bg-[#050814]/90 backdrop-blur-2xl text-white border-b border-white/[0.08] sticky top-0 z-40 shadow-[0_4px_25px_rgba(0,0,0,0.7)] w-full select-none">
+      <header className="bg-[#050814]/90 backdrop-blur-2xl text-white border-b border-white/[0.08] sticky top-0 z-40 shadow-[0_4px_25px_rgba(0,0,0,0.7)] w-full select-none no-print">
       {/* Top Navbar Row */}
       <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-2 max-w-[1920px] mx-auto">
 

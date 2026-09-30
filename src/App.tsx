@@ -1347,7 +1347,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800/80 py-6 text-xs text-center relative z-10">
+      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800/80 py-6 text-xs text-center relative z-10 no-print">
         <div className="max-w-7xl mx-auto px-4 space-y-1">
           <div className="font-bold text-slate-200">AbregoTech Solutions S.A. — LIS-Core + Middleware Engine</div>
           <div>Diseñado para Laboratorios Clínicos e Integración ASTM/HL7 en Panamá y Centroamérica</div>
