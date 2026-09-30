@@ -29,9 +29,17 @@ PORTAL_SERVICES.forEach(({ port, name, portal }) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
-  app.listen(port, '0.0.0.0', () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`  ✓ ${name}`);
     console.log(`    ➜ URL Local:   http://localhost:${port}`);
     console.log(`    ➜ Red Hospital: http://0.0.0.0:${port}\n`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`  ℹ️  Puerto ${port} ya está activo y escuchando (${name}).`);
+    } else {
+      console.error(`  ❌ Error en puerto ${port}:`, err.message);
+    }
   });
 });
