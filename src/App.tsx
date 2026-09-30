@@ -17,7 +17,7 @@ import { useLisStore } from './store/useLisStore';
 import { SupabaseService } from './services/SupabaseService';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
 import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
-import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck } from 'lucide-react';
+import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck, Settings } from 'lucide-react';
 import { getTimeBasedGreeting } from './utils/greeting';
 import { getTabLabel, getBranchName, getRoleLabel } from './utils/i18n';
 import { LoginScreen } from './components/LoginScreen';
@@ -214,15 +214,15 @@ export default function App() {
     return true;
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [dashboardSubMode, setDashboardSubMode] = useState<'LIS' | 'HIS' | 'BLOODBANK'>(() => {
+  const [dashboardSubMode, setDashboardSubMode] = useState<'LIS' | 'HIS' | 'BLOODBANK' | 'CONFIG'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('lis_dashboard_submode');
-      if (saved === 'LIS' || saved === 'HIS' || saved === 'BLOODBANK') return saved;
+      if (saved === 'LIS' || saved === 'HIS' || saved === 'BLOODBANK' || saved === 'CONFIG') return saved as any;
     }
     return 'LIS';
   });
 
-  const handleDashboardSubModeChange = (mode: 'LIS' | 'HIS' | 'BLOODBANK') => {
+  const handleDashboardSubModeChange = (mode: 'LIS' | 'HIS' | 'BLOODBANK' | 'CONFIG') => {
     setDashboardSubMode(mode);
     if (typeof window !== 'undefined') {
       localStorage.setItem('lis_dashboard_submode', mode);
@@ -1055,12 +1055,28 @@ export default function App() {
                       <span className="hidden sm:inline">{language === 'EN' ? 'Blood Bank Dashboard' : 'Dashboard Banco de Sangre'}</span>
                       <span className="sm:hidden font-mono font-black">{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
                     </button>
+
+                    {(currentRole === 'abregotech_admin' || currentRole === 'owner') && (
+                      <button
+                        onClick={() => handleDashboardSubModeChange('CONFIG')}
+                        className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
+                          dashboardSubMode === 'CONFIG'
+                            ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                            : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
+                      >
+                        <Settings className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'CONFIG' ? 'text-slate-950' : 'text-amber-400'}`} />
+                        <span className="hidden sm:inline">{language === 'EN' ? 'General System Configuration' : 'Configuración General del Sistema'}</span>
+                        <span className="sm:hidden font-mono font-black">⚙️ Config</span>
+                      </button>
+                    )}
                   </div>
 
                   <span className="text-[11px] font-mono text-slate-400 hidden xl:inline px-2">
-                    {dashboardSubMode === 'LIS' && (language === 'EN' ? 'Clinical Patient Metrics & Demographics' : 'Métricas Clínicas de Pacientes, Analitos y Demografía')}
+                    {dashboardSubMode === 'LIS' && (language === 'EN' ? 'Clinical Patient Metrics & Laboratory Demographics' : 'Métricas Clínicas de Laboratorio LIS, Muestras y Analizadores')}
                     {dashboardSubMode === 'HIS' && (language === 'EN' ? 'Hospital Command Center & Bed Census' : 'Centro de Mando Hospitalario, Camas & Triage Urgencias')}
                     {dashboardSubMode === 'BLOODBANK' && (language === 'EN' ? 'Transfusion Medicine & Donors' : 'Medicina Transfusional, Donantes & Hemovigilancia')}
+                    {dashboardSubMode === 'CONFIG' && (language === 'EN' ? 'Global Multi-Tenant Governance, Master Catalogs, Beds, Users & Network' : 'Gobernanza Multisede, Clientes, Camas HIS, Banco de Sangre y Usuarios')}
                   </span>
                 </div>
 
@@ -1069,9 +1085,19 @@ export default function App() {
                   <HospitalCommandCenter onNavigateTab={(tab) => setActiveTab(tab)} />
                 ) : dashboardSubMode === 'BLOODBANK' ? (
                   <BloodBankModule />
+                ) : dashboardSubMode === 'CONFIG' ? (
+                  <SuperAdminDashboard
+                    tenants={tenants}
+                    analyzers={MOCK_ANALYZERS}
+                    logs={middlewareLogs}
+                    onProvisionTenant={handleProvisionTenant}
+                    onUpdateTenants={handleUpdateTenants}
+                  />
                 ) : (
                   <>
-                    {currentRole === 'owner' && <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />}
+                    {(currentRole === 'owner' || currentRole === 'abregotech_admin') && (
+                      <OwnerDashboard tenant={currentTenant} branch={currentBranch} orders={orders} />
+                    )}
                     {currentRole === 'lab_chief' && <LabChiefDashboard orders={orders} results={results} patients={patients} onValidateMedical={handleValidateMedical} onOpenPdf={setPreviewOrderId} />}
                     {currentRole === 'tech_med' && <TechMedDashboard results={results} orders={orders} analyzers={MOCK_ANALYZERS} patients={patients} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} />}
                     {currentRole === 'lab_tech' && <LabTechDashboard orders={orders} results={results} patients={patients} onUpdateSpecimenStatus={handleUpdateSpecimenStatus} onValidateTechnical={handleValidateTechnical} onValidateTechnicalBulk={handleValidateTechnicalBulk} onOpenPdf={setPreviewOrderId} />}
@@ -1083,15 +1109,6 @@ export default function App() {
                         results={results}
                         onCreateOrder={handleCreateOrder}
                         onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
-                      />
-                    )}
-                    {currentRole === 'abregotech_admin' && (
-                      <SuperAdminDashboard
-                        tenants={tenants}
-                        analyzers={MOCK_ANALYZERS}
-                        logs={middlewareLogs}
-                        onProvisionTenant={handleProvisionTenant}
-                        onUpdateTenants={handleUpdateTenants}
                       />
                     )}
                     {currentRole === 'ext_doctor' && (

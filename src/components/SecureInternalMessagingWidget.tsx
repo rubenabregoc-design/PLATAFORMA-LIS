@@ -609,22 +609,18 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
             ? `Clinical Intercom • ${activeTenant.name} (${activeBranchesCount} active ${activeBranchesCount === 1 ? 'branch' : 'branches'})`
             : `Intercom Clínico • ${activeTenant.name} (${activeBranchesCount} ${activeBranchesCount === 1 ? 'Sede' : 'Sedes'} Activas)`
           }
-          className="relative flex items-center gap-2.5 py-2 px-3.5 rounded-full bg-gradient-to-r from-slate-950/95 via-[#02182b]/90 to-slate-950/95 hover:from-slate-900 hover:via-cyan-950/80 hover:to-slate-900 border border-cyan-400/40 hover:border-cyan-300 shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_28px_rgba(6,182,212,0.45)] backdrop-blur-2xl transition-all duration-300 cursor-pointer group hover:scale-105 active:scale-95 ring-1 ring-cyan-500/20 hover:ring-cyan-400/50"
+          className="relative w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-700 hover:from-cyan-500 hover:via-blue-500 hover:to-indigo-600 text-white shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.9),0_0_28px_rgba(6,182,212,0.6)] border border-cyan-400/50 hover:border-cyan-300 backdrop-blur-2xl transition-all duration-300 cursor-pointer group hover:scale-110 active:scale-95 ring-2 ring-cyan-500/30 hover:ring-cyan-400/60"
+          aria-label="Abrir Intercom Clínico"
         >
-          {/* Esfera luminosa refinada con ícono y presencia */}
-          <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)] border border-white/20 shrink-0 group-hover:rotate-6 transition-transform">
-            <MessageSquare className="w-3.5 h-3.5 text-white" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950 shadow-[0_0_8px_#34d399]" />
-          </div>
+          {/* Ícono de Mensajería */}
+          <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:scale-110 transition-transform" />
 
-          {/* Etiqueta elegante */}
-          <span className="text-xs font-black tracking-wide text-white group-hover:text-cyan-200 transition-colors">
-            Intercom
-          </span>
+          {/* Indicador de conexión en línea (punto verde) */}
+          <span className="absolute bottom-1 right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-950 shadow-[0_0_8px_#34d399]" />
 
-          {/* Badge de No Leídos con Glow */}
+          {/* Badge de No Leídos con Glow en esquina superior derecha */}
           {unreadCount > 0 && (
-            <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full min-w-[22px] text-center shadow-[0_0_12px_rgba(244,63,94,0.6)] border border-rose-300/40 tracking-tight animate-in zoom-in duration-200">
+            <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-[0_0_12px_rgba(244,63,94,0.7)] border-2 border-slate-950 tracking-tight animate-in zoom-in duration-200">
               {unreadCount}
             </span>
           )}

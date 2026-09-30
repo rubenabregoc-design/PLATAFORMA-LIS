@@ -517,7 +517,7 @@ export const TransfusionEvolutionManager: React.FC = () => {
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-3xl leading-relaxed">
               Ciclo cerrado y trazabilidad clínica estricta de hemocomponentes en 9 etapas obligatorias:
-              <strong className="text-white"> Solicitud $\rightarrow$ Evaluación $\rightarrow$ Compatibilidad $\rightarrow$ Reserva $\rightarrow$ Entrega $\rightarrow$ Transfusión $\rightarrow$ Seguimiento $\rightarrow$ Reacción $\rightarrow$ Cierre</strong>.
+              <strong className="text-white"> Solicitud → Evaluación → Compatibilidad → Reserva → Entrega → Transfusión → Seguimiento → Reacción → Cierre</strong>.
             </p>
           </div>
 

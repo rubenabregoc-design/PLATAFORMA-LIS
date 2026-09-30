@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Wifi,
   WifiOff,
@@ -124,6 +125,7 @@ export const OfflineSyncIndicator: React.FC = () => {
     });
 
     showToast(`🚨 Paquete de Emergencia DRP exportado: ${fileName} (${pkg.metrics.totalRecords} registros).`);
+    setIsOpen(false);
     setShowEmergencyModal(true);
   };
 
@@ -437,8 +439,8 @@ export const OfflineSyncIndicator: React.FC = () => {
       )}
 
       {/* EMERGENCY EXPORT MODAL & VERIFICATION DOSSIER */}
-      {showEmergencyModal && lastExportMetadata && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      {showEmergencyModal && lastExportMetadata && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border-2 border-rose-500/50 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-100 relative overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
             
             <div className="flex items-start justify-between border-b border-white/10 pb-3">
@@ -519,7 +521,8 @@ export const OfflineSyncIndicator: React.FC = () => {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

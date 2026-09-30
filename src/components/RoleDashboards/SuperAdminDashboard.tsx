@@ -74,6 +74,17 @@ interface BloodIotFreezer {
   status: 'NORMAL' | 'ALERTA' | 'CRITICO';
 }
 
+const ROLE_METADATA: Record<string, { label: string; color: string; icon: string }> = {
+  owner: { label: 'Directora / Gerencia', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', icon: '👑' },
+  lab_chief: { label: 'Jefe de Laboratorio', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: '🔬' },
+  tech_med: { label: 'Tecnólogo Médico', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', icon: '🧪' },
+  lab_tech: { label: 'Técnico Flebotomista', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40', icon: '💉' },
+  receptionist: { label: 'Recepción & Admisión', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: '📋' },
+  ext_doctor: { label: 'Médico Externo / Remitente', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40', icon: '🩺' },
+  patient: { label: 'Portal Paciente', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: '👤' },
+  abregotech_admin: { label: 'Súper-Admin General', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: '⚡' },
+};
+
 const DEFAULT_REFERENCE_TESTS: CustomReferenceTest[] = [
   {
     "id": "test-hb",
@@ -3454,43 +3465,63 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 {filteredUsers.map((u) => {
                   const uTenant = tenants.find((t) => t.id === u.tenantId);
                   const uBranch = uTenant?.branches.find((b) => b.id === u.branchId) || uTenant?.branches[0];
+                  const roleMeta = ROLE_METADATA[u.role] || {
+                    label: u.role,
+                    color: 'bg-slate-800 text-slate-300 border-slate-700',
+                    icon: '👤'
+                  };
 
                   return (
                     <div
                       key={u.id}
                       className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/40 transition flex items-center justify-between gap-3 text-xs"
                     >
-                      <div className="space-y-1.5 min-w-0">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <span className="font-black text-white truncate">{u.name}</span>
-                          <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded">
-                            @{u.username || u.email.split('@')[0]}
-                          </span>
-                          <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-bold">
-                            {u.role}
-                          </span>
+                      <div className="flex items-start space-x-3 min-w-0">
+                        {/* Avatar con Inicial y Estado Activo */}
+                        <div className="relative shrink-0 mt-0.5">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-800 border border-slate-700 flex items-center justify-center font-black text-cyan-400 text-xs shadow-inner">
+                            {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950" title="Cuenta Activa" />
                         </div>
 
-                        <div className="text-[11px] text-slate-400 font-mono truncate">{u.email}</div>
-
-                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                          {/* Tenant / Cliente Badge */}
-                          <span className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1">
-                            <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
-                            <span>{uTenant ? uTenant.name : u.tenantId}</span>
-                          </span>
-
-                          {/* Sede / Sucursal Badge */}
-                          <span className="text-[10px] bg-slate-900 text-cyan-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1 font-mono">
-                            <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
-                            <span>{uBranch ? uBranch.name : (u.branchId || 'Sede Principal')}</span>
-                          </span>
-
-                          {u.licenseNumber && (
-                            <span className="text-[10px] text-amber-300 font-mono">
-                              Idoneidad: {u.licenseNumber}
+                        <div className="space-y-1.5 min-w-0">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span className="font-black text-white truncate text-sm">{u.name}</span>
+                            <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded">
+                              @{u.username || u.email.split('@')[0]}
                             </span>
-                          )}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center space-x-1 ${roleMeta.color}`}>
+                              <span>{roleMeta.icon}</span>
+                              <span>{roleMeta.label}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono truncate">
+                            <Mail className="w-3 h-3 text-slate-500 shrink-0" />
+                            <span className="truncate">{u.email}</span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            {/* Tenant / Cliente Badge */}
+                            <span className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                              <Building2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                              <span>{uTenant ? uTenant.name : u.tenantId}</span>
+                            </span>
+
+                            {/* Sede / Sucursal Badge */}
+                            <span className="text-[10px] bg-slate-900 text-cyan-300 border border-slate-800 px-2 py-0.5 rounded-md flex items-center space-x-1 font-mono">
+                              <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                              <span>{uBranch ? uBranch.name : (u.branchId || 'Sede Principal')}</span>
+                            </span>
+
+                            {u.licenseNumber && (
+                              <span className="text-[10px] text-amber-300 bg-amber-950/30 border border-amber-800/40 px-2 py-0.5 rounded-md font-mono flex items-center space-x-1">
+                                <span>🎖️</span>
+                                <span>Idoneidad Médica: <strong>{u.licenseNumber}</strong></span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
