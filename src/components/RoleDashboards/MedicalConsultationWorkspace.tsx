@@ -1328,7 +1328,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
     const selectedTests = MOCK_TEST_CATALOG.filter((t) => selectedLabTestIds.includes(t.id));
     const testNames = selectedTests.map((t) => t.name);
 
-    const newOrderId = `ord-cpoe-${Date.now()}`;
+    const newOrderId = `ord-cpoe-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newOrderNumber = `LIS-CPOE-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newOrderObj: Order = {
@@ -2499,7 +2499,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 {activePatient.prescriptions.length > 0 ? (
                   <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
                     {activePatient.prescriptions.map((rx, idx) => (
-                      <div key={rx.id} className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-start justify-between gap-3 text-xs">
+                      <div key={`${rx.id}-${idx}`} className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-start justify-between gap-3 text-xs">
                         <div className="space-y-1">
                           <div className="flex items-center space-x-2">
                             <span className="font-mono font-bold text-emerald-400">{idx + 1}.</span>
@@ -2674,10 +2674,10 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                   </div>
 
                   <div className="space-y-2">
-                    {activePatient.labOrders.map((ord) => {
+                    {activePatient.labOrders.map((ord, ordIdx) => {
                       const isPending = ord.status === 'PENDIENTE_ENVIO' || !ord.status;
                       return (
-                        <div key={ord.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition">
+                        <div key={`${ord.id}-${ordIdx}`} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition">
                           <div className="space-y-1">
                             <div className="flex items-center space-x-2">
                               <span className="font-mono font-bold text-teal-300">{ord.orderNumber || ord.id}</span>
@@ -2790,8 +2790,8 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
 
                 {activePatient.imagingOrders.length > 0 ? (
                   <div className="space-y-3">
-                    {activePatient.imagingOrders.map((img) => (
-                      <div key={img.id} className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl space-y-1 text-xs">
+                    {activePatient.imagingOrders.map((img, imgIdx) => (
+                      <div key={`${img.id}-${imgIdx}`} className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl space-y-1 text-xs">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-cyan-300">{img.studyName}</span>
                           <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono">
@@ -2932,8 +2932,8 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                     </h4>
                     {(activePatient.bloodOrders || []).length > 0 ? (
                       <div className="space-y-2">
-                        {(activePatient.bloodOrders || []).map((ord) => (
-                          <div key={ord.id} className="p-3 bg-slate-950 rounded-2xl border border-rose-500/20 text-xs space-y-1">
+                        {(activePatient.bloodOrders || []).map((ord, bIdx) => (
+                          <div key={`${ord.id}-${bIdx}`} className="p-3 bg-slate-950 rounded-2xl border border-rose-500/20 text-xs space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-rose-300">{ord.productType.replace(/_/g, ' ')} ({ord.units} U)</span>
                               <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 rounded-full text-[10px] font-bold border border-rose-500/30">{ord.urgency.replace(/_/g, ' ')}</span>
@@ -3118,10 +3118,10 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 <div className="space-y-3">
                   {orders
                     .filter((o) => o.patientNationalId === activePatient.nationalId || (o.patientName || '').toLowerCase().includes(activePatient.name.toLowerCase().split(' ')[0]))
-                    .map((ord) => {
+                    .map((ord, ordIdx) => {
                       const ordResults = results.filter((r) => r.orderId === ord.id);
                       return (
-                        <div key={ord.id} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 text-xs">
+                        <div key={`${ord.id}-${ordIdx}`} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 text-xs">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
                             <div className="flex items-center space-x-2">
                               <span className="font-mono font-bold text-teal-300">{ord.orderNumber}</span>

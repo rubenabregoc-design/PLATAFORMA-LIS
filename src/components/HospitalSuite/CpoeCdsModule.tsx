@@ -50,7 +50,7 @@ export const CpoeCdsModule: React.FC = () => {
     e.preventDefault();
 
     const newCpoeItem = {
-      id: `cpoe-${Date.now()}`,
+      id: `cpoe-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       category: orderCategory,
       title: orderCategory === 'MED' ? `${medicationName} ${dose} (${route})` : `Orden de ${orderCategory}`,
       details: `${frequency} • Notes: ${notes || 'Sin observaciones'}`,
@@ -62,7 +62,7 @@ export const CpoeCdsModule: React.FC = () => {
 
     // Send to LIS if Laboratory Order
     if (orderCategory === 'LAB') {
-      const orderId = `ord-cpoe-${Date.now()}`;
+      const orderId = `ord-cpoe-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const barcode = `BC-HIS-${Math.floor(100000 + Math.random() * 900000)}`;
       const newLisOrder: Order = {
         id: orderId,
