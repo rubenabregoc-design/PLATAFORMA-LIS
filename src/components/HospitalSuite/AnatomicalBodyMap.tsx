@@ -485,7 +485,7 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
 
   // Compile all evaluated regions into a structured text for SOAP [O] Objetivo
   const generateSoapObjectiveSummary = () => {
-    const items = Object.values(findings);
+    const items = Object.values(findings) as AnatomicalFinding[];
     if (items.length === 0) return 'Sin hallazgos regionales registrados en mapa corporal.';
 
     const lines: string[] = ['EXAMEN FÍSICO POR REGIONES ANATÓMICAS:'];
@@ -526,8 +526,8 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
 
   // Statistics
   const recordedCount = Object.keys(findings).length;
-  const pathologicalCount = Object.values(findings).filter((f) => f.status === 'pathological').length;
-  const observationCount = Object.values(findings).filter((f) => f.status === 'observation').length;
+  const pathologicalCount = (Object.values(findings) as AnatomicalFinding[]).filter((f) => f.status === 'pathological').length;
+  const observationCount = (Object.values(findings) as AnatomicalFinding[]).filter((f) => f.status === 'observation').length;
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-6">
@@ -952,7 +952,7 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
                 📋 Registro Activo en este Paciente ({recordedCount} zonas documentadas):
               </span>
               <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                {Object.values(findings).map((f) => (
+                {(Object.values(findings) as AnatomicalFinding[]).map((f) => (
                   <div
                     key={f.regionId}
                     onClick={() => {

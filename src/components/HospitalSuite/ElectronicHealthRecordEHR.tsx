@@ -1375,7 +1375,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   setObjective(vitalsStr + labsSummary + physicalExam);
                   setSubjective(`Paciente refiere estado general estable, descanso nocturno adecuado, refiere mejoría del dolor y buena tolerancia oral a la medicación y dieta.`);
                   
-                  const transfusionNote = patientTransfusions.length > 0 ? ` Paciente cuenta con registro de soporte transfusional en Banco de Sangre (${patientTransfusions[0].bloodComponent}).` : '';
+                  const transfusionNote = patientTransfusions.length > 0 ? ` Paciente cuenta con registro de soporte transfusional en Banco de Sangre (${patientTransfusions[0].componentRequested.replace(/_/g, ' ')}).` : '';
                   setAssessment(`Paciente cursando internación por ${activeAdmission.primaryDiagnosisIcd10 || 'proceso patológico agudo'}.${transfusionNote} Signos vitales dentro de parámetros fisiológicos con estabilidad hemodinámica.`);
 
                   const medsPlan = patientMeds.length > 0
