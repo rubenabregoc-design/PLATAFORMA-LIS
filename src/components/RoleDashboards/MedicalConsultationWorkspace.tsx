@@ -2347,9 +2347,17 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
             <AnatomicalBodyMap
               patientId={activePatient.id}
               patientName={activePatient.name}
-              onInsertIntoSoap={(text) => {
-                setDraftObjective((prev) => (prev ? `${prev}\n\n${text}` : text));
-                updateConsultTab('soap');
+              onInsertIntoSoap={(text, navigateToSoap = false) => {
+                setDraftObjective((prev) => {
+                  const headerRegex = /\[?HALLAZGOS DEL MAPA CORPORAL ANATÓMICO\]?[\s\S]*?(?=\n\n(?:\[|$)|$)/;
+                  if (prev && headerRegex.test(prev)) {
+                    return prev.replace(headerRegex, text);
+                  }
+                  return prev ? `${prev}\n\n${text}` : text;
+                });
+                if (navigateToSoap) {
+                  updateConsultTab('soap');
+                }
               }}
             />
           )}

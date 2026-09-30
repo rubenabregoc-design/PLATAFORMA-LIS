@@ -36,7 +36,7 @@ export interface AnatomicalFinding {
 interface AnatomicalBodyMapProps {
   patientId: string;
   patientName: string;
-  onInsertIntoSoap?: (text: string) => void;
+  onInsertIntoSoap?: (text: string, navigateToSoap?: boolean) => void;
 }
 
 interface RegionDefinition {
@@ -486,6 +486,21 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
     }
   }, [selectedRegion.id, findings]);
 
+  const generateSoapObjectiveSummary = (customFindings?: Record<string, AnatomicalFinding>) => {
+    const findingList = Object.values(customFindings || findings) as AnatomicalFinding[];
+    if (findingList.length === 0) {
+      return '[HALLAZGOS DEL MAPA CORPORAL ANATÓMICO]:\nExamen físico topográfico: Sin hallazgos anatómicos específicos registrados.';
+    }
+
+    const lines: string[] = ['[HALLAZGOS DEL MAPA CORPORAL ANATÓMICO]:'];
+    findingList.forEach((item) => {
+      const statusIcon = item.status === 'pathological' ? '🚨 [PATOLÓGICO]' : item.status === 'observation' ? '⚠️ [EN OBSERVACIÓN]' : '✅ [NORMAL]';
+      lines.push(`• ${item.regionName} ${statusIcon}: ${item.notes || 'Evaluado sin alteraciones reportadas.'}`);
+    });
+
+    return lines.join('\n');
+  };
+
   const handleSaveCurrentFinding = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const updated: Record<string, AnatomicalFinding> = {
@@ -503,13 +518,19 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
 
     saveFindings(updated);
     setIsSavedRecently(true);
-    setTimeout(() => setIsSavedRecently(false), 2500);
+    setTimeout(() => setIsSavedRecently(false), 3000);
+
+    // Sincronizar automáticamente con el expediente SOAP (sin forzar cambio de pestaña)
+    if (onInsertIntoSoap) {
+      const summary = generateSoapObjectiveSummary(updated);
+      onInsertIntoSoap(summary, false);
+    }
 
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
         detail: {
           title: 'Exploración Guardada',
-          message: `${selectedRegion.name}: Marcado como ${formStatus.toUpperCase()}.`,
+          message: `${selectedRegion.name}: Marcado como ${formStatus.toUpperCase()} y sincronizado con Historia Clínica.`,
           type: formStatus === 'pathological' ? 'warning' : 'success'
         }
       })
@@ -533,19 +554,12 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
 
     saveFindings(updated);
     setIsSavedRecently(true);
-    setTimeout(() => setIsSavedRecently(false), 2500);
+    setTimeout(() => setIsSavedRecently(false), 3000);
 
-    // Generar resumen actualizado incluyendo este nuevo hallazgo
-    const findingList = Object.values(updated) as AnatomicalFinding[];
-    const lines = ['[HALLAZGOS DEL MAPA CORPORAL ANATÓMICO]:'];
-    findingList.forEach((item) => {
-      const statusIcon = item.status === 'pathological' ? '⚠️ [PATOLÓGICO]' : '✓ [NORMAL]';
-      lines.push(`• ${item.regionName} ${statusIcon}: ${item.notes || 'Evaluado sin alteraciones reportadas.'}`);
-    });
-    const summary = lines.join('\n');
-
+    // Sincronizar y navegar a la pestaña SOAP
     if (onInsertIntoSoap) {
-      onInsertIntoSoap(summary);
+      const summary = generateSoapObjectiveSummary(updated);
+      onInsertIntoSoap(summary, true);
       setIsCopiedToSoap(true);
       setTimeout(() => setIsCopiedToSoap(false), 3000);
       window.dispatchEvent(
@@ -567,6 +581,11 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
     setFormNotes('');
     setFormTags([]);
     setFormStatus('normal');
+
+    if (onInsertIntoSoap) {
+      const summary = generateSoapObjectiveSummary(updated);
+      onInsertIntoSoap(summary, false);
+    }
   };
 
   const handleAddQuickOption = (opt: string) => {
@@ -576,25 +595,10 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
     setFormNotes((prev) => (prev ? `${prev}. ${opt}` : opt));
   };
 
-  const generateSoapObjectiveSummary = () => {
-    const findingList = Object.values(findings) as AnatomicalFinding[];
-    if (findingList.length === 0) {
-      return 'Examen físico topográfico: Sin hallazgos anatómicos específicos registrados.';
-    }
-
-    const lines: string[] = ['HALLAZGOS DEL MAPA CORPORAL ANATÓMICO:'];
-    findingList.forEach((item) => {
-      const statusIcon = item.status === 'pathological' ? '🚨 [PATOLÓGICO]' : item.status === 'observation' ? '⚠️ [EN OBSERVACIÓN]' : '✅ [NORMAL]';
-      lines.push(`• ${item.regionName} ${statusIcon}: ${item.notes || 'Evaluado sin alteraciones reportadas.'}`);
-    });
-
-    return lines.join('\n');
-  };
-
   const handleTransferToSoap = () => {
     const summary = generateSoapObjectiveSummary();
     if (onInsertIntoSoap) {
-      onInsertIntoSoap(summary);
+      onInsertIntoSoap(summary, true);
       setIsCopiedToSoap(true);
       setTimeout(() => setIsCopiedToSoap(false), 3000);
       window.dispatchEvent(
@@ -1240,20 +1244,32 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
                 />
               </div>
 
+              {/* Alerta Visual de Éxito al Guardar */}
+              {isSavedRecently && (
+                <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-pulse">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <span>¡Hallazgo guardado correctamente y sincronizado en tiempo real con el Expediente SOAP!</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/30 px-2 py-0.5 rounded-full text-emerald-200 font-mono font-bold">GUARDADO</span>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
                 <div className="flex items-center space-x-2 text-[11px]">
                   {isSavedRecently ? (
-                    <span className="text-emerald-400 font-bold flex items-center gap-1.5 animate-fadeIn">
+                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>¡Hallazgo guardado correctamente!</span>
+                      <span>Registrado exitosamente</span>
                     </span>
                   ) : findings[selectedRegion.id] ? (
-                    <span className="text-cyan-400 font-medium flex items-center gap-1">
-                      <span>✓ Guardado en mapa</span>
+                    <span className="text-cyan-400 font-medium flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                      <Check className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Guardado en mapa</span>
                       <span className="text-slate-500 font-mono">({new Date(findings[selectedRegion.id].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
                     </span>
                   ) : (
-                    <span className="text-slate-500 italic">Sin registro guardado aún</span>
+                    <span className="text-slate-500 italic">Sin registro guardado aún para este órgano</span>
                   )}
                 </div>
 
@@ -1261,13 +1277,13 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
                   <button
                     type="button"
                     onClick={(e) => handleSaveCurrentFinding(e)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center space-x-2 transition shadow-lg cursor-pointer uppercase tracking-wider ${
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center space-x-2 transition duration-200 shadow-lg cursor-pointer uppercase tracking-wider ${
                       isSavedRecently
-                        ? 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-400'
-                        : 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-cyan-600/25'
+                        ? 'bg-emerald-600 text-white shadow-emerald-600/40 ring-4 ring-emerald-500/50 scale-[1.02]'
+                        : 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-cyan-600/25 active:scale-95'
                     }`}
                   >
-                    {isSavedRecently ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                    {isSavedRecently ? <CheckCircle2 className="w-4 h-4 animate-bounce" /> : <Save className="w-4 h-4" />}
                     <span>{isSavedRecently ? '¡Guardado con Éxito!' : 'Guardar Hallazgo en este Órgano'}</span>
                   </button>
 
@@ -1275,11 +1291,11 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
                     <button
                       type="button"
                       onClick={(e) => handleSaveAndTransferToSoap(e)}
-                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs flex items-center space-x-2 transition shadow-lg shadow-emerald-600/25 cursor-pointer uppercase tracking-wider"
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs flex items-center space-x-2 transition shadow-lg shadow-emerald-600/25 cursor-pointer uppercase tracking-wider active:scale-95"
                       title="Guardar este hallazgo y transferir todo el examen físico al campo Objetivo [O] de la nota SOAP"
                     >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Guardar e Insertar en SOAP</span>
+                      <Sparkles className="w-4 h-4 text-emerald-200" />
+                      <span>Guardar y Ver en SOAP</span>
                     </button>
                   )}
                 </div>

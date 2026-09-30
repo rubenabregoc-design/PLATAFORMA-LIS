@@ -21,11 +21,18 @@ console.log('=============================================================\n');
 PORTAL_SERVICES.forEach(({ port, name, portal }) => {
   const app = express();
 
-  // Servir archivos estáticos minificados desde /dist
-  app.use(express.static(distPath));
+  // Servir archivos estáticos minificados desde /dist (sin cachear index.html para recargas limpias)
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 
   // Fallback SPA: devolver siempre index.html para cualquier ruta interna
   app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
