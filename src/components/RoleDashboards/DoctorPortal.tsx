@@ -14,9 +14,11 @@ import {
   Stethoscope, ShieldAlert, Award, ShieldCheck, QrCode,
   Calendar, Clock, AlertTriangle, Eye, ChevronDown, ChevronUp,
   Building2, Hash, Sparkles, Filter, Check, RefreshCw, Activity, TrendingUp,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Edit3, Save, X, Phone, Mail, LogOut
 } from 'lucide-react';
 import { ElectronicHealthRecordEHR } from '../HospitalSuite/ElectronicHealthRecordEHR';
+import { MedicalConsultationWorkspace } from './MedicalConsultationWorkspace';
 
 export interface DoctorPortalProps {
   orders: Order[];
@@ -24,6 +26,7 @@ export interface DoctorPortalProps {
   patients?: Patient[];
   onOpenPdf: (orderId: string) => void;
   onCreateOrder?: (newOrder: Order) => void;
+  onLogout?: () => void;
   doctorInfo?: {
     name: string;
     license: string;
@@ -31,6 +34,9 @@ export interface DoctorPortalProps {
     specialty?: string;
     minsaVerified?: boolean;
     minsaRegistrationNumber?: string;
+    phone?: string;
+    email?: string;
+    signatureAlgorithm?: string;
   };
 }
 
@@ -40,16 +46,86 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
   patients = [],
   onOpenPdf,
   onCreateOrder,
+  onLogout,
   doctorInfo = {
     name: 'Dr. Roberto Icaza (Médico Especialista)',
     license: 'MED-10492-PA',
     clinic: 'Consultorios Médicos Paitilla — Sede Vía España',
     specialty: 'Medicina Interna & Cuidados Críticos',
     minsaVerified: true,
-    minsaRegistrationNumber: 'RM-5420-PA'
+    minsaRegistrationNumber: 'RM-5420-PA',
+    phone: '+507 269-5222',
+    email: 'dr.icaza@consultoriospaitilla.com',
+    signatureAlgorithm: 'SHA-256 with RSA 4096-bit'
   }
 }) => {
-  const [activeTab, setActiveTab] = useState<'expedientes' | 'idoneidad' | 'requisition' | 'batch' | 'evolutivo' | 'ehr'>('expedientes');
+  // Estado persistente del perfil del médico (Permite editar idoneidad, nombre, registro MINSA, clínica)
+  const [currentDoctor, setCurrentDoctor] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lis_doctor_profile_data');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return {
+      name: doctorInfo?.name || 'Dr. Roberto Icaza (Médico Especialista)',
+      license: doctorInfo?.license || 'MED-10492-PA',
+      clinic: doctorInfo?.clinic || 'Consultorios Médicos Paitilla — Sede Vía España',
+      specialty: doctorInfo?.specialty || 'Medicina Interna & Cuidados Críticos',
+      minsaVerified: doctorInfo?.minsaVerified !== undefined ? doctorInfo.minsaVerified : true,
+      minsaRegistrationNumber: doctorInfo?.minsaRegistrationNumber || 'RM-5420-PA',
+      phone: doctorInfo?.phone || '+507 269-5222',
+      email: doctorInfo?.email || 'dr.icaza@consultoriospaitilla.com',
+      signatureAlgorithm: doctorInfo?.signatureAlgorithm || 'SHA-256 with RSA 4096-bit'
+    };
+  });
+
+  const [isEditingDoctorProfile, setIsEditingDoctorProfile] = useState(false);
+  const [doctorEditForm, setDoctorEditForm] = useState(currentDoctor);
+
+  const handleSaveDoctorProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentDoctor(doctorEditForm);
+    try {
+      localStorage.setItem('lis_doctor_profile_data', JSON.stringify(doctorEditForm));
+    } catch (err) {
+      console.error(err);
+    }
+    setIsEditingDoctorProfile(false);
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Credenciales MINSA Guardadas',
+          message: `Perfil de ${doctorEditForm.name} (${doctorEditForm.license}) actualizado con éxito.`,
+          type: 'success'
+        }
+      })
+    );
+  };
+
+  const handleOpenEditModal = () => {
+    setDoctorEditForm(currentDoctor);
+    setIsEditingDoctorProfile(true);
+  };
+
+  const [activeTab, setActiveTab] = useState<'consulta' | 'expedientes' | 'idoneidad' | 'requisition' | 'batch' | 'evolutivo'>(() => {
+    try {
+      const saved = localStorage.getItem('lis_doctor_portal_active_tab');
+      if (saved) return saved as any;
+    } catch (e) {
+      console.error(e);
+    }
+    return 'consulta';
+  });
+
+  const updateActiveTab = (tab: 'consulta' | 'expedientes' | 'idoneidad' | 'requisition' | 'batch' | 'evolutivo') => {
+    setActiveTab(tab);
+    try {
+      localStorage.setItem('lis_doctor_portal_active_tab', tab);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [selectedEvolutivoPatientId, setSelectedEvolutivoPatientId] = useState<string>('');
   const [selectedAnalyte, setSelectedAnalyte] = useState<string>('Glucosa');
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,12 +155,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
   const [patientGender, setPatientGender] = useState<'M' | 'F'>('F');
   const [patientAge, setPatientAge] = useState<number>(32);
   const [icdCode, setIcdCode] = useState('E11.9 — Diabetes Mellitus Tipo 2 no especificada');
-  const [selectedTests, setSelectedTests] = useState<string[]>([
-    'Hemograma Completo con Plaquetas',
-    'Glucosa en Ayunas',
-    'Hemoglobina Glicosilada (HbA1c)',
-    'Perfil Lipídico Completo'
-  ]);
+  const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [doctorNotes, setDoctorNotes] = useState('Control metabólico trimestral. Ayuno estricto de 10 a 12 horas.');
   const [priorityOrder, setPriorityOrder] = useState<'RUTINA' | 'URGENTE'>('RUTINA');
   const [orderCreatedSuccess, setOrderCreatedSuccess] = useState<string | null>(null);
@@ -217,55 +288,74 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
 
   return (
     <div className="space-y-6 select-none font-sans">
-      {/* 🌟 Banner Superior de Pasarela Médica de Expedientes e Idoneidad */}
+      {/* 🌟 Banner Superior Único y Consolidado: Pasarela Médica Oficial e Idoneidad */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-600"></div>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/90 border border-indigo-400/40 text-xs font-bold text-indigo-300 shadow-inner">
-                <Stethoscope className="w-3.5 h-3.5 text-indigo-400" />
-                <span>MINSA República de Panamá • Consejo Técnico de Salud</span>
-                <span className="text-slate-500">•</span>
-                <span className="text-emerald-400 flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Idoneidad Verificada</span>
-                </span>
-              </div>
-
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-xs font-bold text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>{doctorGreeting}, Dr. Roberto Icaza</span>
-              </div>
+          <div className="flex items-start sm:items-center space-x-4">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-600/25 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shadow-inner shrink-0">
+              <Stethoscope className="w-7 h-7" />
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center space-x-3">
-              <span>{doctorInfo.name}</span>
-            </h1>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center space-x-2 px-3 py-0.5 rounded-full bg-indigo-950/90 border border-indigo-400/40 text-[11px] font-bold text-indigo-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Portal Médico Oficial • Conexión Activa y Segura</span>
+                </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
-              Especialidad: <strong className="text-indigo-200">{doctorInfo.specialty}</strong> •{' '}
-              Idoneidad N°: <span className="font-mono font-bold text-cyan-300">{doctorInfo.license}</span> •{' '}
-              {doctorInfo.clinic}
-            </p>
+                <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[11px] font-bold text-emerald-300">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>MINSA Panamá • Idoneidad Verificada</span>
+                </div>
+              </div>
+
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center space-x-2">
+                <span>{doctorGreeting},</span>
+                <span className="text-indigo-300">{currentDoctor.name}</span>
+              </h1>
+
+              <div className="text-xs text-slate-300 flex flex-wrap items-center gap-2">
+                <span className="text-indigo-200 font-semibold">{currentDoctor.specialty}</span>
+                <span className="text-slate-600">•</span>
+                <span className="font-mono font-bold text-cyan-300 bg-slate-950/90 px-2 py-0.5 rounded-md border border-cyan-500/30 text-[11px]">
+                  Idoneidad: {currentDoctor.license}
+                </span>
+                {currentDoctor.minsaRegistrationNumber && (
+                  <span className="font-mono text-emerald-300 bg-emerald-950/70 px-2 py-0.5 rounded-md border border-emerald-500/30 text-[11px]">
+                    MINSA: {currentDoctor.minsaRegistrationNumber}
+                  </span>
+                )}
+                <span className="text-slate-600">•</span>
+                <span className="text-slate-400">{currentDoctor.clinic}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Tarjeta de Idoneidad Oficial MINSA (Resumen) */}
-          <div className="bg-slate-950/90 border border-indigo-500/40 rounded-2xl p-3.5 sm:p-4 text-xs space-y-1.5 shadow-xl shrink-0 min-w-[260px]">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span className="font-mono font-bold text-slate-300">Registro: {doctorInfo.minsaRegistrationNumber}</span>
-              <span className="text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px]">
-                VIGENTE
-              </span>
-            </div>
-            <div className="text-slate-200 font-bold flex items-center space-x-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>Firma Digital Ley 81 Habilitada</span>
-            </div>
-            <div className="text-[11px] text-indigo-300 font-mono">
-              Certificación Criptográfica SHA-256
-            </div>
+          {/* Acciones del Médico: Editar Credenciales & Cerrar Sesión */}
+          <div className="flex items-center space-x-2.5 shrink-0 ml-auto lg:ml-0">
+            <button
+              type="button"
+              onClick={handleOpenEditModal}
+              className="px-3.5 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 hover:text-white border border-indigo-500/40 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+              title="Editar datos de Idoneidad y Consultorio"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Editar Credenciales</span>
+            </button>
+
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="px-3.5 py-2 text-xs font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/30 rounded-xl transition cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                title="Cerrar sesión de portal médico"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Cerrar Sesión</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -293,8 +383,24 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
       {/* 🎛️ Barra de Pestañas Principales del Portal del Médico */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex flex-wrap items-center gap-2">
+          {/* Módulo Principal Unificado: Consulta Médica & Expediente Clínico (EHR) */}
           <button
-            onClick={() => setActiveTab('expedientes')}
+            onClick={() => updateActiveTab('consulta')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+              activeTab === 'consulta'
+                ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 font-black shadow-lg shadow-teal-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <Stethoscope className="w-4 h-4" />
+            <span>Consulta Médica & EHR</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
+              En Vivo
+            </span>
+          </button>
+
+          <button
+            onClick={() => updateActiveTab('expedientes')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'expedientes'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
@@ -305,22 +411,8 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
             <span>Pasarela de Expedientes & Resultados</span>
           </button>
 
-          {/* Botón 📋 EHR solicitado para el Portal del Doctor */}
           <button
-            onClick={() => setActiveTab('ehr')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-              activeTab === 'ehr'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
-            }`}
-            title="Expediente Clínico Electrónico (EHR / Historia Clínica)"
-          >
-            <span className="text-base leading-none">📋</span>
-            <span>EHR</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('idoneidad')}
+            onClick={() => updateActiveTab('idoneidad')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'idoneidad'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
@@ -332,7 +424,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('requisition')}
+            onClick={() => updateActiveTab('requisition')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'requisition'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
@@ -344,7 +436,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('batch')}
+            onClick={() => updateActiveTab('batch')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'batch'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
@@ -357,7 +449,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
 
           <button
             onClick={() => {
-              setActiveTab('evolutivo');
+              updateActiveTab('evolutivo');
               if (!selectedEvolutivoPatientId && orders.length > 0) {
                 setSelectedEvolutivoPatientId(orders[0].patientNationalId || orders[0].patientId);
               }
@@ -383,6 +475,19 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span>¡Requisición médica {orderCreatedSuccess} transmitida con éxito al sistema LIS del laboratorio!</span>
         </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* PESTAÑA PRINCIPAL: CONSULTA MÉDICA (ATENCIÓN MÉDICO-PACIENTE)      */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'consulta' && (
+        <MedicalConsultationWorkspace
+          orders={orders}
+          results={results}
+          doctorInfo={currentDoctor}
+          onOpenPdf={onOpenPdf}
+          onCreateOrder={onCreateOrder}
+        />
       )}
 
       {/* ─────────────────────────────────────────────────────────────────── */}
@@ -705,32 +810,43 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
                 </div>
               </div>
 
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full">
-                ● ACTIVA
-              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleOpenEditModal}
+                  className="px-3 py-1 bg-indigo-600/30 hover:bg-indigo-600/60 border border-indigo-400/40 rounded-xl text-xs font-bold text-white flex items-center space-x-1.5 transition cursor-pointer"
+                  title="Editar Idoneidad y Consultorio"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Editar Credenciales</span>
+                </button>
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full">
+                  ● ACTIVA
+                </span>
+              </div>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="bg-slate-950/70 border border-indigo-500/20 rounded-2xl p-4 space-y-2.5">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Médico Colegiado:</span>
-                  <strong className="text-white text-sm">{doctorInfo.name}</strong>
+                  <strong className="text-white text-sm">{currentDoctor.name}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Número de Idoneidad:</span>
-                  <span className="font-mono font-black text-cyan-300 text-sm">{doctorInfo.license}</span>
+                  <span className="font-mono font-black text-cyan-300 text-sm">{currentDoctor.license}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Registro Profesional MINSA:</span>
-                  <span className="font-mono font-bold text-indigo-200">{doctorInfo.minsaRegistrationNumber}</span>
+                  <span className="font-mono font-bold text-indigo-200">{currentDoctor.minsaRegistrationNumber}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Especialidad Registrada:</span>
-                  <span className="text-slate-200 font-semibold">{doctorInfo.specialty}</span>
+                  <span className="text-slate-200 font-semibold">{currentDoctor.specialty}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Sede Principal de Práctica:</span>
-                  <span className="text-slate-200">{doctorInfo.clinic}</span>
+                  <span className="text-slate-200">{currentDoctor.clinic}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Vigencia del Certificado:</span>
@@ -783,7 +899,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
                   <span>Idoneidad y Acreditación Lista para Emitir Órdenes</span>
                 </div>
                 <p>
-                  Su número de idoneidad <strong className="text-cyan-300 font-mono">{doctorInfo.license}</strong> se incluye de manera inalterable en todos los informes de laboratorio, interconsultas y requisiciones emitidas a través de esta plataforma.
+                  Su número de idoneidad <strong className="text-cyan-300 font-mono">{currentDoctor.license}</strong> se incluye de manera inalterable en todos los informes de laboratorio, interconsultas y requisiciones emitidas a través de esta plataforma.
                 </p>
               </div>
             </div>
@@ -880,7 +996,7 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-bold text-xs text-white focus:outline-none focus:border-indigo-500"
                 >
                   <option value="RUTINA">RUTINA (Entrega habitual)</option>
-                  <option value="URGENTE">URGENTE / STAT (Prioridad técnica)</option>
+                  <option value="URGENTE">URGENTE (Prioridad técnica de análisis)</option>
                 </select>
               </div>
             </div>
@@ -1271,37 +1387,134 @@ export const DoctorPortal: React.FC<DoctorPortalProps> = ({
         </div>
       )}
 
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* PESTAÑA 6: EHR (EXPEDIENTE CLÍNICO ELECTRÓNICO UNIFICADO)           */}
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {activeTab === 'ehr' && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                📋
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 font-mono">
-                    Acceso Clínico Directo
-                  </span>
-                </div>
-                <h2 className="text-lg font-black text-white">Historia Clínica & Expediente Electrónico (EHR)</h2>
-                <p className="text-xs text-slate-400">
-                  Evolución SOAP con telemetría en tiempo real, mapa anatómico interactivo, constantes vitales, órdenes diagnósticas LIS y fármacos.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-xl font-mono font-bold">
-                {doctorInfo.name} • {doctorInfo.license}
-              </span>
-            </div>
-          </div>
 
-          <ElectronicHealthRecordEHR onOpenPdf={onOpenPdf} />
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* MODAL: EDITAR PERFIL & CREDENCIALES DEL MÉDICO (MINSA)              */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {isEditingDoctorProfile && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-xs text-white animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Editar Credenciales Médicas (MINSA)</h3>
+                  <p className="text-[10px] text-slate-400">Actualice sus datos colegiados para reportes y recetas oficiales</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingDoctorProfile(false)}
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDoctorProfile} className="space-y-3.5">
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">Nombre Completo del Médico:</label>
+                <input
+                  type="text"
+                  value={doctorEditForm.name}
+                  onChange={(e) => setDoctorEditForm({ ...doctorEditForm, name: e.target.value })}
+                  required
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">N° de Idoneidad MINSA:</label>
+                  <input
+                    type="text"
+                    value={doctorEditForm.license}
+                    onChange={(e) => setDoctorEditForm({ ...doctorEditForm, license: e.target.value })}
+                    required
+                    placeholder="MED-10492-PA"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-cyan-300 font-mono font-bold text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Registro MINSA:</label>
+                  <input
+                    type="text"
+                    value={doctorEditForm.minsaRegistrationNumber || ''}
+                    onChange={(e) => setDoctorEditForm({ ...doctorEditForm, minsaRegistrationNumber: e.target.value })}
+                    placeholder="RM-5420-PA"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-indigo-300 font-mono font-bold text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">Especialidad Médica:</label>
+                <input
+                  type="text"
+                  value={doctorEditForm.specialty || ''}
+                  onChange={(e) => setDoctorEditForm({ ...doctorEditForm, specialty: e.target.value })}
+                  required
+                  placeholder="Medicina Interna & Cuidados Críticos"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">Centro Médico / Sede de Práctica:</label>
+                <input
+                  type="text"
+                  value={doctorEditForm.clinic}
+                  onChange={(e) => setDoctorEditForm({ ...doctorEditForm, clinic: e.target.value })}
+                  required
+                  placeholder="Consultorios Médicos Paitilla"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Teléfono:</label>
+                  <input
+                    type="text"
+                    value={doctorEditForm.phone || ''}
+                    onChange={(e) => setDoctorEditForm({ ...doctorEditForm, phone: e.target.value })}
+                    placeholder="+507 269-5222"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Correo Electrónico:</label>
+                  <input
+                    type="email"
+                    value={doctorEditForm.email || ''}
+                    onChange={(e) => setDoctorEditForm({ ...doctorEditForm, email: e.target.value })}
+                    placeholder="dr.icaza@consultoriospaitilla.com"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDoctorProfile(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Guardar Credenciales</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

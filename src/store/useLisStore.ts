@@ -325,7 +325,14 @@ export const useLisStore = create<LisState>()(
 
         set({ isSyncing: true });
         try {
-          const dbOrders = await SupabaseService.orders.getAll();
+          // Timeout preventivo de 3.5s para evitar congelamiento de carga si el puerto 8000 (PostgREST) está reiniciando o recargando schema cache (503)
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('503: PostgREST local temporalmente no disponible / recargando schema cache')), 3500)
+          );
+          const dbOrders: any = await Promise.race([
+            SupabaseService.orders.getAll(),
+            timeoutPromise
+          ]);
 
           if (dbOrders && dbOrders.length > 0) {
             const mappedOrders = dbOrders.map(mapDbOrderToFrontend);

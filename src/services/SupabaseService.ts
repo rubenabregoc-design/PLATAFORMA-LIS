@@ -2290,6 +2290,297 @@ export const BloodLogisticsService = {
   }
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PORTAL DEL DOCTOR — MÓDULO HIS: MedicalConsultationService
+// ═══════════════════════════════════════════════════════════════════════════════
+// Persiste en PostgreSQL vía Supabase:
+//   medical_consultations, consultation_vitals, soap_notes,
+//   medical_orders, consultation_diagnoses, consultation_audit_log
+// Estrategia: Dual-write (localStorage como caché offline + BD como fuente de verdad)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface DbMedicalConsultation {
+  id?: string;
+  tenant_id: string;
+  patient_id?: string | null;
+  patient_national_id: string;
+  patient_name: string;
+  doctor_id: string;
+  doctor_name: string;
+  doctor_license?: string | null;
+  turn_number?: number;
+  chief_complaint?: string | null;
+  status: 'EN_ESPERA' | 'EN_CONSULTA' | 'PAUSADA' | 'FINALIZADA' | 'CANCELADA';
+  admitted_at?: string;
+  started_at?: string | null;
+  paused_at?: string | null;
+  finished_at?: string | null;
+  branch_id?: string | null;
+}
+
+export interface DbConsultationVitals {
+  id?: string;
+  consultation_id: string;
+  bp?: string | null;
+  hr?: number | null;
+  rr?: number | null;
+  temp?: number | null;
+  spo2?: number | null;
+  weight_kg?: number | null;
+  height_cm?: number | null;
+  bmi?: number | null;
+  recorded_by?: string | null;
+}
+
+export interface DbSoapNote {
+  id?: string;
+  consultation_id: string;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+  primary_icd10?: string | null;
+  secondary_icd10?: string[] | null;
+}
+
+export interface DbMedicalOrder {
+  id?: string;
+  consultation_id: string;
+  order_type: 'LAB' | 'IMAGING' | 'BLOOD' | 'RX' | 'REFERRAL' | 'INCAPACIDAD';
+  description?: string | null;
+  priority?: string;
+  status?: string;
+  transmitted_at?: string | null;
+  payload: Record<string, any>;
+  notes?: string | null;
+}
+
+export interface DbConsultationAuditEntry {
+  id?: string;
+  consultation_id: string;
+  action: string;
+  description?: string | null;
+  actor?: string | null;
+  metadata?: Record<string, any>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVICE CLASS
+// ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_TENANT = 'lis-tenant-default';
+
+export const MedicalConsultationService = {
+
+  // ── CREAR CONSULTA ──────────────────────────────────────────────────────────
+  async createConsultation(data: Omit<DbMedicalConsultation, 'id'>): Promise<{ id: string } | null> {
+    const { data: row, error } = await supabase
+      .from('medical_consultations')
+      .insert({ ...data, tenant_id: data.tenant_id || DEFAULT_TENANT })
+      .select('id')
+      .single();
+    if (error) { console.error('[Consultation] createConsultation:', error.message); return null; }
+    return row as { id: string };
+  },
+
+  // ── ACTUALIZAR ESTADO / TIMESTAMPS ─────────────────────────────────────────
+  async updateConsultationStatus(
+    id: string,
+    status: DbMedicalConsultation['status'],
+    timestamps: { started_at?: string; paused_at?: string; finished_at?: string } = {}
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from('medical_consultations')
+      .update({ status, ...timestamps, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) { console.error('[Consultation] updateStatus:', error.message); return false; }
+    return true;
+  },
+
+  // ── LISTAR CONSULTAS DEL DÍA ────────────────────────────────────────────────
+  async getTodayConsultations(tenantId?: string): Promise<any[]> {
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const { data, error } = await supabase
+      .from('medical_consultations')
+      .select('*, soap_notes(*), consultation_vitals(*), medical_orders(*)')
+      .gte('admitted_at', `${today}T00:00:00Z`)
+      .lte('admitted_at', `${today}T23:59:59Z`)
+      .order('turn_number', { ascending: true });
+    if (error) { console.error('[Consultation] getTodayConsultations:', error.message); return []; }
+    return data || [];
+  },
+
+  // ── OBTENER CONSULTA POR ID ─────────────────────────────────────────────────
+  async getConsultationById(id: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('medical_consultations')
+      .select('*, soap_notes(*), consultation_vitals(*), medical_orders(*), consultation_audit_log(*), consultation_diagnoses(*)')
+      .eq('id', id)
+      .single();
+    if (error) { console.error('[Consultation] getById:', error.message); return null; }
+    return data;
+  },
+
+  // ── BUSCAR POR CÉDULA / NOMBRE ──────────────────────────────────────────────
+  async searchConsultations(query: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('medical_consultations')
+      .select('id, patient_name, patient_national_id, status, admitted_at, turn_number')
+      .or(`patient_name.ilike.%${query}%,patient_national_id.ilike.%${query}%`)
+      .order('admitted_at', { ascending: false })
+      .limit(20);
+    if (error) { console.error('[Consultation] search:', error.message); return []; }
+    return data || [];
+  },
+
+  // ── GUARDAR / ACTUALIZAR SIGNOS VITALES ─────────────────────────────────────
+  async upsertVitals(vitals: DbConsultationVitals): Promise<boolean> {
+    // Primero verifica si ya existe un registro para esta consulta
+    const { data: existing } = await supabase
+      .from('consultation_vitals')
+      .select('id')
+      .eq('consultation_id', vitals.consultation_id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from('consultation_vitals')
+        .update({ ...vitals })
+        .eq('id', existing.id);
+      if (error) { console.error('[Consultation] updateVitals:', error.message); return false; }
+    } else {
+      const { error } = await supabase
+        .from('consultation_vitals')
+        .insert({ ...vitals });
+      if (error) { console.error('[Consultation] insertVitals:', error.message); return false; }
+    }
+    return true;
+  },
+
+  // ── GUARDAR / ACTUALIZAR NOTA SOAP ─────────────────────────────────────────
+  async upsertSoapNote(note: DbSoapNote): Promise<boolean> {
+    const { error } = await supabase
+      .from('soap_notes')
+      .upsert(
+        { ...note, updated_at: new Date().toISOString() },
+        { onConflict: 'consultation_id' }
+      );
+    if (error) { console.error('[Consultation] upsertSoap:', error.message); return false; }
+    return true;
+  },
+
+  // ── AGREGAR ORDEN MÉDICA ────────────────────────────────────────────────────
+  async addOrder(order: DbMedicalOrder): Promise<{ id: string } | null> {
+    const { data, error } = await supabase
+      .from('medical_orders')
+      .insert({ ...order })
+      .select('id')
+      .single();
+    if (error) { console.error('[Consultation] addOrder:', error.message); return null; }
+    return data as { id: string };
+  },
+
+  // ── MARCAR ÓRDENES COMO TRANSMITIDAS ───────────────────────────────────────
+  async transmitPendingOrders(consultationId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('medical_orders')
+      .update({
+        status: 'ENVIADA',
+        transmitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('consultation_id', consultationId)
+      .eq('status', 'PENDIENTE_ENVIO');
+    if (error) { console.error('[Consultation] transmitOrders:', error.message); return false; }
+    return true;
+  },
+
+  // ── CANCELAR / ELIMINAR ORDEN ───────────────────────────────────────────────
+  async cancelOrder(orderId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('medical_orders')
+      .update({ status: 'CANCELADA', updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+    if (error) { console.error('[Consultation] cancelOrder:', error.message); return false; }
+    return true;
+  },
+
+  // ── REGISTRAR DIAGNÓSTICO ICD-10 ────────────────────────────────────────────
+  async addDiagnosis(consultationId: string, icd10Code: string, description: string, isPrimary = false): Promise<boolean> {
+    const { error } = await supabase
+      .from('consultation_diagnoses')
+      .insert({
+        consultation_id: consultationId,
+        icd10_code: icd10Code,
+        icd10_description: description,
+        is_primary: isPrimary,
+        certainty: 'DEFINITIVO'
+      });
+    if (error) { console.error('[Consultation] addDiagnosis:', error.message); return false; }
+    return true;
+  },
+
+  // ── REGISTRO DE AUDITORÍA ───────────────────────────────────────────────────
+  async logAudit(entry: DbConsultationAuditEntry): Promise<boolean> {
+    const { error } = await supabase
+      .from('consultation_audit_log')
+      .insert({ ...entry });
+    if (error) { console.error('[Consultation] logAudit:', error.message); return false; }
+    return true;
+  },
+
+  // ── FINALIZAR CONSULTA COMPLETO (transacción lógica) ───────────────────────
+  async finalizeConsultation(params: {
+    consultationId: string;
+    soap: DbSoapNote;
+    vitals: DbConsultationVitals;
+    doctorName: string;
+    icd10Primary?: string;
+    icd10Description?: string;
+  }): Promise<boolean> {
+    const { consultationId, soap, vitals, doctorName, icd10Primary, icd10Description } = params;
+
+    const results = await Promise.allSettled([
+      MedicalConsultationService.upsertSoapNote(soap),
+      MedicalConsultationService.upsertVitals(vitals),
+      MedicalConsultationService.transmitPendingOrders(consultationId),
+      MedicalConsultationService.updateConsultationStatus(consultationId, 'FINALIZADA', {
+        finished_at: new Date().toISOString()
+      }),
+      MedicalConsultationService.logAudit({
+        consultation_id: consultationId,
+        action: 'FINALIZACION_CONSULTA',
+        description: 'Consulta médica finalizada. Nota SOAP certificada. Órdenes transmitidas a sistemas destino.',
+        actor: doctorName,
+        metadata: { icd10_primary: icd10Primary }
+      }),
+    ]);
+
+    if (icd10Primary) {
+      await MedicalConsultationService.addDiagnosis(consultationId, icd10Primary, icd10Description || icd10Primary, true);
+    }
+
+    const allOk = results.every((r) => r.status === 'fulfilled' && r.value !== false);
+    if (!allOk) {
+      console.warn('[Consultation] finalizeConsultation: algunas operaciones fallaron.', results);
+    }
+    return allOk;
+  },
+
+  // ── AUTO-SAVE SOAP + VITALES (debounce en el cliente) ──────────────────────
+  async autoSaveDraft(params: {
+    consultationId: string;
+    soap: DbSoapNote;
+    vitals: DbConsultationVitals;
+  }): Promise<void> {
+    Promise.all([
+      MedicalConsultationService.upsertSoapNote(params.soap),
+      MedicalConsultationService.upsertVitals(params.vitals),
+    ]).catch((e) => console.warn('[Consultation] autoSave background error:', e));
+  },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RE-EXPORT: unified namespace for imports
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2348,6 +2639,8 @@ export const SupabaseService = {
   testProfiles: ProfileEngineService,
   extramuralBlood: ExtramuralBloodService,
   bloodLogistics: BloodLogisticsService,
+  consultation: MedicalConsultationService,
 };
 
 export default SupabaseService;
+

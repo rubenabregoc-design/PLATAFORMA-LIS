@@ -110,10 +110,10 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
   const [assessment, setAssessment] = useState<string>('');
   const [plan, setPlan] = useState<string>('');
 
-  // New Lab Order state
-  const [selectedTestIds, setSelectedTestIds] = useState<string[]>(['test-hemograma']);
-  const [orderPriority, setOrderPriority] = useState<Priority>('STAT');
-  const [labNotes, setLabNotes] = useState<string>('Evaluación urgente de cabecera.');
+  // New Lab Order state (Inicia limpio sin selección por defecto)
+  const [selectedTestIds, setSelectedTestIds] = useState<string[]>([]);
+  const [orderPriority, setOrderPriority] = useState<Priority>('RUTINA');
+  const [labNotes, setLabNotes] = useState<string>('Evaluación clínica ambulatoria / hospitalaria.');
 
   // New Med Order state
   const [drugName, setDrugName] = useState<string>('');
@@ -1400,11 +1400,18 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   const transfusionNote = patientTransfusions.length > 0 ? ` Paciente cuenta con registro de soporte transfusional en Banco de Sangre (${patientTransfusions[0].componentRequested.replace(/_/g, ' ')}).` : '';
                   setAssessment(`Paciente cursando internación por ${activeAdmission.primaryDiagnosisIcd10 || 'proceso patológico agudo'}.${transfusionNote} Signos vitales dentro de parámetros fisiológicos con estabilidad hemodinámica.`);
 
-                  const medsPlan = patientMeds.length > 0
-                    ? patientMeds.map((m, idx) => `${idx + 1}. ${m.drugName} ${m.dose} vía ${m.route} (${m.frequency})`).join('\n')
-                    : '1. Hidratación y pauta médica hospitalaria habitual.';
-                  
-                  setPlan(`PLAN TERAPÉUTICO:\n${medsPlan}\n${patientMeds.length + 1}. Monitoreo de signos vitales cada 6 horas.\n${patientMeds.length + 2}. Dieta a tolerancia y control evolutivo en siguiente turno.`);
+                  const planItems: string[] = [];
+                  if (patientMeds.length > 0) {
+                    patientMeds.forEach((m) => {
+                      planItems.push(`Continuar ${m.drugName} ${m.dose} vía ${m.route} (${m.frequency})`);
+                    });
+                  } else {
+                    planItems.push('Hidratación y pauta médica hospitalaria habitual.');
+                  }
+                  planItems.push('Monitoreo de signos vitales cada 6 horas.');
+                  planItems.push('Dieta a tolerancia y control evolutivo en siguiente turno.');
+
+                  setPlan(`PLAN TERAPÉUTICO:\n${planItems.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}`);
 
                   window.dispatchEvent(
                     new CustomEvent('lis-global-toast', {
@@ -1458,9 +1465,6 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   <label className="font-bold text-slate-300">
                     [S] Subjetivo (Síntomas referidos por el paciente)
                   </label>
-                  <span className="text-[10px] text-cyan-400/90 font-mono">
-                    Sin límite de texto • {countStats(subjective).paras} párrafos ({countStats(subjective).words} palabras)
-                  </span>
                 </div>
                 <textarea
                   value={subjective}
@@ -1598,11 +1602,6 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   </div>
                 </div>
 
-                <div className="flex justify-end mb-1">
-                  <span className="text-[10px] text-cyan-400/90 font-mono">
-                    Sin límite de texto • {countStats(objective).paras} párrafos ({countStats(objective).words} palabras)
-                  </span>
-                </div>
                 <textarea
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
@@ -1636,11 +1635,6 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                     ))}
                   </div>
                 </div>
-                <div className="flex justify-end mb-1">
-                  <span className="text-[10px] text-cyan-400/90 font-mono">
-                    Sin límite de texto • {countStats(assessment).paras} párrafos
-                  </span>
-                </div>
                 <textarea
                   value={assessment}
                   onChange={(e) => setAssessment(e.target.value)}
@@ -1661,24 +1655,44 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                     type="button"
                     onClick={() => {
                       if (patientMeds.length > 0) {
-                        const medList = patientMeds.map((m, i) => `${i + 1}. Continuar ${m.drugName} ${m.dose} (${m.frequency})`).join('\n');
+                        const medList = patientMeds.map((m, i) => `${i + 1}. Continuar ${m.drugName} ${m.dose} vía ${m.route} (${m.frequency})`).join('\n');
                         setPlan(prev => prev ? `${prev}\n${medList}` : medList);
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Fármacos Insertados',
+                              message: `Se agregaron ${patientMeds.length} prescripciones activas al plan médico.`,
+                              type: 'info'
+                            }
+                          })
+                        );
+                      } else {
+                        const baselineMeds = [
+                          '1. Omeprazol 40 mg IV cada 24h (Gastroprotección)',
+                          '2. Paracetamol 1 g IV PRN si fiebre o dolor moderado',
+                          '3. Solución Salina 0.9% 1000 cc a 80 cc/h IV'
+                        ].join('\n');
+                        setPlan(prev => prev ? `${prev}\n${baselineMeds}` : baselineMeds);
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Pauta Basal Hospitalaria Insertada',
+                              message: 'Sin fármacos previos: Se insertó pauta médica basal hospitalaria estándar.',
+                              type: 'info'
+                            }
+                          })
+                        );
                       }
                     }}
-                    className="px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-md text-[9px] font-bold hover:bg-amber-500/20 cursor-pointer"
+                    className="px-2.5 py-1 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-bold hover:bg-amber-500/25 transition cursor-pointer flex items-center space-x-1"
                   >
-                    + Insertar Fármacos Activos
+                    <span>+ Insertar Fármacos Activos ({patientMeds.length})</span>
                   </button>
-                </div>
-                <div className="flex justify-end mb-1">
-                  <span className="text-[10px] text-cyan-400/90 font-mono">
-                    Sin límite de texto • {countStats(plan).paras} párrafos
-                  </span>
                 </div>
                 <textarea
                   value={plan}
                   onChange={(e) => setPlan(e.target.value)}
-                  placeholder="1. Continuar antibiótico. 2. Solicitar hemograma de control en LIS. 3. Dieta blanda a tolerancia... (Sin límite de líneas)"
+                  placeholder="1. Continuar antibiótico. 2. Solicitar hemograma de control en LIS. 3. Dieta blanda a tolerancia..."
                   rows={4}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 font-normal leading-relaxed resize-y min-h-[90px]"
                   required
@@ -1687,7 +1701,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition cursor-pointer flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-black rounded-xl shadow-lg shadow-indigo-600/25 transition cursor-pointer flex items-center justify-center space-x-2 text-xs uppercase tracking-wider"
               >
                 <Check className="w-4 h-4" />
                 <span>Firmar y Guardar Nota SOAP (Firma Biométrica Médica)</span>
@@ -1695,29 +1709,41 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
             </form>
           </div>
 
-          <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
             <h3 className="font-bold text-white text-sm border-b border-slate-800 pb-3 flex items-center space-x-2">
               <Clock className="w-4 h-4 text-indigo-400" />
               <span>Historial de Evolución Médica ({patientSoapNotes.length})</span>
             </h3>
 
-            <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
-              {patientSoapNotes.map((note) => (
-                <div key={note.id} className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-slate-400 border-b border-slate-900 pb-2">
-                    <span className="font-bold text-indigo-300">{note.doctorName} ({note.doctorLicense})</span>
-                    <span>{new Date(note.timestamp).toLocaleString('es-PA')}</span>
-                  </div>
+            {patientSoapNotes.length > 0 ? (
+              <div className="space-y-4 max-h-[650px] overflow-y-auto pr-1">
+                {patientSoapNotes.map((note) => (
+                  <div key={note.id} className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-slate-400 border-b border-slate-900 pb-2">
+                      <span className="font-bold text-indigo-300">{note.doctorName} ({note.doctorLicense})</span>
+                      <span>{new Date(note.timestamp).toLocaleString('es-PA')}</span>
+                    </div>
 
-                  <div className="space-y-1.5 text-slate-300">
-                    <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[S]:</strong> {note.subjective}</p>
-                    <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[O]:</strong> {note.objective}</p>
-                    <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[A]:</strong> {note.assessment}</p>
-                    <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[P]:</strong> {note.plan}</p>
+                    <div className="space-y-1.5 text-slate-300">
+                      <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[S]:</strong> {note.subjective}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[O]:</strong> {note.objective}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[A]:</strong> {note.assessment}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed"><strong className="text-white">[P]:</strong> {note.plan}</p>
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-slate-950/50 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center space-y-3">
+                <FileText className="w-10 h-10 text-slate-600 stroke-[1.5]" />
+                <div className="space-y-1">
+                  <p className="text-slate-300 font-bold text-xs">Sin notas SOAP previas registradas</p>
+                  <p className="text-slate-500 text-[11px] max-w-xs">
+                    Las evoluciones médicas firmadas para este paciente durante su internación aparecerán cronológicamente en este panel.
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2130,7 +2156,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   Prioridad de Procesamiento Analítico & TAT:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  {(['STAT', 'URGENTE', 'RUTINA'] as const).map((p) => {
+                  {(['RUTINA', 'URGENTE', 'STAT'] as const).map((p) => {
                     const isStat = p === 'STAT';
                     const isUrg = p === 'URGENTE';
                     const isSelected = orderPriority === p;
@@ -2150,11 +2176,11 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                         }`}
                       >
                         <div className="flex items-center justify-between font-black text-xs">
-                          <span>{isStat ? '⚡ STAT Inmediata' : isUrg ? '⏰ Urgente' : '📋 Rutina'}</span>
+                          <span>{isStat ? '⚡ Urgente Inmediata' : isUrg ? '⏰ Prioritaria' : '📋 Rutina'}</span>
                           {isSelected && <Check className="w-3.5 h-3.5" />}
                         </div>
                         <div className="text-[10px] mt-1 font-mono text-slate-400">
-                          {isStat ? 'TAT < 45 minutos' : isUrg ? 'TAT < 2 horas' : 'TAT < 4 horas'}
+                          {isStat ? 'TAT Inmediato < 45 min' : isUrg ? 'TAT Prioritario < 2 horas' : 'TAT Estándar < 4 horas'}
                         </div>
                       </button>
                     );
@@ -2206,7 +2232,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                               ord.priority === 'STAT' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'
                             }`}>
-                              {ord.priority}
+                              {ord.priority === 'STAT' ? 'URGENTE INMEDIATA' : ord.priority === 'URGENTE' ? 'PRIORITARIA' : 'RUTINA'}
                             </span>
                           </td>
                           <td className="p-3">
@@ -2343,7 +2369,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
             <div className="bg-slate-900 border border-rose-500/30 rounded-3xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <Droplets className="w-5 h-5 text-rose-500 animate-pulse" />
+                  <Droplets className="w-5 h-5 text-rose-500" />
                   <h3 className="font-bold text-white text-sm">Inmunohematología & Historial Transfusional del Paciente</h3>
                 </div>
                 <span className="text-[10px] bg-rose-500/10 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-full font-bold">
