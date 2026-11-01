@@ -68,7 +68,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
   });
   const [selectedResultsByOrder, setSelectedResultsByOrder] = useState<Record<string, string[]>>({});
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'STAT' | 'RUTINA'>('ALL');
+  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'URGENCIA' | 'RUTINA'>('ALL');
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -298,12 +298,12 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                 Todas
               </button>
               <button
-                onClick={() => setPriorityFilter('STAT')}
+                onClick={() => setPriorityFilter('URGENCIA')}
                 className={`px-3 py-1 text-[11px] font-bold rounded-lg transition ${
-                  priorityFilter === 'STAT' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  priorityFilter === 'URGENCIA' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                STAT
+                URGENCIA
               </button>
               <button
                 onClick={() => setPriorityFilter('RUTINA')}
@@ -357,7 +357,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
                         <div className="flex items-center space-x-2">
                           <span className="font-mono font-bold text-white text-sm">{order.orderNumber}</span>
                           <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-                            order.priority === 'STAT' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse' : 'bg-slate-800 text-slate-300 border-slate-700'
+                            order.priority === 'URGENCIA' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse' : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}>
                             {order.priority}
                           </span>

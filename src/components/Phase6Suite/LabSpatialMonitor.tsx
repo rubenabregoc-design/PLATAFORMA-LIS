@@ -110,7 +110,7 @@ const INITIAL_BENCH_AREAS: LabBenchArea[] = [
     analyzers: [
       { name: 'Módulo Química', model: 'Cobas 6000 c501', status: 'BUSY', utilization: 98 },
       { name: 'Módulo Inmuno', model: 'Cobas e601', status: 'BUSY', utilization: 96 },
-      { name: 'Analizador STAT', model: 'Abbott Alinity c', status: 'ONLINE', utilization: 85 }
+      { name: 'Analizador Urgencias', model: 'Abbott Alinity c', status: 'ONLINE', utilization: 85 }
     ],
     avgQueueLatencyMin: 52
   },

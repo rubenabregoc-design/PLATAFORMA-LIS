@@ -213,29 +213,29 @@ export const Header: React.FC<HeaderProps> = ({
   const DOMAIN_CATEGORIES = [
     {
       id: 'lis',
-      label: language === 'EN' ? 'LIS Laboratory' : 'Laboratorio LIS',
-      shortLabel: 'LIS',
+      label: language === 'EN' ? 'Clinical Laboratory (LIS)' : 'Laboratorio Clínico (LIS)',
+      shortLabel: language === 'EN' ? 'Laboratory LIS' : 'Laboratorio LIS',
       icon: Microscope,
       count: visibleTabs.filter(t => t.category === 'lis').length
     },
     {
       id: 'his',
-      label: language === 'EN' ? 'HIS Hospital' : 'Hospital HIS',
-      shortLabel: 'HIS',
+      label: language === 'EN' ? 'Hospital Care (HIS)' : 'Hospitalización HIS',
+      shortLabel: language === 'EN' ? 'Hospital HIS' : 'Hospital HIS',
       icon: Activity,
       count: visibleTabs.filter(t => t.category === 'his').length
     },
     {
       id: 'bloodbank',
-      label: language === 'EN' ? 'Blood Bank' : 'Banco Sangre',
-      shortLabel: language === 'EN' ? 'Blood' : 'Sangre',
+      label: language === 'EN' ? 'Blood Bank & Transfusion' : 'Banco de Sangre',
+      shortLabel: language === 'EN' ? 'Blood Bank' : 'Banco de Sangre',
       icon: Droplets,
       count: visibleTabs.filter(t => t.category === 'bloodbank').length
     },
     {
       id: 'bi',
-      label: language === 'EN' ? 'BI & Management' : 'Gestión & BI',
-      shortLabel: language === 'EN' ? 'BI' : 'Gestión',
+      label: language === 'EN' ? 'Management & Quality' : 'Gestión & Calidad',
+      shortLabel: language === 'EN' ? 'Management & Quality' : 'Gestión & Calidad',
       icon: BrainCircuit,
       count: visibleTabs.filter(t => t.category === 'bi').length
     }
@@ -349,7 +349,7 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       <header className="bg-[#050814]/90 backdrop-blur-2xl text-white border-b border-white/[0.08] sticky top-0 z-40 shadow-[0_4px_25px_rgba(0,0,0,0.7)] w-full select-none no-print">
       {/* Top Navbar Row */}
-      <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-2 max-w-[1920px] mx-auto">
+      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-3 xl:px-4 2xl:px-6 h-14 sm:h-15 flex items-center justify-between gap-1.5 xl:gap-2 max-w-[1920px] mx-auto">
 
         {/* Brand Logo & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2.5 shrink-0">
@@ -381,35 +381,35 @@ export const Header: React.FC<HeaderProps> = ({
                   PRO
                 </span>
               </div>
-              <span className="text-[8.5px] font-mono text-slate-400 font-medium tracking-wider leading-none mt-0.5 hidden xs:inline">
+              <span className="text-[8.5px] font-mono text-slate-400 font-medium tracking-wider leading-none mt-0.5 hidden xl:inline">
                 {language === 'EN' ? 'CLINICAL SUITE' : 'PLATAFORMA CLÍNICA'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Floating Luxury Glass Navigation Rail (Desktop & Laptop lg+) */}
-        <nav className="hidden lg:flex items-center space-x-1 bg-slate-900/60 backdrop-blur-md border border-white/[0.08] rounded-xl p-1 shadow-inner shrink-0">
+        {/* Modern Medical Enterprise Navigation Rail (Desktop & Laptop lg+) */}
+        <nav className="hidden lg:flex items-center space-x-0.5 xl:space-x-1 bg-slate-900/80 border border-slate-800 rounded-xl p-0.5 xl:p-1 shadow-sm shrink-0">
 
           {/* Botón: Dashboard Principal */}
           <button
             onClick={() => { setActiveTab('dashboard'); setActiveCategoryMenu(null); setIsMoreSuitesDropdownOpen(false); }}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center space-x-1.5 xl:space-x-2 px-2 xl:px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'dashboard'
-                ? 'bg-gradient-to-b from-cyan-500/20 to-blue-600/10 border border-cyan-400/40 text-cyan-200 font-semibold shadow-[0_2px_12px_-2px_rgba(6,182,212,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]'
-                : 'text-slate-300 hover:text-white hover:bg-white/[0.05] font-medium'
+                ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium'
             }`}
-            title={language === 'EN' ? "Executive Dashboard" : "Dashboard Principal"}
+            title={language === 'EN' ? "Executive Dashboard" : "Panel Principal de Control"}
           >
-            <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-cyan-400' : 'text-slate-400'}`} />
-            <span>{language === 'EN' ? 'Dashboard' : 'Principal'}</span>
+            <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dashboard' ? 'text-sky-400' : 'text-slate-400'}`} />
+            <span>{language === 'EN' ? 'Dashboard' : 'Panel Principal'}</span>
           </button>
 
           {/* Divisor Visual */}
-          <div className="h-4 w-px bg-white/[0.08] mx-0.5 shrink-0" />
+          <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
 
-          {/* 1. MODO LAPTOP / PANTALLAS ESTÁNDAR (< 2xl): 3 Suites Principales (LIS, HIS, Sangre) + Desplegable "Más Suites" (Gestión & Catálogo) */}
-          <div className="flex 2xl:hidden items-center space-x-1 relative">
+          {/* 1. MODO LAPTOP / PANTALLAS ESTÁNDAR (< 2xl): 3 Suites Principales + Desplegable Gestión */}
+          <div className="flex 2xl:hidden items-center space-x-0.5 xl:space-x-1 relative">
             {primaryCategories.map((category) => {
               const CategoryIcon = category.icon;
               const isCategoryActive = activeTab !== 'dashboard' && visibleTabs.some(t => t.category === category.id && t.id === activeTab);
@@ -423,69 +423,49 @@ export const Header: React.FC<HeaderProps> = ({
                     setIsMoreSuitesDropdownOpen(false);
                     setActiveCategoryMenu((prev) => (prev === category.id ? null : category.id));
                   }}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center space-x-1.5 xl:space-x-2 px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryOpen
-                      ? 'bg-cyan-500/30 text-white font-semibold border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                      ? 'bg-slate-800 text-white font-semibold border border-sky-500/50 shadow-xs'
                       : isCategoryActive
-                      ? 'bg-gradient-to-b from-cyan-500/20 to-blue-600/10 border border-cyan-400/40 text-cyan-200 font-semibold shadow-[0_2px_12px_-2px_rgba(6,182,212,0.25)]'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.05] font-medium'
+                      ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium'
                   }`}
-                  title={`Suite ${category.label} (${category.count})`}
+                  title={`${category.label} (${category.count} módulos)`}
                 >
-                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive || isCategoryOpen ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive || isCategoryOpen ? 'text-sky-400' : 'text-slate-400'}`} />
                   <span>{category.shortLabel}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                    isCategoryActive || isCategoryOpen
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30'
-                      : 'bg-white/[0.05] text-slate-400 border border-white/[0.06]'
-                  }`}>
-                    {category.count}
-                  </span>
                 </button>
               );
             })}
 
-            {/* Desplegable Agrupador: "Más Suites" (Gestión & BI + Catálogo Unificado) */}
+            {/* Desplegable Agrupador: Gestión & Calidad */}
             <div className="relative">
               <button
                 onClick={() => setIsMoreSuitesDropdownOpen((prev) => !prev)}
-                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center space-x-1.5 xl:space-x-2 px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isMoreSuitesDropdownOpen
-                    ? 'bg-cyan-500/30 text-white font-semibold border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                    ? 'bg-slate-800 text-white font-semibold border border-sky-500/50 shadow-xs'
                     : isSecondaryActive
-                    ? 'bg-gradient-to-b from-amber-500/20 to-orange-600/10 border border-amber-400/40 text-amber-200 font-semibold shadow-[0_2px_12px_-2px_rgba(245,158,11,0.25)]'
-                    : 'text-slate-300 hover:text-white hover:bg-white/[0.05] font-medium'
+                    ? 'bg-slate-800 text-amber-300 font-semibold border border-slate-700/80 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium'
                 }`}
-                title={language === 'EN' ? "Management, Analytics & Complete Clinical Catalog" : "Gestión, Analítica BI y Catálogo Clínico Completo"}
+                title={language === 'EN' ? "Management, Quality & Full Catalog" : "Gestión, Analítica & Catálogo Completo"}
               >
-                {activeSecondary ? (
-                  <BrainCircuit className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                ) : (
-                  <Grid className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                )}
-                <span>
-                  {activeSecondary ? activeSecondary.shortLabel : (language === 'EN' ? 'More Suites' : 'Más Suites')}
-                </span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                  isSecondaryActive
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
-                    : 'bg-white/[0.05] text-slate-400 border border-white/[0.06]'
-                }`}>
-                  {activeSecondary ? activeSecondary.count : secondaryTotalCount}
-                </span>
-                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isMoreSuitesDropdownOpen ? 'rotate-180 text-cyan-400' : ''}`} />
+                <BrainCircuit className={`w-3.5 h-3.5 shrink-0 ${isSecondaryActive || isMoreSuitesDropdownOpen ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>{language === 'EN' ? 'Management' : 'Gestión & Calidad'}</span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isMoreSuitesDropdownOpen ? 'rotate-180 text-sky-400' : ''}`} />
               </button>
 
-              {/* Menú Flotante Desplegable */}
+              {/* Menú Desplegable Elegante */}
               {isMoreSuitesDropdownOpen && (
                 <>
                   <div
                     className="fixed inset-0 z-30"
                     onClick={() => setIsMoreSuitesDropdownOpen(false)}
                   />
-                  <div className="absolute top-full mt-2 left-0 min-w-[260px] bg-slate-950/95 border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-40 flex flex-col space-y-1 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1 text-[9px] font-mono uppercase tracking-widest text-slate-400 border-b border-slate-800">
-                      {language === 'EN' ? 'CLINICAL SUITES' : 'SUITES CLÍNICAS'}
+                  <div className="absolute top-full mt-2 left-0 min-w-[280px] bg-slate-900 border border-slate-700/80 rounded-xl p-2 shadow-2xl backdrop-blur-xl z-40 flex flex-col space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-slate-800 font-semibold">
+                      {language === 'EN' ? 'MANAGEMENT & CATALOG' : 'GESTIÓN & CATÁLOGO'}
                     </div>
 
                     {secondaryCategories.map((cat) => {
@@ -499,18 +479,18 @@ export const Header: React.FC<HeaderProps> = ({
                             setIsMoreSuitesDropdownOpen(false);
                             setActiveCategoryMenu(cat.id);
                           }}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                             isCatActive
-                              ? 'bg-amber-500/20 text-amber-200 border border-amber-400/40'
-                              : 'text-slate-200 hover:bg-white/[0.05] hover:text-white'
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2.5">
                             <CatIcon className="w-4 h-4 text-amber-400" />
                             <span>{cat.label}</span>
                           </div>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
-                            {cat.count}
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                            {cat.count} mód.
                           </span>
                         </button>
                       );
@@ -525,14 +505,14 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsMoreSuitesDropdownOpen(false);
                         setActiveCategoryMenu('all');
                       }}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/40 border border-cyan-500/30 transition-all cursor-pointer"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all cursor-pointer"
                     >
-                      <div className="flex items-center space-x-2">
-                        <Grid className="w-4 h-4 text-cyan-400" />
-                        <span>❖ {language === 'EN' ? 'Unified Catalog' : 'Catálogo Unificado'}</span>
+                      <div className="flex items-center space-x-2.5">
+                        <Grid className="w-4 h-4 text-sky-400" />
+                        <span>{language === 'EN' ? 'All Clinical Modules' : 'Todos los Módulos (Catálogo)'}</span>
                       </div>
-                      <span className="text-[9.5px] font-mono bg-cyan-500/20 text-cyan-200 px-1.5 py-0.5 rounded-full border border-cyan-400/30">
-                        {visibleTabs.length} (⌘K)
+                      <span className="text-[9.5px] font-mono bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded border border-sky-400/30">
+                        {visibleTabs.length} mód.
                       </span>
                     </button>
                   </div>
@@ -541,7 +521,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* 2. MODO PANTALLAS GRANDES (2xl+ >= 1536px): Todas las Píldoras Expandidas */}
+          {/* 2. MODO PANTALLAS GRANDES (2xl+ >= 1536px): Todas las Pestañas Expandidas */}
           <div className="hidden 2xl:flex items-center space-x-1">
             {DOMAIN_CATEGORIES.map((category) => {
               const CategoryIcon = category.icon;
@@ -555,30 +535,23 @@ export const Header: React.FC<HeaderProps> = ({
                     setSearchQuery('');
                     setActiveCategoryMenu((prev) => (prev === category.id ? null : category.id));
                   }}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isCategoryOpen
-                      ? 'bg-cyan-500/30 text-white font-semibold border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                      ? 'bg-slate-800 text-white font-semibold border border-sky-500/50 shadow-xs'
                       : isCategoryActive
-                      ? 'bg-gradient-to-b from-cyan-500/20 to-blue-600/10 border border-cyan-400/40 text-cyan-200 font-semibold shadow-[0_2px_12px_-2px_rgba(6,182,212,0.25)]'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.05] font-medium'
+                      ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium'
                   }`}
-                  title={`Suite ${category.label} (${category.count})`}
+                  title={`${category.label} (${category.count} módulos)`}
                 >
-                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive || isCategoryOpen ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <CategoryIcon className={`w-3.5 h-3.5 shrink-0 ${isCategoryActive || isCategoryOpen ? 'text-sky-400' : 'text-slate-400'}`} />
                   <span>{category.shortLabel}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                    isCategoryActive || isCategoryOpen
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30'
-                      : 'bg-white/[0.05] text-slate-400 border border-white/[0.06]'
-                  }`}>
-                    {category.count}
-                  </span>
                 </button>
               );
             })}
 
             {/* Divisor Visual hacia el Catálogo Completo */}
-            <div className="h-4 w-px bg-white/[0.08] mx-0.5 shrink-0" />
+            <div className="h-4 w-px bg-slate-800 mx-0.5 shrink-0" />
 
             {/* Botón Catálogo Unificado */}
             <button
@@ -586,22 +559,22 @@ export const Header: React.FC<HeaderProps> = ({
                 setSearchQuery('');
                 setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
               }}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 isMenuOpen && activeCategoryMenu === 'all'
-                  ? 'bg-cyan-500/30 text-white border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                  : 'text-cyan-300 hover:text-white hover:bg-white/[0.05]'
+                  ? 'bg-slate-800 text-white border border-sky-500/50 shadow-xs'
+                  : 'text-slate-400 hover:text-sky-300 hover:bg-slate-800/50'
               }`}
               title={language === 'EN' ? "View full clinical catalog (Ctrl+K)" : "Ver catálogo clínico completo (Ctrl+K)"}
             >
-              <Grid className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
-              <span>❖ {language === 'EN' ? 'Catalog' : 'Catálogo'} ({visibleTabs.length})</span>
-              <span className="text-[9px] font-mono opacity-70 bg-slate-800 px-1 py-0.2 rounded border border-white/10">⌘K</span>
+              <Grid className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+              <span>{language === 'EN' ? 'Catalog' : 'Catálogo'}</span>
+              <span className="text-[9px] font-mono text-slate-500 bg-slate-800/80 px-1 py-0.2 rounded border border-slate-700">Ctrl+K</span>
             </button>
           </div>
         </nav>
 
         {/* Right Controls: Unified Luxury Hub */}
-        <div className="flex items-center space-x-2 shrink-0 ml-auto">
+        <div className="flex items-center space-x-1.5 xl:space-x-2 shrink-0 ml-auto">
 
           {/* Group 1: Environment & Network Telemetry */}
           <div className="flex items-center space-x-1.5">
@@ -636,8 +609,8 @@ export const Header: React.FC<HeaderProps> = ({
             <OfflineSyncIndicator />
 
             {/* Language Selector */}
-            <div className="h-8 flex items-center bg-slate-900/60 border border-white/[0.08] hover:border-white/[0.18] rounded-xl px-2 gap-1.5 shadow-sm text-xs font-medium text-slate-300 transition-colors">
-              <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="h-8 flex items-center bg-slate-900/60 border border-white/[0.08] hover:border-white/[0.18] rounded-xl px-1.5 xl:px-2 gap-1 xl:gap-1.5 shadow-sm text-xs font-medium text-slate-300 transition-colors">
+              <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden xl:block" />
               <select
                 value={language}
                 onChange={(e) => {
@@ -662,18 +635,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Group 2: Executive Clinical Identity & Security Station */}
-          <div className="flex items-center bg-slate-900/70 border border-white/[0.08] hover:border-cyan-500/30 rounded-xl p-1 gap-1 shadow-sm backdrop-blur-md transition-colors">
+          <div className="flex items-center bg-slate-900/70 border border-white/[0.08] hover:border-cyan-500/30 rounded-xl p-0.5 xl:p-1 gap-0.5 xl:gap-1 shadow-sm backdrop-blur-md transition-colors">
             
             {/* User Info (Click opens branch selector) */}
             <button
               onClick={onOpenBranchModal}
               title={`${rawUserName} • ${getBranchName(currentBranch?.name, language)} (${language === 'EN' ? 'Click to change branch' : 'Clic para cambiar sede'})`}
-              className="flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left cursor-pointer"
+              className="flex items-center gap-1.5 xl:gap-2 px-1.5 xl:px-2 py-0.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left cursor-pointer"
             >
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shadow-sm shrink-0 border border-white/20">
                 {userInitials}
               </div>
-              <div className="hidden md:flex flex-col min-w-0 max-w-[120px] xl:max-w-[150px]">
+              <div className="hidden md:flex flex-col min-w-0 max-w-[95px] xl:max-w-[130px] 2xl:max-w-[160px]">
                 <span className="text-xs font-semibold text-slate-100 truncate leading-tight" title={cleanUserName}>
                   {cleanUserName}
                 </span>
@@ -818,7 +791,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Responsive Module Grid (High density, cards never cut off) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto max-h-[calc(100vh-210px)] sm:max-h-[52vh] p-1 pb-4 no-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 overflow-y-auto max-h-[calc(100vh-210px)] sm:max-h-[60vh] p-1.5 pb-6 custom-scrollbar pr-2">
               {filteredModules.length === 0 ? (
                 <div className="col-span-full py-12 text-center space-y-2">
                   <Search className="w-8 h-8 text-slate-600 mx-auto" />

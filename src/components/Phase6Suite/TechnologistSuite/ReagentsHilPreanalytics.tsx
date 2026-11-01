@@ -155,7 +155,7 @@ export const ReagentsHilPreanalytics: React.FC = () => {
 
   const handleConfirmRejection = () => {
     setIsRejectModalOpen(false);
-    setToastMsg(`✓ Muestra #${scannedBarcode} rechazada formalmente conforme a ISO 15189. Solicitud de re-toma STAT emitida.`);
+    setToastMsg(`✓ Muestra #${scannedBarcode} rechazada formalmente conforme a ISO 15189. Solicitud de re-toma urgente emitida.`);
     setTimeout(() => setToastMsg(null), 5000);
   };
 
@@ -452,7 +452,7 @@ export const ReagentsHilPreanalytics: React.FC = () => {
                   className="w-4 h-4 text-teal-500 rounded border-slate-700 bg-slate-900"
                 />
                 <label htmlFor="chk-resample" className="text-xs text-slate-200 font-bold cursor-pointer">
-                  Generar Orden Automática de Re-Toma de Muestra STAT a Flebotomía / Enfermería
+                  Generar Orden Automática de Re-Toma de Muestra Urgente a Flebotomía / Enfermería
                 </label>
               </div>
             </div>

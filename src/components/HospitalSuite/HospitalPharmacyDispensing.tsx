@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Pill,
   Search,
@@ -19,7 +20,8 @@ import {
   Printer,
   ShieldAlert,
   UserCheck,
-  Plus
+  Plus,
+  X
 } from 'lucide-react';
 
 export interface PrescriptionOrder {
@@ -173,6 +175,7 @@ export const HospitalPharmacyDispensing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
   const [selectedNarcoticFilter, setSelectedNarcoticFilter] = useState('ALL');
+  const [isNarcoticsFolioModalOpen, setIsNarcoticsFolioModalOpen] = useState(false);
 
   const handleDispenseDose = (id: string) => {
     setPrescriptions(prev =>
@@ -378,7 +381,7 @@ export const HospitalPharmacyDispensing: React.FC = () => {
 
             <div className="flex items-center space-x-2 shrink-0">
               <button
-                onClick={() => window.print()}
+                onClick={() => setIsNarcoticsFolioModalOpen(true)}
                 className="px-4 py-2 bg-slate-950 hover:bg-slate-800 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
               >
                 <Printer className="w-4 h-4" />
@@ -471,6 +474,190 @@ export const HospitalPharmacyDispensing: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {/* MODAL OFICIAL: FOLIO DE CONTROL DE NARCÓTICOS MINSA */}
+      {isNarcoticsFolioModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          id="narcotics-print-modal-container"
+          data-printable-portal="true"
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto printable-modal-overlay"
+        >
+          <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col">
+            {/* Top Toolbar (no-print) */}
+            <div className="bg-slate-900 text-white p-3 sm:p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-bold text-sm">
+                  🇵🇦
+                </div>
+                <div>
+                  <span className="font-black text-sm text-white block">Libro Foliado Oficial de Narcóticos & Estupefacientes</span>
+                  <span className="text-xs text-slate-400 font-mono">Formato Oficial Tipo Carta (US Letter 8.5" × 11") • MINSA / DFD</span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2.5">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2 rounded-xl text-xs transition flex items-center space-x-1.5 shadow-md shadow-rose-600/20 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir Folio Oficial / PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsNarcoticsFolioModalOpen(false)}
+                  className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition p-2 rounded-xl cursor-pointer"
+                  title="Cerrar vista previa"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* DOCUMENTO IMPRIMIBLE: FOLIO DFD / MINSA */}
+            <div
+              id="printable-narcotics-ledger"
+              data-printable="true"
+              className="p-4 sm:p-6 print:p-0 space-y-2.5 print:space-y-1.5 text-slate-900 font-sans leading-normal max-w-[8.5in] w-full mx-auto bg-white printable-document-page single-page-letter text-xs"
+            >
+              {/* Header Oficial MINSA */}
+              <div className="border-b-2 border-slate-900 pb-2.5 flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-rose-900 text-white flex items-center justify-center p-1.5 shadow shrink-0">
+                      <ShieldAlert className="w-6 h-6 text-rose-300" />
+                    </div>
+                    <div>
+                      <h1 className="text-base sm:text-lg font-black text-slate-950 uppercase leading-none">
+                        REPÚBLICA DE PANAMÁ • MINISTERIO DE SALUD
+                      </h1>
+                      <div className="text-[9px] font-black uppercase text-rose-800 tracking-wider mt-0.5">
+                        DIRECCIÓN NACIONAL DE FARMACIA Y DROGAS • DEPARTAMENTO DE SUSTANCIAS CONTROLADAS
+                      </div>
+                      <div className="text-[9px] text-slate-600 font-medium">
+                        Libro Oficial Foliado de Movimiento y Custodia de Narcóticos y Psicotrópicos
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right space-y-0.5 shrink-0">
+                  <div className="inline-block bg-slate-50 border-2 border-slate-900 rounded-lg px-2.5 py-1 text-right shadow-sm">
+                    <span className="text-[8px] font-extrabold text-slate-600 uppercase block tracking-wider leading-tight">Folio Oficial Registrado</span>
+                    <span className="text-xs font-mono font-black text-slate-950 block leading-tight">FOLIO-DFD-2026-0814</span>
+                  </div>
+                  <div className="text-[9px] text-slate-600 font-mono">
+                    Fecha de Corte: {new Date().toLocaleDateString('es-PA')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Inventario en Bóveda */}
+              <div className="border border-slate-300 rounded-xl p-2 bg-slate-50 avoid-break space-y-1">
+                <span className="text-[9px] font-black uppercase text-slate-700 block tracking-wider">
+                  Existencias y Saldos de Apertura en Bóveda Blindada:
+                </span>
+                <div className="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+                  <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] text-slate-500 block">Fentanilo 0.5mg</span>
+                    <strong className="text-xs font-black text-rose-800">48 Ampollas</strong>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] text-slate-500 block">Morfina 10mg</span>
+                    <strong className="text-xs font-black text-amber-800">24 Ampollas</strong>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] text-slate-500 block">Midazolam 15mg</span>
+                    <strong className="text-xs font-black text-teal-800">39 Ampollas</strong>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] text-slate-500 block">Tramadol 100mg</span>
+                    <strong className="text-xs font-black text-slate-900">65 Ampollas</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Registro Cronológico de Movimientos */}
+              <div className="border border-slate-300 rounded-xl overflow-hidden avoid-break">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 text-[9px] font-black uppercase text-slate-700">
+                      <th className="py-1 px-2.5">Fecha / Hora</th>
+                      <th className="py-1 px-2.5">Sustancia / Lote</th>
+                      <th className="py-1 px-2.5 text-center">Cant.</th>
+                      <th className="py-1 px-2.5">Paciente / Cédula</th>
+                      <th className="py-1 px-2.5">Receta / Médico Prescriptor</th>
+                      <th className="py-1 px-2.5 text-center">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 font-mono text-[10px]">
+                    {narcoticsLog.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-slate-50">
+                        <td className="py-1 px-2.5 text-slate-600">{entry.timestamp}</td>
+                        <td className="py-1 px-2.5 font-bold text-slate-950">
+                          {entry.drugName}
+                          <span className="block text-[8px] text-slate-500 font-normal">Lote: {entry.lotNumber}</span>
+                        </td>
+                        <td className="py-1 px-2.5 text-center font-black text-rose-700">-{entry.quantityDispensed}</td>
+                        <td className="py-1 px-2.5 font-sans">
+                          <strong className="text-slate-900 block text-[11px] leading-tight">{entry.patientName}</strong>
+                          <span className="text-[9px] text-slate-500 font-mono">{entry.patientNationalId}</span>
+                        </td>
+                        <td className="py-1 px-2.5 font-sans text-[9px]">
+                          <strong className="text-slate-900 block font-mono">{entry.prescriptionNumber}</strong>
+                          <span className="text-slate-600">{entry.doctorName} (Idon: {entry.doctorLicense})</span>
+                        </td>
+                        <td className="py-1 px-2.5 text-center font-black text-emerald-800 text-xs">
+                          {entry.remainingBalance}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Firmas de Custodia y Responsabilidad */}
+              <div className="pt-2 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end avoid-break signature-block">
+                <div className="space-y-0.5">
+                  <div className="h-7 flex items-end">
+                    <svg viewBox="0 0 200 45" className="h-7 w-36 text-slate-850" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M 15 35 Q 35 5 65 30 T 115 20 Q 135 40 155 15 T 180 30 M 30 25 Q 75 45 145 25" />
+                    </svg>
+                  </div>
+                  <div className="w-52 border-b-2 border-slate-800 pb-0.5 mb-0.5">
+                    <span className="text-[8px] text-slate-500 font-mono block">Firma del Farmacéutico Regente</span>
+                  </div>
+                  <div className="font-black text-xs text-slate-950">Lic. Elena Restrepo Chen</div>
+                  <div className="text-[9px] text-slate-700">Farmacéutica Idónea Responsable</div>
+                  <div className="text-[9px] font-mono text-slate-900">Idoneidad MINSA: FAR-3912-PA</div>
+                </div>
+
+                <div className="space-y-0.5 text-right">
+                  <div className="h-7 flex items-end justify-end">
+                    <svg viewBox="0 0 200 45" className="h-7 w-36 text-slate-850" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M 20 20 Q 50 35 80 15 T 130 30 Q 150 10 175 25" />
+                    </svg>
+                  </div>
+                  <div className="w-52 ml-auto border-b-2 border-slate-800 pb-0.5 mb-0.5 text-right">
+                    <span className="text-[8px] text-slate-500 font-mono block">Firma del Director Médico</span>
+                  </div>
+                  <div className="font-black text-xs text-slate-950">Dr. Roberto Icaza Villalaz</div>
+                  <div className="text-[9px] text-slate-700">Director Médico del Hospital</div>
+                  <div className="text-[9px] font-mono text-slate-900">Idoneidad MINSA: 4921-MD-PA</div>
+                </div>
+              </div>
+
+              {/* Pie Legal */}
+              <div className="border-t border-slate-200 pt-1.5 flex justify-between text-[8px] text-slate-500 font-mono avoid-break">
+                <span>Conforme al Decreto Ejecutivo de Control de Narcóticos del MINSA. Registro Inalterable.</span>
+                <span>Página 1 de 1 • Sistema HIS/LIS Panamá</span>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -195,7 +195,7 @@ ${reasonObj.patientFriendlyExplanation}
 Para su total tranquilidad y seguridad médica, requerimos tomar una *nueva muestra de reemplazo (100% gratuita y prioritaria)*.
 
 📍 *Opciones disponibles:*
-1. Presentarse en cualquiera de nuestras sedes con atención preferencial sin hacer fila (Caja STAT Re-muestreo).
+1. Presentarse en cualquiera de nuestras sedes con atención preferencial sin hacer fila (Caja Urgencias Re-muestreo).
 2. Solicitar atención a domicilio gratuita respondiendo a este mensaje o en el siguiente enlace:
 🔗 https://lis.app/re-muestreo/${sampleObj.barcode}?token=STAT-2026
 
@@ -559,7 +559,7 @@ _Laboratorio Clínico Central • Tel: +507 800-5472_`;
 
               <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 font-mono text-xs">
                 <div className="flex justify-between text-amber-400 font-bold">
-                  <span>🚨 ORDEN DE RE-MUESTREO STAT</span>
+                  <span>🚨 ORDEN DE RE-MUESTREO URGENCIA</span>
                   <span className="bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">PRIORITARIO</span>
                 </div>
 
@@ -577,7 +577,7 @@ _Laboratorio Clínico Central • Tel: +507 800-5472_`;
                 </div>
 
                 <div className="pt-2 border-t border-slate-800 text-[11px] text-emerald-400">
-                  ✓ Asignación automática: <strong>Caja 01 STAT / Domicilio Gratuito</strong>
+                  ✓ Asignación automática: <strong>Caja 01 Urgencias / Domicilio Gratuito</strong>
                 </div>
               </div>
             </div>
@@ -730,7 +730,7 @@ _Laboratorio Clínico Central • Tel: +507 800-5472_`;
                   Muestra #{currentSample.barcode} Registrada como Rechazada
                 </h3>
                 <p className="text-xs text-slate-300 max-w-lg mx-auto">
-                  Se ha generado la Orden de Re-muestreo STAT <strong className="text-amber-400">{reSamplingOrderCode}</strong> y notificado en tiempo real a Recepción Central.
+                  Se ha generado la Orden de Re-muestreo Urgencia <strong className="text-amber-400">{reSamplingOrderCode}</strong> y notificado en tiempo real a Recepción Central.
                 </p>
               </div>
 

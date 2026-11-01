@@ -283,7 +283,7 @@ const generateInitialShifts = (): WorkShift[] => {
         endTime: '07:00',
         section: 'Guardia de Urgencias 24h',
         status: 'CONFIRMADO',
-        notes: 'Disponibilidad prioritaria para Banco de Sangre y Troponinas STAT',
+        notes: 'Disponibilidad prioritaria para Banco de Sangre y Troponinas Urgencia',
         assignedBy: 'Dra. María Elena Abrego',
         assignedAt: '2026-07-28 09:00'
       });
@@ -735,7 +735,7 @@ export const ShiftManagementModule: React.FC = () => {
               <span>Guardias Nocturnas</span>
             </div>
             <div className="text-2xl font-black font-mono text-rose-300">{nightGuardsCount}</div>
-            <div className="text-[10px] text-slate-400 font-medium">Urgencias Hospitalarias STAT</div>
+            <div className="text-[10px] text-slate-400 font-medium">Urgencias Hospitalarias</div>
           </div>
         </div>
       </div>
@@ -1210,7 +1210,7 @@ export const ShiftManagementModule: React.FC = () => {
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 font-bold focus:ring-2 focus:ring-teal-500 cursor-pointer"
                 >
                   <option value="Hematología & Química">Hematología & Química Clínica</option>
-                  <option value="Procesamiento General">Procesamiento General & Urgencias STAT</option>
+                  <option value="Procesamiento General">Procesamiento General & Urgencias</option>
                   <option value="Microbiología & Inmuno">Microbiología, Parasitología e Inmunología</option>
                   <option value="Recepción & Muestras">Toma de Muestras & Admisión Pacientes</option>
                   <option value="Guardia Urgencias 24h">Guardia de Urgencias Hospitalarias 24h</option>

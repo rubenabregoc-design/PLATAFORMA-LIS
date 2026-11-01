@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Order, TestResult, Patient, Analyzer, User } from '../../types';
 import { MOCK_TEST_CATALOG, MOCK_ANALYZERS } from '../../data/mockData';
 import { ResultsAlertsCenter } from './ResultsAlertsCenter';
@@ -112,6 +113,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [activeTraceabilityId, setActiveTraceabilityId] = useState<string | null>(null);
   const [unvalidateReason, setUnvalidateReason] = useState('');
   const [showUnvalidateModal, setShowUnvalidateModal] = useState(false);
+  const [unauthorizedModalInfo, setUnauthorizedModalInfo] = useState<{
+    isOpen: boolean;
+    testName: string;
+    validatedBy: string;
+    validatedAt?: string;
+    testResultId?: string;
+  } | null>(null);
 
   const [showAlertsCenterModal, setShowAlertsCenterModal] = useState(false);
   const [showClinicalCalcModal, setShowClinicalCalcModal] = useState(false);
@@ -127,6 +135,61 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
+
+
+  const handleInitiateUnvalidate = (explicitResult?: TestResult) => {
+    const selectedValidated = explicitResult
+      ? [explicitResult]
+      : patientResults.filter(r =>
+          selectedResults.includes(r.id) &&
+          (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO')
+        );
+
+    if (selectedValidated.length === 0) {
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: {
+            message: 'ℹ️ Seleccione al menos un analito en estado VALIDADO para poder desvalidar.',
+            type: 'info',
+            duration: 3500
+          }
+        })
+      );
+      return;
+    }
+
+    // Authorization check:
+    // Supervisors (lab_chief, owner, abregotech_admin) have global unvalidation authority.
+    const isSupervisorUser = currentUser?.role === 'lab_chief' || currentUser?.role === 'owner' || currentUser?.role === 'abregotech_admin';
+
+    if (!isSupervisorUser) {
+      const unauthorizedItem = selectedValidated.find(r => {
+        const validator = r.technicalValidatedBy || r.medicalValidatedBy || '';
+        const currentUserName = currentUser?.name || '';
+        const isSelfValidated = Boolean(currentUserName && validator && validator.toLowerCase().includes(currentUserName.toLowerCase()));
+        const isOrderOwnerUser = Boolean(currentOrder?.assignedTechMedId && (currentOrder.assignedTechMedId === currentUser?.id || currentOrder.assignedTechMedId === currentUser?.username));
+        return !isSelfValidated && !isOrderOwnerUser;
+      });
+
+      if (unauthorizedItem) {
+        const originalValidator = unauthorizedItem.technicalValidatedBy || unauthorizedItem.medicalValidatedBy || 'Lic. Sofía Guardia (TM-4091)';
+        setUnauthorizedModalInfo({
+          isOpen: true,
+          testName: unauthorizedItem.parameterName,
+          validatedBy: originalValidator,
+          validatedAt: unauthorizedItem.technicalValidatedAt || '07:42 AM',
+          testResultId: unauthorizedItem.id
+        });
+        return;
+      }
+    }
+
+    if (explicitResult && !selectedResults.includes(explicitResult.id)) {
+      setSelectedResults([explicitResult.id]);
+    }
+    setUnvalidateReason('');
+    setShowUnvalidateModal(true);
+  };
 
   const getTimeAgoData = (isoString?: string) => {
     if (!isoString) return { text: '', isLate: false };
@@ -965,22 +1028,23 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
              {/* Acciones de Validación, Desvalidación y Liberación (Ciclo LIS: Pendiente -> Validado -> Liberado) */}
               <div className="flex items-center gap-2.5">
-                 {canModifyThisOrder && selectedResults.some(id => {
-                   const res = results.find(r => r.id === id);
-                   const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO';
-                   return isValidated;
-                 }) && (
-                   <button
-                     onClick={() => {
-                       setUnvalidateReason('');
-                       setShowUnvalidateModal(true);
-                     }}
-                     className="px-4 py-3 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-rose-300 hover:bg-rose-500 hover:text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-md"
-                   >
-                     <X className="w-4 h-4" />
-                     <span>Desvalidar Seleccionados</span>
-                   </button>
-                 )}
+                 {selectedResults.some(id => {
+                    const res = results.find(r => r.id === id);
+                    const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO' || res?.status === 'LIBERADO';
+                    return isValidated;
+                  }) && (
+                    <button
+                      onClick={() => handleInitiateUnvalidate()}
+                      className="px-4 py-3 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-rose-300 hover:bg-rose-500 hover:text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-md"
+                      title="Desvalidar o revertir validación con motivo justificado (ISO 15189)"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Desvalidar ({selectedResults.filter(id => {
+                        const res = results.find(r => r.id === id);
+                        return res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO' || res?.status === 'LIBERADO';
+                      }).length})</span>
+                    </button>
+                  )}
 
                  <button
                    disabled={!canModifyThisOrder || !selectedResults.some(id => {
@@ -1107,6 +1171,107 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             </div>
           </div>
         )}
+
+        
+      {/* 🔒 Modal de Alerta de Seguridad ISO 15189 & Ley 81: Bloqueo de Custodia */}
+      {unauthorizedModalInfo?.isOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#020617]/85 backdrop-blur-md p-4 animate-in fade-in duration-150">
+          <div className="bg-[#0b132b] border-2 border-rose-500/50 rounded-2xl w-full max-w-lg shadow-[0_25px_80px_rgba(244,63,94,0.3)] overflow-hidden animate-in zoom-in-95 duration-150">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-rose-950/80 via-slate-900 to-rose-950/80 border-b border-rose-500/30 p-4 sm:p-5 flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0 shadow-lg shadow-rose-500/20">
+                <ShieldAlert className="w-5 h-5 text-rose-400 animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                    Seguridad ISO 15189 • Ley 81
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">Bloqueo de Custodia</span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight mt-1">
+                  Acción Restringida: No puede desvalidar este resultado
+                </h3>
+              </div>
+              <button
+                onClick={() => setUnauthorizedModalInfo(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Content */}
+            <div className="p-4 sm:p-5 space-y-4 text-xs">
+              
+              {/* Detail Box */}
+              <div className="bg-[#070d1f] border border-rose-500/25 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400 text-[11px]">Analito / Examen:</span>
+                  <span className="font-bold text-white text-[12.5px] truncate max-w-[280px]">
+                    {unauthorizedModalInfo.testName}
+                  </span>
+                </div>
+
+                <div className="h-px bg-slate-800/80" />
+
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400 text-[11px]">Validado y firmado por:</span>
+                  <span className="font-mono font-bold text-rose-300 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-md text-[11px]">
+                    {unauthorizedModalInfo.validatedBy}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400 text-[11px]">Hora de Firma Técnica:</span>
+                  <span className="font-mono text-cyan-400 text-[11px]">
+                    {unauthorizedModalInfo.validatedAt || '07:42 AM'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Legal & Regulatory Explanation */}
+              <div className="space-y-2 text-slate-300 text-[11.5px] leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                <p className="flex items-start gap-2">
+                  <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Protección de Cadena de Custodia:</strong> Este análisis fue firmado por otro profesional colegiado. Para preservar la inalterabilidad jurídica de los informes clínicos, la plataforma prohíbe que un resultado sea desvalidado por un usuario distinto al que emitió la firma técnica.
+                  </span>
+                </p>
+                <p className="text-[11px] text-slate-400 pl-6">
+                  ⚖️ Únicamente el profesional que realizó la validación original (<strong className="text-slate-200">{unauthorizedModalInfo.validatedBy}</strong>) o la <strong className="text-amber-300">Jefatura Médica de Laboratorio (lab_chief)</strong> cuentan con atribuciones para reabrir o desvalidar esta orden.
+                </p>
+              </div>
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="bg-[#070d1f] border-t border-slate-800/80 p-3.5 sm:p-4 flex items-center justify-between gap-2.5">
+              <button
+                onClick={() => {
+                  const id = unauthorizedModalInfo.testResultId;
+                  setUnauthorizedModalInfo(null);
+                  if (id) setActiveTraceabilityId(id);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-700"
+              >
+                <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Ver Trazabilidad & Custodia</span>
+              </button>
+
+              <button
+                onClick={() => setUnauthorizedModalInfo(null)}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 cursor-pointer"
+              >
+                Entendido
+              </button>
+            </div>
+
+          </div>
+        </div>,
+        document.body
+      )}
 
         {showAuditLog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md p-10">
@@ -1324,7 +1489,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       const idsToRevoke = activeTraceabilityId ? [activeTraceabilityId] : selectedResults.filter(id => {
                         const res = results.find(r => r.id === id);
                         const isValidated = res?.status === 'VALIDADO_TEC' || res?.status === 'VALIDADO_MED' || res?.status === 'VALIDADO' || res?.status === 'LIBERADO';
-                        return isValidated && (currentUser?.role === 'abregotech_admin' || res?.technicalValidatedBy === currentUser?.name);
+                        const isSupervisorUser = currentUser?.role === 'abregotech_admin' || currentUser?.role === 'lab_chief' || currentUser?.role === 'owner';
+                        const isSelfValidated = Boolean(currentUser?.name && res?.technicalValidatedBy && res.technicalValidatedBy.toLowerCase().includes(currentUser.name.toLowerCase()));
+                        const isOrderOwnerUser = Boolean(currentOrder?.assignedTechMedId && (currentOrder.assignedTechMedId === currentUser?.id || currentOrder.assignedTechMedId === currentUser?.username));
+                        return isValidated && (isSupervisorUser || isSelfValidated || isOrderOwnerUser);
                       });
 
                       return idsToRevoke.map(id => {

@@ -102,7 +102,7 @@ export interface Doctor {
   email: string;
 }
 
-export type Priority = 'RUTINA' | 'STAT' | 'URGENTE';
+export type Priority = 'RUTINA' | 'STAT' | 'URGENTE' | 'URGENCIA';
 export type OrderStatus = 'REGISTRADA' | 'TOMADA' | 'EN_PROCESO' | 'VALIDADA_TEC' | 'VALIDADA_MED' | 'LIBERADA' | 'COMPLETADA' | 'CANCELADA';
 
 export interface TestCatalogItem {
@@ -166,6 +166,7 @@ export interface Specimen {
   orderId: string;
   barcode: string; // e.g. BC-8823101
   tubeType: string;
+  type?: string;   // e.g. "Sangre Total (EDTA)", "Suero Sanguíneo", "Plasma Citratado"
   collectedAt?: string;
   collectedBy?: string;
   status?: 'PENDIENTE' | 'RECEPTADA' | 'EN_ANALIZADOR' | 'DESECHADA';

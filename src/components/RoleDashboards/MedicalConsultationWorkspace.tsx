@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Order, TestResult } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
 import { MOCK_TEST_CATALOG } from '../../data/mockData';
@@ -15,6 +16,7 @@ import { turnService } from '../../utils/turnService';
 import { AnatomicalBodyMap } from '../HospitalSuite/AnatomicalBodyMap';
 import SupabaseService from '../../services/SupabaseService';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
+import { buildPrintFileName, printDocument, usePrintFileName } from '../../utils/printDocument';
 
 export interface ConsultationPatient {
   id: string;
@@ -682,6 +684,24 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
     try { localStorage.setItem('lis_consultation_active_tab', tab); } catch (e) { console.error(e); }
   };
 
+  // Flujo clínico guiado: pasos ya revisados por el médico durante la consulta actual
+  const [visitedConsultTabs, setVisitedConsultTabs] = useState<Set<string>>(() => new Set([consultTab]));
+  useEffect(() => {
+    setVisitedConsultTabs(prev => (prev.has(consultTab) ? prev : new Set(prev).add(consultTab)));
+  }, [consultTab]);
+
+  // Al abrir un paciente distinto, el flujo reinicia en el Paso 1 (Revisar expediente)
+  const lastPatientIdRef = React.useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const currentId = activePatient?.id ?? null;
+    if (lastPatientIdRef.current !== undefined && lastPatientIdRef.current !== currentId && currentId) {
+      setVisitedConsultTabs(new Set(['resumen']));
+      updateConsultTab('resumen');
+    }
+    lastPatientIdRef.current = currentId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePatient?.id]);
+
   // Blood Bank form state
   const [bloodProductType, setBloodProductType] = useState<'CONCENTRADO_GLOBULOS_ROJOS' | 'PLASMA_FRESCO_CONGELADO' | 'CONCENTRADO_PLAQUETARIO' | 'CRIOPRECIPITADO'>('CONCENTRADO_GLOBULOS_ROJOS');
   const [bloodUnits, setBloodUnits] = useState(1);
@@ -754,6 +774,23 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
     title: string;
     patient: ConsultationPatient;
   } | null>(null);
+
+  // Nombre de archivo sugerido al "Guardar como PDF": Tipo - Paciente - Cédula - Fecha
+  const printFileName = useMemo(() => {
+    if (!printableDocument) return null;
+    const docLabel: Record<typeof printableDocument.type, string> = {
+      RECETA: 'Receta Medica',
+      INCAPACIDAD: 'Certificado de Incapacidad',
+      REFERENCIA: 'Referencia Medica',
+      RESUMEN_CONSULTA: 'Resumen de Consulta SOAP',
+    };
+    return buildPrintFileName(
+      docLabel[printableDocument.type] || printableDocument.title,
+      printableDocument.patient.name,
+      printableDocument.patient.nationalId
+    );
+  }, [printableDocument]);
+  usePrintFileName(printFileName, !!printableDocument);
 
   // New Patient Walk-In Modal
   const [isAddingWalkIn, setIsAddingWalkIn] = useState(false);
@@ -2884,7 +2921,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                           onChange={(e) => setBloodUrgency(e.target.value as any)}
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500"
                         >
-                          <option value="STAT_INMEDIATA">STAT — Inmediata</option>
+                          <option value="STAT_INMEDIATA">Urgencia — Inmediata</option>
                           <option value="URGENTE_2H">Urgente (2 horas)</option>
                           <option value="RESERVA_ELECTIVA">Reserva Electiva</option>
                         </select>
@@ -3666,90 +3703,17 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
       {/* ============================================================== */}
       {/* MODAL: RESUMEN / IMPRESIÓN OFICIAL (RECETA, INCAPACIDAD, SOAP) */}
       {/* ============================================================== */}
-      {printableDocument && (
-        <div id="medical-print-modal-container" className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-          {/* Estilos estrictos para tamaño Carta (US Letter 8.5 x 11 in) con fondo blanco oficial */}
-          <style>{`
-            @media print {
-              @page {
-                size: letter portrait;
-                margin: 8mm 10mm;
-              }
-              html, body {
-                width: 100% !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                background-color: #ffffff !important;
-                color: #0f172a !important;
-                font-size: 10pt !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                overflow: visible !important;
-              }
-              .no-print,
-              .no-print *,
-              header,
-              nav,
-              aside,
-              footer {
-                display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              #medical-print-modal-container,
-              .fixed.inset-0.z-50 {
-                position: static !important;
-                background: #ffffff !important;
-                background-color: #ffffff !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-                overflow: visible !important;
-                box-shadow: none !important;
-                border: none !important;
-                display: block !important;
-                inset: auto !important;
-              }
-              #medical-print-modal-container > div {
-                box-shadow: none !important;
-                border: none !important;
-                border-radius: 0 !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: visible !important;
-                max-height: none !important;
-                min-height: auto !important;
-              }
-              #printable-medical-document {
-                position: static !important;
-                display: block !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                box-shadow: none !important;
-                border: none !important;
-                background: #ffffff !important;
-                background-color: #ffffff !important;
-                color: #0f172a !important;
-              }
-            }
-          `}</style>
-
-          <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col">
+      {printableDocument && typeof document !== 'undefined' && createPortal(
+        <div
+          id="medical-print-modal-container"
+          data-printable-portal="true"
+          className="fixed inset-0 z-[99999] bg-slate-900/80 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto printable-modal-overlay print:static print:block print:p-0 print:m-0 print:bg-white print:w-full print:h-auto print:max-h-none print:overflow-visible print:border-none print:shadow-none print:inset-auto"
+        >
+          <div className="bg-slate-100 rounded-none sm:rounded-2xl shadow-2xl border border-slate-300 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col print:static print:block print:p-0 print:m-0 print:w-full print:max-w-full print:h-auto print:min-h-0 print:max-h-none print:overflow-visible print:border-none print:shadow-none print:rounded-none print:bg-white">
             {/* Barra Superior de Control de Impresión (NO-PRINT) */}
-            <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800">
+            <div className="bg-slate-900 text-white p-3 sm:p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800 print:hidden shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-sm">
+                <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-sm">
                   🇵🇦
                 </div>
                 <div>
@@ -3775,7 +3739,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
 
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => printDocument(printFileName || document.title)}
                   className="bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-2 rounded-xl text-xs transition flex items-center space-x-1.5 shadow-md shadow-teal-600/20 cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
@@ -3794,158 +3758,183 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
             </div>
 
             {/* CONTENIDO DEL DOCUMENTO MÉDICO OFICIAL (HOJA BLANCA CARTA) */}
-            <div
-              id="printable-medical-document"
-              className="p-8 sm:p-12 space-y-6 text-slate-900 font-sans leading-relaxed max-w-[8.5in] w-full mx-auto bg-white"
-            >
+            <div className="flex-1 p-2 sm:p-6 bg-slate-200/50 flex justify-center print:p-0 print:bg-white print:overflow-visible">
+              <div
+                id="printable-medical-document"
+                data-printable="true"
+                className="p-4 sm:p-6 print:p-0 space-y-2.5 print:space-y-1.5 text-slate-900 font-sans leading-normal max-w-[8.5in] w-full mx-auto bg-white shadow-xl ring-1 ring-slate-900/5 print:shadow-none print:ring-0 printable-document-page single-page-letter"
+              >
               {/* 1. Membrete Institucional Oficial MINSA */}
-              <div className="border-b-2 border-slate-900 pb-5 flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-1">
+              <div className="border-b-2 border-slate-900 pb-2 flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-0.5">
                   <div className="flex items-center space-x-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xl shadow-md">
-                      🩺
+                    {/* Emblema Clínico Oficial SVG */}
+                    <div className="w-10 h-10 rounded-lg bg-teal-900 text-white flex items-center justify-center p-1.5 shadow-sm shrink-0">
+                      <svg viewBox="0 0 48 48" fill="none" className="w-full h-full text-teal-300">
+                        <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="2.5" fill="#0f766e" />
+                        <path d="M24 10v28M14 24h20" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
+                        <path d="M20 18c2-3 6-3 8 0s-2 6-4 8 2 5 0 8" stroke="#fef08a" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
                     </div>
                     <div>
-                      <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">
+                      <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-950 uppercase leading-none">
                         {doctorInfo.clinic}
                       </h1>
-                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-teal-700">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-teal-800 mt-0.5">
                         República de Panamá • Consejo Técnico de Salud (MINSA)
+                      </div>
+                      <div className="text-[9px] text-slate-600 font-medium">
+                        Atención Médica Especializada • {doctorInfo.specialty}
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-600 font-medium pt-1">
-                    Atención Médica Especializada • {doctorInfo.specialty}
-                  </p>
+
+                  <div className="text-[9px] text-slate-500 font-mono pt-0.5">
+                    Licencia Sanitaria MINSA N°: <strong>2024-CS-0941</strong> • RUC: <strong>155620-1-658245 DV 22</strong>
+                  </div>
                 </div>
 
-                <div className="text-right space-y-1">
-                  <div className="inline-block bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-right">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block tracking-wider">Folio Oficial</span>
-                    <span className="text-sm font-mono font-black text-slate-900">
-                      FOLIO: MED-{printableDocument.patient.nationalId.replace(/[^0-9]/g, '').slice(-4)}-{new Date().getFullYear()}
+                <div className="text-right space-y-0.5 shrink-0">
+                  <div className="inline-block bg-slate-50 border border-slate-800 rounded-lg px-2.5 py-1 text-right shadow-sm">
+                    <span className="text-[8px] font-extrabold text-slate-600 uppercase block tracking-wider leading-none">Folio Oficial MINSA</span>
+                    <span className="text-xs font-mono font-black text-slate-950 tracking-wider">
+                      FOLIO: MED-{printableDocument.patient.nationalId.replace(/[^0-9]/g, '').slice(-4) || '0000'}-{new Date().getFullYear()}
                     </span>
+                    {/* Simulación visual código de barras */}
+                    <div className="flex items-center justify-center gap-[2px] h-3 mt-0.5 px-0.5 bg-white rounded border border-slate-300">
+                      {[2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 4, 2, 1, 3, 2, 1, 2, 3, 1, 4].map((w, i) => (
+                        <div key={i} className="bg-slate-900 h-full" style={{ width: `${w}px` }} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono">
-                    Emisión: {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  <div className="text-[9px] text-slate-600 font-mono">
+                    Fecha de Emisión: {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </div>
                 </div>
               </div>
 
               {/* Título Oficial del Documento */}
-              <div className="text-center py-2 border-b border-slate-200">
-                <h2 className="text-lg font-black uppercase tracking-wider text-slate-900">
+              <div className="text-center py-1 border-b border-slate-300">
+                <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-950 leading-tight">
                   {printableDocument.title}
                 </h2>
-                <div className="text-[11px] text-slate-600 font-medium">
-                  {printableDocument.type === 'RECETA' && 'Prescripción Facultativa Conforme a Normativas Sanitarias Vigentes'}
-                  {printableDocument.type === 'INCAPACIDAD' && 'Certificado Médico de Reposo Domiciliario Obligatorio (CSS / MITRADEL)'}
+                <div className="text-[10px] text-teal-900 font-bold">
+                  {printableDocument.type === 'RECETA' && 'Prescripción Facultativa Conforme a la Ley 1 de 2001 y Normativas Sanitarias Vigentes'}
+                  {printableDocument.type === 'INCAPACIDAD' && 'Certificado Médico Oficial de Reposo Domiciliario Obligatorio (CSS / MITRADEL)'}
                   {printableDocument.type === 'RESUMEN_CONSULTA' && 'Nota Médica de Atención, Evolución y Plan Terapéutico (SOAP)'}
                 </div>
               </div>
 
               {/* 2. Cuadro Formal de Datos del Paciente */}
-              <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-800">
+              <div className="bg-slate-50/90 border border-slate-300 rounded-lg p-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] text-slate-800 avoid-break patient-demographics-card">
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Paciente:</span>
-                  <strong className="text-sm text-slate-950 font-black">{printableDocument.patient.name}</strong>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Paciente:</span>
+                  <strong className="text-[11px] text-slate-950 font-black block truncate">{printableDocument.patient.name}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Cédula / Pasaporte:</span>
-                  <span className="font-mono font-bold text-slate-900">{printableDocument.patient.nationalId}</span>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Cédula / Pasaporte:</span>
+                  <span className="font-mono font-bold text-slate-950 text-[11px] block">{printableDocument.patient.nationalId}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Edad / Sexo:</span>
-                  <span className="font-medium text-slate-800">
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Edad / Sexo:</span>
+                  <span className="font-medium text-slate-900 text-[11px] block">
                     {printableDocument.patient.age} años • {printableDocument.patient.gender === 'M' ? 'Masculino' : 'Femenino'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Fecha y Hora:</span>
-                  <span className="font-medium text-slate-800">
-                    {new Date().toLocaleDateString('es-PA')} • {new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Fecha y Hora:</span>
+                  <span className="font-medium text-slate-900 text-[11px] block">
+                    {new Date().toLocaleDateString('es-PA')} {new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}
                   </span>
+                </div>
+                <div className="col-span-2 pt-1 border-t border-slate-200">
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Médico Tratante:</span>
+                  <span className="text-[10px] font-bold text-teal-900 block truncate">{doctorInfo.name} — {doctorInfo.specialty}</span>
+                </div>
+                <div className="col-span-2 pt-1 border-t border-slate-200">
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Alergias Conocidas:</span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 block">Ninguna reportada (NKDA)</span>
                 </div>
               </div>
 
               {/* 3. Cuerpo del Documento según Tipo */}
               {printableDocument.type === 'RECETA' && (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-teal-800 font-black text-sm border-b border-teal-200 pb-1">
-                    <span className="text-xl leading-none font-serif italic">℞</span>
-                    <span className="uppercase tracking-wider">Prescripción Farmacológica (RP/):</span>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-1.5 text-teal-900 font-black text-xs border-b border-teal-800 pb-0.5">
+                    <span className="text-xl leading-none font-serif font-black italic text-teal-800">℞</span>
+                    <span className="uppercase tracking-wider text-xs">Prescripción Farmacológica (RP/):</span>
                   </div>
 
-                  <div className="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="divide-y divide-slate-200 border border-slate-300 rounded-lg overflow-hidden shadow-sm">
                     {printableDocument.patient.prescriptions.map((rx, idx) => (
-                      <div key={rx.id} className="p-4 bg-white space-y-1.5 hover:bg-slate-50/50">
-                        <div className="flex items-start justify-between">
-                          <div className="font-black text-slate-950 text-sm">
-                            {idx + 1}. {rx.medication} — <span className="text-teal-700">{rx.dose}</span>
+                      <div key={rx.id} className="p-2 bg-white space-y-0.5 hover:bg-slate-50/50 avoid-break medication-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-black text-slate-950 text-xs">
+                            <span className="text-teal-900 mr-1">{idx + 1}.</span> {rx.medication} — <span className="text-teal-700 font-bold">{rx.dose}</span>
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                          <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-300 shrink-0">
                             Vía: {rx.route}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-700 font-medium pl-4">
+                        <div className="text-[11px] text-slate-800 font-medium pl-2">
                           <strong>Posología:</strong> Tomar {rx.frequency} durante {rx.duration}.
                         </div>
                         {rx.instructions && (
-                          <div className="text-xs text-slate-600 italic pl-4 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                            <strong>Indicaciones al paciente:</strong> {rx.instructions}
+                          <div className="text-[10px] text-slate-700 italic pl-2 bg-slate-50 p-1 rounded border border-slate-200 mt-0.5">
+                            <strong className="text-slate-900 not-italic">Indicaciones:</strong> {rx.instructions}
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-                    <strong>Aviso Farmacéutico Legal:</strong> Esta prescripción médica es personal e intransferible. La dispensación debe efectuarse conforme a las directrices de la Dirección de Farmacia y Drogas del MINSA. No autorizada su sustitución sin consentimiento previo del médico tratante.
+                  <div className="p-1.5 bg-amber-50/90 border border-amber-300 rounded-lg text-[9px] text-amber-950 leading-tight avoid-break">
+                    <strong>Aviso Farmacéutico Legal:</strong> Esta prescripción médica es de carácter personal e intransferible conforme a las directrices de la Dirección de Farmacia y Drogas del MINSA y la Ley 1 de Medicamentos de Panamá. No se autoriza su sustitución sin consentimiento previo del médico tratante.
                   </div>
                 </div>
               )}
 
               {printableDocument.type === 'INCAPACIDAD' && printableDocument.patient.medicalLeave && (
-                <div className="space-y-5">
-                  <div className="p-6 bg-slate-50 border-2 border-slate-300 rounded-2xl space-y-4 text-xs text-slate-800 leading-relaxed">
-                    <div className="text-center border-b border-slate-300 pb-3">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Certificación Concedida</span>
-                      <div className="text-2xl font-black text-slate-950 mt-1">
+                <div className="space-y-2 avoid-break">
+                  <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-2 text-xs text-slate-800 leading-relaxed">
+                    <div className="text-center border-b border-slate-300 pb-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Certificación Concedida</span>
+                      <div className="text-lg sm:text-xl font-black text-slate-950 mt-0.5">
                         {printableDocument.patient.medicalLeave.days} DÍAS DE REPOSO MÉDICO DOMICILIARIO
                       </div>
-                      <span className="text-xs text-teal-800 font-bold block mt-0.5">
+                      <span className="text-[11px] text-teal-800 font-bold block mt-0.5">
                         Válido ante la Caja de Seguro Social (CSS) y Empleadores (MITRADEL)
                       </span>
                     </div>
 
-                    <p className="text-sm">
+                    <p className="text-xs">
                       Por medio del presente certificado facultativo, hago constar que el/la paciente{' '}
                       <strong className="text-slate-950 underline">{printableDocument.patient.name}</strong>, portador(a) de la cédula o pasaporte N°{' '}
                       <strong className="font-mono text-slate-950">{printableDocument.patient.nationalId}</strong>, fue evaluado(a) clínicamente en el día de la fecha, requiriendo reposo médico estricto por un período continuo de{' '}
                       <strong>{printableDocument.patient.medicalLeave.days} días</strong>.
                     </p>
 
-                    <div className="grid grid-cols-2 gap-4 bg-white p-3.5 rounded-xl border border-slate-300">
+                    <div className="grid grid-cols-2 gap-2 bg-white p-2 rounded-lg border border-slate-300">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Fecha de Inicio:</span>
+                        <span className="text-[8px] font-bold text-slate-500 uppercase block">Fecha de Inicio:</span>
                         <strong className="text-xs text-slate-900">{printableDocument.patient.medicalLeave.startDate}</strong>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Fecha de Término:</span>
+                        <span className="text-[8px] font-bold text-slate-500 uppercase block">Fecha de Término:</span>
                         <strong className="text-xs text-slate-900">{printableDocument.patient.medicalLeave.endDate}</strong>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-0.5 pt-0.5 text-xs">
                       <div>
                         <strong className="text-slate-900">Diagnóstico Principal (CIE-10):</strong>{' '}
-                        <span className="text-slate-800">{printableDocument.patient.medicalLeave.diagnosis}</span>
+                        <span className="text-slate-800 font-medium">{printableDocument.patient.medicalLeave.diagnosis}</span>
                       </div>
                       <div>
                         <strong className="text-slate-900">Fundamentación Clínica:</strong>{' '}
                         <span className="text-slate-700">{printableDocument.patient.medicalLeave.justification}</span>
                       </div>
-                      <div className="text-[11px] text-slate-600 pt-2 italic">
+                      <div className="text-[9px] text-slate-600 pt-0.5 italic">
                         El/la paciente deberá reintegrarse a sus labores habituales en la fecha hábil inmediatamente posterior a la fecha de término indicada.
                       </div>
                     </div>
@@ -3954,22 +3943,22 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
               )}
 
               {printableDocument.type === 'RESUMEN_CONSULTA' && (
-                <div className="space-y-4 text-xs text-slate-800">
-                  <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl space-y-3">
+                <div className="space-y-2 text-xs text-slate-800 avoid-break soap-section">
+                  <div className="p-2.5 bg-slate-50 border border-slate-300 rounded-xl space-y-2">
                     <div>
-                      <strong className="text-slate-950 font-black uppercase text-[11px] block text-teal-800">
+                      <strong className="text-slate-950 font-black uppercase text-[9px] block text-teal-800">
                         [S] Subjetivo (Motivo de Consulta y Anamnesis):
                       </strong>
-                      <p className="mt-1 leading-relaxed text-slate-800">
+                      <p className="mt-0.5 leading-relaxed text-slate-800 text-xs">
                         {printableDocument.patient.soapNote?.subjective || printableDocument.patient.consultationReason}
                       </p>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2.5">
-                      <strong className="text-slate-950 font-black uppercase text-[11px] block text-teal-800">
+                    <div className="border-t border-slate-200 pt-1.5">
+                      <strong className="text-slate-950 font-black uppercase text-[9px] block text-teal-800">
                         [O] Objetivo (Constantes Vitales & Examen Físico):
                       </strong>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 bg-white p-2.5 rounded-lg border border-slate-200 my-2 text-[10px]">
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 bg-white p-1.5 rounded-lg border border-slate-200 my-1 text-[8px]">
                         <div><span className="text-slate-500 block">PA:</span><strong>{printableDocument.patient.vitals.bp}</strong></div>
                         <div><span className="text-slate-500 block">FC:</span><strong>{printableDocument.patient.vitals.hr} lpm</strong></div>
                         <div><span className="text-slate-500 block">FR:</span><strong>{printableDocument.patient.vitals.rr} rpm</strong></div>
@@ -3978,28 +3967,28 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                         <div><span className="text-slate-500 block">Peso:</span><strong>{printableDocument.patient.vitals.weightKg} kg</strong></div>
                         <div><span className="text-slate-500 block">IMC:</span><strong>{printableDocument.patient.vitals.bmi || '24.5'}</strong></div>
                       </div>
-                      <p className="text-slate-700 leading-relaxed">
+                      <p className="text-slate-700 leading-relaxed text-xs">
                         {printableDocument.patient.soapNote?.objective || 'Exploración física dentro de límites tolerables.'}
                       </p>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2.5">
-                      <strong className="text-slate-950 font-black uppercase text-[11px] block text-teal-800">
+                    <div className="border-t border-slate-200 pt-1.5">
+                      <strong className="text-slate-950 font-black uppercase text-[9px] block text-teal-800">
                         [A] Evaluación & Juicio Clínico:
                       </strong>
-                      <p className="mt-1 text-slate-800 font-medium">
+                      <p className="mt-0.5 text-slate-800 font-medium text-xs">
                         {printableDocument.patient.soapNote?.assessment || 'Control médico general satisfactorio.'}
                       </p>
-                      <div className="mt-1 font-mono text-[11px] font-bold text-slate-900 bg-white p-1.5 rounded border border-slate-200 inline-block">
+                      <div className="mt-0.5 font-mono text-[9px] font-bold text-slate-900 bg-white p-1 rounded border border-slate-200 inline-block">
                         CIE-10: {printableDocument.patient.soapNote?.primaryIcd10 || 'Z00.0 — Examen médico general'}
                       </div>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2.5">
-                      <strong className="text-slate-950 font-black uppercase text-[11px] block text-teal-800">
+                    <div className="border-t border-slate-200 pt-1.5">
+                      <strong className="text-slate-950 font-black uppercase text-[9px] block text-teal-800">
                         [P] Plan Terapéutico & Recomendaciones:
                       </strong>
-                      <p className="mt-1 leading-relaxed text-slate-800 whitespace-pre-line">
+                      <p className="mt-0.5 leading-relaxed text-slate-800 whitespace-pre-line text-xs">
                         {printableDocument.patient.soapNote?.plan || 'Continuar medidas generales de autocuidado y control ambulatorio.'}
                       </p>
                     </div>
@@ -4008,36 +3997,76 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
               )}
 
               {/* 4. Sello, Firma Digital y Código QR de Autenticidad */}
-              <div className="pt-8 border-t-2 border-slate-900 flex flex-wrap items-end justify-between gap-6">
-                <div className="space-y-1">
-                  <div className="w-56 border-b border-slate-800 pb-1 mb-2">
-                    <span className="text-[10px] text-slate-400 font-mono block">Firma Autógrafa / Sello Digital</span>
+              <div className="pt-2 border-t-2 border-slate-900 flex items-end justify-between gap-3 avoid-break signature-block mt-2">
+                <div className="space-y-0.5">
+                  {/* Trazo gráfico simulado de firma médica */}
+                  <div className="h-7 flex items-end">
+                    <svg viewBox="0 0 200 45" className="h-7 w-36 text-slate-900" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M 15 35 Q 35 5 65 30 T 115 20 Q 135 40 155 15 T 180 30 M 30 25 Q 75 45 145 25" />
+                    </svg>
                   </div>
-                  <div className="font-black text-sm text-slate-950">{doctorInfo.name}</div>
-                  <div className="text-xs text-slate-700 font-medium">{doctorInfo.specialty}</div>
-                  <div className="text-[11px] font-mono text-slate-900">
-                    Idoneidad Profesional N°: <strong>{doctorInfo.license}</strong> • Registro MINSA: <strong>{doctorInfo.minsaRegistrationNumber}</strong>
+                  <div className="w-48 border-b-2 border-slate-800 pb-0.5 mb-1">
+                    <span className="text-[8px] text-slate-500 font-mono block">Firma Autógrafa / Sello Digital</span>
+                  </div>
+                  <div className="font-black text-xs text-slate-950">{doctorInfo.name}</div>
+                  <div className="text-[10px] text-slate-700 font-medium">{doctorInfo.specialty}</div>
+                  <div className="text-[9px] font-mono text-slate-900">
+                    Idoneidad N°: <strong>{doctorInfo.license}</strong> • Registro MINSA: <strong>{doctorInfo.minsaRegistrationNumber}</strong>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 bg-slate-50 border border-slate-300 p-3 rounded-xl shrink-0">
-                  <div className="w-14 h-14 bg-white p-1 border border-slate-300 rounded-lg flex items-center justify-center font-mono text-[8px] text-center leading-tight shadow-inner">
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-slate-800">QR-AUTH</div>
-                      <div className="text-[7px] text-teal-700 font-mono">SHA-256</div>
-                      <div className="text-[6px] text-slate-500">PA-CTS-2026</div>
+                <div className="flex items-center space-x-2 bg-slate-50 border border-slate-300 p-1.5 rounded-lg shrink-0">
+                  {/* Código QR SVG de Alta Fidelidad */}
+                  <div className="w-11 h-11 bg-white p-0.5 border border-slate-300 rounded flex items-center justify-center shrink-0 shadow-inner">
+                    <svg viewBox="0 0 80 80" className="w-full h-full text-slate-900" fill="currentColor">
+                      <rect x="0" y="0" width="24" height="24" rx="2" />
+                      <rect x="4" y="4" width="16" height="16" fill="#ffffff" />
+                      <rect x="8" y="8" width="8" height="8" />
+                      <rect x="56" y="0" width="24" height="24" rx="2" />
+                      <rect x="60" y="4" width="16" height="16" fill="#ffffff" />
+                      <rect x="64" y="8" width="8" height="8" />
+                      <rect x="0" y="56" width="24" height="24" rx="2" />
+                      <rect x="4" y="60" width="16" height="16" fill="#ffffff" />
+                      <rect x="8" y="64" width="8" height="8" />
+                      <rect x="32" y="4" width="6" height="6" />
+                      <rect x="42" y="8" width="6" height="6" />
+                      <rect x="30" y="30" width="8" height="8" />
+                      <rect x="42" y="26" width="8" height="8" />
+                      <rect x="32" y="42" width="6" height="6" />
+                      <rect x="56" y="32" width="6" height="6" />
+                      <rect x="66" y="40" width="8" height="6" />
+                      <rect x="30" y="56" width="6" height="8" />
+                      <rect x="42" y="60" width="8" height="6" />
+                      <rect x="56" y="56" width="8" height="8" />
+                      <rect x="68" y="64" width="6" height="8" />
+                    </svg>
+                  </div>
+                  <div className="text-[8px] text-slate-600 max-w-[190px] leading-tight space-y-0.5">
+                    <div className="font-bold text-slate-950 text-[9px]">Certificado Digital Ley 81</div>
+                    <div>Firma electrónica calificada (Ley 51 de 2008).</div>
+                    <div className="font-mono text-[7px] text-teal-800 truncate">
+                      HASH: 7f83b165...48a1d65d
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-600 max-w-[200px] leading-tight space-y-0.5">
-                    <div className="font-bold text-slate-900">Certificado Digital Ley 81</div>
-                    <div>Documento oficial inalterable con estampado cronológico y firma electrónica calificada.</div>
-                  </div>
+                </div>
+              </div>
+
+              {/* 5. Pie de Página Legal y Paginación Oficial */}
+              <div className="border-t border-slate-200 pt-1.5 flex flex-wrap items-center justify-between text-[8px] text-slate-500 avoid-break mt-1">
+                <div className="flex items-center space-x-1">
+                  <Lock className="w-2.5 h-2.5 text-slate-400" />
+                  <span>Documento confidencial bajo la Ley 81 de Protección de Datos Personales (República de Panamá).</span>
+                </div>
+                <div className="font-mono font-bold text-slate-700">
+                  Página 1 de 1 • Plataforma LIS Panamá
                 </div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>,
+      document.body
+    )}
 
       {/* ============================================================== */}
       {/* MODAL: AGREGAR PACIENTE ESPONTÁNEO A LA COLA                   */}

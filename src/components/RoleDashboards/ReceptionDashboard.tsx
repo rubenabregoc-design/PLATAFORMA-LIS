@@ -113,10 +113,10 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       patientPhone: '+507 6443-8811',
       doctorName: 'Dr. Jorge Mendoza (Salud Ocupacional)',
       flaggedAt: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
-      flaggedBy: 'Recepcionista (Admisión STAT)',
+      flaggedBy: 'Recepcionista (Admisión URGENCIA)',
       urgencyLevel: 'ALTA_PRIORIDAD',
       status: 'NOTIFICADO',
-      criticalReason: 'Orden STAT prioritaria de urgencia con panel completo.',
+      criticalReason: 'Orden URGENCIA prioritaria de urgencia con panel completo.',
       criticalParameters: [
         { parameterName: 'Prioridad de Servicio', value: 'URGENTE', unit: 'MinSA', refRangeText: 'Rutina', flag: 'ALTO', specimenType: 'Sangre Total' }
       ],
@@ -290,7 +290,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     const orderResults = (results || []).filter(r => r.orderId === order.id);
     const panicResults = orderResults.filter(r => r.flag === 'CRITICO_ALTO' || r.flag === 'CRITICO_BAJO');
     const highResults = orderResults.filter(r => r.flag === 'ALTO' || r.flag === 'BAJO');
-    const isStatOrder = order.priority === 'STAT' || order.priority === 'URGENTE';
+    const isStatOrder = order.priority === 'URGENCIA' || order.priority === 'URGENTE';
     const customFlag = criticalNotifications[order.id];
 
     const isPanic = panicResults.length > 0 || customFlag?.urgencyLevel === 'CRITICO_PANICO';
@@ -597,7 +597,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
       patientNationalId: patientToUse.nationalId,
       patientGender: patientToUse.gender,
       patientAge: Math.max(1, calculatedAge),
-      priority: isStat ? 'STAT' : 'RUTINA',
+      priority: isStat ? 'URGENCIA' : 'RUTINA',
       status: 'TOMADA',
       createdAt: new Date().toISOString(),
       totalAmount,
@@ -609,7 +609,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     onCreateOrder(newOrder, foundPatient ? undefined : (patientToUse as Patient));
     setCreatedOrderSummary(newOrder);
 
-    // If order is marked STAT, pre-flag for immediate notification
+    // If order is marked URGENCIA, pre-flag for immediate notification
     if (isStat) {
       setCriticalNotifications(prev => ({
         ...prev,
@@ -936,7 +936,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                               key={ord.id}
                               onClick={() => {
                                 setSelectedTestIds(ord.testIds || []);
-                                setIsStat(ord.priority === 'STAT' || ord.priority === 'URGENTE');
+                                setIsStat(ord.priority === 'URGENCIA' || ord.priority === 'URGENTE');
                                 window.dispatchEvent(
                                   new CustomEvent('lis-global-toast', {
                                     detail: {
@@ -952,7 +952,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                             >
                               <div className="flex items-center justify-between">
                                 <span className="font-mono font-black text-cyan-300 text-sm">{ord.orderNumber}</span>
-                                <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-black ${ord.priority === 'STAT' || ord.priority === 'URGENTE' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}`}>
+                                <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-black ${ord.priority === 'URGENCIA' || ord.priority === 'URGENTE' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}`}>
                                   {ord.priority}
                                 </span>
                               </div>
@@ -1312,7 +1312,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     { id: 'INMUNOLOGIA', label: 'Inmunología', color: 'bg-indigo-500 text-white shadow-indigo-500/30' },
                     { id: 'MICROBIOLOGIA', label: 'Microbiología', color: 'bg-teal-400 text-slate-950 shadow-teal-500/30 font-black' },
                     { id: 'BANCO_SANGRE', label: 'Banco de Sangre', color: 'bg-red-600 text-white shadow-red-600/30 font-bold' },
-                    { id: 'GASOMETRIA_STAT', label: 'Urgencias / STAT', color: 'bg-orange-500 text-white shadow-orange-500/30 font-black' }
+                    { id: 'GASOMETRIA_STAT', label: 'Urgencias / URGENCIA', color: 'bg-orange-500 text-white shadow-orange-500/30 font-black' }
                   ].map(cat => (
                     <button
                       key={cat.id}
@@ -1417,7 +1417,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     <div className="flex items-center space-x-2.5">
                       <Zap className={`w-4 h-4 ${isStat ? 'text-rose-500 animate-pulse' : 'text-slate-500'}`} />
                       <div className="text-left">
-                        <span className={`text-xs font-black uppercase tracking-wider block ${isStat ? 'text-rose-400' : 'text-slate-300'}`}>Urgente / STAT</span>
+                        <span className={`text-xs font-black uppercase tracking-wider block ${isStat ? 'text-rose-400' : 'text-slate-300'}`}>Urgente / URGENCIA</span>
                         {isStat && <span className="text-xs text-rose-300 font-mono font-bold">🚨 Alerta Crítica Activada</span>}
                       </div>
                     </div>
@@ -1550,7 +1550,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   }`}
                 >
                   <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                  <span>{isStat ? 'Confirmar STAT e Imprimir Tubos' : 'Confirmar Orden e Imprimir Tubos'}</span>
+                  <span>{isStat ? 'Confirmar URGENCIA e Imprimir Tubos' : 'Confirmar Orden e Imprimir Tubos'}</span>
                 </button>
               </div>
 
@@ -1667,7 +1667,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                           </span>
                         ) : null}
 
-                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${order.priority === 'STAT' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
+                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${order.priority === 'URGENCIA' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
                           {order.priority}
                         </span>
                       </div>
@@ -1964,7 +1964,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                           patientNationalId: '8-000-0000',
                           patientGender: 'M',
                           patientAge: 35,
-                          priority: 'STAT',
+                          priority: 'URGENCIA',
                           status: 'TOMADA',
                           createdAt: new Date().toISOString(),
                           totalAmount: 45,
@@ -2054,12 +2054,12 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
             )}
 
             {/* Critical Alert Indicator in Success Dialog */}
-            {createdOrderSummary.priority === 'STAT' && (
+            {createdOrderSummary.priority === 'URGENCIA' && (
               <div className="p-3 bg-rose-950/50 border border-rose-500/40 rounded-2xl flex items-center justify-between text-left">
                 <div className="flex items-center space-x-2.5">
                   <Flame className="w-5 h-5 text-rose-400 animate-pulse shrink-0" />
                   <div>
-                    <span className="text-xs font-black text-rose-300 uppercase block">Orden STAT Registrada</span>
+                    <span className="text-xs font-black text-rose-300 uppercase block">Orden URGENCIA Registrada</span>
                     <span className="text-[10px] text-slate-300">Pre-activada en la lista de notificación inmediata de recepción.</span>
                   </div>
                 </div>

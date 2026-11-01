@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, X, ShieldAlert } from 'lucide-react';
 
 interface ISBTLabelPrinterProps {
@@ -7,22 +8,24 @@ interface ISBTLabelPrinterProps {
 }
 
 const ISBTLabelPrinter: React.FC<ISBTLabelPrinterProps> = ({ unit, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div id="printable-isbt-modal" data-printable-portal="true" className="printable-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden print:shadow-none print:w-full print:rounded-none">
+        <div className="no-print p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 print:hidden">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">
             <Printer size={18} />
             Impresión de Etiqueta ISBT 128
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-8 flex justify-center">
+        <div className="p-8 flex justify-center print:p-0">
           {/* Label Mockup (ISBT 128 Layout) */}
-          <div className="w-[300px] h-[300px] border-2 border-slate-800 p-2 flex flex-col gap-2 font-mono text-black relative">
+          <div id="printable-isbt-label" data-printable="true" className="w-[300px] h-[300px] border-2 border-slate-800 p-2 flex flex-col gap-2 font-mono text-black relative bg-white avoid-break">
 
             {/* Upper Left: DIN */}
             <div className="border border-black p-1 h-1/4">
@@ -51,7 +54,7 @@ const ISBTLabelPrinter: React.FC<ISBTLabelPrinterProps> = ({ unit, onClose }) =>
                 <div className="text-[8px] font-bold">EXPIRATION DATE</div>
                 <div className="text-sm font-bold">{new Date(unit.expiry_date).toLocaleDateString().replace(/\//g, '-')}</div>
               </div>
-              <div className="border border-black p-1 flex-1 bg-green-50">
+              <div className="border border-black p-1 flex-1 bg-green-50 print:bg-white">
                 <div className="text-[8px] font-bold text-green-700">TESTED FOR</div>
                 <div className="text-[8px] font-bold text-green-700">HIV, HCV, HBV, SYP, CHAGAS</div>
                 <div className="text-center font-bold text-green-700 mt-1">NEGATIVO</div>
@@ -64,20 +67,21 @@ const ISBTLabelPrinter: React.FC<ISBTLabelPrinterProps> = ({ unit, onClose }) =>
           </div>
         </div>
 
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+        <div className="no-print p-4 bg-slate-50 border-t border-slate-100 flex gap-3 print:hidden">
           <div className="flex-1 flex items-center gap-2 text-xs text-amber-700 font-medium">
             <ShieldAlert size={16} />
             Verificar integridad de la bolsa antes de imprimir.
           </div>
           <button
             onClick={() => window.print()}
-            className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition-colors shadow-lg"
+            className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition-colors shadow-lg cursor-pointer"
           >
             Imprimir
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

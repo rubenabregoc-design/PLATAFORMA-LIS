@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Tenant, Branch } from '../../types';
 import { AuditLogEntry } from './Ley81AuditVault';
 import {
@@ -1068,17 +1069,17 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
       </div>
 
       {/* Official Ley 81 PDF Report Modal Preview */}
-      {isPdfModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-8 text-slate-900 shadow-2xl space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
+      {isPdfModalOpen && typeof document !== 'undefined' && createPortal(
+        <div id="printable-pii-modal" data-printable-portal="true" className="printable-modal-overlay fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-none sm:rounded-3xl max-w-4xl w-full min-h-screen sm:min-h-0 p-4 sm:p-6 text-slate-900 shadow-2xl space-y-4 relative my-0 sm:my-4 max-h-[96vh] overflow-y-auto print:max-h-none print:overflow-visible print:shadow-none print:border-none print:w-full print:p-0 print:rounded-none">
             {/* Modal Top Bar */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div className="no-print flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-9 h-9 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-lg text-slate-900">
+                  <h3 className="font-black text-base text-slate-900">
                     Certificado Oficial de Auditoría de Acceso a Datos Personales
                   </h3>
                   <p className="text-xs text-slate-500 font-mono">
@@ -1105,103 +1106,103 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
             </div>
 
             {/* Formal Printable Document Layout */}
-            <div className="border border-slate-300 rounded-2xl p-6 space-y-6 bg-slate-50/50">
+            <div id="printable-pii-report" data-printable="true" className="border border-slate-300 rounded-2xl p-4 sm:p-6 print:p-0 space-y-3 print:space-y-2 bg-slate-50/50 print:bg-white print:border-none">
               {/* Document Header */}
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-teal-600 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b-2 border-teal-600 pb-3">
                 <div>
-                  <div className="text-xs font-black text-teal-700 uppercase tracking-widest">
+                  <div className="text-[10px] font-black text-teal-700 uppercase tracking-widest">
                     REPÚBLICA DE PANAMÁ • AUTORIDAD NACIONAL DE TRANSPARENCIA Y ACCESO A LA INFORMACIÓN
                   </div>
-                  <h1 className="text-xl font-black text-slate-900 mt-1">
+                  <h1 className="text-base sm:text-lg font-black text-slate-900 mt-0.5 leading-tight">
                     INFORME TÉCNICO DE TRAZABILIDAD Y ACCESO A DATOS SENSIBLES (PII)
                   </h1>
-                  <p className="text-xs text-slate-600 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-600 font-medium mt-0.5">
                     Entidad Auditada: <strong className="text-slate-900">{tenant.name}</strong> • Sede: <strong className="text-slate-900">{branch.name}</strong>
                   </p>
                 </div>
 
-                <div className="text-right shrink-0 bg-white p-3 rounded-xl border border-slate-200 shadow-sm text-xs space-y-0.5">
-                  <div className="font-mono font-bold text-teal-800">{currentReportCode}</div>
-                  <div className="text-slate-500 text-[10px]">Emisión: {new Date().toLocaleString('es-PA')}</div>
-                  <div className="text-[10px] text-emerald-600 font-bold flex items-center justify-end gap-1">
+                <div className="text-right shrink-0 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-xs space-y-0.5">
+                  <div className="font-mono font-bold text-teal-800 text-xs">{currentReportCode}</div>
+                  <div className="text-slate-500 text-[9px]">Emisión: {new Date().toLocaleString('es-PA')}</div>
+                  <div className="text-[9px] text-emerald-600 font-bold flex items-center justify-end gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Ledger Catenario Verificado
                   </div>
                 </div>
               </div>
 
               {/* Legal Reference Callout */}
-              <div className="p-4 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-950 space-y-1">
-                <div className="font-bold flex items-center space-x-1.5 text-teal-800">
-                  <Lock className="w-4 h-4 text-teal-700" />
+              <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-950 space-y-1 avoid-break">
+                <div className="font-bold flex items-center space-x-1.5 text-teal-800 text-[11px]">
+                  <Lock className="w-3.5 h-3.5 text-teal-700" />
                   <span>Fundamento Legal: Ley 81 de 26 de marzo de 2019 & Decreto Ejecutivo 285 de 2021</span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-teal-900">
+                <p className="text-[10px] leading-snug text-teal-900">
                   El presente documento certifica la debida custodia, trazabilidad e inmutabilidad de los accesos a datos médicos y personales de pacientes conforme a los <strong>Artículos 8 (Consentimiento), 14 (Confidencialidad Médica), 15 (Derechos ARCO) y 21 (Responsabilidad Demostrada)</strong>. Cada evento cuenta con un bloque criptográfico SHA-256 inalterable.
                 </p>
               </div>
 
               {/* Parameters & Scope */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-white p-4 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] bg-white p-2.5 rounded-xl border border-slate-200 avoid-break">
                 <div>
-                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Rango Auditado:</span>
+                  <span className="text-slate-400 block font-bold text-[9px] uppercase">Rango Auditado:</span>
                   <span className="font-mono font-bold text-slate-800">{startDate} al {endDate}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Operador Auditado:</span>
+                  <span className="text-slate-400 block font-bold text-[9px] uppercase">Operador Auditado:</span>
                   <span className="font-bold text-slate-800">{selectedUserFilter === 'ALL' ? 'Todos los Usuarios' : selectedUserFilter}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Acción Evaluada:</span>
+                  <span className="text-slate-400 block font-bold text-[9px] uppercase">Acción Evaluada:</span>
                   <span className="font-bold text-slate-800">{selectedActionFilter === 'ALL' ? 'Todas las Acciones PII' : selectedActionFilter}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Eventos Verificados:</span>
+                  <span className="text-slate-400 block font-bold text-[9px] uppercase">Eventos Verificados:</span>
                   <span className="font-mono font-black text-teal-700">{reportMetrics.totalLogs} Registros</span>
                 </div>
               </div>
 
               {/* Table of Events for Print Document */}
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
+              <div className="space-y-1.5 avoid-break">
+                <div className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
                   <span>Detalle Cronológico de Accesos a Datos Personales</span>
-                  <span className="text-[10px] text-slate-500 font-normal">
+                  <span className="text-[9px] text-slate-500 font-normal">
                     {privacyMaskEnabled ? 'Modo Máscara Activo (Anonimizado)' : 'Datos PII Completos para Auditor'}
                   </span>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl overflow-hidden text-[11px]">
+                <div className="border border-slate-200 rounded-xl overflow-hidden text-[10px]">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[9px]">
+                    <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[8.5px]">
                       <tr>
-                        <th className="p-2.5">Fecha/Hora</th>
-                        <th className="p-2.5">Operador</th>
-                        <th className="p-2.5">Acción</th>
-                        <th className="p-2.5">Paciente Cédula</th>
-                        <th className="p-2.5">Datos Consultados</th>
-                        <th className="p-2.5">IP Origen</th>
-                        <th className="p-2.5">Hash SHA-256</th>
+                        <th className="p-1.5">Fecha/Hora</th>
+                        <th className="p-1.5">Operador</th>
+                        <th className="p-1.5">Acción</th>
+                        <th className="p-1.5">Paciente Cédula</th>
+                        <th className="p-1.5">Datos Consultados</th>
+                        <th className="p-1.5">IP Origen</th>
+                        <th className="p-1.5">Hash SHA-256</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
                       {filteredReportLogs.slice(0, 15).map((log) => (
                         <tr key={log.id} className="hover:bg-slate-50">
-                          <td className="p-2 font-mono text-[10px] text-slate-600 whitespace-nowrap">{log.timestamp}</td>
-                          <td className="p-2 font-bold">{log.userName}</td>
-                          <td className="p-2 font-mono text-[10px]">{log.actionType}</td>
-                          <td className="p-2 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          <td className="p-1.5 font-mono text-[9px] text-slate-600 whitespace-nowrap">{log.timestamp}</td>
+                          <td className="p-1.5 font-bold">{log.userName}</td>
+                          <td className="p-1.5 font-mono text-[9px]">{log.actionType}</td>
+                          <td className="p-1.5 font-mono font-bold text-slate-900 whitespace-nowrap">
                             {privacyMaskEnabled ? maskPatientId(log.patientNationalId) : log.patientNationalId}
                           </td>
-                          <td className="p-2 text-[10px] text-slate-600 truncate max-w-[150px]">
+                          <td className="p-1.5 text-[9px] text-slate-600 truncate max-w-[150px]">
                             {getPiiFieldsDescription(log)}
                           </td>
-                          <td className="p-2 font-mono text-[10px]">{privacyMaskEnabled ? maskIp(log.ipAddress) : log.ipAddress}</td>
-                          <td className="p-2 font-mono text-[9px] text-teal-800">{log.sha256Hash.substring(0, 12)}...</td>
+                          <td className="p-1.5 font-mono text-[9px]">{privacyMaskEnabled ? maskIp(log.ipAddress) : log.ipAddress}</td>
+                          <td className="p-1.5 font-mono text-[8.5px] text-teal-800">{log.sha256Hash.substring(0, 12)}...</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {filteredReportLogs.length > 15 && (
-                    <div className="p-2 bg-slate-50 text-center text-slate-500 text-[10px] font-semibold border-t border-slate-200">
+                    <div className="p-1.5 bg-slate-50 text-center text-slate-500 text-[9px] font-semibold border-t border-slate-200">
                       ... y {filteredReportLogs.length - 15} registro(s) adicionales incluidos en el informe completo certificado.
                     </div>
                   )}
@@ -1209,26 +1210,26 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
               </div>
 
               {/* Signatures and Cryptographic Seal */}
-              <div className="pt-6 border-t-2 border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold uppercase text-slate-400">Firma del Auditor / DPO Responsable:</div>
-                  <div className="h-14 border-b border-slate-400 flex items-end pb-1">
-                    <span className="font-serif italic font-bold text-slate-800 text-sm">{auditorName}</span>
+              <div className="avoid-break signature-block pt-3 border-t-2 border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="text-[9px] font-bold uppercase text-slate-400">Firma del Auditor / DPO Responsable:</div>
+                  <div className="h-8 border-b border-slate-400 flex items-end pb-0.5">
+                    <span className="font-serif italic font-bold text-slate-800 text-xs">{auditorName}</span>
                   </div>
-                  <div className="text-[10px] text-slate-500">
+                  <div className="text-[9px] text-slate-500">
                     Oficial de Cumplimiento Ley 81 • {tenant.name}
                   </div>
                 </div>
 
-                <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
-                  <div className="font-bold text-slate-800 flex items-center gap-1">
-                    <Key className="w-3.5 h-3.5 text-teal-600" />
+                <div className="p-2 bg-white rounded-xl border border-slate-200 text-xs space-y-0.5">
+                  <div className="font-bold text-slate-800 flex items-center gap-1 text-[10px]">
+                    <Key className="w-3 h-3 text-teal-600" />
                     <span>Sello Criptográfico del Reporte:</span>
                   </div>
-                  <div className="font-mono text-[10px] text-slate-700 break-all bg-slate-50 p-2 rounded border border-slate-200">
+                  <div className="font-mono text-[9px] text-slate-700 break-all bg-slate-50 p-1.5 rounded border border-slate-200">
                     {currentReportHash}
                   </div>
-                  <div className="text-[9px] text-slate-400">
+                  <div className="text-[8px] text-slate-400">
                     Verificable en plataforma LIS-Core ANTAI Validator v4.2
                   </div>
                 </div>
@@ -1236,10 +1237,10 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+            <div className="no-print flex items-center justify-between pt-2 border-t border-slate-200">
               <button
                 onClick={() => setIsPdfModalOpen(false)}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
               >
                 Cerrar
               </button>
@@ -1247,9 +1248,9 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleExportCsv}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Descargar Archivo CSV</span>
                 </button>
 
@@ -1259,15 +1260,16 @@ export const Ley81PiiReportPanel: React.FC<Ley81PiiReportPanelProps> = ({
                     alert(`¡Reporte Oficial ${currentReportCode} exportado y certificado con éxito!`);
                     setIsPdfModalOpen(false);
                   }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs rounded-xl transition shadow-lg shadow-teal-600/20 flex items-center space-x-2 cursor-pointer"
+                  className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs rounded-xl transition shadow-lg shadow-teal-600/20 flex items-center space-x-2 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Certificar y Guardar Reporte</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

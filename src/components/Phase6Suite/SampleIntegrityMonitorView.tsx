@@ -223,7 +223,7 @@ export const SampleIntegrityMonitorView: React.FC<SampleIntegrityMonitorViewProp
           ? {
               ...s,
               status: 'DESECHADA',
-              preanalyticalNotes: 'NO CONFORMIDAD ISO 15189 §7.2.4: Muestra vencida preanalíticamente. Solicitada re-toma STAT.'
+              preanalyticalNotes: 'NO CONFORMIDAD ISO 15189 §7.2.4: Muestra vencida preanalíticamente. Solicitada re-toma urgente.'
             }
           : s
       )
@@ -379,7 +379,7 @@ export const SampleIntegrityMonitorView: React.FC<SampleIntegrityMonitorViewProp
           <option value="SUERO_ROJO">Suero Rojo/Oro (Química)</option>
           <option value="EDTA_MORADO">EDTA Morado (Hematología)</option>
           <option value="CITRATO_AZUL">Citrato Azul (Coagulación)</option>
-          <option value="HEPARINA_VERDE">Heparina Verde (Gases/STAT)</option>
+          <option value="HEPARINA_VERDE">Heparina Verde (Gases/Urgencias)</option>
           <option value="ORINA">Orina / Sedimento</option>
           <option value="LCR">LCR / Cavidades</option>
         </select>

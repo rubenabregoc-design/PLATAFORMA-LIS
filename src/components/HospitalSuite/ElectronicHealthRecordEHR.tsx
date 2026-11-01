@@ -234,7 +234,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
       subjective: 'Ingresa derivado de Triage por dolor agudo de 6 horas de evolución. No refiere fiebre previa ni vómitos.',
       objective: 'Facies álgica. Abdomen con dolor a la palpación en fosa ilíaca derecha. Signo de Blumberg dudoso. RHA disminuidos.',
       assessment: 'Cuadro abdominal agudo en estudio. Se sospecha proceso apendicular incipiente vs adenitis mesentérica.',
-      plan: '1. Nada por boca (NPO).\n2. Canalizar vía venosa periférica con Solución Salina 0.9% a 100 cc/h.\n3. Solicitar Hemograma completo, PCR, Examen General de Orina y Ultrasonido abdominal STAT.'
+      plan: '1. Nada por boca (NPO).\n2. Canalizar vía venosa periférica con Solución Salina 0.9% a 100 cc/h.\n3. Solicitar Hemograma completo, PCR, Examen General de Orina y Ultrasonido abdominal URGENCIA.'
     },
     {
       id: 'uci',
@@ -408,7 +408,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     },
     {
       id: 'set-cardiaco',
-      name: '❤️ Perfil Cardíaco STAT',
+      name: '❤️ Perfil Cardíaco URGENCIA',
       desc: 'Troponina ultrasensible + Enzimas',
       testIds: ['test-troponina', 'test-quimica-basica']
     },
@@ -1910,7 +1910,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   <option value="CADA_8H">Cada 8 Horas</option>
                   <option value="CADA_12H">Cada 12 Horas</option>
                   <option value="CADA_24H">Cada 24 Horas</option>
-                  <option value="STAT_UNICA">STAT Dosis Única</option>
+                  <option value="STAT_UNICA">URGENCIA Dosis Única</option>
                 </select>
               </div>
 
@@ -2156,8 +2156,8 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   Prioridad de Procesamiento Analítico & TAT:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  {(['RUTINA', 'URGENTE', 'STAT'] as const).map((p) => {
-                    const isStat = p === 'STAT';
+                  {(['RUTINA', 'URGENTE', 'URGENCIA'] as const).map((p) => {
+                    const isStat = p === 'URGENCIA';
                     const isUrg = p === 'URGENTE';
                     const isSelected = orderPriority === p;
                     return (
@@ -2230,9 +2230,9 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                           <td className="p-3 text-slate-400">{new Date(ord.createdAt).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}</td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                              ord.priority === 'STAT' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'
+                              ord.priority === 'URGENCIA' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'
                             }`}>
-                              {ord.priority === 'STAT' ? 'URGENTE INMEDIATA' : ord.priority === 'URGENTE' ? 'PRIORITARIA' : 'RUTINA'}
+                              {ord.priority === 'URGENCIA' ? 'URGENTE INMEDIATA' : ord.priority === 'URGENTE' ? 'PRIORITARIA' : 'RUTINA'}
                             </span>
                           </td>
                           <td className="p-3">

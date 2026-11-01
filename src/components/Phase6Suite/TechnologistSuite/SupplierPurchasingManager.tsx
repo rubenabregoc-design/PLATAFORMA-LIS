@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ShoppingBag,
   Truck,
@@ -1053,68 +1054,68 @@ export const SupplierPurchasingManager: React.FC = () => {
       )}
 
       {/* MODAL: VER / IMPRIMIR ORDEN DE COMPRA OFICIAL */}
-      {selectedPoForView && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto text-slate-900">
+      {selectedPoForView && typeof document !== 'undefined' && createPortal(
+        <div id="printable-po-modal" data-printable-portal="true" className="printable-modal-overlay fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-950 border border-slate-800 rounded-none sm:rounded-3xl p-3 sm:p-6 max-w-4xl w-full min-h-screen sm:min-h-0 shadow-2xl space-y-4 max-h-[96vh] overflow-y-auto text-slate-900 print:max-h-none print:overflow-visible print:shadow-none print:border-none print:w-full print:bg-white print:p-0 print:rounded-none">
             {/* Printable Sheet */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div id="printable-purchase-order" data-printable="true" className="bg-white p-4 sm:p-6 print:p-0 rounded-2xl border border-slate-200 shadow-sm space-y-2.5 print:space-y-1.5 single-page-letter">
               {/* Header Company & PO Title */}
-              <div className="flex flex-col sm:flex-row justify-between items-start border-b border-slate-200 pb-4 gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start border-b border-slate-200 pb-2.5 gap-2 avoid-break">
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">PLATAFORMA-LIS • CLÍNICA & LABORATORIO SAN JOSÉ</h2>
-                  <p className="text-xs text-slate-500 font-mono">RUC: 15569201-2-2024 DV 44 • Ciudad de Panamá</p>
-                  <p className="text-xs text-slate-500">Almacén Central de Laboratorio & Farmacia Hospitalaria</p>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">PLATAFORMA-LIS • CLÍNICA & LABORATORIO SAN JOSÉ</h2>
+                  <p className="text-[10px] text-slate-500 font-mono">RUC: 15569201-2-2024 DV 44 • Ciudad de Panamá</p>
+                  <p className="text-[10px] text-slate-500">Almacén Central de Laboratorio & Farmacia Hospitalaria</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs uppercase font-black text-slate-400 block">ORDEN DE COMPRA OFICIAL</span>
-                  <span className="text-2xl font-mono font-black text-indigo-700 block">{selectedPoForView.orderNumber}</span>
-                  <span className="text-xs text-slate-500">Fecha: {new Date(selectedPoForView.createdAt).toLocaleDateString('es-PA')}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-400 block">ORDEN DE COMPRA OFICIAL</span>
+                  <span className="text-lg sm:text-xl font-mono font-black text-indigo-700 block leading-tight">{selectedPoForView.orderNumber}</span>
+                  <span className="text-[10px] text-slate-500">Fecha: {new Date(selectedPoForView.createdAt).toLocaleDateString('es-PA')}</span>
                 </div>
               </div>
 
               {/* Supplier & Delivery Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-50 rounded-xl text-xs avoid-break">
                 <div>
-                  <span className="font-bold text-slate-400 uppercase text-[10px] block">PROVEEDOR:</span>
-                  <div className="font-black text-slate-900 text-sm">{selectedPoForView.supplierName}</div>
-                  <div className="text-slate-600 font-mono">RUC: {selectedPoForView.supplierRuc}</div>
-                  <div className="text-slate-600">Contacto: {selectedPoForView.supplierContact} ({selectedPoForView.supplierEmail})</div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block">PROVEEDOR:</span>
+                  <div className="font-black text-slate-900 text-xs">{selectedPoForView.supplierName}</div>
+                  <div className="text-slate-600 font-mono text-[10px]">RUC: {selectedPoForView.supplierRuc}</div>
+                  <div className="text-slate-600 text-[10px]">Contacto: {selectedPoForView.supplierContact} ({selectedPoForView.supplierEmail})</div>
                 </div>
 
                 <div>
-                  <span className="font-bold text-slate-400 uppercase text-[10px] block">CONDICIONES DE ENTREGA:</span>
-                  <div>Términos de Pago: <strong className="text-slate-900">{selectedPoForView.paymentTerms}</strong></div>
-                  <div>Fecha Estimada: <strong className="text-slate-900">{selectedPoForView.estimatedDeliveryDate}</strong></div>
-                  <div>Lugar: <strong className="text-slate-900">Recepción Bodega San José, Vía España</strong></div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block">CONDICIONES DE ENTREGA:</span>
+                  <div className="text-[10px]">Términos de Pago: <strong className="text-slate-900">{selectedPoForView.paymentTerms}</strong></div>
+                  <div className="text-[10px]">Fecha Estimada: <strong className="text-slate-900">{selectedPoForView.estimatedDeliveryDate}</strong></div>
+                  <div className="text-[10px]">Lugar: <strong className="text-slate-900">Recepción Bodega San José, Vía España</strong></div>
                 </div>
               </div>
 
               {/* Items Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-600 uppercase text-[10px] font-black border-y border-slate-200">
+              <div className="overflow-x-auto avoid-break">
+                <table className="w-full text-left text-[10px]">
+                  <thead className="bg-slate-100 text-slate-600 uppercase text-[9px] font-black border-y border-slate-200">
                     <tr>
-                      <th className="p-2.5">Código</th>
-                      <th className="p-2.5">Descripción del Insumo / Reactivo</th>
-                      <th className="p-2.5 text-center">Condición Frío</th>
-                      <th className="p-2.5 text-center">Cant.</th>
-                      <th className="p-2.5 text-right">Precio Unit.</th>
-                      <th className="p-2.5 text-right">Subtotal</th>
+                      <th className="p-1.5">Código</th>
+                      <th className="p-1.5">Descripción del Insumo / Reactivo</th>
+                      <th className="p-1.5 text-center">Condición Frío</th>
+                      <th className="p-1.5 text-center">Cant.</th>
+                      <th className="p-1.5 text-right">Precio Unit.</th>
+                      <th className="p-1.5 text-right">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {selectedPoForView.items.map((it) => (
                       <tr key={it.id}>
-                        <td className="p-2.5 font-mono font-bold text-indigo-700">{it.itemCode}</td>
-                        <td className="p-2.5 font-bold text-slate-900">{it.description}</td>
-                        <td className="p-2.5 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-100 text-blue-800">
+                        <td className="p-1.5 font-mono font-bold text-indigo-700">{it.itemCode}</td>
+                        <td className="p-1.5 font-bold text-slate-900">{it.description}</td>
+                        <td className="p-1.5 text-center">
+                          <span className="px-1.5 py-0.5 rounded-full text-[8.5px] font-black bg-blue-100 text-blue-800">
                             {it.tempCondition.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="p-2.5 text-center font-bold font-mono">{it.quantity}</td>
-                        <td className="p-2.5 text-right font-mono">${it.unitPrice.toFixed(2)}</td>
-                        <td className="p-2.5 text-right font-mono font-black text-slate-900">${it.totalPrice.toFixed(2)}</td>
+                        <td className="p-1.5 text-center font-bold font-mono">{it.quantity}</td>
+                        <td className="p-1.5 text-right font-mono">${it.unitPrice.toFixed(2)}</td>
+                        <td className="p-1.5 text-right font-mono font-black text-slate-900">${it.totalPrice.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1122,40 +1123,40 @@ export const SupplierPurchasingManager: React.FC = () => {
               </div>
 
               {/* Total Calculation */}
-              <div className="flex justify-end pt-2 border-t border-slate-200">
-                <div className="w-64 space-y-1.5 text-xs">
+              <div className="flex justify-end pt-1.5 border-t border-slate-200 avoid-break">
+                <div className="w-56 space-y-1 text-[11px]">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal Exento ITBMS:</span>
                     <span className="font-mono font-bold">${selectedPoForView.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
-                    <span>Impuestos (ITBMS 7% Insumos Médicos):</span>
+                    <span>Impuestos (ITBMS 7%):</span>
                     <span className="font-mono">$0.00</span>
                   </div>
-                  <div className="flex justify-between text-sm font-black text-slate-900 pt-1 border-t border-slate-300">
+                  <div className="flex justify-between text-xs font-black text-slate-900 pt-1 border-t border-slate-300">
                     <span>TOTAL A PAGAR:</span>
-                    <span className="font-mono text-indigo-700 text-base">${selectedPoForView.totalAmount.toFixed(2)}</span>
+                    <span className="font-mono text-indigo-700 text-sm">${selectedPoForView.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Signatures */}
-              <div className="grid grid-cols-2 gap-8 pt-8 text-center text-xs text-slate-500 border-t border-slate-200">
-                <div className="space-y-1">
-                  <div className="border-b border-slate-300 w-48 mx-auto h-8"></div>
-                  <p className="font-bold text-slate-800">Solicitado por</p>
-                  <p className="text-[10px]">{selectedPoForView.requestedBy}</p>
+              <div className="avoid-break signature-block grid grid-cols-2 gap-6 pt-3 text-center text-xs text-slate-500 border-t border-slate-200">
+                <div className="space-y-0.5">
+                  <div className="border-b border-slate-300 w-44 mx-auto h-6"></div>
+                  <p className="font-bold text-slate-800 text-[10px]">Solicitado por</p>
+                  <p className="text-[9px]">{selectedPoForView.requestedBy}</p>
                 </div>
-                <div className="space-y-1">
-                  <div className="border-b border-slate-300 w-48 mx-auto h-8"></div>
-                  <p className="font-bold text-slate-800">Aprobado por Dirección Médica</p>
-                  <p className="text-[10px]">{selectedPoForView.approvedBy || 'Dr. Roberto Icaza (MP-3912)'}</p>
+                <div className="space-y-0.5">
+                  <div className="border-b border-slate-300 w-44 mx-auto h-6"></div>
+                  <p className="font-bold text-slate-800 text-[10px]">Aprobado por Dirección Médica</p>
+                  <p className="text-[9px]">{selectedPoForView.approvedBy || 'Dr. Roberto Icaza (MP-3912)'}</p>
                 </div>
               </div>
             </div>
 
             {/* Actions Toolbar */}
-            <div className="flex items-center justify-between text-xs">
+            <div className="no-print flex items-center justify-between text-xs print:hidden pt-2">
               <button
                 onClick={() => setSelectedPoForView(null)}
                 className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold cursor-pointer"
@@ -1172,7 +1173,8 @@ export const SupplierPurchasingManager: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Order, Patient, TestCatalogItem, Tenant, Branch } from '../types';
 import {
   CreditCard,
@@ -25,7 +26,8 @@ import {
   Layers,
   FlaskConical,
   Clock,
-  PhoneCall
+  PhoneCall,
+  X
 } from 'lucide-react';
 import { SmtpConfigModal } from './SmtpConfigModal';
 import { EmailInvoiceModal } from './EmailInvoiceModal';
@@ -107,12 +109,12 @@ const CLINICAL_COMBOS = [
   },
   {
     id: 'combo-urgencias-stat',
-    name: 'Panel STAT Cuidados Críticos & Cardíaco (HIS)',
+    name: 'Panel URGENCIA Cuidados Críticos & Cardíaco (HIS)',
     code: 'VZ510',
     description: 'Troponina I hs + Dímero D Cuantitativo + Procalcitonina + Gasometría Arterial con Lactato + Electrolitos',
     price: 110.00,
     tubes: ['Tubo Rojo (Suero)', 'Tubo Celeste (Citrato)', 'Jeringa Verde Heparinizada'],
-    category: 'URGENCIAS & STAT'
+    category: 'URGENCIAS & URGENCIA'
   },
   {
     id: 'combo-prenatal',
@@ -195,6 +197,8 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
   const [whatsAppSent, setWhatsAppSent] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false);
+  const [isPrintInvoiceModalOpen, setIsPrintInvoiceModalOpen] = useState<boolean>(false);
+  const [invoicePrintMode, setInvoicePrintMode] = useState<'LETTER' | 'THERMAL'>('LETTER');
 
   const selectedOrder = orders.find((o) => o.id === selectedOrderId) || orders[0] || null;
   const selectedPatient = patients.find((p) => p.id === selectedOrder?.patientId) || patients[0] || null;
@@ -763,13 +767,30 @@ _Recibirá una notificación automática cuando sus resultados hayan sido valida
                 </div>
               </div>
 
-              <button
-                onClick={() => window.print()}
-                className="w-full bg-slate-900 hover:bg-slate-850 text-white font-sans font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-slate-700 cursor-pointer"
-              >
-                <Printer className="w-4 h-4 text-cyan-400" />
-                <span>Imprimir Ticket Fiscal DGI</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoicePrintMode('LETTER');
+                    setIsPrintInvoiceModalOpen(true);
+                  }}
+                  className="bg-teal-600 hover:bg-teal-500 text-white font-sans font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-md cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Factura Carta</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoicePrintMode('THERMAL');
+                    setIsPrintInvoiceModalOpen(true);
+                  }}
+                  className="bg-slate-900 hover:bg-slate-850 text-cyan-300 border border-cyan-500/30 font-sans font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Ticket Térmico</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -805,6 +826,249 @@ _Recibirá una notificación automática cuando sus resultados hayan sido valida
           tenant={tenant}
           onClose={() => setIsClaimModalOpen(false)}
         />
+      )}
+
+      {/* MODAL OFICIAL: FACTURA ELECTRÓNICA DGI / TICKET POS */}
+      {isPrintInvoiceModalOpen && issuedInvoice && typeof document !== 'undefined' && createPortal(
+        <div
+          id="invoice-print-modal-container"
+          data-printable-portal="true"
+          className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto printable-modal-overlay print:static print:block print:p-0 print:m-0 print:bg-white print:w-full print:h-auto print:max-h-none print:overflow-visible print:border-none print:shadow-none print:inset-auto"
+        >
+          <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col print:static print:block print:p-0 print:m-0 print:w-full print:max-w-full print:h-auto print:min-h-0 print:max-h-none print:overflow-visible print:border-none print:shadow-none print:rounded-none">
+            {/* Top Toolbar (no-print) */}
+            <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800 print:hidden">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-sm">
+                  🇵🇦
+                </div>
+                <div>
+                  <span className="font-black text-sm text-white block">Factura Electrónica Oficial DGI</span>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {invoicePrintMode === 'LETTER' ? 'Formato Carta (US Letter 8.5" × 11")' : 'Formato Ticket Térmico POS (80mm)'} • República de Panamá
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2.5">
+                <div className="bg-slate-800 p-1 rounded-xl flex items-center space-x-1 border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setInvoicePrintMode('LETTER')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      invoicePrintMode === 'LETTER'
+                        ? 'bg-teal-500 text-slate-950 shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Tamaño Carta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInvoicePrintMode('THERMAL')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      invoicePrintMode === 'THERMAL'
+                        ? 'bg-teal-500 text-slate-950 shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Ticket 80mm
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="bg-teal-600 hover:bg-teal-500 text-white font-black px-4 py-2 rounded-xl text-xs transition flex items-center space-x-1.5 shadow-md shadow-teal-600/20 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir / Guardar PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrintInvoiceModalOpen(false)}
+                  className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition p-2 rounded-xl cursor-pointer"
+                  title="Cerrar vista previa"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* DOCUMENTO IMPRIMIBLE: FACTURA DGI */}
+            <div
+              id="printable-fiscal-invoice"
+              data-printable="true"
+              className={`bg-white text-slate-900 mx-auto printable-document-page ${
+                invoicePrintMode === 'LETTER'
+                  ? 'p-4 sm:p-6 print:p-0 space-y-3 print:space-y-2 max-w-[8.5in] w-full font-sans text-xs single-page-letter'
+                  : 'p-3 space-y-2 max-w-[76mm] w-full font-mono text-[11px] leading-tight border border-dashed border-slate-300 my-2 print:border-none print:m-0'
+              }`}
+            >
+              {/* Header Fiscal */}
+              <div className="border-b-2 border-slate-900 pb-2 flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-9 h-9 rounded-xl bg-teal-900 text-white flex items-center justify-center font-black text-base shadow shrink-0">
+                      🔬
+                    </div>
+                    <div>
+                      <h1 className="text-base sm:text-lg font-black text-slate-950 uppercase leading-none">
+                        {tenant.name}
+                      </h1>
+                      <div className="text-[9px] font-black uppercase text-teal-800 tracking-wider mt-0.5">
+                        {branch.name} • Servicios de Diagnóstico Clínico
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-600 space-y-0.5 pt-0.5">
+                    <div><strong>RUC:</strong> {tenant.ruc} <strong>DV:</strong> {tenant.dv}</div>
+                    <div><strong>Dirección:</strong> {branch.address} • <strong>Tel:</strong> {branch.phone}</div>
+                    <div><strong>Resolución DGI:</strong> N° 201-9481 de Facturación Electrónica MEF Panamá</div>
+                  </div>
+                </div>
+
+                <div className="text-right space-y-1 shrink-0">
+                  <div className="inline-block bg-teal-50 border-2 border-teal-800 rounded-xl px-3 py-1.5 text-right shadow-sm">
+                    <span className="text-[9px] font-black text-teal-900 uppercase block tracking-wider">
+                      Factura Electrónica DGI
+                    </span>
+                    <span className="text-base font-mono font-black text-slate-950 block">
+                      {issuedInvoice.invoiceNumber}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-600 font-mono">
+                    Fecha/Hora: {new Date(issuedInvoice.createdAt).toLocaleString('es-PA')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos del Receptor / Cliente */}
+              <div className="bg-slate-50 border border-slate-300 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs avoid-break">
+                <div>
+                  <span className="text-[9px] font-bold uppercase text-slate-500 block">Cliente / Paciente:</span>
+                  <strong className="text-slate-950 block truncate">{issuedInvoice.patientName}</strong>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase text-slate-500 block">Cédula / RUC:</span>
+                  <span className="font-mono font-bold text-slate-900 block">{issuedInvoice.patientNationalId}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase text-slate-500 block">Orden LIS Asociada:</span>
+                  <span className="font-mono font-bold text-teal-900 block">{issuedInvoice.orderNumber}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase text-slate-500 block">Método de Pago:</span>
+                  <span className="font-bold text-slate-900 block">{issuedInvoice.paymentMethod}</span>
+                </div>
+                {issuedInvoice.insuranceName && (
+                  <div className="col-span-2 pt-1 border-t border-slate-200">
+                    <span className="text-[9px] font-bold uppercase text-slate-500 block">Aseguradora Privada:</span>
+                    <span className="text-xs font-medium text-slate-800 block">
+                      {issuedInvoice.insuranceName} (Póliza: {issuedInvoice.policyNumber || 'N/A'} • Aut: {issuedInvoice.authorizationCode || 'N/A'})
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalle de Análisis Facturados */}
+              <div className="border border-slate-300 rounded-xl overflow-hidden avoid-break">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 text-[10px] font-black uppercase text-slate-700">
+                      <th className="py-2 px-3">Cant.</th>
+                      <th className="py-2 px-3">Descripción del Análisis / Perfil</th>
+                      <th className="py-2 px-3 text-right">Precio Unit.</th>
+                      <th className="py-2 px-3 text-center">Tasa ITBMS</th>
+                      <th className="py-2 px-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {activeCombo ? (
+                      <tr>
+                        <td className="py-2 px-3 font-mono font-bold">1</td>
+                        <td className="py-2 px-3 font-bold text-slate-950">
+                          {activeCombo.name}
+                          <span className="block text-[10px] text-slate-500 font-normal">Paquete Integral de Laboratorio</span>
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono">${activeCombo.price.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-center font-mono text-[10px] text-emerald-700 font-bold">0% Exento</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold">${activeCombo.price.toFixed(2)}</td>
+                      </tr>
+                    ) : (
+                      orderTests.map((t, idx) => (
+                        <tr key={t.id || idx}>
+                          <td className="py-2 px-3 font-mono font-bold">1</td>
+                          <td className="py-2 px-3 font-bold text-slate-950">
+                            {t.name}
+                            <span className="block text-[10px] text-slate-500 font-mono font-normal">Cód: {t.id}</span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono">${t.price.toFixed(2)}</td>
+                          <td className="py-2 px-3 text-center font-mono text-[10px] text-emerald-700 font-bold">0% Exento</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold">${t.price.toFixed(2)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totales y Desglose Tributario */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start avoid-break fiscal-totals-block">
+                <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-1.5 text-[10px] text-slate-700">
+                  <strong className="text-slate-950 block text-[11px]">Notas Tributarias y Legales:</strong>
+                  <div>• Servicios médicos y de análisis clínico exentos del ITBMS según el Art. 1057-V del Código Fiscal de Panamá.</div>
+                  {issuedInvoice.discountLey6 > 0 && (
+                    <div className="text-amber-900 font-semibold">• Descuento del 20% aplicado en cumplimiento de la Ley 6 de 1987 para Jubilados, Pensionados y Tercera Edad.</div>
+                  )}
+                  <div>• Documento fiscal emitido a través de Sistema de Facturación Electrónica regulado por la DGI.</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal Análisis:</span>
+                    <span className="font-mono font-bold">${issuedInvoice.subtotal.toFixed(2)}</span>
+                  </div>
+                  {issuedInvoice.discountLey6 > 0 && (
+                    <div className="flex justify-between text-amber-800 font-bold">
+                      <span>Descuento Ley 6 (Jubilado 20%):</span>
+                      <span className="font-mono">-${issuedInvoice.discountLey6.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-slate-600">
+                    <span>ITBMS (0% Exento Médico):</span>
+                    <span className="font-mono">$0.00</span>
+                  </div>
+                  <div className="flex justify-between border-t-2 border-slate-900 pt-2 text-sm font-black text-slate-950">
+                    <span>TOTAL FACTURADO:</span>
+                    <span className="font-mono text-base text-emerald-800">${issuedInvoice.total.toFixed(2)} USD</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CUFE y Validación DGI */}
+              <div className="border-t-2 border-slate-800 pt-3 flex flex-wrap items-center justify-between gap-3 avoid-break">
+                <div className="flex items-center space-x-3">
+                  <div className="w-14 h-14 bg-white p-1 border border-slate-300 rounded-lg flex items-center justify-center shrink-0 shadow-inner">
+                    <QrCode className="w-12 h-12 text-slate-900" />
+                  </div>
+                  <div className="space-y-0.5 text-[9px] text-slate-600">
+                    <strong className="text-slate-950 block text-[10px]">CUFE Oficial DGI:</strong>
+                    <div className="break-all font-mono text-[8px] text-teal-900">{issuedInvoice.cufe}</div>
+                    <div>Verificable escaneando el código QR o en el portal oficial de la DGI (dgi.mef.gob.pa)</div>
+                  </div>
+                </div>
+
+                <div className="text-right text-[9px] text-slate-500 font-mono">
+                  <div>PAC Autorizado: The Factory HKA Panamá</div>
+                  <div>Página 1 de 1 • Sistema LIS-Core</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

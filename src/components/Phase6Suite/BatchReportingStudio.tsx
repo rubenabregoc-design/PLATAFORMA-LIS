@@ -39,7 +39,7 @@ export const BatchReportingStudio: React.FC<BatchReportingStudioProps> = ({
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'VALIDADA_MED' | 'VALIDADA_TEC' | 'COMPLETADA'>('VALIDADA_MED');
-  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'STAT' | 'RUTINA'>('ALL');
+  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'URGENCIA' | 'RUTINA'>('ALL');
   const [branchFilter, setBranchFilter] = useState<string>('ALL');
   const [consentFilter, setConsentFilter] = useState<'ALL' | 'CONSENT_GRANTED' | 'CONSENT_PENDING'>('ALL');
 
@@ -361,14 +361,14 @@ export const BatchReportingStudio: React.FC<BatchReportingStudioProps> = ({
                 Todas
               </button>
               <button
-                onClick={() => setPriorityFilter('STAT')}
+                onClick={() => setPriorityFilter('URGENCIA')}
                 className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
-                  priorityFilter === 'STAT'
+                  priorityFilter === 'URGENCIA'
                     ? 'bg-rose-500 text-white shadow'
                     : 'text-rose-400 hover:text-rose-300'
                 }`}
               >
-                STAT
+                URGENCIA
               </button>
             </div>
 
@@ -606,9 +606,9 @@ export const BatchReportingStudio: React.FC<BatchReportingStudioProps> = ({
                             {order.status === 'VALIDADA_MED' ? 'Validada Médica' : order.status}
                           </span>
 
-                          {order.priority === 'STAT' && (
+                          {order.priority === 'URGENCIA' && (
                             <span className="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-                              STAT
+                              URGENCIA
                             </span>
                           )}
                         </div>

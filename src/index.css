@@ -2,7 +2,10 @@
 
 @layer base {
   html {
-    font-size: 16px; /* Universal browser standard at 100% zoom */
+    font-size: 16.5px; /* Enhanced clinical legibility system-wide */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
     color-scheme: dark;
   }
@@ -16,6 +19,25 @@
 }
 
 @layer utilities {
+  /* Sleek, visible custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+    display: block !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 9999px;
+    border: 1px solid rgba(15, 23, 42, 0.4);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -81,17 +103,28 @@
   }
 }
 
-/* Printable US Letter configuration (8.5 x 11 inches) */
+/* ==========================================================================
+   SISTEMA MAESTRO DE IMPRESIÓN OFICIAL LIS (US LETTER 8.5"x11" & TÉRMICO)
+   Ley 81 de Protección de Datos • Normativas Sanitarias MINSA / CSS / DGI
+   ========================================================================== */
+
 @media print {
   @page {
     size: letter portrait;
-    margin: 8mm 10mm;
+    margin: 0 !important;
   }
-  
-  html, body, #root, #root > div {
+
+  /* Perfil para rollos térmicos de punto de venta (POS) y etiquetas */
+  @page thermal-receipt {
+    size: 80mm auto;
+    margin: 0 !important;
+  }
+
+  :root, html, body {
+    color-scheme: light !important;
     width: 100% !important;
     height: auto !important;
-    min-height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
@@ -103,19 +136,27 @@
     overflow: visible !important;
   }
 
-  main {
-    padding: 0 !important;
+  #root, #root > div, main {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
     background: transparent !important;
     border: none !important;
+    overflow: visible !important;
   }
 
+  /* Ocultar elementos de interfaz no imprimibles */
   .no-print,
   .no-print *,
   header,
   nav,
   aside,
-  footer {
+  footer,
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  .print\:hidden {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -123,37 +164,179 @@
     padding: 0 !important;
   }
 
+  /* 1. AISLAMIENTO TOTAL INSTANTÁNEO (<1ms):
+     Al imprimir, si hay un modal activo en document.body (React Portal),
+     ocultar el árbol entero #root para evitar renderizado y recálculos innecesarios */
+  body:has(> [data-printable-portal="true"]) #root,
+  body:has(> .printable-modal-overlay) #root,
+  body:has(> #medical-print-modal-container) #root,
+  body:has(> #report-modal-container) #root,
+  body:has(> #invoice-print-modal-container) #root,
+  body:has(> #insurance-claim-modal-container) #root,
+  body:has(> #discharge-modal-container) #root,
+  body:has(> #narcotics-print-modal-container) #root,
+  body:has(> #printable-calibration-modal) #root,
+  body:has(> #printable-cash-closing-modal) #root,
+  body:has(> #printable-disposal-manifest-modal) #root,
+  body:has(> #printable-payroll-payslip-modal) #root,
+  body:has(> #printable-quality-modal) #root,
+  body:has(> #printable-quality-report-modal) #root,
+  body:has(> #printable-epidemio-modal) #root,
+  body:has(> #printable-bedside-transfusion-modal) #root,
+  body:has(> #printable-po-modal) #root,
+  body:has(> #printable-pii-modal) #root,
+  body:has(> #printable-isbt-modal) #root {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 2. Neutralización directa y total de fondos oscuros, bordes y modales */
+  .printable-modal-overlay,
+  [data-printable-portal="true"],
   #medical-print-modal-container,
   #report-modal-container,
-  .fixed.inset-0.z-50:has(#printable-medical-document),
-  .fixed.inset-0.z-50:has(#printable-report) {
+  #invoice-print-modal-container,
+  #insurance-claim-modal-container,
+  #discharge-modal-container,
+  #narcotics-print-modal-container,
+  #printable-calibration-modal,
+  #printable-cash-closing-modal,
+  #printable-disposal-manifest-modal,
+  #printable-payroll-payslip-modal,
+  #printable-quality-modal,
+  #printable-quality-report-modal,
+  #printable-epidemio-modal,
+  #printable-bedside-transfusion-modal,
+  #printable-po-modal,
+  #printable-pii-modal,
+  #printable-isbt-modal {
     position: static !important;
+    display: block !important;
     background: #ffffff !important;
     background-color: #ffffff !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
     overflow: visible !important;
     box-shadow: none !important;
     border: none !important;
-    display: block !important;
     inset: auto !important;
+    z-index: auto !important;
   }
 
-  #printable-medical-document,
-  #printable-report {
+  /* 3. Desanidación de tarjetas contenedoras internas del modal */
+  .printable-modal-overlay > div,
+  [data-printable-portal="true"] > div,
+  #medical-print-modal-container > div,
+  #report-modal-container > div,
+  #invoice-print-modal-container > div,
+  #insurance-claim-modal-container > div,
+  #discharge-modal-container > div,
+  #narcotics-print-modal-container > div,
+  #printable-calibration-modal > div,
+  #printable-cash-closing-modal > div,
+  #printable-disposal-manifest-modal > div,
+  #printable-payroll-payslip-modal > div,
+  #printable-quality-modal > div,
+  #printable-quality-report-modal > div,
+  #printable-epidemio-modal > div,
+  #printable-bedside-transfusion-modal > div,
+  #printable-po-modal > div,
+  #printable-pii-modal > div,
+  #printable-isbt-modal > div {
     position: static !important;
     display: block !important;
-    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+  }
+
+  /* 4. Hoja de papel oficial para impresión Carta (US Letter 8.5" x 11") - Cero Bordes Negros */
+  .printable-document-page,
+  [data-printable="true"],
+  #printable-medical-document,
+  #printable-report,
+  #printable-fiscal-invoice,
+  #printable-claim-form,
+  #printable-discharge-summary,
+  #printable-narcotics-ledger,
+  #printable-calibration-cert,
+  #printable-closing-receipt,
+  #printable-cash-closing,
+  #printable-disposal-manifest,
+  #printable-payroll-payslip,
+  #printable-quality-report,
+  #printable-epidemio-report,
+  #printable-bedside-transfusion,
+  #printable-purchase-order,
+  #printable-pii-report,
+  #printable-isbt-label {
+    position: static !important;
+    display: block !important;
+    padding: 5mm 8mm !important;
+    margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
+    box-sizing: border-box !important;
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
     background-color: #ffffff !important;
     color: #0f172a !important;
+    overflow: visible !important;
+  }
+
+  /* Formato estricto para documentos oficiales que deben caber en 1 sola página Carta */
+  .single-page-letter {
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Reglas estrictas contra cortes indeseados de páginas */
+  .avoid-break,
+  .avoid-page-break,
+  .print-avoid-break,
+  tr,
+  th,
+  td,
+  .signature-block,
+  .medication-card,
+  .rx-card,
+  .patient-demographics-card,
+  .fiscal-totals-block,
+  .clinical-vitals-card,
+  .soap-section {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Fuerza contraste y definición de colores para sellos, bordes y badges */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
+
 

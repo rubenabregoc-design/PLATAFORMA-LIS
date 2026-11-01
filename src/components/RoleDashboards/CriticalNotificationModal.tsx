@@ -68,7 +68,7 @@ export const CriticalNotificationModal: React.FC<CriticalNotificationModalProps>
   // Build WhatsApp Alert Message according to Panamanian Ley 81 / Good Lab Practices
   const criticalSummaryText = criticalResults.length > 0
     ? criticalResults.map(r => `• ${r.parameterName}: *${r.value} ${r.unit}* (Ref: ${r.refRangeText}) [${r.flag || 'CRÍTICO'}]`).join('\n')
-    : `• Orden STAT con análisis prioritario: ${order.testIds.join(', ')}`;
+    : `• Orden URGENCIA con análisis prioritario: ${order.testIds.join(', ')}`;
 
   const generatedWhatsAppMessage = `*🚨 ALERTA CLÍNICA DE RESULTADO CRÍTICO - LAB SAN JOSÉ*\n\n` +
     `Estimado(a) *${recipientName}*,\n` +
@@ -177,7 +177,7 @@ export const CriticalNotificationModal: React.FC<CriticalNotificationModalProps>
                     ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
                     : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
                 }`}>
-                  {isPanic ? '🚨 Alerta Crítica • Valor de Pánico' : '⚡ Alta Prioridad / STAT'}
+                  {isPanic ? '🚨 Alerta Crítica • Valor de Pánico' : '⚡ Alta Prioridad / URGENCIA'}
                 </span>
                 <span className="text-[10px] font-mono font-bold text-slate-400">
                   {order.orderNumber}

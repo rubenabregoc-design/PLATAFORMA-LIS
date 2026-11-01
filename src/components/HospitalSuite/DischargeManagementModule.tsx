@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileCheck2, ShieldCheck, UserCheck, Calendar, Download, Printer,
   FileText, CheckCircle2, Clock, AlertTriangle, ChevronRight, Search,
@@ -169,52 +170,200 @@ export const DischargeManagementModule: React.FC = () => {
       </div>
 
       {/* Modal: Epic Discharge Summary Document Viewer */}
-      {showDischargeSummaryModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-6 h-6 text-emerald-400" />
-                <h3 className="font-black text-white text-base">Resumen Clínico Oficial de Alta Hospitalaria</h3>
+      {showDischargeSummaryModal && typeof document !== 'undefined' && createPortal(
+        <div
+          id="discharge-modal-container"
+          data-printable-portal="true"
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto printable-modal-overlay print:static print:block print:p-0 print:m-0 print:bg-white print:w-full print:h-auto print:max-h-none print:overflow-visible print:border-none print:shadow-none print:inset-auto"
+        >
+          <div className="bg-white rounded-none sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col print:static print:block print:p-0 print:m-0 print:w-full print:max-w-full print:h-auto print:min-h-0 print:max-h-none print:overflow-visible print:border-none print:shadow-none print:rounded-none">
+            {/* Top Toolbar (no-print) */}
+            <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800 print:hidden">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-white block">Epicrisis Oficial & Alta Hospitalaria</h3>
+                  <span className="text-xs text-slate-400 font-mono">Formato Oficial Tamaño Carta (US Letter 8.5" × 11") • Normativa MINSA / CSS</span>
+                </div>
               </div>
-              <button onClick={() => setShowDischargeSummaryModal(false)} className="text-slate-400 hover:text-white">
-                <XCircle className="w-5 h-5" />
-              </button>
+
+              <div className="flex items-center space-x-2.5">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-black text-xs rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-teal-600/20 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir en Carta / Guardar PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDischargeSummaryModal(false)}
+                  className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition p-2 rounded-xl cursor-pointer"
+                  title="Cerrar vista previa"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 text-xs font-mono">
-              <div className="flex justify-between text-slate-400 border-b border-slate-900 pb-2">
-                <span>PACIENTE: <strong className="text-white">{activeAdmission?.patientName}</strong></span>
-                <span>CÉDULA: <strong className="text-white">{activeAdmission?.patientNationalId}</strong></span>
+            {/* Documento Imprimible: Epicrisis Oficial */}
+            <div
+              id="printable-discharge-summary"
+              data-printable="true"
+              className="p-4 sm:p-6 print:p-0 space-y-2.5 print:space-y-1.5 text-slate-900 font-sans leading-normal max-w-[8.5in] w-full mx-auto bg-white printable-document-page text-xs single-page-letter"
+            >
+              {/* Header Hospitalario */}
+              <div className="border-b-2 border-slate-900 pb-2 flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-10 h-10 rounded-lg bg-teal-900 text-white flex items-center justify-center p-1.5 shadow shrink-0">
+                      <svg viewBox="0 0 48 48" fill="none" className="w-full h-full text-teal-300">
+                        <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="2.5" fill="#0f766e" />
+                        <path d="M24 10v28M14 24h20" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h1 className="text-base sm:text-lg font-black text-slate-950 uppercase leading-none">
+                        COMPLEJO HOSPITALARIO & CLÍNICO CENTRAL
+                      </h1>
+                      <div className="text-[9px] font-black uppercase text-teal-800 tracking-wider mt-0.5">
+                        República de Panamá • Ministerio de Salud (MINSA) • Dirección Médica
+                      </div>
+                      <div className="text-[9px] text-slate-600 font-medium">
+                        Departamento de Medicina Interna & Cuidados Hospitalarios
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right space-y-0.5 shrink-0">
+                  <div className="inline-block bg-slate-50 border border-slate-900 rounded-lg px-2.5 py-1 text-right shadow-sm">
+                    <span className="text-[8px] font-extrabold text-slate-600 uppercase block tracking-wider leading-none">Folio de Epicrisis</span>
+                    <span className="text-xs font-mono font-black text-slate-950 block">
+                      EPI-{new Date().getFullYear()}-{activeAdmission?.bedId || 'HOSP-01'}
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-slate-600 font-mono">
+                    Fecha Egreso: {new Date().toLocaleDateString('es-PA')}
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-b border-slate-900 pb-2">
-                <div>DIAGNOSTICO EGRESO: <strong className="text-emerald-400 block">{finalDiagnosisIcd10}</strong></div>
-                <div>TIPO DE ALTA: <strong className="text-cyan-300 block">{dischargeType}</strong></div>
+              {/* Título Oficial */}
+              <div className="text-center py-1 border-b border-slate-300">
+                <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-950 leading-tight">
+                  EPICRISIS MÉDICA & RESUMEN DE ALTA HOSPITALARIA
+                </h2>
+                <div className="text-[10px] text-teal-900 font-bold">
+                  Documento Clínico Oficial con Validez Institucional y Médico-Legal
+                </div>
               </div>
 
-              <div className="border-b border-slate-900 pb-2">
-                <span className="text-slate-400 block mb-1">TRATAMIENTO AL ALTA:</span>
-                <p className="text-slate-200 font-sans leading-relaxed">{dischargeMeds}</p>
+              {/* Datos Demográficos y de Internamiento */}
+              <div className="bg-slate-50 border border-slate-300 rounded-lg p-2 grid grid-cols-2 sm:grid-cols-4 gap-2 avoid-break text-xs">
+                <div>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Paciente:</span>
+                  <strong className="text-xs text-slate-950 font-black block truncate mt-0.5">{activeAdmission?.patientName}</strong>
+                </div>
+                <div>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Cédula / Identificación:</span>
+                  <span className="font-mono font-bold text-slate-950 text-xs block mt-0.5">{activeAdmission?.patientNationalId}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Cama / Habitación:</span>
+                  <span className="font-mono font-bold text-teal-900 text-xs block mt-0.5">{activeAdmission?.bedId}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] font-bold uppercase text-slate-500 block leading-none">Tipo de Alta:</span>
+                  <span className="font-bold text-emerald-800 text-xs block mt-0.5">{dischargeType}</span>
+                </div>
               </div>
 
-              <div>
-                <span className="text-slate-400 block mb-1">INCAPACIDAD MÉDICA:</span>
-                <p className="text-amber-300 font-bold">{disabilityDays} Días otorgados según normativa MINSA/CSS</p>
+              {/* Diagnósticos y Justificación */}
+              <div className="border border-slate-300 rounded-lg p-2 bg-white space-y-1.5 avoid-break">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-slate-500 block leading-none">Diagnóstico de Ingreso:</span>
+                    <strong className="text-xs text-slate-900 block mt-0.5">{(activeAdmission as any)?.initialDiagnosis || (activeAdmission as any)?.diagnosis || 'Ingreso Clínico para Observación'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-teal-800 block leading-none">Diagnóstico Definitivo (CIE-10):</span>
+                    <strong className="text-xs text-slate-950 block mt-0.5">{finalDiagnosisIcd10}</strong>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-2">
-              <button
-                onClick={() => window.print()}
-                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-2xl transition cursor-pointer flex items-center space-x-1.5 shadow"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimir Resumen & Recetas</span>
-              </button>
+              {/* Tratamiento Farmacológico al Alta */}
+              <div className="border border-slate-300 rounded-lg p-2 bg-white space-y-1 avoid-break">
+                <span className="text-[9px] font-black uppercase text-teal-900 block border-b border-slate-200 pb-0.5">
+                  Tratamiento Farmacológico Ambulatorio & Medicamentos al Alta:
+                </span>
+                <p className="text-slate-800 leading-relaxed font-sans text-xs whitespace-pre-line bg-slate-50 p-2 rounded border border-slate-200">
+                  {dischargeMeds}
+                </p>
+              </div>
+
+              {/* Incapacidad y Recomendaciones */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 avoid-break">
+                <div className="p-2 bg-amber-50/80 border border-amber-300 rounded-lg space-y-0.5">
+                  <span className="text-[9px] font-black uppercase text-amber-950 block">Incapacidad Médica Otorgada:</span>
+                  <div className="text-xs font-black text-amber-900">{disabilityDays} DÍAS DE REPOSO DOMICILIARIO</div>
+                  <div className="text-[9px] text-amber-900 leading-tight">
+                    Certificación de reposo temporal obligatoria válida ante la CSS y MITRADEL.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-slate-50 border border-slate-300 rounded-lg space-y-0.5">
+                  <span className="text-[9px] font-black uppercase text-slate-700 block">Cita de Control & Signos de Alarma:</span>
+                  <div className="text-xs text-slate-900 font-bold">Control por Consulta Externa en 7 días hábiles.</div>
+                  <div className="text-[9px] text-slate-600 leading-tight">
+                    Acudir de inmediato a urgencias en caso de fiebre persistente &gt; 38.5°C o disnea.
+                  </div>
+                </div>
+              </div>
+
+              {/* Firmas y Sellos Autorizados */}
+              <div className="pt-2 border-t-2 border-slate-900 grid grid-cols-2 gap-4 items-end avoid-break signature-block mt-1">
+                <div className="space-y-0.5">
+                  <div className="h-7 flex items-end">
+                    <svg viewBox="0 0 200 45" className="h-7 w-36 text-slate-900" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M 15 35 Q 35 5 65 30 T 115 20 Q 135 40 155 15 T 180 30 M 30 25 Q 75 45 145 25" />
+                    </svg>
+                  </div>
+                  <div className="w-48 border-b-2 border-slate-800 pb-0.5 mb-1">
+                    <span className="text-[8px] text-slate-500 font-mono block">Firma y Sello del Médico Tratante</span>
+                  </div>
+                  <div className="font-black text-xs text-slate-950">Dr. Roberto Icaza Villalaz</div>
+                  <div className="text-[10px] text-slate-700 font-medium">Médico Especialista • Medicina Interna</div>
+                  <div className="text-[9px] font-mono text-slate-900">
+                    Idoneidad MINSA: <strong>4921-MD-PA</strong> • Reg. CTS: <strong>CTS-0912</strong>
+                  </div>
+                </div>
+
+                <div className="space-y-0.5 text-right">
+                  <div className="inline-block bg-slate-50 p-1.5 rounded-lg border border-slate-300 text-left">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-teal-900 text-white rounded flex items-center justify-center font-bold text-[10px]">
+                        MINSA
+                      </div>
+                      <div className="text-[8px] text-slate-600 space-y-0.5">
+                        <strong className="text-slate-900 block text-[9px]">Validación Electrónica Ley 81</strong>
+                        <div>Documento clínico oficial inalterable incorporado al expediente digital.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[8px] text-slate-500 font-mono">
+                    Página 1 de 1 • Plataforma HIS/LIS Panamá
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

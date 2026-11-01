@@ -39,7 +39,7 @@ export const HospitalCommandCenter: React.FC<CommandCenterProps> = ({ onNavigate
   const occupancyRate = Math.round((occupiedBeds / totalBeds) * 100);
 
   const criticalTriage = triageRecords.filter((t) => t.priority === 'NIVEL_1_ROJO' || t.priority === 'NIVEL_2_NARANJA');
-  const statLabOrders = orders.filter((o) => o.priority === 'STAT');
+  const statLabOrders = orders.filter((o) => o.priority === 'URGENCIA');
   const panicResults = results.filter((r) => r.flag === 'CRITICO_ALTO' || r.flag === 'CRITICO_BAJO');
 
   // Wards occupancy calculation
@@ -132,10 +132,10 @@ export const HospitalCommandCenter: React.FC<CommandCenterProps> = ({ onNavigate
           </p>
         </div>
 
-        {/* KPI 3: STAT Lab Requests */}
+        {/* KPI 3: URGENCIA Lab Requests */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-2">
           <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
-            <span>Órdenes STAT al LIS</span>
+            <span>Órdenes URGENCIA al LIS</span>
             <Microscope className="w-4 h-4 text-teal-400" />
           </div>
           <div className="flex items-baseline space-x-2">

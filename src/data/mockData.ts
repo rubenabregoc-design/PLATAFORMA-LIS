@@ -40,7 +40,7 @@ export const MOCK_USERS: User[] = [
     role: 'abregotech_admin',
     licenseNumber: 'DEV-SR-2429',
     password: 'Manzana2429@@',
-    pinCode: '2429',
+    pinCode: '2406',
     twoFactorEnabled: true
   },
   {
@@ -4532,7 +4532,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1001',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00101',
+    orderNumber: '26101200101',
     patientId: 'pat-001',
     patientName: 'Gabriela Pinzón Varela',
     patientNationalId: '8-812-4432',
@@ -4545,8 +4545,8 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 53.50,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1001-a', orderId: 'ord-1001', barcode: 'BC-1001-LILA', tubeType: 'EDTA_MORADO', collectedAt: '2026-08-18T07:40:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T07:40:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1001-b', orderId: 'ord-1001', barcode: 'BC-1001-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-18T07:40:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T07:40:00Z', sampleVolumeMl: 5.0, isSeparated: true }
+      { id: 'sp-1001-a', orderId: 'ord-1001', barcode: 'BC-1001-LILA', tubeType: 'EDTA_MORADO', type: 'Sangre Total (EDTA)', collectedAt: '2026-08-18T07:40:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T07:40:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1001-b', orderId: 'ord-1001', barcode: 'BC-1001-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-18T07:40:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T07:40:00Z', sampleVolumeMl: 5.0, isSeparated: true }
     ],
     testIds: ['test-hemograma', 'test-lipidico']
   },
@@ -4554,7 +4554,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1002',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00102',
+    orderNumber: '26101200102',
     patientId: 'pat-002',
     patientName: 'Ricardo Arosemena Boyd',
     patientNationalId: '8-745-1290',
@@ -4567,7 +4567,7 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 68.00,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1002-a', orderId: 'ord-1002', barcode: 'BC-1002-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-18T08:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T08:20:00Z', sampleVolumeMl: 6.0, isSeparated: true }
+      { id: 'sp-1002-a', orderId: 'ord-1002', barcode: 'BC-1002-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-18T08:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-18T08:20:00Z', sampleVolumeMl: 6.0, isSeparated: true }
     ],
     testIds: ['test-glucosa', 'test-tsh', 'test-creatinina']
   },
@@ -4575,7 +4575,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1003',
     tenantId: 'lab-san-jose',
     branchId: 'branch-david',
-    orderNumber: 'ORD-2026-00103',
+    orderNumber: '26101200103',
     patientId: 'pat-003',
     patientName: 'Esteban Castillo Vega',
     patientNationalId: '4-721-9088',
@@ -4588,8 +4588,8 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 70.00,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1003-a', orderId: 'ord-1003', barcode: 'BC-1003-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-19T09:05:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T09:05:00Z', sampleVolumeMl: 5.0, isSeparated: true },
-      { id: 'sp-1003-b', orderId: 'ord-1003', barcode: 'BC-1003-AZUL', tubeType: 'CITRATO_AZUL', collectedAt: '2026-08-19T09:05:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T09:05:00Z', sampleVolumeMl: 3.0 }
+      { id: 'sp-1003-a', orderId: 'ord-1003', barcode: 'BC-1003-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-19T09:05:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T09:05:00Z', sampleVolumeMl: 5.0, isSeparated: true },
+      { id: 'sp-1003-b', orderId: 'ord-1003', barcode: 'BC-1003-AZUL', tubeType: 'CITRATO_AZUL', type: 'Plasma Citratado', collectedAt: '2026-08-19T09:05:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T09:05:00Z', sampleVolumeMl: 3.0 }
     ],
     testIds: ['test-lipidico', 'test-creatinina', 'test-pt']
   },
@@ -4597,7 +4597,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1004',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00104',
+    orderNumber: '26101200104',
     patientId: 'pat-004',
     patientName: 'Valeria Morales Rios',
     patientNationalId: '8-910-3341',
@@ -4610,9 +4610,9 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 48.50,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1004-a', orderId: 'ord-1004', barcode: 'BC-1004-LILA', tubeType: 'EDTA_MORADO', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1004-b', orderId: 'ord-1004', barcode: 'BC-1004-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1004-c', orderId: 'ord-1004', barcode: 'BC-1004-ORINA', tubeType: 'ORINA', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 40.0 }
+      { id: 'sp-1004-a', orderId: 'ord-1004', barcode: 'BC-1004-LILA', tubeType: 'EDTA_MORADO', type: 'Sangre Total (EDTA)', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1004-b', orderId: 'ord-1004', barcode: 'BC-1004-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1004-c', orderId: 'ord-1004', barcode: 'BC-1004-ORINA', tubeType: 'ORINA', type: 'Orina Espontánea', collectedAt: '2026-08-19T10:25:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T10:25:00Z', sampleVolumeMl: 40.0 }
     ],
     testIds: ['test-hemograma', 'test-hcg', 'test-uri']
   },
@@ -4620,7 +4620,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1005',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00105',
+    orderNumber: '26101200105',
     patientId: 'pat-005',
     patientName: 'Dionisio Herrera Batista',
     patientNationalId: '3-709-1823',
@@ -4633,7 +4633,7 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 85.00,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1005-a', orderId: 'ord-1005', barcode: 'BC-1005-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-19T11:50:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T11:50:00Z', sampleVolumeMl: 6.0, isSeparated: true }
+      { id: 'sp-1005-a', orderId: 'ord-1005', barcode: 'BC-1005-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-19T11:50:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-19T11:50:00Z', sampleVolumeMl: 6.0, isSeparated: true }
     ],
     testIds: ['test-hepatico', 'test-electrolitos']
   },
@@ -4641,7 +4641,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1006',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00106',
+    orderNumber: '26101200106',
     patientId: 'pat-006',
     patientName: 'Lucía Santana De León',
     patientNationalId: '8-888-5120',
@@ -4654,8 +4654,8 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 33.50,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1006-a', orderId: 'ord-1006', barcode: 'BC-1006-LILA', tubeType: 'EDTA_MORADO', collectedAt: '2026-08-20T07:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T07:20:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1006-b', orderId: 'ord-1006', barcode: 'BC-1006-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-20T07:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T07:20:00Z', sampleVolumeMl: 4.0 }
+      { id: 'sp-1006-a', orderId: 'ord-1006', barcode: 'BC-1006-LILA', tubeType: 'EDTA_MORADO', type: 'Sangre Total (EDTA)', collectedAt: '2026-08-20T07:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T07:20:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1006-b', orderId: 'ord-1006', barcode: 'BC-1006-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-20T07:20:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T07:20:00Z', sampleVolumeMl: 4.0 }
     ],
     testIds: ['test-hemograma', 'test-vdrl']
   },
@@ -4663,7 +4663,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1007',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00107',
+    orderNumber: '26101200107',
     patientId: 'pat-007',
     patientName: 'Alejandro Mendoza Silva',
     patientNationalId: 'PE-982103',
@@ -4676,8 +4676,8 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 92.00,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1007-a', orderId: 'ord-1007', barcode: 'BC-1007-LILA', tubeType: 'EDTA_MORADO', collectedAt: '2026-08-20T08:35:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T08:35:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1007-b', orderId: 'ord-1007', barcode: 'BC-1007-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-20T08:35:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T08:35:00Z', sampleVolumeMl: 6.0, isSeparated: true }
+      { id: 'sp-1007-a', orderId: 'ord-1007', barcode: 'BC-1007-LILA', tubeType: 'EDTA_MORADO', type: 'Sangre Total (EDTA)', collectedAt: '2026-08-20T08:35:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T08:35:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1007-b', orderId: 'ord-1007', barcode: 'BC-1007-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-20T08:35:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T08:35:00Z', sampleVolumeMl: 6.0, isSeparated: true }
     ],
     testIds: ['test-hemograma', 'test-lipidico', 'test-glucosa', 'test-hiv']
   },
@@ -4685,7 +4685,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1008',
     tenantId: 'lab-san-jose',
     branchId: 'branch-david',
-    orderNumber: 'ORD-2026-00108',
+    orderNumber: '26101200108',
     patientId: 'pat-008',
     patientName: 'Mariana Navarro Lasso',
     patientNationalId: '8-800-4491',
@@ -4698,8 +4698,8 @@ export const MOCK_ORDERS: Order[] = [
     totalAmount: 50.50,
     paymentStatus: 'PAGADO',
     specimens: [
-      { id: 'sp-1008-a', orderId: 'ord-1008', barcode: 'BC-1008-LILA', tubeType: 'EDTA_MORADO', collectedAt: '2026-08-20T09:15:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T09:15:00Z', sampleVolumeMl: 4.0 },
-      { id: 'sp-1008-b', orderId: 'ord-1008', barcode: 'BC-1008-ROJO', tubeType: 'SUERO_ROJO', collectedAt: '2026-08-20T09:15:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T09:15:00Z', sampleVolumeMl: 4.0 }
+      { id: 'sp-1008-a', orderId: 'ord-1008', barcode: 'BC-1008-LILA', tubeType: 'EDTA_MORADO', type: 'Sangre Total (EDTA)', collectedAt: '2026-08-20T09:15:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T09:15:00Z', sampleVolumeMl: 4.0 },
+      { id: 'sp-1008-b', orderId: 'ord-1008', barcode: 'BC-1008-ROJO', tubeType: 'SUERO_ROJO', type: 'Suero Sanguíneo', collectedAt: '2026-08-20T09:15:00Z', status: 'EN_ANALIZADOR', phlebotomyTime: '2026-08-20T09:15:00Z', sampleVolumeMl: 4.0 }
     ],
     testIds: ['test-hemograma', 'test-vsg', 'test-tsh']
   },
@@ -4707,7 +4707,7 @@ export const MOCK_ORDERS: Order[] = [
     id: 'ord-1009',
     tenantId: 'lab-san-jose',
     branchId: 'branch-via-espana',
-    orderNumber: 'ORD-2026-00109',
+    orderNumber: '26101200109',
     patientId: 'pat-009',
     patientName: 'Gonzalo A. Ríos',
     patientNationalId: '8-720-1980',

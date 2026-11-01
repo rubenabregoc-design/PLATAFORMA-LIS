@@ -102,7 +102,7 @@ export const CATEGORY_DETAILS: Record<TurnCategory, {
     defaultPriority: 'PREFERENCIAL'
   },
   URGENCIA_STAT: {
-    name: 'Urgencias Médicas / STAT',
+    name: 'Urgencias Médicas',
     shortCode: 'URG',
     prefix: 'URG',
     color: 'text-rose-300',
@@ -149,7 +149,7 @@ const DEFAULT_INITIAL_TICKETS: QueueTicket[] = [
     patientNationalId: '8-812-4412',
     patientGender: 'M',
     patientAge: 54,
-    notes: 'Pre-quirúrgico inmediato de apendicectomía. STAT.',
+    notes: 'Pre-quirúrgico inmediato de apendicectomía. Urgencia.',
     status: 'ESPERANDO',
     createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
     estimatedWaitMinutes: 2,

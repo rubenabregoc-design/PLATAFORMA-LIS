@@ -87,8 +87,8 @@ export interface TatSampleItem {
   patientName: string;
   patientLocation: string;
   testName: string;
-  department: 'Marcadores Cardíacos' | 'Gases Arteriales' | 'Coagulación' | 'Hematología STAT' | 'Bioquímica';
-  urgency: 'STAT / Crítico' | 'Urgente' | 'Rutina';
+  department: 'Marcadores Cardíacos' | 'Gases Arteriales' | 'Coagulación' | 'Hematología URGENCIA' | 'Bioquímica';
+  urgency: 'URGENCIA / Crítico' | 'Urgente' | 'Rutina';
   slaMinutesTotal: number;
   elapsedSeconds: number;
   status: 'PROCESANDO' | 'EN_ANALIZADOR' | 'PENDIENTE_VALIDACION' | 'COMPLETADO';
@@ -116,7 +116,7 @@ export interface BiosafetyWorkOrder {
   ageGender: string;
   location: string;
   requestedTests: string[];
-  urgency: 'STAT / Urgente' | 'Rutina' | 'Prioritario';
+  urgency: 'URGENCIA / Urgente' | 'Rutina' | 'Prioritario';
   sampleType: string;
   isHighBiohazard: boolean;
   biosafetyProtocol?: BiosafetyProtocol;
@@ -500,7 +500,7 @@ export const TechnologistWorkbench: React.FC = () => {
       ageGender: '58 años • Masculino',
       sampleId: 'LAB-9021',
       location: 'Urgencias / Box 3',
-      primaryPanel: 'Marcadores Cardíacos STAT',
+      primaryPanel: 'Marcadores Cardíacos URGENCIA',
       labValues: { 'Troponina I': 3.42, 'CK Total': 410, 'Mioglobina': 185 },
       cdsTriggers: [
         {
@@ -634,7 +634,7 @@ export const TechnologistWorkbench: React.FC = () => {
       ageGender: '62 años • Masculino',
       location: 'Neumología / Sala B-12',
       requestedTests: ['PCR GenExpert BK', 'Basciloscopía M. Tuberculosis', 'Cultivo Lowenstein-Jensen'],
-      urgency: 'STAT / Urgente',
+      urgency: 'URGENCIA / Urgente',
       sampleType: 'Esputo Espeso / Lavado Broncoalveolar',
       isHighBiohazard: true,
       status: 'PENDIENTE',
@@ -702,7 +702,7 @@ export const TechnologistWorkbench: React.FC = () => {
       ageGender: '55 años • Masculino',
       location: 'Urgencias / Reanimación',
       requestedTests: ['Examen Citoquímico LCR', 'Tinta China / Gram LCR', 'Cultivo de Bacterias & Hongos'],
-      urgency: 'STAT / Urgente',
+      urgency: 'URGENCIA / Urgente',
       sampleType: 'Líquido Cefalorraquídeo (LCR - 3 mL)',
       isHighBiohazard: true,
       status: 'PENDIENTE',
@@ -735,7 +735,7 @@ export const TechnologistWorkbench: React.FC = () => {
       ageGender: '48 años • Femenino',
       location: 'UCI Adultos / Cama 8',
       requestedTests: ['Hemocultivo Automatizado', 'Identificación MALDI-TOF & Antibiograma'],
-      urgency: 'STAT / Urgente',
+      urgency: 'URGENCIA / Urgente',
       sampleType: 'Botella Hemocultivo Aerobio/Anaerobio',
       isHighBiohazard: true,
       status: 'PENDIENTE',
@@ -767,8 +767,8 @@ export const TechnologistWorkbench: React.FC = () => {
       patientId: 'PAS-90210',
       ageGender: '58 años • Masculino',
       location: 'Urgencias / Box 3',
-      requestedTests: ['Troponina I STAT', 'CK-MB Masa', 'Perfil Renal STAT'],
-      urgency: 'STAT / Urgente',
+      requestedTests: ['Troponina I URGENCIA', 'CK-MB Masa', 'Perfil Renal URGENCIA'],
+      urgency: 'URGENCIA / Urgente',
       sampleType: 'Suero Sanguíneo (Tubo Gel Separador)',
       isHighBiohazard: false,
       status: 'PENDIENTE'
@@ -835,9 +835,9 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       patientName: 'Ríos, Gonzalo A.',
       patientLocation: 'Urgencias / Box Reanimación 1',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       department: 'Marcadores Cardíacos',
-      urgency: 'STAT / Crítico',
+      urgency: 'URGENCIA / Crítico',
       slaMinutesTotal: 30,
       elapsedSeconds: 1680, // 28 minutes elapsed -> 2 mins remaining (RED)
       status: 'EN_ANALIZADOR',
@@ -850,9 +850,9 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-GAS-02',
       patientName: 'Morales, Valeria M.',
       patientLocation: 'UCI Adultos / Cama 4',
-      testName: 'Gasometría Arterial + Lactato Sérico STAT',
+      testName: 'Gasometría Arterial + Lactato Sérico URGENCIA',
       department: 'Gases Arteriales',
-      urgency: 'STAT / Crítico',
+      urgency: 'URGENCIA / Crítico',
       slaMinutesTotal: 15,
       elapsedSeconds: 1020, // 17 minutes elapsed -> VENCIDO BREACHED (RED)
       status: 'PROCESANDO',
@@ -866,7 +866,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-COAG-03',
       patientName: 'Castillo, Esteban R.',
       patientLocation: 'Quirófano 2 / Pre-Op',
-      testName: 'TTPa + TP / INR Quirúrgico STAT',
+      testName: 'TTPa + TP / INR Quirúrgico URGENCIA',
       department: 'Coagulación',
       urgency: 'Urgente',
       slaMinutesTotal: 45,
@@ -881,8 +881,8 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-HEM-04',
       patientName: 'Vega, Lucía S.',
       patientLocation: 'Ginecología / Observación',
-      testName: 'Hemograma Completo STAT + Recuento Plaquetario',
-      department: 'Hematología STAT',
+      testName: 'Hemograma Completo URGENCIA + Recuento Plaquetario',
+      department: 'Hematología URGENCIA',
       urgency: 'Urgente',
       slaMinutesTotal: 30,
       elapsedSeconds: 1080, // 18 minutes elapsed -> 12 mins remaining (AMARILLO)
@@ -911,9 +911,9 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-06',
       patientName: 'Gómez, Ana Patricia',
       patientLocation: 'Urgencias / Triage 2',
-      testName: 'D-Dímero Cuantitativo STAT',
+      testName: 'D-Dímero Cuantitativo URGENCIA',
       department: 'Marcadores Cardíacos',
-      urgency: 'STAT / Crítico',
+      urgency: 'URGENCIA / Crítico',
       slaMinutesTotal: 40,
       elapsedSeconds: 2280, // 38 minutes elapsed -> 2 mins remaining (RED)
       status: 'EN_ANALIZADOR',
@@ -1023,7 +1023,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
       patientName: 'Ríos, Gonzalo A.',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:32:15',
       eventType: 'INGRESO',
       actionTitle: 'Ingreso & Recepción de Muestra en LIS',
@@ -1039,7 +1039,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
       patientName: 'Ríos, Gonzalo A.',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:35:00',
       eventType: 'HIL_CHECK',
       actionTitle: 'Inspección de Índices de Interferencia HIL',
@@ -1055,7 +1055,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
       patientName: 'Ríos, Gonzalo A.',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:38:22',
       eventType: 'REENVASE',
       actionTitle: 'Generación de Alícuota Secundaria (Reenvasado)',
@@ -1072,7 +1072,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
       patientName: 'Ríos, Gonzalo A.',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:44:10',
       eventType: 'MODIFICACION',
       actionTitle: 'Dilución Manual 1:5 por Superación de Rango',
@@ -1090,7 +1090,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
       patientName: 'Ríos, Gonzalo A.',
-      testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+      testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:50:00',
       eventType: 'VALIDACION',
       actionTitle: 'Validación Tecnológica & Notificación de Valor Pánico',
@@ -1106,7 +1106,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-GAS-02',
       orderNumber: 'ORD-2026-9002',
       patientName: 'Morales, Valeria M.',
-      testName: 'Gasometría Arterial + Lactato Sérico STAT',
+      testName: 'Gasometría Arterial + Lactato Sérico URGENCIA',
       timestamp: '2026-08-12 08:53:40',
       eventType: 'INGRESO',
       actionTitle: 'Recepción en Jeringa Heparinizada',
@@ -1122,7 +1122,7 @@ export const TechnologistWorkbench: React.FC = () => {
       sampleBarcode: 'BAR-GAS-02',
       orderNumber: 'ORD-2026-9002',
       patientName: 'Morales, Valeria M.',
-      testName: 'Gasometría Arterial + Lactato Sérico STAT',
+      testName: 'Gasometría Arterial + Lactato Sérico URGENCIA',
       timestamp: '2026-08-12 08:56:10',
       eventType: 'MODIFICACION',
       actionTitle: 'Inyección de Disolución de Burbuja & Purga',
@@ -1634,7 +1634,7 @@ export const TechnologistWorkbench: React.FC = () => {
             <XCircle className="w-4 h-4 text-rose-400" />
             <span>Gestión Muestras Rechazadas</span>
             <span className="bg-rose-500/20 text-rose-300 border border-rose-400/40 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1">
-              <span>Re-muestreo STAT</span>
+              <span>Re-muestreo URGENCIA</span>
             </span>
           </button>
         </div>
@@ -1744,7 +1744,7 @@ export const TechnologistWorkbench: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-1">
                   <span className={`text-[10px] font-mono font-bold ${
-                    order.urgency.includes('STAT') ? 'text-rose-400' : 'text-slate-400'
+                    order.urgency.includes('URGENCIA') ? 'text-rose-400' : 'text-slate-400'
                   }`}>
                     {order.urgency}
                   </span>
@@ -2861,7 +2861,7 @@ export const TechnologistWorkbench: React.FC = () => {
                 <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
                   <div className="bg-indigo-500 h-full rounded-full" style={{ width: '94.2%' }}></div>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">SLA Target Lab: &gt; 95% en Muestras STAT</p>
+                <p className="text-[11px] text-slate-400 mt-1">SLA Target Lab: &gt; 95% en Muestras URGENCIA</p>
               </div>
             </div>
           </div>
@@ -2943,7 +2943,7 @@ export const TechnologistWorkbench: React.FC = () => {
                   <option value="Marcadores Cardíacos">Marcadores Cardíacos</option>
                   <option value="Gases Arteriales">Gases Arteriales</option>
                   <option value="Coagulación">Coagulación</option>
-                  <option value="Hematología STAT">Hematología STAT</option>
+                  <option value="Hematología URGENCIA">Hematología URGENCIA</option>
                   <option value="Bioquímica">Bioquímica</option>
                 </select>
               </div>
@@ -2988,7 +2988,7 @@ export const TechnologistWorkbench: React.FC = () => {
                               {sample.sampleBarcode}
                             </span>
                             <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded ${
-                              sample.urgency.includes('STAT')
+                              sample.urgency.includes('URGENCIA')
                                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                                 : 'bg-slate-800 text-slate-300'
                             }`}>
@@ -3095,7 +3095,7 @@ export const TechnologistWorkbench: React.FC = () => {
                             <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                             <span>PRIORIDAD MÁXIMA EN LIS (EXPEDITED)</span>
                           </span>
-                          <span className="animate-pulse">⚡ STAT</span>
+                          <span className="animate-pulse">⚡ URGENCIA</span>
                         </div>
                       )}
 
@@ -3153,22 +3153,22 @@ export const TechnologistWorkbench: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono">
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
                 <span className="text-slate-500 text-[10px] block uppercase font-bold">Marcadores Cardíacos:</span>
-                <span className="text-rose-400 font-extrabold text-xs block">SLA STAT: 30 min</span>
+                <span className="text-rose-400 font-extrabold text-xs block">SLA URGENCIA: 30 min</span>
                 <span className="text-[10px] text-slate-400 block">Troponina I, CK-MB Masa</span>
               </div>
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
                 <span className="text-slate-500 text-[10px] block uppercase font-bold">Gases Arteriales:</span>
-                <span className="text-rose-400 font-extrabold text-xs block">SLA STAT: 15 min</span>
+                <span className="text-rose-400 font-extrabold text-xs block">SLA URGENCIA: 15 min</span>
                 <span className="text-[10px] text-slate-400 block">pH, pCO2, pO2, Lactato</span>
               </div>
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
                 <span className="text-slate-500 text-[10px] block uppercase font-bold">Coagulación Quirúrgica:</span>
-                <span className="text-amber-400 font-extrabold text-xs block">SLA STAT: 45 min</span>
+                <span className="text-amber-400 font-extrabold text-xs block">SLA URGENCIA: 45 min</span>
                 <span className="text-[10px] text-slate-400 block">TP / INR, TTPa, Fibrinógeno</span>
               </div>
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
-                <span className="text-slate-500 text-[10px] block uppercase font-bold">Hematología STAT:</span>
-                <span className="text-amber-400 font-extrabold text-xs block">SLA STAT: 30 min</span>
+                <span className="text-slate-500 text-[10px] block uppercase font-bold">Hematología URGENCIA:</span>
+                <span className="text-amber-400 font-extrabold text-xs block">SLA URGENCIA: 30 min</span>
                 <span className="text-[10px] text-slate-400 block">Hemograma Completo + Plaquetas</span>
               </div>
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1">
@@ -3315,7 +3315,7 @@ export const TechnologistWorkbench: React.FC = () => {
                   <option value="BAR-CARD-01">BAR-CARD-01 | Troponina I Ultrasensible (Ríos, Gonzalo)</option>
                   <option value="BAR-GAS-02">BAR-GAS-02 | Gasometría Arterial (Morales, Valeria)</option>
                   <option value="BAR-COAG-03">BAR-COAG-03 | TTPa + TP Quirúrgico (Castillo, Esteban)</option>
-                  <option value="BAR-HEM-04">BAR-HEM-04 | Hemograma STAT (Vega, Lucía)</option>
+                  <option value="BAR-HEM-04">BAR-HEM-04 | Hemograma URGENCIA (Vega, Lucía)</option>
                   <option value="BAR-BIO-05">BAR-BIO-05 | Perfil Renal & Electrolitos (Paredes, Héctor)</option>
                 </select>
               </div>
@@ -3325,9 +3325,9 @@ export const TechnologistWorkbench: React.FC = () => {
                 const sample = tatSamples.find(s => s.sampleBarcode === selectedAuditBarcode) || {
                   patientName: 'Ríos, Gonzalo A.',
                   patientLocation: 'Urgencias / Box Reanimación 1',
-                  testName: 'Troponina I Ultrasensible + CK-MB Masa STAT',
+                  testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
                   orderNumber: 'ORD-2026-9001',
-                  urgency: 'STAT / Crítico'
+                  urgency: 'URGENCIA / Crítico'
                 };
                 const activeEvents = auditEvents.filter(e => e.sampleBarcode === selectedAuditBarcode);
 
@@ -3647,7 +3647,7 @@ export const TechnologistWorkbench: React.FC = () => {
         </div>
       )}
 
-      {/* SUB-TAB: GESTIÓN DE MUESTRAS RECHAZADAS (RE-MUESTREO STAT) */}
+      {/* SUB-TAB: GESTIÓN DE MUESTRAS RECHAZADAS (RE-MUESTREO URGENCIA) */}
       {activeSubTab === 'rejected_samples' && (
         <div className="space-y-6 animate-fadeIn">
           <RejectedSampleWizard embeddedMode={true} />
@@ -3945,10 +3945,10 @@ export const TechnologistWorkbench: React.FC = () => {
         onClose={() => setIsQuickScanModalOpen(false)}
         onScanSuccess={handleQuickScanSuccess}
         sampleCatalogHints={[
-          { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Ríos, Gonzalo A.', test: 'Troponina I + CK-MB STAT' },
-          { barcode: 'BAR-GAS-02', label: 'Jeringa Heparinizada 2mL', patientName: 'Morales, Valeria M.', test: 'Gasometría Arterial STAT' },
+          { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Ríos, Gonzalo A.', test: 'Troponina I + CK-MB URGENCIA' },
+          { barcode: 'BAR-GAS-02', label: 'Jeringa Heparinizada 2mL', patientName: 'Morales, Valeria M.', test: 'Gasometría Arterial URGENCIA' },
           { barcode: 'BAR-COAG-03', label: 'Tubo Citrato 3.2% 2.7mL', patientName: 'Castillo, Manuel E.', test: 'TTPa + TP / INR Quirúrgico' },
-          { barcode: 'BAR-HEM-04', label: 'Tubo EDTA K2 3mL', patientName: 'Vega, Lucía S.', test: 'Hemograma Completo STAT' },
+          { barcode: 'BAR-HEM-04', label: 'Tubo EDTA K2 3mL', patientName: 'Vega, Lucía S.', test: 'Hemograma Completo URGENCIA' },
           { barcode: 'BAR-998101', label: 'Frasco BSL-3 Esputo', patientName: 'Santamaría, Fernando R.', test: 'PCR GenExpert BK (BSL-3)' },
           { barcode: 'LAB-9024', label: 'Tubo Suero 5mL', patientName: 'Restrepo, Elena M.', test: 'Perfil Tiroideo (Reflex TSH)' }
         ]}

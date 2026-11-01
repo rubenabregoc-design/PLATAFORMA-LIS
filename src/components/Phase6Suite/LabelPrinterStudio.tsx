@@ -48,7 +48,7 @@ import {
 export interface TubeLabelTemplate {
   id: string;
   name: string;
-  category: 'PRIMARIO' | 'ALICUOTA' | 'STAT' | 'PEDIATRICO' | 'HISTOLOGIA' | 'FRASCO';
+  category: 'PRIMARIO' | 'ALICUOTA' | 'URGENCIA' | 'PEDIATRICO' | 'HISTOLOGIA' | 'FRASCO';
   description: string;
   widthMm: number;
   heightMm: number;
@@ -162,7 +162,7 @@ const INITIAL_NETWORK_PRINTERS: NetworkPrinter[] = [
   },
   {
     id: 'prn-04',
-    name: 'Citizen CL-S621 (Urgencias STAT)',
+    name: 'Citizen CL-S621 (Urgencias URGENCIA)',
     ip: '192.168.3.18',
     port: 9100,
     protocol: 'RAW_TCP_9100',
@@ -245,9 +245,9 @@ export const PREDESIGNED_TEMPLATES_GALLERY: TubeLabelTemplate[] = [
   },
   {
     id: 'tpl-stat-urgent',
-    name: 'Etiqueta de Urgencia / STAT (50x30 mm)',
-    category: 'STAT',
-    description: 'Etiqueta destacada con franja roja de advertencia 🚨 STAT / URGENCIA MÉDICA para procesamiento prioritario inmediato.',
+    name: 'Etiqueta de Urgencia / URGENCIA (50x30 mm)',
+    category: 'URGENCIA',
+    description: 'Etiqueta destacada con franja roja de advertencia 🚨 URGENCIA / URGENCIA MÉDICA para procesamiento prioritario inmediato.',
     widthMm: 50,
     heightMm: 30,
     barcodeType: 'CODE128',
@@ -264,7 +264,7 @@ export const PREDESIGNED_TEMPLATES_GALLERY: TubeLabelTemplate[] = [
     rotation: 0,
     samplePatientName: 'VARGAS, ROBERTO (UCI)',
     sampleTubeType: 'HEPARIN_GREEN',
-    sampleTests: 'GASES, ELECTROLITOS, TPT (STAT)'
+    sampleTests: 'GASES, ELECTROLITOS, TPT (URGENCIA)'
   },
   {
     id: 'tpl-micro-pediatric',
@@ -722,7 +722,7 @@ export const LabelPrinterStudio: React.FC = () => {
     const wDots = template.widthMm * dotsPerMm;
     const hDots = template.heightMm * dotsPerMm;
 
-    const statHeader = template.isStatUrgent ? '^FO30,10^A0N,20,20^FD*** STAT / URGENCIA ***^FS\n' : '';
+    const statHeader = template.isStatUrgent ? '^FO30,10^A0N,20,20^FD*** URGENCIA / URGENCIA ***^FS\n' : '';
     const aliquotHeader = template.aliquotTag ? `^FO30,10^A0N,16,16^FD[${template.aliquotTag}]^FS\n` : '';
 
     return `^XA
@@ -761,7 +761,7 @@ ${statHeader}${aliquotHeader}^BY2,2,60
       case 'CITRATE_BLUE':
         return { bg: 'bg-sky-500', text: 'text-sky-950', border: 'border-sky-400', label: 'CITRATO AZUL (Coagulación)' };
       case 'HEPARIN_GREEN':
-        return { bg: 'bg-emerald-600', text: 'text-emerald-100', border: 'border-emerald-400', label: 'HEPARINA VERDE (STAT)' };
+        return { bg: 'bg-emerald-600', text: 'text-emerald-100', border: 'border-emerald-400', label: 'HEPARINA VERDE (URGENCIA)' };
       case 'FLUORIDE_GRAY':
         return { bg: 'bg-slate-500', text: 'text-slate-100', border: 'border-slate-400', label: 'FLUORURO GRIS (Glucosa)' };
     }
@@ -773,8 +773,8 @@ ${statHeader}${aliquotHeader}^BY2,2,60
         return { label: 'Tubo Primario', bg: 'bg-purple-500/15 text-purple-300 border-purple-500/30', icon: TestTube };
       case 'ALICUOTA':
         return { label: 'Tubo Alícuota', bg: 'bg-sky-500/15 text-sky-300 border-sky-500/30', icon: Container };
-      case 'STAT':
-        return { label: 'Urgencia / STAT', bg: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame };
+      case 'URGENCIA':
+        return { label: 'Urgencia / URGENCIA', bg: 'bg-rose-500/20 text-rose-300 border-rose-500/40', icon: Flame };
       case 'PEDIATRICO':
         return { label: 'Pediátrico / Capilar', bg: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: Baby };
       case 'HISTOLOGIA':
@@ -872,7 +872,7 @@ ${statHeader}${aliquotHeader}^BY2,2,60
               {activeTemplate.widthMm}x{activeTemplate.heightMm} mm
             </div>
             <div className="text-[10px] text-indigo-400 font-bold">
-              {activeTemplate.category === 'STAT' ? '🚨 URGENCIA / STAT' : activeTemplate.category === 'ALICUOTA' ? '🧪 ALÍCUOTA DERIVADA' : 'Estándar Tubo'}
+              {activeTemplate.category === 'URGENCIA' ? '🚨 URGENCIA / URGENCIA' : activeTemplate.category === 'ALICUOTA' ? '🧪 ALÍCUOTA DERIVADA' : 'Estándar Tubo'}
             </div>
           </div>
         </div>
@@ -1398,11 +1398,11 @@ ${statHeader}${aliquotHeader}^BY2,2,60
                   </div>
                 )}
 
-                {/* URGENT STAT BANNER */}
+                {/* URGENT URGENCIA BANNER */}
                 {activeTemplate.isStatUrgent && (
                   <div className="bg-rose-600 text-white text-[9px] font-black uppercase text-center py-0.5 -mx-3.5 -mt-3.5 mb-1 tracking-widest flex items-center justify-center space-x-1 shadow-sm">
                     <Flame className="w-3 h-3 fill-white animate-pulse" />
-                    <span>🚨 URGENCIA / STAT MÉDICO</span>
+                    <span>🚨 URGENCIA / URGENCIA MÉDICO</span>
                   </div>
                 )}
 
@@ -1897,14 +1897,14 @@ ${statHeader}${aliquotHeader}^BY2,2,60
                 Tubo Alícuota
               </button>
               <button
-                onClick={() => setSelectedCategoryFilter('STAT')}
+                onClick={() => setSelectedCategoryFilter('URGENCIA')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  selectedCategoryFilter === 'STAT'
+                  selectedCategoryFilter === 'URGENCIA'
                     ? 'bg-rose-500 text-white font-black shadow'
                     : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
-                🚨 Urgencia / STAT
+                🚨 Urgencia / URGENCIA
               </button>
               <button
                 onClick={() => setSelectedCategoryFilter('PEDIATRICO')}
@@ -2041,11 +2041,11 @@ ${statHeader}${aliquotHeader}^BY2,2,60
                   activeTemplate.isStatUrgent ? 'border-rose-500 ring-8 ring-rose-500/20' : 'border-slate-300'
                 }`}
               >
-                {/* URGENT STAT BANNER */}
+                {/* URGENT URGENCIA BANNER */}
                 {activeTemplate.isStatUrgent && (
                   <div className="bg-rose-600 text-white text-[11px] font-black uppercase text-center py-1 -mx-5 -mt-5 mb-2 tracking-widest flex items-center justify-center space-x-1 shadow">
                     <Flame className="w-4 h-4 fill-white animate-pulse" />
-                    <span>🚨 URGENCIA / STAT MÉDICO</span>
+                    <span>🚨 URGENCIA / URGENCIA MÉDICO</span>
                   </div>
                 )}
 
@@ -2256,7 +2256,7 @@ ${statHeader}${aliquotHeader}^BY2,2,60
                     <option value="EDTA_LAVENDER">EDTA Morado (Hematología)</option>
                     <option value="SST_GOLD">SST Amarillo/Oro (Química)</option>
                     <option value="CITRATE_BLUE">Citrato Azul (Coagulación)</option>
-                    <option value="HEPARIN_GREEN">Heparina Verde (STAT)</option>
+                    <option value="HEPARIN_GREEN">Heparina Verde (URGENCIA)</option>
                     <option value="FLUORIDE_GRAY">Fluoruro Gris (Glucosa)</option>
                   </select>
                 </div>

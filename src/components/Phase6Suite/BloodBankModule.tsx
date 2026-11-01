@@ -285,7 +285,7 @@ export const BloodBankModule: React.FC = () => {
             <div className="text-2xl font-black font-mono text-rose-400">
               {units.filter(u => u.bloodGroup === 'O-' && u.status === 'DISPONIBLE').length} Unidades
             </div>
-            <div className="text-[10px] text-rose-400 font-bold">Reserva de Urgencias STAT</div>
+            <div className="text-[10px] text-rose-400 font-bold">Reserva de Urgencias</div>
           </div>
 
           <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl space-y-1">

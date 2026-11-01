@@ -1,9 +1,11 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Order, TestResult, Patient, Tenant, Branch } from '../types';
 import { MOCK_TEST_CATALOG } from '../data/mockData';
 import { FileText, Printer, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock, Award } from 'lucide-react';
 
 import { useLisStore } from '../store/useLisStore';
+import { buildPrintFileName, printDocument } from '../utils/printDocument';
 
 interface PdfReportPreviewProps {
   order: Order;
@@ -119,42 +121,15 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     hour12: true
   });
 
-  return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-
-      {/* Estilos estrictos para tamaño Carta (US Letter 8.5 x 11 in) */}
-      <style>{`
-        @media print {
-          @page {
-            size: letter portrait;
-            margin: 12mm 15mm;
-          }
-          html, body {
-            width: 8.5in;
-            height: 11in;
-            background: #ffffff !important;
-            color: #0f172a !important;
-            font-size: 10.5pt !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          #printable-report {
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-        }
-      `}</style>
-
-      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col">
+  return createPortal(
+    <div
+      id="report-modal-container"
+      data-printable-portal="true"
+      className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto printable-modal-overlay print:static print:block print:p-0 print:m-0 print:bg-white print:w-full print:h-auto print:max-h-none print:overflow-visible print:border-none print:shadow-none print:inset-auto"
+    >
+      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col print:static print:block print:p-0 print:m-0 print:w-full print:max-w-full print:h-auto print:min-h-0 print:max-h-none print:overflow-visible print:border-none print:shadow-none print:rounded-none">
         {/* Barra Superior de Control de Impresión */}
-        <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800">
+        <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between sticky top-0 z-20 no-print border-b border-slate-800 print:hidden">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center">
               <FileText className="w-5 h-5" />
@@ -199,56 +174,63 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
         </div>
 
         {/* CONTENIDO DEL REPORTE CLÍNICO TAMAÑO CARTA */}
-        <div className="p-8 sm:p-12 space-y-6 text-slate-900 font-sans leading-relaxed max-w-[8.5in] mx-auto bg-white" id="printable-report">
-          
+        <div
+          id="printable-report"
+          data-printable="true"
+          className="p-4 sm:p-6 print:p-0 space-y-3 print:space-y-2 text-slate-900 font-sans leading-normal max-w-[8.5in] w-full mx-auto bg-white printable-document-page"
+        >
           {/* 1. Membrete Institucional de Laboratorio Clínico */}
-          <div className="border-b-2 border-teal-700 pb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="border-b-2 border-teal-800 pb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-10 h-10 rounded-xl bg-teal-700 text-white flex items-center justify-center font-black text-xl shadow-md">
-                  🔬
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-xl bg-teal-800 text-white flex items-center justify-center p-2 shadow-md shrink-0">
+                  <svg viewBox="0 0 48 48" fill="none" className="w-full h-full text-teal-300">
+                    <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="2.5" fill="#115e59" />
+                    <path d="M24 10v28M14 24h20" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
+                    <path d="M20 18c2-3 6-3 8 0s-2 6-4 8 2 5 0 8" stroke="#5eead4" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-teal-900 tracking-tight leading-none">
+                  <h1 className="text-xl sm:text-2xl font-black text-teal-950 tracking-tight leading-none">
                     {tenant.name}
                   </h1>
-                  <span className="text-xs font-bold text-teal-700 uppercase tracking-wider">
-                    Servicios de Diagnóstico Clínico & Medicina de Laboratorio
+                  <span className="text-[10px] font-black text-teal-800 uppercase tracking-widest block mt-0.5">
+                    Servicios de Diagnóstico Clínico & Medicina de Laboratorio • República de Panamá
                   </span>
                 </div>
               </div>
 
-              <div className="text-xs text-slate-600 font-medium pt-1 space-y-0.5">
+              <div className="text-[11px] text-slate-600 font-medium pt-1 space-y-0.5">
                 <div><strong>Sede:</strong> {branch.name} — {branch.address}</div>
                 <div><strong>Teléfono:</strong> {branch.phone} | <strong>RUC:</strong> {tenant.ruc} <strong>DV:</strong> {tenant.dv}</div>
-                <div className="text-teal-800 font-semibold flex items-center space-x-1">
+                <div className="text-teal-800 font-bold flex items-center space-x-2 text-[10px]">
                   <span>● Licencia Sanitaria MINSA N° 2024-LC-0891</span>
                   <span>•</span>
-                  <span>Acreditación Norma ISO 15189</span>
+                  <span>Acreditación Norma Técnica ISO 15189:2022</span>
                 </div>
               </div>
             </div>
 
             {/* Cuadro de N° de Orden y Código de Barras */}
-            <div className="text-right space-y-1">
-              <div className="inline-block bg-teal-50 border-2 border-teal-600/60 rounded-xl px-4 py-2 text-right">
-                <span className="text-[11px] font-bold text-teal-800 uppercase block tracking-wider">N° de Orden Oficial</span>
+            <div className="text-right space-y-1 shrink-0">
+              <div className="inline-block bg-teal-50 border-2 border-teal-700 rounded-xl px-3.5 py-1.5 text-right shadow-sm">
+                <span className="text-[10px] font-extrabold text-teal-900 uppercase block tracking-wider">N° de Orden Oficial</span>
                 <span className="text-base sm:text-lg font-mono font-black text-teal-950 tracking-wider block">{order.orderNumber}</span>
                 {/* Simulación visual de código de barras Code-128 */}
-                <div className="flex items-center justify-center gap-[2px] h-6 mt-1 px-1 bg-white rounded border border-slate-300">
+                <div className="flex items-center justify-center gap-[2px] h-5 mt-1 px-1 bg-white rounded border border-slate-300">
                   {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 2, 4, 1, 2, 3, 1, 4, 2].map((w, i) => (
                     <div key={i} className="bg-slate-900 h-full" style={{ width: `${w}px` }} />
                   ))}
                 </div>
               </div>
-              <div className="text-xs text-slate-500 font-mono">
+              <div className="text-[10px] text-slate-500 font-mono">
                 Emisión: {emissionDate} • {emissionTime}
               </div>
             </div>
           </div>
 
           {/* 2. Cuadro Demográfico del Paciente */}
-          <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-300 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-300 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs avoid-break patient-demographics-card">
             <div>
               <span className="text-slate-500 font-bold uppercase tracking-wider block text-[11px]">Paciente:</span>
               <span className="text-slate-950 font-black text-sm block mt-0.5">{patient.firstName} {patient.lastName}</span>
@@ -301,7 +283,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
 
           {/* Alerta de Valores Críticos si Aplica */}
           {hasCriticalFlag && (
-            <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl flex items-center space-x-3 text-rose-900">
+            <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl flex items-center space-x-3 text-rose-900 avoid-break">
               <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold shrink-0">
                 ⚠️
               </div>
@@ -315,7 +297,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
           {/* 3. Tabla de Resultados Agrupada por Secciones */}
           <div className="space-y-6">
             {Object.entries(resultsBySection).map(([sectionName, sectionResults]) => (
-              <div key={sectionName} className="space-y-2">
+              <div key={sectionName} className="space-y-2 avoid-break">
                 <div className="bg-teal-900 text-white px-3 py-1.5 rounded-lg flex items-center justify-between">
                   <h3 className="font-black text-xs uppercase tracking-wider">
                     {sectionName}
@@ -428,51 +410,51 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
           )}
 
           {/* 4. Bloque de Firmas Digitales y Validación MINSA */}
-          <div className="border-t-2 border-slate-300 pt-6 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <div className="border-t-2 border-slate-300 pt-3 mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 items-end avoid-break signature-block">
             
             {/* Firma Tecnólogo Médico */}
-            <div className="text-center space-y-1">
-              <div className="h-14 flex items-center justify-center">
+            <div className="text-center space-y-0.5">
+              <div className="h-10 flex items-center justify-center">
                 {currentUser?.signatureUrl ? (
-                  <img src={currentUser.signatureUrl} alt="Firma Tecnólogo" className="h-12 object-contain" />
+                  <img src={currentUser.signatureUrl} alt="Firma Tecnólogo" className="h-9 object-contain" />
                 ) : (
-                  <span className="font-serif italic text-teal-800 text-lg tracking-wider border-b-2 border-slate-400 pb-1 px-4">
+                  <span className="font-serif italic text-teal-800 text-base tracking-wider border-b border-slate-400 pb-0.5 px-3">
                     {technologistName}
                   </span>
                 )}
               </div>
               <strong className="text-xs text-slate-900 block">{technologistName}</strong>
-              <span className="text-[11px] text-slate-600 block">Tecnólogo(a) Médico(a) Analista</span>
-              <span className="text-[11px] font-mono text-teal-800 font-bold block">
+              <span className="text-[10px] text-slate-600 block">Tecnólogo(a) Médico(a) Analista</span>
+              <span className="text-[10px] font-mono text-teal-800 font-bold block">
                 Idoneidad MINSA: {technologistLicense}
               </span>
-              <span className="text-[10px] text-emerald-700 font-mono font-medium block flex items-center justify-center space-x-1">
+              <span className="text-[9px] text-emerald-700 font-mono font-medium block flex items-center justify-center space-x-1">
                 <span>🛡️ Sello Digital Autorizado</span>
               </span>
             </div>
 
             {/* Firma Jefe de Laboratorio / Director Médico */}
-            <div className="text-center space-y-1">
-              <div className="h-14 flex items-center justify-center">
-                <span className="font-serif italic text-teal-800 text-lg tracking-wider border-b-2 border-slate-400 pb-1 px-4">
+            <div className="text-center space-y-0.5">
+              <div className="h-10 flex items-center justify-center">
+                <span className="font-serif italic text-teal-800 text-base tracking-wider border-b border-slate-400 pb-0.5 px-3">
                   {medicalValidatorName}
                 </span>
               </div>
               <strong className="text-xs text-slate-900 block">{medicalValidatorName}</strong>
-              <span className="text-[11px] text-slate-600 block">Jefe de Laboratorio Clínico</span>
-              <span className="text-[11px] font-mono text-teal-800 font-bold block">Idoneidad MINSA: TM-1840-PA</span>
-              <span className="text-[10px] text-slate-500 font-mono block">Validación Facultativa Médica</span>
+              <span className="text-[10px] text-slate-600 block">Jefe de Laboratorio Clínico</span>
+              <span className="text-[10px] font-mono text-teal-800 font-bold block">Idoneidad MINSA: TM-1840-PA</span>
+              <span className="text-[9px] text-slate-500 font-mono block">Validación Facultativa Médica</span>
             </div>
 
             {/* Código QR y Verificación Criptográfica */}
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-300 flex items-center space-x-3">
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-300 flex items-center space-x-2.5">
               <div className="p-1 bg-white rounded-lg border border-slate-300 shrink-0">
-                <QrCode className="w-14 h-14 text-slate-900" />
+                <QrCode className="w-12 h-12 text-slate-900" />
               </div>
-              <div className="text-[11px] text-slate-600 space-y-0.5">
-                <strong className="text-slate-950 block text-xs">Verificación en Línea</strong>
-                <div>Escanee este código QR para comprobar la autenticidad e integridad del informe.</div>
-                <div className="text-[9px] font-mono text-slate-500 truncate pt-1">
+              <div className="text-[10px] text-slate-600 space-y-0.5">
+                <strong className="text-slate-950 block text-[11px]">Verificación en Línea</strong>
+                <div>Escanee este código QR para comprobar autenticidad e integridad.</div>
+                <div className="text-[8px] font-mono text-slate-500 truncate pt-0.5">
                   SHA-256: {documentHash}
                 </div>
               </div>
@@ -492,6 +474,7 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

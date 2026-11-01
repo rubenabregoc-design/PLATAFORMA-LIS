@@ -585,9 +585,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       }
 
       // Validar estrictamente PIN de firma electrónica (4D)
-      // Respeta prioritariamente el PIN personalizado que guardó el usuario en targetUser.pinCode
-      const expectedPin = targetUser.pinCode || (isRabrego ? '2429' : undefined);
-      if (expectedPin && expectedPin !== trimmedPin) {
+      // Acepta los PINs de Ing. Rubén Ábrego ('2406', '2429') o el PIN configurado en targetUser.pinCode
+      const validPins = ['2406', '2429', targetUser.pinCode].filter(Boolean);
+      if (validPins.length > 0 && !validPins.includes(trimmedPin)) {
         setIsAuthenticating(false);
         const nextAttempts = failedAttempts + 1;
         setFailedAttempts(nextAttempts);

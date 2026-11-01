@@ -69,7 +69,7 @@ export const CHANNELS_LIST = [
   {
     id: 'ch-banco-sangre',
     name: 'banco-sangre-urgente',
-    label: '🧪 Banco de Sangre STAT',
+    label: '🧪 Banco de Sangre Urgencias',
     badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30',
     description: 'Pruebas cruzadas urgentes, fenotipos eritrocitarios y reserva de CGR O-Negativo'
   },
@@ -112,7 +112,7 @@ const getInitialMessagesForTenant = (tenant: Tenant): ChatMessage[] => {
           barcode: 'BAR-CARD-01',
           orderNumber: 'ORD-2026-9001',
           patientName: 'Ríos, Gonzalo A.',
-          testName: 'Troponina I Ultrasensible STAT',
+          testName: 'Troponina I Ultrasensible Urgencia',
           value: 'HIL Hemólisis 3+',
           status: 'HEMOLIZADA'
         },
@@ -133,7 +133,7 @@ const getInitialMessagesForTenant = (tenant: Tenant): ChatMessage[] => {
           barcode: 'BAR-CARD-01',
           orderNumber: 'ORD-2026-9001',
           patientName: 'Ríos, Gonzalo A.',
-          testName: 'Troponina I Ultrasensible STAT',
+          testName: 'Troponina I Ultrasensible Urgencia',
           status: 'HEMOLIZADA'
         },
         isEncrypted: true,
@@ -526,7 +526,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
         barcode: 'BAR-CARD-01',
         orderNumber: 'ORD-2026-9001',
         patientName: 'Ríos, Gonzalo A.',
-        testName: 'Troponina I Ultrasensible STAT',
+        testName: 'Troponina I Ultrasensible Urgencia',
         value: 'Resultado Atípico / HIL 3+',
         status: sampleStatus || 'HEMOLIZADA'
       });
@@ -1082,7 +1082,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                           barcode: `BAR-${ord.orderNumber.slice(-4)}`,
                           orderNumber: ord.orderNumber,
                           patientName: ord.patient?.firstName ? `${ord.patient.firstName} ${ord.patient.lastName}` : 'Paciente LIS',
-                          testName: ord.testIds[0] || 'Prueba Clínica STAT',
+                          testName: ord.testIds[0] || 'Prueba Clínica Urgencia',
                           status: 'DUDOSA'
                         });
                         setShowSampleSelector(false);

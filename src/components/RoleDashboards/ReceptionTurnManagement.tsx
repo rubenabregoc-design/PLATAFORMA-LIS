@@ -232,7 +232,7 @@ export const ReceptionTurnManagement: React.FC<ReceptionTurnManagementProps> = (
                 </div>
                 <div>
                   <h3 className="text-xs font-black text-white uppercase tracking-wider">Despachador de Turnos</h3>
-                  <p className="text-[10px] text-slate-400">Algoritmo de Prioridad: STAT &gt; Ley 42 &gt; FIFO</p>
+                  <p className="text-[10px] text-slate-400">Algoritmo de Prioridad: URGENCIA &gt; Ley 42 &gt; FIFO</p>
                 </div>
               </div>
 
@@ -257,7 +257,7 @@ export const ReceptionTurnManagement: React.FC<ReceptionTurnManagementProps> = (
                       {lastCalled.ticketNumber}
                     </span>
                     <span className="text-[9px] font-black uppercase text-rose-400">
-                      {lastCalled.priority === 'STAT_URGENTE' ? '🚨 STAT' : ''}
+                      {lastCalled.priority === 'STAT_URGENTE' ? '🚨 URGENCIA' : ''}
                     </span>
                   </div>
                   <div className="text-sm font-black text-white truncate">{lastCalled.patientName}</div>
@@ -317,7 +317,7 @@ export const ReceptionTurnManagement: React.FC<ReceptionTurnManagementProps> = (
               <div className="text-[9px] text-slate-400 font-medium">Pacientes en sala</div>
             </div>
             <div className="flex items-center space-x-1 pt-1 text-[9px] font-bold">
-              <span className="text-rose-400 font-mono">{stats.statCount} STAT</span>
+              <span className="text-rose-400 font-mono">{stats.statCount} URGENCIA</span>
               <span className="text-slate-600">•</span>
               <span className="text-amber-400 font-mono">{stats.prefCount} PREF</span>
             </div>
@@ -535,7 +535,7 @@ export const ReceptionTurnManagement: React.FC<ReceptionTurnManagementProps> = (
                           : isAttended
                           ? '✓ ATENDIDO'
                           : ticket.priority === 'STAT_URGENTE'
-                          ? '🚨 URGENTE STAT'
+                          ? '🚨 URGENCIA'
                           : ticket.priority === 'PREFERENCIAL'
                           ? '★ PREFERENCIAL'
                           : 'EN ESPERA'}

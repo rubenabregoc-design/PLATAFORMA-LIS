@@ -310,7 +310,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // Estados Clínicos & Analitos
     urgent: 'URGENTE',
-    stat: 'STAT / CRÍTICO',
+    stat: 'URGENCIA / CRÍTICO',
     routine: 'RUTINA',
     normal: 'NORMAL',
     critical: 'VALOR CRÍTICO PÁNICO',
@@ -411,7 +411,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // Clinical Status & Analytes
     urgent: 'URGENT',
-    stat: 'STAT / CRITICAL',
+    stat: 'URGENCIA / CRITICAL',
     routine: 'ROUTINE',
     normal: 'NORMAL',
     critical: 'CRITICAL PANIC VALUE',

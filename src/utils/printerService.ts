@@ -120,7 +120,7 @@ export const DEFAULT_PRINTER_FLEET: ThermalPrinterDevice[] = [
   },
   {
     id: 'prn-citizen-stat',
-    name: 'Citizen CL-S621 (Urgencias STAT)',
+    name: 'Citizen CL-S621 (Urgencias)',
     model: 'Citizen CL-S621 (300 dpi)',
     connectionType: 'NETWORK_TCP_9100',
     ipAddress: '192.168.2.55',
@@ -415,7 +415,7 @@ export class PrinterManagementService {
    * Generates production-ready ZPL-II command string for Zebra Thermal Printers
    */
   public generateZplPayload(label: SpecimenTubeLabel, dpi: 203 | 300 = 203): string {
-    const statFlag = label.isStat ? '^FO20,15^GB360,28,28,B,0^FS^FO30,19^FR^A0N,20,20^FD*** URGENCIA STAT ***^FS' : '';
+    const statFlag = label.isStat ? '^FO20,15^GB360,28,28,B,0^FS^FO30,19^FR^A0N,20,20^FD*** URGENCIA ***^FS' : '';
     const tubeBadge = `^FO20,${label.isStat ? 48 : 20}^A0N,18,18^FD[${label.tubeColorName.slice(0, 18)}]^FS`;
 
     return `^XA

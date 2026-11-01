@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileBarChart,
   Printer,
@@ -50,57 +51,59 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
   const maintenanceComp = data.maintenance.length;
   const criticalReagents = data.reagents.filter((r: any) => r.current_stock <= r.min_threshold).length;
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-5xl w-full h-[95vh] overflow-hidden flex flex-col">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div id="printable-quality-report-modal" data-printable-portal="true" className="printable-modal-overlay fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-none sm:rounded-[2.5rem] shadow-2xl max-w-5xl w-full min-h-screen sm:min-h-0 sm:max-h-[96vh] overflow-y-auto flex flex-col print:max-h-none print:overflow-visible print:shadow-none print:rounded-none print:w-full">
         {/* Management Controls */}
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="no-print p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-900 text-white rounded-xl">
-              <FileBarChart size={24} />
+              <FileBarChart size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">Informe Gerencial de Calidad & Desempeño Analítico</h2>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">ISO 15189 Management Review • {monthName} {reportDate.getFullYear()}</p>
+              <h2 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">Informe Gerencial de Calidad & Desempeño Analítico</h2>
+              <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest">ISO 15189 Management Review • {monthName} {reportDate.getFullYear()}</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-black text-xs hover:bg-slate-200 transition-all border border-slate-200 shadow-sm"
+              className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-black text-xs hover:bg-slate-200 transition-all border border-slate-200 shadow-sm cursor-pointer"
             >
-              <Printer size={16} />
+              <Printer size={15} />
               EXPORTAR PDF / IMPRIMIR
             </button>
-            <button onClick={onClose} className="p-2 bg-white text-slate-400 hover:text-slate-600 rounded-full transition-colors border border-slate-100">
-              <X size={24} />
+            <button onClick={onClose} className="p-1.5 bg-white text-slate-400 hover:text-slate-600 rounded-full transition-colors border border-slate-100 cursor-pointer">
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* Report Content - High Fidelity Document Style */}
-        <div className="flex-1 overflow-y-auto p-12 bg-slate-100/50 flex justify-center print:bg-white print:p-0">
-          <div className="w-[8.5in] min-h-[11in] bg-white shadow-2xl p-[18mm] font-sans text-slate-900 print:shadow-none print:w-full print:p-0">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-100/50 flex justify-center print:bg-white print:p-0 print:overflow-visible">
+          <div id="printable-quality-report" data-printable="true" className="w-full max-w-[8.5in] bg-white shadow-2xl p-4 sm:p-6 print:p-0 font-sans text-slate-900 print:shadow-none print:w-full">
 
             {/* Professional Header */}
-            <div className="flex justify-between items-start mb-12 border-b-4 border-slate-900 pb-8">
+            <div className="flex justify-between items-start mb-4 border-b-2 border-slate-900 pb-3">
               <div>
-                <h1 className="text-3xl font-black tracking-tighter text-slate-900">PLATAFORMA-LIS</h1>
-                <p className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Smart Laboratory Solutions</p>
-                <div className="mt-6 space-y-1 text-[11px] font-bold text-slate-400">
+                <h1 className="text-2xl font-black tracking-tighter text-slate-900 leading-none">PLATAFORMA-LIS</h1>
+                <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mt-0.5">Smart Laboratory Solutions</p>
+                <div className="mt-2 space-y-0.5 text-[10px] font-bold text-slate-400">
                   <p>DEPARTAMENTO DE GESTIÓN DE CALIDAD</p>
                   <p>REPORTE DE REVISIÓN POR LA DIRECCIÓN (ISO 15189 §8.9)</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="bg-slate-900 text-white px-4 py-2 rounded-lg inline-block font-black text-lg mb-4">CONFIDENCIAL</div>
-                <p className="text-xs font-bold text-slate-500">Fecha de Emisión: {new Date().toLocaleDateString()}</p>
-                <p className="text-xs font-bold text-slate-500">Periodo: {monthName} {reportDate.getFullYear()}</p>
+                <div className="bg-slate-900 text-white px-3 py-1 rounded-md inline-block font-black text-sm mb-1">CONFIDENCIAL</div>
+                <p className="text-[10px] font-bold text-slate-500">Fecha de Emisión: {new Date().toLocaleDateString()}</p>
+                <p className="text-[10px] font-bold text-slate-500">Periodo: {monthName} {reportDate.getFullYear()}</p>
               </div>
             </div>
 
             {/* Executive KPI Summary */}
-            <div className="grid grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-4 gap-6 mb-10 avoid-break">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                 <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Fallas Westgard</p>
                 <h3 className="text-2xl font-black text-rose-600">{westgardViolations}</h3>
@@ -132,7 +135,7 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
             </div>
 
             {/* Section 1: Internal QC Analysis */}
-            <div className="mb-10">
+            <div className="mb-10 avoid-break">
               <h4 className="text-xs font-black text-slate-900 border-l-4 border-slate-900 pl-3 mb-4 uppercase tracking-widest flex items-center gap-2">
                 <Activity size={16} />
                 I. Análisis de Desempeño Analítico (QC Interno)
@@ -171,7 +174,7 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
             </div>
 
             {/* Section 2: External Quality Assurance (EQA) */}
-            <div className="mb-10">
+            <div className="mb-10 avoid-break">
               <h4 className="text-xs font-black text-slate-900 border-l-4 border-slate-900 pl-3 mb-4 uppercase tracking-widest flex items-center gap-2">
                 <Zap size={16} />
                 II. Evaluación Externa de la Calidad (EQA / PT)
@@ -188,7 +191,7 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
             </div>
 
             {/* Section 3: Engineering & Maintenance */}
-            <div className="mb-10">
+            <div className="mb-10 avoid-break">
               <h4 className="text-xs font-black text-slate-900 border-l-4 border-slate-900 pl-3 mb-4 uppercase tracking-widest flex items-center gap-2">
                 <History size={16} />
                 III. Mantenimiento y Gestión de Activos
@@ -213,7 +216,7 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
             </div>
 
             {/* Section 4: Reagents & Supplies */}
-            <div className="mb-12">
+            <div className="mb-10 avoid-break">
               <h4 className="text-xs font-black text-slate-900 border-l-4 border-slate-900 pl-3 mb-4 uppercase tracking-widest flex items-center gap-2">
                 <ClipboardCheck size={16} />
                 IV. Abastecimiento y Cadena de Frío
@@ -237,49 +240,50 @@ const MonthlyQualityManagementReport: React.FC<MonthlyQualityManagementReportPro
             </div>
 
             {/* Professional Signatures */}
-            <div className="mt-auto pt-16 flex justify-between border-t border-slate-100">
-              <div className="text-center w-64">
-                <div className="h-16 flex items-end justify-center mb-2">
-                  <span className="text-slate-200 font-serif italic text-4xl opacity-50 font-black">VALENTINA</span>
+            <div className="avoid-break signature-block mt-6 pt-4 flex justify-between border-t border-slate-100">
+              <div className="text-center w-56">
+                <div className="h-10 flex items-end justify-center mb-1">
+                  <span className="text-slate-300 font-serif italic text-2xl font-black">VALENTINA</span>
                 </div>
-                <div className="border-t border-slate-900 pt-2">
+                <div className="border-t border-slate-900 pt-1">
                   <p className="text-[10px] font-black uppercase text-slate-800">Lic. Valentina Soto</p>
                   <p className="text-[9px] font-bold text-slate-500 uppercase">Jefa de Calidad (TM-4091)</p>
                 </div>
               </div>
-              <div className="text-center w-64">
-                <div className="h-16 flex items-end justify-center mb-2">
+              <div className="text-center w-56">
+                <div className="h-10 flex items-end justify-center mb-1">
                   {/* Space for Director signature */}
                 </div>
-                <div className="border-t border-slate-900 pt-2">
+                <div className="border-t border-slate-900 pt-1">
                   <p className="text-[10px] font-black uppercase text-slate-800">Dr. Rubén Abrego</p>
                   <p className="text-[9px] font-bold text-slate-500 uppercase">Director Técnico</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 text-[8px] text-slate-300 text-center uppercase tracking-[0.4em]">
+            <div className="mt-4 text-[8px] text-slate-300 text-center uppercase tracking-[0.3em] avoid-break">
               PLATAFORMA-LIS Intelligence Reporting Engine • Secure Audit Trail Enabled
             </div>
           </div>
         </div>
 
         {/* Footer Guidance */}
-        <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-          <div className="flex items-center gap-3 text-sm font-medium text-slate-400">
-            <ShieldCheck size={20} className="text-teal-400" />
+        <div className="no-print p-4 bg-slate-900 text-white flex justify-between items-center print:hidden">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+            <ShieldCheck size={18} className="text-teal-400" />
             Este informe consolida datos de {data.qc.length} corridas de control y {data.maintenance.length} eventos técnicos.
           </div>
           <button
             onClick={() => alert("Reporte firmado digitalmente y enviado a Gerencia.")}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/20"
+            className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-2xl font-black text-xs hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/20 cursor-pointer"
           >
-            <ShieldCheck size={18} />
+            <ShieldCheck size={16} />
             FIRMAR Y ARCHIVAR REPORTE
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

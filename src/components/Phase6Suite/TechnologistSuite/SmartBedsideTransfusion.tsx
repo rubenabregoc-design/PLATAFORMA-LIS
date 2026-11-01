@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   QrCode,
   ShieldAlert,
@@ -328,27 +329,27 @@ export const SmartBedsideTransfusion: React.FC = () => {
       </div>
 
       {/* Printable Sheet Modal in US Letter (Carta 8.5" x 11") */}
-      {showPrintModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden">
+      {showPrintModal && typeof document !== 'undefined' && createPortal(
+        <div id="printable-bedside-transfusion-modal" data-printable-portal="true" className="printable-modal-overlay fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl min-h-screen sm:min-h-0 sm:max-h-[96vh] rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden print:max-h-none print:overflow-visible print:shadow-none print:border-none print:w-full print:bg-white print:rounded-none">
             
             {/* Modal Header */}
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between print:hidden">
-              <span className="font-bold text-white text-sm flex items-center space-x-2">
+            <div className="no-print p-3 sm:p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between print:hidden">
+              <span className="font-bold text-white text-xs sm:text-sm flex items-center space-x-2">
                 <Printer className="w-4 h-4 text-rose-400" />
                 <span>Vista Previa: Hoja Oficial de Monitoreo Transfusional</span>
               </span>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow cursor-pointer flex items-center space-x-1.5"
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow cursor-pointer flex items-center space-x-1.5"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Imprimir en Carta (8.5" x 11")</span>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -356,95 +357,95 @@ export const SmartBedsideTransfusion: React.FC = () => {
             </div>
 
             {/* Printable Letter Format Sheet */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-800/40 flex justify-center print:p-0 print:bg-white print:overflow-visible">
-              <div className="w-full max-w-[8.5in] bg-white text-slate-900 shadow-2xl p-8 rounded-2xl print:shadow-none print:rounded-none print:p-6 print:w-full font-sans text-xs space-y-5 border border-slate-200 print:border-none">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-800/40 flex justify-center print:p-0 print:bg-white print:overflow-visible">
+              <div id="printable-bedside-transfusion" data-printable="true" className="w-full max-w-[8.5in] bg-white text-slate-900 shadow-2xl p-4 sm:p-6 font-sans text-xs space-y-2.5 print:space-y-1.5 border border-slate-200 print:border-none single-page-letter print:p-0">
                 
                 {/* Header */}
-                <div className="border-b-2 border-slate-900 pb-3 flex items-center justify-between">
+                <div className="border-b-2 border-slate-900 pb-2 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
                       REPÚBLICA DE PANAMÁ • MINISTERIO DE SALUD
                     </span>
-                    <h1 className="text-base font-black text-slate-950 uppercase">
+                    <h1 className="text-sm sm:text-base font-black text-slate-950 uppercase leading-tight">
                       HOJA CLÍNICA DE MONITOREO Y ADMINISTRACIÓN DE HEMOCOMPONENTES
                     </h1>
-                    <div className="text-xs font-bold text-rose-800">
+                    <div className="text-[10px] font-bold text-rose-800">
                       Servicio de Transfusión Sanguínea & Hemovigilancia Hospitalaria
                     </div>
                   </div>
-                  <div className="text-right font-mono text-xs">
+                  <div className="text-right font-mono text-[10px]">
                     <div>Fecha: {new Date().toLocaleDateString('es-PA')}</div>
-                    <div className="font-bold text-slate-950">Folio: TRS-2026-0812</div>
+                    <div className="font-bold text-slate-950 text-xs">Folio: TRS-2026-0812</div>
                   </div>
                 </div>
 
                 {/* Patient & Unit Data */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 text-[10px] avoid-break">
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Paciente</span>
-                    <strong className="text-slate-950">Sr. Fernando Abrego</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Paciente</span>
+                    <strong className="text-slate-950 block truncate">Sr. Fernando Abrego</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Cédula</span>
-                    <strong className="text-slate-950 font-mono">8-812-4432</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Cédula</span>
+                    <strong className="text-slate-950 font-mono block">8-812-4432</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Ubicación</span>
-                    <strong className="text-slate-950">Piso 4 - UCI (Cama 02)</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Ubicación</span>
+                    <strong className="text-slate-950 block truncate">Piso 4 - UCI (Cama 02)</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Grupo Paciente</span>
-                    <strong className="text-slate-950 font-mono">O Rh Positivo</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Grupo Paciente</span>
+                    <strong className="text-slate-950 font-mono block">O Rh Positivo</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Unidad ISBT 128</span>
-                    <strong className="text-rose-900 font-mono">PGRE-2026-0812</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Unidad ISBT 128</span>
+                    <strong className="text-rose-900 font-mono block">PGRE-2026-0812</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Componente</span>
-                    <strong className="text-slate-950">C.G.R. Empacados (300 mL)</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Componente</span>
+                    <strong className="text-slate-950 block truncate">C.G.R. Empacados (300 mL)</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Grupo Unidad</span>
-                    <strong className="text-slate-950 font-mono">O Rh Positivo</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Grupo Unidad</span>
+                    <strong className="text-slate-950 font-mono block">O Rh Positivo</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Pruebas Cruzadas</span>
-                    <strong className="text-emerald-800">COMPATIBLE (Sello Banco)</strong>
+                    <span className="text-[8.5px] text-slate-500 font-bold block uppercase">Pruebas Cruzadas</span>
+                    <strong className="text-emerald-800 block">COMPATIBLE (Sello Banco)</strong>
                   </div>
                 </div>
 
                 {/* Vitals Table */}
-                <div>
-                  <div className="bg-slate-900 text-white px-3 py-1 font-bold text-[11px] uppercase rounded-t">
+                <div className="avoid-break">
+                  <div className="bg-slate-900 text-white px-2.5 py-0.5 font-bold text-[10px] uppercase rounded-t">
                     REGISTRO CRONOLÓGICO DE SIGNOS VITALES
                   </div>
-                  <table className="w-full text-left border border-slate-300 text-xs">
-                    <thead className="bg-slate-100 font-bold uppercase text-[9px] text-slate-700 border-b border-slate-300">
+                  <table className="w-full text-left border border-slate-300 text-[10px]">
+                    <thead className="bg-slate-100 font-bold uppercase text-[8.5px] text-slate-700 border-b border-slate-300">
                       <tr>
-                        <th className="p-2">Momento</th>
-                        <th className="p-2 text-center">Hora</th>
-                        <th className="p-2 text-center">P.A.</th>
-                        <th className="p-2 text-center">F.C.</th>
-                        <th className="p-2 text-center">F.R.</th>
-                        <th className="p-2 text-center">Temp.</th>
-                        <th className="p-2 text-center">SpO2</th>
-                        <th className="p-2">Observaciones Clínicas</th>
-                        <th className="p-2 text-center">Firma</th>
+                        <th className="p-1.5">Momento</th>
+                        <th className="p-1.5 text-center">Hora</th>
+                        <th className="p-1.5 text-center">P.A.</th>
+                        <th className="p-1.5 text-center">F.C.</th>
+                        <th className="p-1.5 text-center">F.R.</th>
+                        <th className="p-1.5 text-center">Temp.</th>
+                        <th className="p-1.5 text-center">SpO2</th>
+                        <th className="p-1.5">Observaciones Clínicas</th>
+                        <th className="p-1.5 text-center">Firma</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 font-mono text-[11px]">
+                    <tbody className="divide-y divide-slate-200 font-mono text-[9.5px]">
                       {vitals.map(v => (
                         <tr key={v.phase}>
-                          <td className="p-2 font-sans font-bold">{v.label}</td>
-                          <td className="p-2 text-center">{v.time}</td>
-                          <td className="p-2 text-center">{v.bloodPressure}</td>
-                          <td className="p-2 text-center">{v.heartRate}</td>
-                          <td className="p-2 text-center">{v.respiratoryRate}</td>
-                          <td className="p-2 text-center font-bold">{v.temperature.toFixed(1)}°C</td>
-                          <td className="p-2 text-center">{v.spO2}%</td>
-                          <td className="p-2 font-sans text-slate-700 text-[10px]">{v.adverseSymptoms}</td>
-                          <td className="p-2 text-center font-bold">{v.nurseInitials}</td>
+                          <td className="p-1.5 font-sans font-bold">{v.label}</td>
+                          <td className="p-1.5 text-center">{v.time}</td>
+                          <td className="p-1.5 text-center">{v.bloodPressure}</td>
+                          <td className="p-1.5 text-center">{v.heartRate}</td>
+                          <td className="p-1.5 text-center">{v.respiratoryRate}</td>
+                          <td className="p-1.5 text-center font-bold">{v.temperature.toFixed(1)}°C</td>
+                          <td className="p-1.5 text-center">{v.spO2}%</td>
+                          <td className="p-1.5 font-sans text-slate-700 text-[9px]">{v.adverseSymptoms}</td>
+                          <td className="p-1.5 text-center font-bold">{v.nurseInitials}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -452,26 +453,26 @@ export const SmartBedsideTransfusion: React.FC = () => {
                 </div>
 
                 {/* Double Nurse Sign-off */}
-                <div className="pt-6 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-center text-xs">
-                  <div className="space-y-1">
-                    <div className="border-b border-slate-400 pb-1 h-10 flex items-end justify-center font-serif italic text-slate-800">
+                <div className="avoid-break signature-block pt-3 border-t-2 border-slate-300 grid grid-cols-2 gap-6 text-center text-xs">
+                  <div className="space-y-0.5">
+                    <div className="border-b border-slate-400 pb-0.5 h-7 flex items-end justify-center font-serif italic text-slate-800 text-xs">
                       {nurseAdmin}
                     </div>
-                    <strong className="block text-[11px]">Enfermera Administradora</strong>
-                    <span className="text-[10px] text-slate-500 font-mono block">Idoneidad: {nurseAdminLicense}</span>
+                    <strong className="block text-[10px]">Enfermera Administradora</strong>
+                    <span className="text-[8.5px] text-slate-500 font-mono block">Idoneidad: {nurseAdminLicense}</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <div className="border-b border-slate-400 pb-1 h-10 flex items-end justify-center font-serif italic text-slate-800">
+                  <div className="space-y-0.5">
+                    <div className="border-b border-slate-400 pb-0.5 h-7 flex items-end justify-center font-serif italic text-slate-800 text-xs">
                       {nurseWitness}
                     </div>
-                    <strong className="block text-[11px]">Enfermera Testigo (Doble Chequeo)</strong>
-                    <span className="text-[10px] text-slate-500 font-mono block">Idoneidad: {nurseWitnessLicense}</span>
+                    <strong className="block text-[10px]">Enfermera Testigo (Doble Chequeo)</strong>
+                    <span className="text-[8.5px] text-slate-500 font-mono block">Idoneidad: {nurseWitnessLicense}</span>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="pt-2 border-t border-slate-200 flex justify-between text-[9px] text-slate-400 font-mono">
+                <div className="pt-1.5 border-t border-slate-200 flex justify-between text-[8px] text-slate-400 font-mono avoid-break">
                   <span>Documento oficial de archivo para el Expediente Clínico Hospitalario (Ley 68 de 2003).</span>
                   <span>Página 1 de 1 • Sistema LIS/HIS/Banco de Sangre Panamá</span>
                 </div>
@@ -480,7 +481,8 @@ export const SmartBedsideTransfusion: React.FC = () => {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

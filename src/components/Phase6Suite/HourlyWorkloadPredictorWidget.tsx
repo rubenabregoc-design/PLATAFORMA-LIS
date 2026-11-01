@@ -113,15 +113,15 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
     { hourNum: 9, label: '09:00 AM', weight: 1.80, statWeight: 0.18, section: 'Hematología / Inmuno' }, // Peak hour
     { hourNum: 10, label: '10:00 AM', weight: 1.45, statWeight: 0.22, section: 'Urianálisis & Serología' },
     { hourNum: 11, label: '11:00 AM', weight: 1.10, statWeight: 0.20, section: 'Coagulación & Química' },
-    { hourNum: 12, label: '12:00 PM', weight: 0.65, statWeight: 0.25, section: 'Urgencias / STAT' },
+    { hourNum: 12, label: '12:00 PM', weight: 0.65, statWeight: 0.25, section: 'Urgencias' },
     { hourNum: 13, label: '01:00 PM', weight: 0.55, statWeight: 0.20, section: 'Muestras de Consulta Ext.' },
     { hourNum: 14, label: '02:00 PM', weight: 0.85, statWeight: 0.15, section: 'Procesamiento Vespertino' },
     { hourNum: 15, label: '03:00 PM', weight: 0.95, statWeight: 0.18, section: 'Microbiología & Inmuno' },
     { hourNum: 16, label: '04:00 PM', weight: 0.75, statWeight: 0.20, section: 'Validación & Controles' },
     { hourNum: 17, label: '05:00 PM', weight: 0.50, statWeight: 0.30, section: 'Urgencias Hospitalarias' },
     { hourNum: 18, label: '06:00 PM', weight: 0.35, statWeight: 0.40, section: 'Guardia / Turno Tarde' },
-    { hourNum: 19, label: '07:00 PM', weight: 0.25, statWeight: 0.50, section: 'Emergencias STAT' },
-    { hourNum: 20, label: '08:00 PM', weight: 0.20, statWeight: 0.60, section: 'Emergencias STAT' },
+    { hourNum: 19, label: '07:00 PM', weight: 0.25, statWeight: 0.50, section: 'Emergencias / Urgencias' },
+    { hourNum: 20, label: '08:00 PM', weight: 0.20, statWeight: 0.60, section: 'Emergencias / Urgencias' },
     { hourNum: 21, label: '09:00 PM', weight: 0.15, statWeight: 0.70, section: 'Guardia Nocturna' }
   ];
 
@@ -305,7 +305,7 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
               <span>Predicción de Carga Horaria & Rebalanceo de Turnos</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Algoritmo de inferencia estadística que analiza el historial de ingresos, urgencias STAT y curvas de afluencia por sede para proyectar el volumen tubo por tubo del día de mañana, alertando sobre cuellos de botella para ajustar la dotación técnica con antelación.
+              Algoritmo de inferencia estadística que analiza el historial de ingresos, urgencias y curvas de afluencia por sede para proyectar el volumen tubo por tubo del día de mañana, alertando sobre cuellos de botella para ajustar la dotación técnica con antelación.
             </p>
           </div>
 
@@ -429,7 +429,7 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
         </div>
       </div>
 
-      {/* 3. Main Forecast Chart (ComposedChart: Expected Tubes vs Staff Capacity & STAT) */}
+      {/* 3. Main Forecast Chart (ComposedChart: Expected Tubes vs Staff Capacity & Urgencias) */}
       <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
           <div>
@@ -450,7 +450,7 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
             </div>
             <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span className="text-slate-300 font-medium">Carga STAT</span>
+              <span className="text-slate-300 font-medium">Carga Urgencias</span>
             </div>
             <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
               <span className="w-3 h-0.5 bg-amber-400"></span>
@@ -504,7 +504,7 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
                             <strong className="text-white">{data.predictedTubes} tubos</strong>
                           </div>
                           <div className="text-rose-400 flex justify-between">
-                            <span>Urgencias STAT:</span>
+                            <span>Urgencias:</span>
                             <strong>{data.statTubes} tubos</strong>
                           </div>
                           <div className="text-slate-400 flex justify-between">
@@ -549,10 +549,10 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
                 fill="url(#colorTubes)"
               />
 
-              {/* Bar for STAT urgent samples */}
+              {/* Bar for Urgencias samples */}
               <Bar
                 dataKey="statTubes"
-                name="Carga Urgencias STAT"
+                name="Carga Urgencias"
                 fill="#f43f5e"
                 radius={[4, 4, 0, 0]}
                 barSize={12}
@@ -878,7 +878,7 @@ export const HourlyWorkloadPredictorWidget: React.FC<HourlyWorkloadPredictorWidg
               <tr>
                 <th className="py-3.5 px-4">Hora</th>
                 <th className="py-3.5 px-4">Tubos Previstos</th>
-                <th className="py-3.5 px-4">Carga STAT</th>
+                <th className="py-3.5 px-4">Carga Urgencias</th>
                 <th className="py-3.5 px-4">Sección Dominante</th>
                 <th className="py-3.5 px-4 text-center">TM Base vs Ajustado</th>
                 <th className="py-3.5 px-4">Capacidad de Mesón</th>
