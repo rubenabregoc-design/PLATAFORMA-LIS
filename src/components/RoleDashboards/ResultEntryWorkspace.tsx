@@ -404,7 +404,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] max-h-[calc(100vh-100px)] bg-[#020617] rounded-3xl overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
+    <div className="flex flex-col lg:flex-row h-full max-h-full flex-1 min-h-0 bg-[#020617] overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
       {/* Sidebar: Órdenes (Diseño Moderno Compacto 310px) */}
       <div className={`${isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-[310px]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
         {/* Collapse Toggle */}
@@ -549,8 +549,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         {/* Patient Clinical Header & Segmented Filters (Diseño Exacto del Mock) */}
-        <div className="p-3 shrink-0">
-          <div className="bg-[#061130] border border-blue-900/60 rounded-2xl p-3 shadow-lg flex flex-col gap-2.5">
+        <div className="p-2 sm:p-2.5 shrink-0">
+          <div className="bg-[#061130] border border-blue-900/60 rounded-2xl p-2.5 shadow-lg flex flex-col gap-2">
             {/* Fila 1: Datos Principales del Paciente */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -599,7 +599,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setAnalyteFilter('ALL')}
-                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                   analyteFilter === 'ALL'
                     ? 'bg-cyan-500/25 border-2 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
                     : 'bg-slate-900/70 border border-slate-800 text-slate-400 hover:text-white'
@@ -612,7 +612,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setAnalyteFilter('PENDING')}
-                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                   analyteFilter === 'PENDING'
                     ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
                     : 'bg-blue-950/40 border border-blue-900/60 text-blue-300/80 hover:text-blue-200'
@@ -625,7 +625,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setAnalyteFilter('CRITICAL')}
-                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                   analyteFilter === 'CRITICAL'
                     ? 'bg-rose-500/30 border-2 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
                     : 'bg-rose-950/40 border border-rose-900/60 text-rose-300 hover:text-rose-100'
@@ -638,7 +638,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setAnalyteFilter('VALIDATED')}
-                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                   analyteFilter === 'VALIDATED'
                     ? 'bg-emerald-500/25 border-2 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
                     : 'bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 hover:text-emerald-100'
@@ -651,7 +651,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-2 space-y-1.5 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-1.5 space-y-1.5 custom-scrollbar">
 
            {/* Banner de Protección por Propiedad de la Orden (Normativa LIS/HIS) */}
            {!canModifyThisOrder && (
@@ -760,7 +760,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <table className="w-full text-left text-xs border-collapse">
                  <thead className="bg-[#030a21] text-slate-300 font-bold uppercase text-[11px] tracking-wider border-b border-blue-900/60 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
-                      <th className="py-2.5 px-3 w-12 text-center">
+                      <th className="py-1.5 px-2.5 w-12 text-center">
                         <button
                           onClick={toggleSelectAll}
                           className={`w-4 h-4 rounded border transition-all flex items-center justify-center mx-auto cursor-pointer ${
@@ -774,22 +774,22 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           {selectedResults.length > 0 && <Check className="w-3 h-3 stroke-[3]" />}
                         </button>
                       </th>
-                      <th className="py-2.5 px-3 text-left">
+                      <th className="py-1.5 px-2.5 text-left">
                         <div className="inline-flex items-center gap-2 text-cyan-300 border-b-2 border-cyan-400 pb-1 font-bold text-[11px] tracking-wider">
                           <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />
                           <span>ANALITO / EXAMEN</span>
                         </div>
                       </th>
-                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">
                         <div className="leading-tight">
                           <div>RESULTADO</div>
                           <div>CLÍNICO</div>
                         </div>
                       </th>
-                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">UNIDAD</th>
-                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">INTERVALO DE REFERENCIA</th>
-                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">ORIGEN / EQUIPO</th>
-                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">ESTADO</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">UNIDAD</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">INTERVALO DE REFERENCIA</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">ORIGEN / EQUIPO</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">ESTADO</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-blue-950/60">
@@ -891,7 +891,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       : 'bg-transparent'
                                   }`}
                                 >
-                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <td className="py-1.5 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                                     <button
                                       onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
                                       className={`w-4 h-4 rounded border transition-all flex items-center justify-center mx-auto cursor-pointer ${
@@ -903,7 +903,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       {selectedResults.includes(res.id) && <Check className="w-3 h-3 stroke-[3]" />}
                                     </button>
                                   </td>
-                                  <td className="py-2.5 px-3 text-left">
+                                  <td className="py-1.5 px-2.5 text-left">
                                     <div className="font-bold text-xs uppercase text-white tracking-wide">
                                       {res.parameterName}
                                     </div>
@@ -913,7 +913,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       <span>{res.analyzerName || 'ASTM E1394'}</span>
                                     </div>
                                   </td>
-                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <td className="py-1.5 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                                     <ResultValueInput
                                       result={res}
                                       isValidated={isValidated}
@@ -921,10 +921,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       onSave={onUpdateResultValue}
                                     />
                                   </td>
-                                  <td className="py-2.5 px-3 text-center text-slate-300 font-mono text-xs font-semibold">
+                                  <td className="py-1.5 px-2.5 text-center text-slate-300 font-mono text-xs font-semibold">
                                     {res.unit || '—'}
                                   </td>
-                                  <td className="py-2.5 px-3 text-center">
+                                  <td className="py-1.5 px-2.5 text-center">
                                     <div className="font-mono text-xs text-slate-200 font-medium">{res.refRangeText || 'Normal'}</div>
                                     {/* Visual Range Gauge Slider Bar */}
                                     <div className="w-24 h-1.5 bg-[#071333] border border-blue-900/60 rounded-full mx-auto mt-1 relative overflow-hidden">
@@ -945,10 +945,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       />
                                     </div>
                                   </td>
-                                  <td className="py-2.5 px-3 text-center text-slate-400 text-xs font-medium">
+                                  <td className="py-1.5 px-2.5 text-center text-slate-400 text-xs font-medium">
                                     {res.analyzerName || 'Manual TM'}
                                   </td>
-                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <td className="py-1.5 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                                     {isValidated ? (
                                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#052923] border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -1026,14 +1026,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         </div>
 
         {/* Barra de Acciones Fija en la Parte Inferior (Diseño Exacto del Mock) */}
-        <div className="h-[68px] shrink-0 border-t border-blue-900/60 bg-[#03091e] px-3 sm:px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-20 shadow-2xl isolate">
+        <div className="h-[60px] shrink-0 border-t border-blue-900/60 bg-[#03091e] px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar z-20 shadow-2xl isolate">
 
           {/* 1. Alertas y Pánicos (Rojo) */}
           <button
             type="button"
             onClick={() => setShowAlertsCenterModal(true)}
             title="Identificar resultados críticos y alertas (ISO 15189)"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
           >
             <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
             <span className="whitespace-nowrap">Alertas y Pánicos</span>
@@ -1049,7 +1049,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowClinicalCalcModal(true)}
             title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
           >
             <Calculator className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="whitespace-nowrap">Calculadoras</span>
@@ -1060,7 +1060,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowTelemetryModal(true)}
             title="Consultar información de monitoreo y telemetría de analizadores"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
           >
             <TrendingUp className="w-4 h-4 text-teal-400 shrink-0" />
             <span className="whitespace-nowrap">Telemetría</span>
@@ -1071,7 +1071,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowAuditLog(true)}
             title="Consultar el historial y bitácora de auditoría ISO 15189"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 text-xs font-bold cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 text-xs font-bold cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="whitespace-nowrap">Trazabilidad</span>
@@ -1082,7 +1082,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
             title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
           >
             <Printer className="w-4 h-4 text-cyan-400 shrink-0" />
             <span className="whitespace-nowrap">Informe Carta</span>
@@ -1105,7 +1105,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               }
             }}
             title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
           >
             <Undo2 className="w-4 h-4 text-purple-400 shrink-0" />
             <span className="whitespace-nowrap">
@@ -1128,7 +1128,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
             }}
             title="Validar los analitos seleccionados"
-            className={`shrink-0 h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+            className={`shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] flex items-center gap-2 text-xs font-bold transition-all ${
               selectedUnvalidatedCount > 0 && canModifyThisOrder
                 ? 'border-blue-400/80 bg-blue-950/40 text-blue-200 hover:bg-blue-900/50 hover:border-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] cursor-pointer'
                 : 'border-slate-700/60 bg-slate-900/40 text-slate-500 cursor-not-allowed'
@@ -1156,7 +1156,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               setShowCommentsModal(true);
             }}
             title="Agregar observaciones e informes a resultados individuales o a la orden"
-            className="shrink-0 h-10 px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
+            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
           >
             <MessageSquareText className="w-4 h-4 text-teal-400 shrink-0" />
             <span className="whitespace-nowrap">Informes / Comentarios</span>
@@ -1174,7 +1174,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
             }}
             title="Validar todos los analitos correspondientes de la orden"
-            className={`shrink-0 h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+            className={`shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] flex items-center gap-2 text-xs font-bold transition-all ${
               unvalidatedCount > 0 && canModifyThisOrder
                 ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
                 : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
@@ -1196,7 +1196,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
             }}
             title="Liberar formalmente resultados para entrega a médicos y pacientes"
-            className={`shrink-0 h-10 px-4 rounded-xl flex items-center gap-2 text-xs font-black tracking-wide uppercase transition-all ${
+            className={`shrink-0 h-9 px-3.5 rounded-xl flex items-center gap-2 text-xs font-black tracking-wide uppercase transition-all ${
               toReleaseCount > 0 && canReleaseThisOrder
                 ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
                 : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
