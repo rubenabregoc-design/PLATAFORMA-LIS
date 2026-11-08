@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Order, TestResult, Patient, Analyzer, User } from '../../types';
 import { MOCK_TEST_CATALOG, MOCK_ANALYZERS } from '../../data/mockData';
+import { groupResultsByClinicalArea } from '../../utils/clinicalAreaClassifier';
 import { ResultsAlertsCenter } from './ResultsAlertsCenter';
 import { ResultsClinicalCalculator } from './ResultsClinicalCalculator';
 import { ResultsTelemetryDashboard } from './ResultsTelemetryDashboard';
@@ -246,6 +247,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     }
     return list;
   }, [rawOrderResults, analyteFilter]);
+
+  // Group results by clinical area for segregated workstation and report views
+  const groupedResults = useMemo(() => {
+    return groupResultsByClinicalArea(patientResults, MOCK_TEST_CATALOG);
+  }, [patientResults]);
 
   const analyteCounts = useMemo(() => {
     return {
@@ -668,9 +674,20 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               </div>
             )}
 
-            {/* Mobile Card View (< md) */}
-           <div className="block md:hidden space-y-3">
-              {patientResults.map((res, index) => {
+            {/* Mobile Card View (< md) Grouped by Clinical Area */}
+           <div className="block md:hidden space-y-4">
+              {groupedResults.map(({ area, results: areaResults }) => (
+                <div key={`mob-area-${area.id}`} className="space-y-3">
+                  <div className="flex items-center justify-between px-2 pt-1 border-b border-slate-800 pb-2">
+                    <span className="font-mono font-black text-xs uppercase tracking-wider text-teal-400 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
+                      {area.name}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-300 font-bold">
+                      {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
+                    </span>
+                  </div>
+                  {areaResults.map((res, index) => {
                  const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
                  const isHigh = res.flag === 'ALTO';
                  const isCritical = res.flag?.includes('CRITICO');
@@ -743,7 +760,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                        )}
                     </div>
                  );
-              })}
+                  })}
+                </div>
+              ))}
            </div>
 
            {/* Desktop 3D Glassmorphic Table Container (>= md) */}
@@ -774,7 +793,64 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-800">
-                    {patientResults.map((res, index) => {
+                    {groupedResults.map(({ area, results: areaResults }) => {
+                      const allAreaValidated = areaResults.every(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO');
+                      const allAreaSelected = areaResults.every(r => selectedResults.includes(r.id));
+                      const hasCriticalInArea = areaResults.some(r => r.flag?.includes('CRITICO'));
+
+                      return (
+                        <React.Fragment key={`area-section-${area.id}`}>
+                          {/* Fila Encabezado de Área / Sección Clínica */}
+                          <tr className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-y-2 border-teal-500/40">
+                            <td colSpan={7} className="py-3 px-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center space-x-3">
+                                  <span className="w-3 h-3 rounded-full bg-teal-400 ring-4 ring-teal-500/20"></span>
+                                  <span className="font-mono font-black text-xs sm:text-sm uppercase tracking-wider text-teal-300">
+                                    {area.name}
+                                  </span>
+                                  <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 font-black">
+                                    {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
+                                  </span>
+                                  {hasCriticalInArea && (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-[11px] font-black text-rose-300 flex items-center space-x-1 animate-pulse">
+                                      <AlertTriangle className="w-3 h-3 text-rose-400" />
+                                      <span>ALERTA CRÍTICA EN ÁREA</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center space-x-3">
+                                  <span className={`text-xs font-mono font-black px-2.5 py-0.5 rounded-lg border ${
+                                    allAreaValidated 
+                                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' 
+                                      : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                                  }`}>
+                                    {areaResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length}/{areaResults.length} Validados
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (allAreaSelected) {
+                                        const idsToRemove = new Set(areaResults.map(r => r.id));
+                                        setSelectedResults(prev => prev.filter(id => !idsToRemove.has(id)));
+                                      } else {
+                                        const idsToAdd = areaResults.map(r => r.id);
+                                        setSelectedResults(prev => Array.from(new Set([...prev, ...idsToAdd])));
+                                      }
+                                    }}
+                                    className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-teal-300 hover:text-white text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-sm"
+                                    title="Seleccionar o deseleccionar analitos de esta área"
+                                  >
+                                    {allAreaSelected ? 'Deseleccionar Área' : 'Seleccionar Área'}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Analitos de esta Área */}
+                          {areaResults.map((res, index) => {
                       const { text, isLate } = getTimeAgoData(res.createdAt);
                       const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
                       const isNoteExpanded = expandingNotesId === res.id;
@@ -963,8 +1039,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           </tr>
                         )}
                         </React.Fragment>
-                      )
+                      );
                     })}
+                  </React.Fragment>
+                );
+              })}
                  </tbody>
               </table>
            </div>

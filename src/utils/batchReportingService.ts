@@ -1,6 +1,8 @@
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import { Order, Patient, TestResult, Tenant, Branch } from '../types';
+import { MOCK_TEST_CATALOG } from '../data/mockData';
+import { groupResultsByClinicalArea } from './clinicalAreaClassifier';
 
 export interface EmailDispatchConfig {
   senderName: string;
@@ -620,89 +622,102 @@ export class BatchReportingService {
     doc.text('VALORES DE REFERENCIA', 140, tableY + 4.5);
     doc.text('FLAG', 180, tableY + 4.5);
 
-    // 5. Results Rows
+    // 5. Results Rows Grouped by Clinical Area
     tableY += 7.5;
     const defaultResults: TestResult[] = results.length > 0 ? results : [
       { id: 'def-1', tenantId: tenant.id, orderId: order.id, testId: 't1', parameterId: 'p1', parameterName: 'Hemograma Completo (Automatizado)', unit: 'N/A', value: 'Reporte Normal', refRangeText: 'Valores Estándar', source: 'MIDDLEWARE_ASTM', status: 'VALIDADO', specimenType: 'Sangre Total', version: 1, history: [] }
     ];
 
-    defaultResults.forEach((res, index) => {
-      const isCritical = res.flag?.includes('CRITICO');
-      const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
+    const groupedSections = groupResultsByClinicalArea(defaultResults, MOCK_TEST_CATALOG);
 
-      if (index % 2 === 1) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(14, tableY - 4.5, 182, 6.5, 'F');
-      }
-
-      if (isCritical) {
-        doc.setFillColor(254, 242, 242); // rose-50
-        doc.rect(14, tableY - 4.5, 182, 6.5, 'F');
-      }
-
-      // Parameter Name
+    groupedSections.forEach(({ area, results: areaResults }) => {
+      // Area subheader in batch PDF
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, tableY - 4.5, 182, 5.5, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(res.parameterName.slice(0, 38), 17, tableY);
+      doc.setTextColor(15, 118, 110);
+      doc.text(`▸ ${area.name} (${areaResults.length})`, 17, tableY - 0.7);
+      tableY += 5.5;
 
-      // Specimen Subtext
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(148, 163, 184);
-      doc.text(`[${res.specimenType || 'MUESTRA PRIMARIA'}]`, 17, tableY + 3.2);
+      areaResults.forEach((res, index) => {
+        const isCritical = res.flag?.includes('CRITICO');
+        const isHighLow = res.flag === 'ALTO' || res.flag === 'BAJO';
 
-      // Result Value
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      if (isCritical) {
-        doc.setTextColor(190, 18, 60); // rose-700
-      } else if (isHighLow) {
-        doc.setTextColor(180, 83, 9); // amber-700
-      } else {
-        doc.setTextColor(15, 23, 42);
-      }
-      doc.text(res.value, 85, tableY);
-
-      // Unit
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(71, 85, 105);
-      doc.text(res.unit, 115, tableY);
-
-      // Reference Range
-      doc.text(res.refRangeText, 140, tableY);
-
-      // Flag Pill
-      if (res.flag && res.flag !== 'NORMAL') {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        if (isCritical) {
-          doc.setTextColor(190, 18, 60);
-          doc.text(`* ${res.flag} *`, 178, tableY);
-        } else {
-          doc.setTextColor(180, 83, 9);
-          doc.text(res.flag, 180, tableY);
+        if (index % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(14, tableY - 4.5, 182, 6.5, 'F');
         }
-      } else {
+
+        if (isCritical) {
+          doc.setFillColor(254, 242, 242); // rose-50
+          doc.rect(14, tableY - 4.5, 182, 6.5, 'F');
+        }
+
+        // Parameter Name
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(res.parameterName.slice(0, 38), 17, tableY);
+
+        // Specimen Subtext
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(16, 185, 129);
-        doc.text('NORMAL', 180, tableY);
-      }
+        doc.setFontSize(6);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`[${res.specimenType || 'MUESTRA PRIMARIA'}]`, 17, tableY + 3.2);
 
-      tableY += 6.5;
+        // Result Value
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        if (isCritical) {
+          doc.setTextColor(190, 18, 60); // rose-700
+        } else if (isHighLow) {
+          doc.setTextColor(180, 83, 9); // amber-700
+        } else {
+          doc.setTextColor(15, 23, 42);
+        }
+        doc.text(res.value, 85, tableY);
 
-      // Clinical Interpretation line if present
-      if (res.interpretation) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(14, tableY - 4, 182, 5.5, 'F');
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(6.5);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Nota: ${res.interpretation}`, 20, tableY);
-        tableY += 5.5;
-      }
+        // Unit
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(71, 85, 105);
+        doc.text(res.unit, 115, tableY);
+
+        // Reference Range
+        doc.text(res.refRangeText, 140, tableY);
+
+        // Flag Pill
+        if (res.flag && res.flag !== 'NORMAL') {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.5);
+          if (isCritical) {
+            doc.setTextColor(190, 18, 60);
+            doc.text(`* ${res.flag} *`, 178, tableY);
+          } else {
+            doc.setTextColor(180, 83, 9);
+            doc.text(res.flag, 180, tableY);
+          }
+        } else {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(16, 185, 129);
+          doc.text('NORMAL', 180, tableY);
+        }
+
+        tableY += 6.5;
+
+        // Clinical Interpretation line if present
+        if (res.interpretation) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(14, tableY - 4, 182, 5.5, 'F');
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(6.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Nota: ${res.interpretation}`, 20, tableY);
+          tableY += 5.5;
+        }
+      });
     });
 
     // 6. Clinical Validation & Signature Footer

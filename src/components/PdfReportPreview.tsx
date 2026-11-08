@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { Order, TestResult, Patient, Tenant, Branch } from '../types';
 import { MOCK_TEST_CATALOG } from '../data/mockData';
+import { groupResultsByClinicalArea } from '../utils/clinicalAreaClassifier';
 import { FileText, Printer, CheckCircle2, QrCode, ShieldCheck, X, Smartphone, Lock, Award } from 'lucide-react';
 
 import { useLisStore } from '../store/useLisStore';
@@ -97,14 +98,8 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
     }
   }
 
-  // Group results by section/test category
-  const resultsBySection: Record<string, TestResult[]> = {};
-  validatedResults.forEach((res) => {
-    const test = MOCK_TEST_CATALOG.find(t => t.id === res.testId);
-    const section = test?.category || 'ANÁLISIS CLÍNICO GENERAL';
-    if (!resultsBySection[section]) resultsBySection[section] = [];
-    resultsBySection[section].push(res);
-  });
+  // Group results by standardized clinical laboratory areas
+  const groupedSections = groupResultsByClinicalArea(validatedResults, MOCK_TEST_CATALOG);
 
   const hasCriticalFlag = validatedResults.some(r => r.flag?.includes('CRITICO'));
   const hasInstrumentalFindings = validatedResults.some(res => res.isExtra);
@@ -294,14 +289,20 @@ export const PdfReportPreview: React.FC<PdfReportPreviewProps> = ({
             </div>
           )}
 
-          {/* 3. Tabla de Resultados Agrupada por Secciones */}
+          {/* 3. Tabla de Resultados Agrupada por Áreas Clínicas */}
           <div className="space-y-6">
-            {Object.entries(resultsBySection).map(([sectionName, sectionResults]) => (
-              <div key={sectionName} className="space-y-2 avoid-break">
-                <div className="bg-teal-900 text-white px-3 py-1.5 rounded-lg flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-wider">
-                    {sectionName}
-                  </h3>
+            {groupedSections.map(({ area, results: sectionResults }) => (
+              <div key={area.id} className="space-y-2 avoid-break">
+                <div className="bg-teal-900 text-white px-3.5 py-2 rounded-lg flex items-center justify-between shadow-sm">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-2 h-2 rounded-full bg-teal-400"></span>
+                    <h3 className="font-black text-xs uppercase tracking-wider text-white">
+                      {area.name}
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 bg-teal-950/80 rounded-full font-mono text-teal-300 border border-teal-700/60 font-bold">
+                      {sectionResults.length} {sectionResults.length === 1 ? 'parámetro' : 'parámetros'}
+                    </span>
+                  </div>
                   <span className="text-[11px] font-mono text-teal-200">Metodología: Automatizada / Fotometría & Quimioluminiscencia</span>
                 </div>
 
