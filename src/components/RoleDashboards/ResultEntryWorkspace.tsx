@@ -396,7 +396,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-100px)] bg-[#020617] rounded-3xl overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] max-h-[calc(100vh-100px)] bg-[#020617] rounded-3xl overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
       {/* Sidebar: Órdenes - Responsive Collapsible */}
       <div className={`${isSidebarCollapsed ? 'w-full lg:w-20' : 'w-full lg:w-80'} bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col transition-all duration-300 relative group shrink-0`}>
         {/* Collapse Toggle */}
@@ -545,7 +545,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         {/* Rich Clinical Patient Header */}
         <div className="px-6 py-3 bg-slate-950/80 border-b border-teal-500/20 flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
            <div className="flex items-center gap-4">
@@ -657,7 +657,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
 
            {/* Cinta de Métricas Clínicas de la Orden */}
            <div className="p-3 bg-slate-900/90 backdrop-blur-2xl border border-teal-500/30 rounded-2xl flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 shadow-xl">
@@ -1091,7 +1091,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         </div>
 
         {/* Barra de Gestión de Resultados y Acciones Rápidas (Encabezado + 10 Acciones en 1 Sola Fila) */}
-        <div className="py-2.5 px-2 sm:px-6 shrink-0 border-t border-cyan-500/30 bg-[#01081e]/95 backdrop-blur-2xl">
+        <div className="py-2.5 px-2 sm:px-6 shrink-0 border-t border-cyan-500/30 bg-[#020924] z-20 shadow-2xl isolate">
           <div className="bg-gradient-to-b from-[#030d2a]/95 via-[#020b22]/95 to-[#010617]/95 border border-cyan-500/40 rounded-2xl p-2.5 sm:p-3 shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col gap-2.5">
 
             {/* 1. Encabezado del Módulo */}
