@@ -234,6 +234,10 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   const [portalAccessCode, setPortalAccessCode] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
+  // 📜 Patient Historical Orders Isolation & Scope Filtering
+  const [showPatientHistoryModal, setShowPatientHistoryModal] = useState<boolean>(false);
+  const [managementPeriod, setManagementPeriod] = useState<'TODAY' | 'PENDING_OVERDUE' | 'ALL'>('TODAY');
+
   // 📸 Instant Prescription Attachment State (<0.2s client-side compression)
   const [prescriptionAttachment, setPrescriptionAttachment] = useState<{
     file: File;
@@ -441,9 +445,49 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
     });
   }, [testCatalog, activeCategory, testSearchTerm]);
 
+  // Date & Period Scope Helpers (Isolate today's workflow from historical clutter)
+  const isSameDay = (dateStr?: string, referenceDate: Date = new Date()) => {
+    if (!dateStr) return false;
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return false;
+      return d.getFullYear() === referenceDate.getFullYear() &&
+             d.getMonth() === referenceDate.getMonth() &&
+             d.getDate() === referenceDate.getDate();
+    } catch {
+      return false;
+    }
+  };
+
+  const isPendingOverdue = (order: Order, referenceDate: Date = new Date()) => {
+    if (!order.createdAt) return false;
+    try {
+      const d = new Date(order.createdAt);
+      if (isNaN(d.getTime())) return false;
+      const startOfToday = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+      const isPast = d < startOfToday;
+      const isNotDone = order.status !== 'COMPLETADA' && order.status !== 'LIBERADA' && order.status !== 'CANCELADA';
+      return isPast && isNotDone;
+    } catch {
+      return false;
+    }
+  };
+
+  const ordersTodayCount = useMemo(() => orders.filter(o => isSameDay(o.createdAt)).length, [orders]);
+  const ordersPendingOverdueCount = useMemo(() => orders.filter(o => isPendingOverdue(o)).length, [orders]);
+
+  const patientHistoryOrders = useMemo(() => {
+    if (!foundPatient) return [];
+    return orders.filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id);
+  }, [orders, foundPatient]);
+
   // Orders Management Filter with Critical Alerts filter
   const filteredOrdersManagement = useMemo(() => {
     return orders.filter(o => {
+      // Period filter: Today vs Pending/Overdue from past days vs All
+      if (managementPeriod === 'TODAY' && !isSameDay(o.createdAt)) return false;
+      if (managementPeriod === 'PENDING_OVERDUE' && !isPendingOverdue(o)) return false;
+
       const matchesSearch = o.patientName.toLowerCase().includes(managementSearchTerm.toLowerCase()) ||
                             o.patientNationalId.includes(managementSearchTerm) ||
                             o.orderNumber.includes(managementSearchTerm);
@@ -461,7 +505,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
       return true;
     });
-  }, [managementSearchTerm, orders, criticalFilter, criticalNotifications, results]);
+  }, [managementSearchTerm, orders, criticalFilter, criticalNotifications, results, managementPeriod]);
 
   const filteredPrintOrders = useMemo(() => {
     return orders
@@ -917,76 +961,35 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Inline Patient Historical Orders List */}
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <div className="flex items-center justify-between text-xs font-black text-white">
-                      <span className="flex items-center space-x-1.5 text-teal-400 uppercase tracking-wider">
-                        <ClipboardList className="w-4 h-4 text-teal-400" />
-                        <span>Órdenes Guardadas ({orders.filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id).length})</span>
-                      </span>
+                  {/* 📜 Clean Patient Historical Orders Trigger (Isolated from Today's Admission Workflow) */}
+                  {patientHistoryOrders.length > 0 && (
+                    <div className="pt-2 border-t border-white/10 space-y-2">
+                      <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 text-xs font-bold text-slate-300">
+                            <History className="w-4 h-4 text-amber-400" />
+                            <span>Historial de Visitas</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-teal-300 text-[10px] font-mono font-black">
+                            {patientHistoryOrders.length} {patientHistoryOrders.length === 1 ? 'orden previa' : 'órdenes previas'}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 leading-tight">
+                          El paciente tiene órdenes en visitas anteriores. Están aisladas en su expediente para no interferir con la admisión de hoy.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowPatientHistoryModal(true)}
+                          className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-teal-500/50 rounded-xl text-teal-300 hover:text-white text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 transition cursor-pointer shadow-sm group"
+                        >
+                          <ClipboardList className="w-3.5 h-3.5 text-teal-400 group-hover:scale-110 transition-transform" />
+                          <span>Ver Historial / Replicar Pruebas ({patientHistoryOrders.length})</span>
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="space-y-2 max-h-52 overflow-y-auto no-scrollbar pr-1">
-                      {orders
-                        .filter(o => o.patientNationalId === foundPatient.nationalId || o.patientId === foundPatient.id)
-                        .map((ord) => {
-                          const ordTests = testCatalog.filter((t) => ord.testIds?.includes(t.id));
-                          return (
-                            <div
-                              key={ord.id}
-                              onClick={() => {
-                                setSelectedTestIds(ord.testIds || []);
-                                setIsStat(ord.priority === 'URGENCIA' || ord.priority === 'URGENTE');
-                                window.dispatchEvent(
-                                  new CustomEvent('lis-global-toast', {
-                                    detail: {
-                                      message: `✏️ Orden ${ord.orderNumber} cargada en caja. Puede añadir nuevos exámenes o eliminar los existentes.`,
-                                      type: 'info',
-                                      duration: 3500
-                                    }
-                                  })
-                                );
-                              }}
-                              className="p-3.5 bg-slate-950 hover:bg-slate-900/90 border border-slate-800 hover:border-teal-400 rounded-2xl space-y-2 text-xs transition cursor-pointer group shadow-sm"
-                              title="Click para cargar exámenes de esta orden en caja para añadir o eliminar pruebas"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono font-black text-cyan-300 text-sm">{ord.orderNumber}</span>
-                                <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-black ${ord.priority === 'URGENCIA' || ord.priority === 'URGENTE' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}`}>
-                                  {ord.priority}
-                                </span>
-                              </div>
-
-                              <div className="text-sm text-white font-black leading-tight">
-                                {ordTests.map((t) => t.name).join(', ') || 'Hemograma Completo, VSG, Química'}
-                              </div>
-
-                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-900 text-xs text-slate-400 font-mono">
-                                <span className="font-black text-emerald-400 text-sm">${ord.totalAmount?.toFixed(2) || '45.50'}</span>
-                                <div className="flex items-center space-x-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleManualPrintLabels(ord)}
-                                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-black text-xs uppercase cursor-pointer"
-                                    title="Reimprimir Etiquetas de Tubos"
-                                  >
-                                    Etiquetas
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onOpenPdf(ord.id)}
-                                    className="px-2.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs uppercase cursor-pointer shadow"
-                                    title="Ver Reporte en Tamaño Carta"
-                                  >
-                                    Ver Carta
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : isRegistering ? (
                 /* 📝 COMPREHENSIVE ENTERPRISE DEMOGRAPHIC REGISTRATION FORM WITH 1-CLICK AUTO-FILL */
@@ -1568,8 +1571,78 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
         /* SUBTAB 3: MANAGEMENT & LABEL REPRINTING WORKSPACE WITH CRITICAL ALERT FLAGGER */
         <div className="max-w-5xl mx-auto space-y-5 animate-in fade-in duration-500 pb-20 px-4">
           
-          {/* Search & Critical Filter Bar */}
-          <div className="bg-slate-900/80 backdrop-blur-xl border-2 border-white/5 rounded-[2rem] p-4 shadow-2xl space-y-3">
+          {/* Search, Period & Critical Filter Bar */}
+          <div className="bg-slate-900/80 backdrop-blur-xl border-2 border-white/5 rounded-[2rem] p-4 shadow-2xl space-y-3.5">
+            {/* Period Selector Tabs: Hoy vs Pendientes Rezago vs Todo el Historial */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-3 gap-3">
+              <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+                <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 mr-1">
+                  <Calendar className="w-3.5 h-3.5 text-teal-400" />
+                  Periodo:
+                </span>
+                <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-2xl border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setManagementPeriod('TODAY')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center space-x-1.5 ${
+                      managementPeriod === 'TODAY'
+                        ? 'bg-teal-500 text-slate-950 shadow-md font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📅 Órdenes de Hoy</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${managementPeriod === 'TODAY' ? 'bg-slate-900 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>
+                      {ordersTodayCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManagementPeriod('PENDING_OVERDUE')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center space-x-1.5 ${
+                      managementPeriod === 'PENDING_OVERDUE'
+                        ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                        : 'text-slate-400 hover:text-amber-400'
+                    }`}
+                    title="Órdenes de días anteriores sin completar"
+                  >
+                    <span>⚠️ Pendientes / Rezago</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${managementPeriod === 'PENDING_OVERDUE' ? 'bg-slate-900 text-amber-300' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}`}>
+                      {ordersPendingOverdueCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManagementPeriod('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center space-x-1.5 ${
+                      managementPeriod === 'ALL'
+                        ? 'bg-slate-800 text-white shadow-md border border-white/20 font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📚 Todo el Historial</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${managementPeriod === 'ALL' ? 'bg-slate-950 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                      {orders.length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {managementPeriod === 'TODAY' && (
+                <div className="text-[11px] text-teal-300 font-mono flex items-center space-x-1.5 bg-teal-500/10 px-3 py-1 rounded-xl border border-teal-500/20 self-start sm:self-auto">
+                  <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>Jornada: {new Date().toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                </div>
+              )}
+              {managementPeriod === 'PENDING_OVERDUE' && (
+                <div className="text-[11px] text-amber-300 font-mono flex items-center space-x-1.5 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 self-start sm:self-auto">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Órdenes de días previos sin finalizar (Backlog)</span>
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-teal-400 absolute left-4 top-3" />
@@ -1585,7 +1658,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
               {/* Critical Alert Filters */}
               <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
                 {[
-                  { id: 'ALL', label: `Todas (${orders.length})` },
+                  { id: 'ALL', label: `Filtro: Todas` },
                   { id: 'CRITICAL_ONLY', label: `🚨 Críticas (${criticalStats.criticalCount})`, highlight: 'rose' },
                   { id: 'PENDING', label: `⏳ Por Notificar (${criticalStats.pendingCount})`, highlight: 'amber' },
                   { id: 'NOTIFIED', label: `✓ Notificadas (${criticalStats.notifiedCount})`, highlight: 'emerald' }
@@ -1614,7 +1687,44 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
           {/* Orders Cards List */}
           <div className="grid grid-cols-1 gap-4">
-            {filteredOrdersManagement.map(order => {
+            {filteredOrdersManagement.length === 0 ? (
+              <div className="p-10 text-center bg-slate-900/40 border border-white/5 rounded-3xl space-y-3">
+                <Clock className="w-12 h-12 text-slate-600 mx-auto" />
+                <h4 className="text-sm font-black text-white">
+                  {managementPeriod === 'TODAY'
+                    ? 'No hay órdenes registradas para el día de hoy'
+                    : managementPeriod === 'PENDING_OVERDUE'
+                    ? 'No hay órdenes pendientes de días anteriores'
+                    : 'No se encontraron órdenes con los filtros seleccionados'}
+                </h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  {managementPeriod === 'TODAY'
+                    ? `Aún no se han generado órdenes en la jornada de hoy (${new Date().toLocaleDateString('es-PA')}). Puedes consultar las órdenes pendientes de días anteriores o el historial completo.`
+                    : 'Intente cambiando los términos de búsqueda o los filtros de alerta.'}
+                </p>
+                {managementPeriod === 'TODAY' && (
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    {ordersPendingOverdueCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setManagementPeriod('PENDING_OVERDUE')}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow cursor-pointer transition"
+                      >
+                        Ver {ordersPendingOverdueCount} Pendientes de Días Anteriores
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setManagementPeriod('ALL')}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs rounded-xl border border-white/10 cursor-pointer transition"
+                    >
+                      Ver Todo el Historial ({orders.length})
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              filteredOrdersManagement.map(order => {
               const critInfo = getOrderCriticalInfo(order);
               const isNotified = critInfo.status === 'NOTIFICADO';
               const isPending = critInfo.status === 'PENDIENTE' || critInfo.status === 'REINTENTAR';
@@ -1674,6 +1784,16 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                         <div className="text-xs text-teal-300 font-mono font-black uppercase">{order.orderNumber}</div>
+                        {isSameDay(order.createdAt) ? (
+                          <span className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-mono font-black">
+                            HOY
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-white/10 text-[10px] font-mono font-bold">
+                            {new Date(order.createdAt).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
+                            {isPendingOverdue(order) && ' • REZAGO'}
+                          </span>
+                        )}
                         <div className="h-1.5 w-1.5 rounded-full bg-slate-700"></div>
                         <div className="text-xs text-slate-300 font-bold">Cédula: <span className="text-white font-mono">{order.patientNationalId}</span></div>
                         <div className="h-1.5 w-1.5 rounded-full bg-slate-700"></div>
@@ -1764,7 +1884,7 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
 
         </div>
@@ -2258,6 +2378,166 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                   <span>Procesar Datos de Cédula</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📜 HISTORIAL CLÍNICO DEL PACIENTE MODAL (ISOLATED & NON-INTRUSIVE) */}
+      {showPatientHistoryModal && foundPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900">
+              <div className="flex items-center space-x-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <History className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center space-x-2">
+                    <span>Historial de Órdenes del Paciente</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-teal-300 font-mono font-black border border-white/5">
+                      {patientHistoryOrders.length} {patientHistoryOrders.length === 1 ? 'orden previa' : 'órdenes previas'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">
+                    {foundPatient.fullName} • Cédula/ID: <span className="font-mono text-white font-bold">{foundPatient.nationalId}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPatientHistoryModal(false)}
+                className="w-9 h-9 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Info Banner */}
+            <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-200/90 flex items-start space-x-2.5">
+              <Info className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+              <span>
+                Estas órdenes pertenecen a visitas históricas anteriores. Están aisladas aquí para mantener la admisión de hoy limpia y sin interferencias. Puede replicar los exámenes en una orden nueva con fecha de hoy.
+              </span>
+            </div>
+
+            {/* Orders List */}
+            <div className="p-6 overflow-y-auto space-y-3.5 flex-1 custom-scrollbar">
+              {patientHistoryOrders.map((ord) => {
+                const ordTests = testCatalog.filter((t) => ord.testIds?.includes(t.id));
+                const formattedDate = new Date(ord.createdAt).toLocaleDateString('es-PA', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                const isFromToday = isSameDay(ord.createdAt);
+
+                return (
+                  <div
+                    key={ord.id}
+                    className="p-4 bg-slate-950/80 border border-slate-800 hover:border-slate-700 rounded-2xl space-y-3 transition shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-black text-cyan-300 text-sm">{ord.orderNumber}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                          isFromToday ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {isFromToday ? 'HOY' : formattedDate}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-black ${
+                          ord.status === 'COMPLETADA' || ord.status === 'VALIDADA_MED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : ord.status === 'EN_PROCESO'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}>
+                          {ord.status}
+                        </span>
+                        <span className="font-black text-emerald-400 text-xs font-mono">
+                          ${ord.totalAmount?.toFixed(2) || '0.00'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-slate-200">
+                      <span className="text-slate-400 font-bold block mb-1">Exámenes practicados:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ordTests.length > 0 ? (
+                          ordTests.map((t) => (
+                            <span key={t.id} className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-medium">
+                              {t.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-500 italic text-xs">Exámenes generales</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-slate-900 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPatientHistoryModal(false);
+                            onOpenPdf(ord.id);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-black text-xs uppercase flex items-center space-x-1 cursor-pointer transition"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ver Reporte</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleManualPrintLabels(ord)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase flex items-center space-x-1 cursor-pointer transition"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Etiquetas</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTestIds(ord.testIds || []);
+                          setIsStat(ord.priority === 'URGENCIA' || ord.priority === 'URGENTE');
+                          setShowPatientHistoryModal(false);
+                          notifyToast(
+                            `✓ Exámenes de la orden ${ord.orderNumber} cargados en caja. La orden se guardará con la fecha de hoy.`,
+                            'success',
+                            4000
+                          );
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs uppercase flex items-center space-x-1.5 cursor-pointer shadow-md transition"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
+                        <span>Replicar en Orden de Hoy</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-white/10 bg-slate-950/60 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">
+                Trazabilidad y expediente clínico centralizado
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPatientHistoryModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black uppercase tracking-wider cursor-pointer transition"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
