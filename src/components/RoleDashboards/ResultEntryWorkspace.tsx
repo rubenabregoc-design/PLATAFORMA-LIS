@@ -1127,12 +1127,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   </svg>
                 </div>
 
-                {/* Contador de analitos pendientes de liberación */}
+                {/* Contador de pendientes de liberación */}
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs text-cyan-100/90 font-medium">
                   <span className="font-extrabold text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-400/30">
                     {pendingReleaseCount}
                   </span>
-                  <span>analitos pendientes de liberación</span>
+                  <span>pendientes de liberación</span>
                 </div>
               </div>
 
@@ -1150,17 +1150,17 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               </div>
             </div>
 
-            {/* 2. Barra de acciones en una sola fila (Horizontal scrollable para App/Móvil y Desktop) */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 flex-nowrap w-full touch-pan-x">
+            {/* 2. Barra de acciones en una sola fila (Horizontal compacta para App/Móvil y Desktop) */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 flex-nowrap w-full touch-pan-x">
 
               {/* 1. Alertas y Pánicos (Rojo) */}
               <button
                 type="button"
                 onClick={() => setShowAlertsCenterModal(true)}
                 title="Identificar resultados críticos y alertas (ISO 15189)"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
               >
-                <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span className="whitespace-nowrap">Alertas y Pánicos</span>
                 {criticalResultsCount > 0 && (
                   <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
@@ -1174,9 +1174,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 type="button"
                 onClick={() => setShowClinicalCalcModal(true)}
                 title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
               >
-                <Calculator className="w-4 h-4 text-amber-400 shrink-0" />
+                <Calculator className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="whitespace-nowrap">Calculadoras</span>
               </button>
 
@@ -1185,9 +1185,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 type="button"
                 onClick={() => setShowTelemetryModal(true)}
                 title="Consultar información de monitoreo y telemetría de analizadores"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
               >
-                <TrendingUp className="w-4 h-4 text-teal-400 shrink-0" />
+                <TrendingUp className="w-3.5 h-3.5 text-teal-400 shrink-0" />
                 <span className="whitespace-nowrap">Telemetría</span>
               </button>
 
@@ -1196,24 +1196,24 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 type="button"
                 onClick={() => setShowAuditLog(true)}
                 title="Consultar el historial y bitácora de auditoría ISO 15189"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 text-xs font-bold cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold cursor-pointer"
               >
-                <RotateCcw className="w-4 h-4 text-slate-400 shrink-0" />
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="whitespace-nowrap">Trazabilidad</span>
               </button>
 
-              {/* 5. Informe Tamaño Carta (Cian) */}
+              {/* 5. Informe Carta (Cian) */}
               <button
                 type="button"
                 onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
                 title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
               >
-                <Printer className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="whitespace-nowrap">Informe Tamaño Carta</span>
+                <Printer className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="whitespace-nowrap">Informe Carta</span>
               </button>
 
-              {/* 6. Desvalidar Analitos (Morado) */}
+              {/* 6. Desvalidar (Morado) */}
               <button
                 type="button"
                 onClick={() => {
@@ -1230,15 +1230,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   }
                 }}
                 title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
               >
-                <Undo2 className="w-4 h-4 text-purple-400 shrink-0" />
+                <Undo2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                 <span className="whitespace-nowrap">
-                  Desvalidar Analitos {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
+                  Desvalidar {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
                 </span>
               </button>
 
-              {/* 7. Validar Analitos (Azul grisáceo) */}
+              {/* 7. Validar (Azul grisáceo) */}
               <button
                 type="button"
                 disabled={!canModifyThisOrder || selectedUnvalidatedCount === 0}
@@ -1253,15 +1253,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
                 }}
                 title="Validar los analitos seleccionados"
-                className={`shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+                className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-[11px] sm:text-xs font-bold transition-all ${
                   selectedUnvalidatedCount > 0 && canModifyThisOrder
                     ? 'border-blue-400/80 bg-blue-950/40 text-blue-200 hover:bg-blue-900/50 hover:border-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] cursor-pointer'
                     : 'border-slate-700/60 bg-slate-900/40 text-slate-500 cursor-not-allowed'
                 }`}
               >
-                <CheckCircle2 className={`w-4 h-4 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-600'}`} />
+                <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-600'}`} />
                 <span className="whitespace-nowrap">
-                  Validar ({selectedUnvalidatedCount}) Analitos
+                  Validar ({selectedUnvalidatedCount})
                 </span>
               </button>
 
@@ -1281,10 +1281,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   setShowCommentsModal(true);
                 }}
                 title="Agregar observaciones e informes a resultados individuales o a la orden"
-                className="shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
+                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
               >
-                <MessageSquareText className="w-4 h-4 text-teal-400 shrink-0" />
-                <span className="whitespace-nowrap">Informes / Comentarios</span>
+                <MessageSquareText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span className="whitespace-nowrap">Comentarios</span>
               </button>
 
               {/* 9. Validar Todo (Verde) */}
@@ -1299,13 +1299,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
                 }}
                 title="Validar todos los analitos correspondientes de la orden"
-                className={`shrink-0 h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+                className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-[11px] sm:text-xs font-bold transition-all ${
                   unvalidatedCount > 0 && canModifyThisOrder
                     ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
                     : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
                 }`}
               >
-                <Check className={`w-4 h-4 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
+                <Check className={`w-3.5 h-3.5 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
                 <span className="whitespace-nowrap">Validar Todo</span>
               </button>
 
@@ -1321,13 +1321,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
                 }}
                 title="Liberar formalmente resultados para entrega a médicos y pacientes"
-                className={`shrink-0 h-9 sm:h-10 px-4 rounded-xl flex items-center gap-2 text-xs font-black tracking-wide uppercase transition-all ${
+                className={`shrink-0 h-8 sm:h-9 px-3 sm:px-3.5 rounded-xl flex items-center gap-1.5 text-[11px] sm:text-xs font-black tracking-wide uppercase transition-all ${
                   toReleaseCount > 0 && canReleaseThisOrder
                     ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
                     : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
                 <span className="whitespace-nowrap">Liberar ({toReleaseCount})</span>
               </button>
 
