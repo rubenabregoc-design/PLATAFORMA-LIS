@@ -47,13 +47,20 @@ const ResultValueInput: React.FC<{
     onSave(result.id, newVal, result);
   };
 
+  const isCritical = result.flag?.includes('CRITICO') || result.flag === 'PANICO';
+  const isHigh = result.flag === 'ALTO';
+  const isLow = result.flag === 'BAJO';
+  const isAbnormal = isCritical || isHigh || isLow;
+
+  const pillClass = isCritical
+    ? 'bg-rose-950/80 border border-rose-500 text-rose-200'
+    : isAbnormal
+    ? 'bg-[#3b2005] border border-amber-500 text-amber-300'
+    : 'bg-[#063328] border border-emerald-500/60 text-emerald-300';
+
   if (isValidated || !canEdit) {
     return (
-      <span className={`px-2.5 py-0.5 rounded-lg font-mono font-black text-xs sm:text-sm border ${
-        isValidated
-          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-          : 'border-slate-800 bg-slate-900/60 text-slate-400'
-      }`}>
+      <span className={`inline-block px-3.5 py-0.5 rounded-full font-mono font-bold text-xs shadow-sm ${pillClass}`}>
         {result.value || (isValidated ? 'VALIDADO' : '—')}
       </span>
     );
@@ -65,8 +72,8 @@ const ResultValueInput: React.FC<{
         type="text"
         value={val}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder="Ingresar..."
-        className="bg-slate-900 border-2 border-teal-400 focus:border-cyan-300 focus:bg-slate-950 rounded-2xl px-4 py-2 text-center text-teal-200 font-mono font-black text-sm sm:text-base w-36 sm:w-40 shadow-[0_0_15px_rgba(0,240,255,0.2)] outline-none transition-all"
+        placeholder="—"
+        className={`w-24 text-center px-2 py-0.5 rounded-full font-mono font-bold text-xs border focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm ${pillClass}`}
       />
     </div>
   );
@@ -397,49 +404,66 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] max-h-[calc(100vh-100px)] bg-[#020617] rounded-3xl overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
-      {/* Sidebar: Órdenes - Responsive Collapsible */}
-      <div className={`${isSidebarCollapsed ? 'w-full lg:w-20' : 'w-full lg:w-80'} bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col transition-all duration-300 relative group shrink-0`}>
+      {/* Sidebar: Órdenes (Diseño Moderno Compacto 310px) */}
+      <div className={`${isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-[310px]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
         {/* Collapse Toggle */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-10 w-6 h-6 bg-cyan-400 rounded-full items-center justify-center shadow-lg shadow-cyan-500/20 z-10 hover:scale-110 transition-transform cursor-pointer"
+          className="hidden lg:flex absolute -right-3 top-7 w-6 h-6 bg-cyan-400 rounded-full items-center justify-center shadow-lg shadow-cyan-500/30 z-20 hover:scale-110 transition-transform cursor-pointer"
         >
-          <ChevronRight className={`w-4 h-4 text-slate-950 transition-transform duration-300 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
+          <ChevronRight className={`w-3.5 h-3.5 text-slate-950 transition-transform duration-300 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
         </button>
 
-        <div className={`p-4 space-y-4 flex flex-col h-full ${isSidebarCollapsed ? 'items-center' : ''}`}>
-          <div className="flex items-center justify-between">
+        <div className="p-3 flex flex-col h-full space-y-2.5 overflow-hidden">
+          {/* Header Bandeja de Órdenes */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+              {!isSidebarCollapsed && (
+                <h3 className="text-xs font-black text-white tracking-wider uppercase">
+                  Bandeja de Órdenes
+                </h3>
+              )}
+            </div>
             {!isSidebarCollapsed && (
-              <h3 className="text-xs font-black text-slate-500 uppercase flex items-center gap-2">
-                <Layers className="w-4 h-4 text-teal-500" />
-                Bandeja de Órdenes
-                <span className="ml-2 bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full text-[9px]">{pendingCount}</span>
-              </h3>
+              <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse">
+                {pendingCount || filteredOrders.length}
+              </span>
             )}
-            {isSidebarCollapsed && <Layers className="w-5 h-5 text-teal-500 animate-pulse" />}
           </div>
 
           {!isSidebarCollapsed && (
-            <div className="space-y-3">
-              {/* Functional Bar: Search & Filter */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
+            <div className="space-y-2">
+              {/* Search Bar with Filter Icon */}
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 w-3.5 h-3.5 text-slate-500" />
                 <input
                   type="text"
                   placeholder="Buscar paciente u orden..."
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-[10px] text-white placeholder:text-slate-600 focus:border-teal-500/50 outline-none transition-all"
+                  className="w-full bg-[#071333] border border-blue-900/60 rounded-xl py-1.5 pl-8 pr-8 text-[11px] text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none transition-all"
                 />
+                <button
+                  type="button"
+                  title="Filtrar órdenes"
+                  className="absolute right-2.5 text-slate-400 hover:text-cyan-300 transition-colors"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/5">
+              {/* Segmented Filter Pills */}
+              <div className="flex gap-1.5 bg-[#03091e] p-1 rounded-xl border border-blue-950">
                 {(['all', 'pending', 'validated'] as const).map((status) => (
                   <button
                     key={status}
+                    type="button"
                     onClick={() => setOrderStatusFilter(status)}
-                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${
-                      orderStatusFilter === status ? 'bg-teal-500 text-slate-950' : 'text-slate-500 hover:text-slate-300'
+                    className={`flex-1 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      orderStatusFilter === status
+                        ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
                     }`}
                   >
                     {status === 'all' ? 'Todo' : status === 'pending' ? 'Pend.' : 'Val.'}
@@ -449,204 +473,181 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             </div>
           )}
 
-          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-1 max-h-[calc(100vh-220px)] min-h-[300px]">
-             {filteredOrders.map(o => (
-               <button
-                 key={o.id}
-                 onClick={() => setActiveOrderId(o.id)}
-                 className={`w-full text-left rounded-2xl border transition-all duration-300 ${
-                   o.id === activeOrderId
-                     ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/40' : 'bg-teal-500 text-slate-950 border-teal-400 shadow-lg shadow-teal-500/20')
-                     : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500/10 border-rose-500/40 hover:bg-rose-500/30' : 'bg-slate-900/50 border-white/5 hover:bg-slate-900')
-                 } ${isSidebarCollapsed ? 'p-2 flex flex-col items-center gap-1' : 'p-4'}`}
-               >
-                  {isSidebarCollapsed ? (
-                    <>
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[12px] shadow-inner transition-colors ${
-                        o.id === activeOrderId
-                          ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/20 text-white' : 'bg-black/10 text-slate-900')
-                          : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800/50 text-slate-400')
-                      }`}>
-                        {o.patientName.charAt(0)}
-                      </div>
-                      <span className={`text-[9px] font-mono font-black truncate w-full text-center tracking-tighter ${
-                        o.id === activeOrderId
-                          ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-900')
-                          : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-500' : 'text-slate-600')
-                      }`}>
-                        {o.orderNumber.slice(-4)}
+          {/* Orders Scroll Container */}
+          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-0.5 min-h-0">
+            {filteredOrders.map(o => {
+              const orderResults = results.filter(r => r.orderId === o.id);
+              const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
+              const validatedCount = uniqueParams.filter(pId =>
+                orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
+              ).length;
+              const hasCritical = orderResults.some(r => r.flag?.includes('CRITICO') || r.flag === 'PANICO');
+              const isStat = o.priority === 'STAT' || o.priority === 'URGENTE';
+              const isActive = o.id === activeOrderId;
+              const progressPct = Math.round((validatedCount / Math.max(1, uniqueParams.length)) * 100);
+
+              return (
+                <button
+                  key={o.id}
+                  onClick={() => setActiveOrderId(o.id)}
+                  className={`w-full text-left rounded-xl border p-2.5 transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? (isStat || hasCritical
+                          ? 'bg-[#0f1738] border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.35)]'
+                          : 'bg-[#091538] border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]')
+                      : (isStat || hasCritical
+                          ? 'bg-[#0c1430] border-rose-900/50 hover:border-rose-500/60'
+                          : 'bg-[#07112b] border-blue-950 hover:border-blue-800')
+                  }`}
+                >
+                  {/* Top row: Order Number & Alert Badge */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-[11px] font-mono font-bold tracking-tight ${
+                      isStat || hasCritical ? 'text-rose-400' : 'text-slate-400'
+                    }`}>
+                      {o.orderNumber || o.id}
+                    </span>
+                    {(isStat || hasCritical) && (
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 flex items-center justify-center text-[10px] font-black animate-pulse">
+                        !
                       </span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-start mb-1.5">
-                        <div className={`text-xs font-mono font-bold flex items-center gap-1.5 ${
-                          o.id === activeOrderId
-                            ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950 font-black')
-                            : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-rose-400 font-black' : 'text-slate-400')
-                        }`}>
-                          {o.priority === 'STAT' || o.priority === 'URGENTE' ? <Zap className="w-3.5 h-3.5 fill-current text-rose-300" /> : null}
-                          <span>{o.orderNumber}</span>
-                        </div>
-                        {results.filter(r => r.orderId === o.id).some(r => r.flag?.includes('CRITICO')) && (
-                          <ShieldAlert className={`w-4 h-4 animate-pulse ${
-                            o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-rose-900') : 'text-rose-400'
-                          }`} />
-                        )}
-                      </div>
-                      <div className={`text-xs sm:text-sm font-black uppercase truncate leading-tight flex items-center gap-2 ${
-                        o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-white'
-                      }`}>
-                        <span>{o.patientName}</span>
-                        {(o.priority === 'STAT' || o.priority === 'URGENTE') && (
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider ${
-                            o.id === activeOrderId ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
-                          }`}>STAT</span>
-                        )}
-                      </div>
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className={`h-1.5 flex-1 rounded-full overflow-hidden ${
-                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white/30' : 'bg-black/15') : 'bg-slate-800'
-                        }`}>
-                          <div
-                            className={`h-full ${
-                              o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-white' : 'bg-slate-950') : (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'bg-rose-500' : 'bg-teal-400')
-                            }`}
-                            style={{
-                              width: `${(() => {
-                                const orderResults = results.filter(r => r.orderId === o.id);
-                                const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
-                                const validatedCount = uniqueParams.filter(pId =>
-                                  orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
-                                ).length;
-                                return (validatedCount / Math.max(1, uniqueParams.length)) * 100;
-                              })()}%`
-                            }}
-                          ></div>
-                        </div>
-                        <span className={`text-[10px] font-mono font-black ${
-                          o.id === activeOrderId ? (o.priority === 'STAT' || o.priority === 'URGENTE' ? 'text-white' : 'text-slate-950') : 'text-teal-300'
-                        }`}>
-                          {(() => {
-                            const orderResults = results.filter(r => r.orderId === o.id);
-                            const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
-                            const validatedCount = uniqueParams.filter(pId =>
-                              orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
-                            ).length;
-                            return `${validatedCount}/${uniqueParams.length} VAL.`;
-                          })()}
-                        </span>
-                      </div>
-                    </>
-                  )}
-               </button>
-             ))}
+                    )}
+                  </div>
+
+                  {/* Middle row: Patient Name */}
+                  <div className="text-xs font-black uppercase text-white truncate leading-snug">
+                    {o.patientName}
+                  </div>
+
+                  {/* Bottom row: Progress bar + Time & Val Count */}
+                  <div className="mt-2 space-y-1">
+                    <div className="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isStat || hasCritical ? 'bg-rose-500' : 'bg-cyan-400'
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-500 flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5 inline" />
+                        12/10/2026 09:42 AM
+                      </span>
+                      <span className={`font-bold ${isStat || hasCritical ? 'text-rose-400' : 'text-cyan-400'}`}>
+                        {validatedCount} / {uniqueParams.length} VAL.
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
-        {/* Compact Clinical Patient Header (Optimized for Maximum Table Visibility) */}
-        <div className="px-3 py-1.5 bg-slate-950/90 border-b border-teal-500/20 flex flex-wrap items-center justify-between gap-2 shrink-0">
-           <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-teal-500/20 to-emerald-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shadow-sm shrink-0">
-                 <UserCircle className="w-3.5 h-3.5" />
+        {/* Patient Clinical Header & Segmented Filters (Diseño Exacto del Mock) */}
+        <div className="p-3 shrink-0">
+          <div className="bg-[#061130] border border-blue-900/60 rounded-2xl p-3 shadow-lg flex flex-col gap-2.5">
+            {/* Fila 1: Datos Principales del Paciente */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border-2 border-cyan-400 bg-cyan-950/60 flex items-center justify-center text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.4)] shrink-0">
+                  <UserCircle className="w-5 h-5" />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <span className="font-black text-white uppercase tracking-tight text-sm">
+                    {patientFullName}
+                  </span>
+                  {currentOrder && (currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE') && (
+                    <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1 shadow-md shadow-rose-600/30">
+                      ▲ STAT
+                    </span>
+                  )}
+                  <span className="text-blue-500/40">|</span>
+                  <span className="text-cyan-400 font-mono font-bold text-xs flex items-center gap-1">
+                    <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
+                    {patientNationalId}
+                  </span>
+                  <span className="text-blue-500/40">|</span>
+                  <span className="text-slate-300 text-xs font-mono">
+                    Orden: <strong className="text-white">{orderNumberDisplay}</strong>
+                  </span>
+                  <span className="text-blue-500/40">|</span>
+                  <span className="text-slate-300 text-xs flex items-center gap-1">
+                    👤 {patientAgeDisplay} • {patientGenderDisplay}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                 <span className="font-black text-white uppercase italic text-xs sm:text-sm">{patientFullName}</span>
-                 {currentOrder && (
-                    (currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE') ? (
-                       <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-0.5">
-                          <Zap className="w-2.5 h-2.5 fill-current" /> STAT
-                       </span>
-                    ) : (
-                       <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">
-                          {currentOrder.priority}
-                       </span>
-                    )
-                 )}
-                 <span className="text-slate-600">•</span>
-                 <span className="text-teal-400 font-mono font-bold text-[10px]"><Fingerprint className="w-3 h-3 inline mr-0.5" />{patientNationalId}</span>
-                 <span className="text-slate-600">•</span>
-                 <span className="text-slate-300 text-[10px]">Orden: <strong className="text-white font-mono">{orderNumberDisplay}</strong></span>
-                 {currentOrder && (
-                    <>
-                       <span className="text-slate-600">•</span>
-                       <span className="text-indigo-300 text-[10px]">{patientAgeDisplay} / {patientGenderDisplay}</span>
-                       <span className="text-slate-600 hidden sm:inline">•</span>
-                       <span className="text-amber-300 text-[10px] hidden sm:inline">🏥 {serviceOriginDisplay}</span>
-                       <span className="text-slate-600 hidden md:inline">•</span>
-                       <span className="text-slate-400 text-[10px] hidden md:inline">{doctorDisplay}</span>
-                    </>
-                 )}
-              </div>
-           </div>
+            </div>
 
-           <div className="flex items-center gap-2">
-              <div className="hidden xl:flex px-2 py-0.5 rounded bg-slate-900 border border-teal-500/30 text-[10px] font-mono text-teal-300 items-center gap-1 shadow-inner">
-                 <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-                 <span className="text-slate-300 truncate max-w-[200px]">Muestras: <strong className="text-teal-300">{specimensDisplay}</strong></span>
-              </div>
+            {/* Fila 2: Ubicación / Servicio y Médico */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+              <span className="flex items-center gap-1 text-slate-300">
+                📍 {serviceOriginDisplay || 'Laboratorio Central'}
+              </span>
+              <span className="text-blue-500/40">|</span>
+              <span className="flex items-center gap-1 text-slate-300">
+                👤 {doctorDisplay || 'Dr. Martinez'}
+              </span>
+            </div>
 
-              {/* Segmented Filter Bar for Analytes */}
-              <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 gap-0.5 shadow-sm">
-                 <button
-                   type="button"
-                   onClick={() => setAnalyteFilter('ALL')}
-                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                     analyteFilter === 'ALL'
-                       ? 'bg-teal-500 text-slate-950 font-black shadow-sm'
-                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                   }`}
-                   title="Mostrar todos los analitos de la orden"
-                 >
-                   <span>Todos</span>
-                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'ALL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.all}</span>
-                 </button>
+            {/* Fila 3: Filtros de Estado de Analitos (Pills en Una Sola Fila) */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-blue-950">
+              <button
+                type="button"
+                onClick={() => setAnalyteFilter('ALL')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                  analyteFilter === 'ALL'
+                    ? 'bg-cyan-500/25 border-2 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                    : 'bg-slate-900/70 border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Todos ({analyteCounts.all})</span>
+              </button>
 
-                 <button
-                   type="button"
-                   onClick={() => setAnalyteFilter('PENDING')}
-                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                     analyteFilter === 'PENDING'
-                       ? 'bg-cyan-400 text-slate-950 font-black shadow-sm'
-                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                   }`}
-                   title="Filtrar analitos pendientes"
-                 >
-                   <span>Pend.</span>
-                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'PENDING' ? 'bg-slate-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.pending}</span>
-                 </button>
+              <button
+                type="button"
+                onClick={() => setAnalyteFilter('PENDING')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                  analyteFilter === 'PENDING'
+                    ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
+                    : 'bg-blue-950/40 border border-blue-900/60 text-blue-300/80 hover:text-blue-200'
+                }`}
+              >
+                <Timer className="w-3.5 h-3.5" />
+                <span>Pendientes ({analyteCounts.pending})</span>
+              </button>
 
-                 <button
-                   type="button"
-                   onClick={() => setAnalyteFilter('CRITICAL')}
-                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                     analyteFilter === 'CRITICAL'
-                       ? 'bg-rose-500 text-white font-black shadow-sm animate-pulse'
-                       : 'text-rose-300 hover:text-rose-200 hover:bg-rose-500/10'
-                   }`}
-                   title="Filtrar valores críticos"
-                 >
-                   <span>🚨 Crít.</span>
-                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'CRITICAL' ? 'bg-white text-rose-600' : 'bg-rose-500/20 text-rose-300'}`}>{analyteCounts.critical}</span>
-                 </button>
+              <button
+                type="button"
+                onClick={() => setAnalyteFilter('CRITICAL')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                  analyteFilter === 'CRITICAL'
+                    ? 'bg-rose-500/30 border-2 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
+                    : 'bg-rose-950/40 border border-rose-900/60 text-rose-300 hover:text-rose-100'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span>Críticos ({analyteCounts.critical})</span>
+              </button>
 
-                 <button
-                   type="button"
-                   onClick={() => setAnalyteFilter('VALIDATED')}
-                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                     analyteFilter === 'VALIDATED'
-                       ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
-                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                   }`}
-                   title="Filtrar analitos validados"
-                 >
-                   <span>✓ Val.</span>
-                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'VALIDATED' ? 'bg-slate-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.validated}</span>
-                 </button>
-              </div>
-           </div>
+              <button
+                type="button"
+                onClick={() => setAnalyteFilter('VALIDATED')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                  analyteFilter === 'VALIDATED'
+                    ? 'bg-emerald-500/25 border-2 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                    : 'bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 hover:text-emerald-100'
+                }`}
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Validados ({analyteCounts.validated})</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-2 space-y-1.5 custom-scrollbar">
@@ -754,33 +755,43 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
 
            {/* Desktop 3D Glassmorphic Table Container (>= md) */}
-           <div className="hidden md:block bg-slate-950/80 backdrop-blur-2xl border border-teal-500/30 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-teal-500/20 overflow-x-auto">
+           <div className="hidden md:block bg-[#030a21] border border-blue-900/60 rounded-2xl overflow-hidden shadow-2xl overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                 <thead className="bg-slate-950/95 text-slate-300 font-black uppercase text-xs tracking-wider border-b-2 border-teal-500/40 sticky top-0 z-20 backdrop-blur-md">
+                 <thead className="bg-[#030a21] text-slate-300 font-bold uppercase text-[11px] tracking-wider border-b border-blue-900/60 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
-                      <th className="py-1.5 px-2 w-10 text-center">
+                      <th className="py-2.5 px-3 w-12 text-center">
                         <button
                           onClick={toggleSelectAll}
-                          className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
+                          className={`w-4 h-4 rounded border transition-all flex items-center justify-center mx-auto cursor-pointer ${
                             selectedResults.length > 0 && selectedResults.length === patientResults.length
-                              ? 'bg-teal-500 border-teal-500 text-slate-950'
+                              ? 'bg-cyan-500 border-cyan-500 text-slate-950'
                               : selectedResults.length > 0
-                              ? 'bg-teal-500/20 border-teal-500 text-teal-500'
-                              : 'bg-slate-950 border-slate-700 text-transparent hover:border-slate-500'
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
+                              : 'border-blue-800 bg-transparent hover:border-cyan-400'
                           }`}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {selectedResults.length > 0 && <Check className="w-3 h-3 stroke-[3]" />}
                         </button>
                       </th>
-                      <th className="py-1.5 px-2.5">Analito / Examen</th>
-                      <th className="py-1.5 px-2 text-center">Resultado Clínico</th>
-                      <th className="py-1.5 px-2 text-center">Unidad</th>
-                      <th className="py-1.5 px-2.5">Intervalo de Referencia</th>
-                      <th className="py-1.5 px-2 text-center">Origen / Equipo</th>
-                      <th className="py-1.5 px-2 text-center">Estado</th>
+                      <th className="py-2.5 px-3 text-left">
+                        <div className="inline-flex items-center gap-2 text-cyan-300 border-b-2 border-cyan-400 pb-1 font-bold text-[11px] tracking-wider">
+                          <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>ANALITO / EXAMEN</span>
+                        </div>
+                      </th>
+                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">
+                        <div className="leading-tight">
+                          <div>RESULTADO</div>
+                          <div>CLÍNICO</div>
+                        </div>
+                      </th>
+                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">UNIDAD</th>
+                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">INTERVALO DE REFERENCIA</th>
+                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">ORIGEN / EQUIPO</th>
+                      <th className="py-2.5 px-3 text-center font-bold text-[11px] tracking-wider text-slate-300">ESTADO</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-slate-800">
+                 <tbody className="divide-y divide-blue-950/60">
                     {groupedResults.map(({ area, results: areaResults }) => {
                       const allAreaValidated = areaResults.every(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO');
                       const allAreaSelected = areaResults.every(r => selectedResults.includes(r.id));
@@ -788,32 +799,51 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                       return (
                         <React.Fragment key={`area-section-${area.id}`}>
-                          {/* Fila Encabezado de Área / Sección Clínica */}
-                          <tr className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-y-2 border-teal-500/40">
-                            <td colSpan={7} className="py-3 px-4">
-                              <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center space-x-3">
-                                  <span className="w-3 h-3 rounded-full bg-teal-400 ring-4 ring-teal-500/20"></span>
-                                  <span className="font-mono font-black text-xs sm:text-sm uppercase tracking-wider text-teal-300">
+                          {/* Fila Encabezado de Área / Sección Clínica (Exacto al Mock) */}
+                          <tr className="bg-[#05112e] border-y border-blue-900/60">
+                            <td className="py-2 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (allAreaSelected) {
+                                    const idsToRemove = new Set(areaResults.map(r => r.id));
+                                    setSelectedResults(prev => prev.filter(id => !idsToRemove.has(id)));
+                                  } else {
+                                    const idsToAdd = areaResults.map(r => r.id);
+                                    setSelectedResults(prev => Array.from(new Set([...prev, ...idsToAdd])));
+                                  }
+                                }}
+                                className={`w-4 h-4 rounded border transition-all flex items-center justify-center mx-auto cursor-pointer ${
+                                  allAreaSelected
+                                    ? 'bg-cyan-500 border-cyan-500 text-slate-950'
+                                    : 'border-blue-800 bg-transparent hover:border-cyan-400'
+                                }`}
+                              >
+                                {allAreaSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                              </button>
+                            </td>
+                            <td colSpan={6} className="py-2 px-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-bold text-xs uppercase tracking-wider text-white">
                                     {area.name}
                                   </span>
-                                  <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 font-black">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-[#091b42] text-[11px] font-mono text-cyan-300 font-semibold border border-blue-800/60">
                                     {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
                                   </span>
+                                  <span className="text-[11px] text-cyan-400/80 flex items-center gap-1 font-mono">
+                                    <Info className="w-3 h-3 text-cyan-400" /> Analitos: {areaResults.length}
+                                  </span>
                                   {hasCriticalInArea && (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-[11px] font-black text-rose-300 flex items-center space-x-1 animate-pulse">
+                                    <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-[10px] font-black text-rose-300 flex items-center gap-1 animate-pulse">
                                       <AlertTriangle className="w-3 h-3 text-rose-400" />
-                                      <span>ALERTA CRÍTICA EN ÁREA</span>
+                                      <span>ALERTA CRÍTICA</span>
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="flex items-center space-x-3">
-                                  <span className={`text-xs font-mono font-black px-2.5 py-0.5 rounded-lg border ${
-                                    allAreaValidated 
-                                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' 
-                                      : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                                  }`}>
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-[#052923] border border-emerald-500/40 text-emerald-300">
                                     {areaResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length}/{areaResults.length} Validados
                                   </span>
                                   <button
@@ -827,10 +857,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                         setSelectedResults(prev => Array.from(new Set([...prev, ...idsToAdd])));
                                       }
                                     }}
-                                    className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-teal-300 hover:text-white text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-sm"
-                                    title="Seleccionar o deseleccionar analitos de esta área"
+                                    className="px-3 py-1 rounded-lg bg-[#0c224d] hover:bg-[#12316e] border border-blue-500/50 text-cyan-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                                   >
-                                    {allAreaSelected ? 'Deseleccionar Área' : 'Seleccionar Área'}
+                                    <LayoutGrid className="w-3.5 h-3.5" />
+                                    <span>{allAreaSelected ? 'DESELECCIONAR ÁREA' : 'SELECCIONAR ÁREA'}</span>
                                   </button>
                                 </div>
                               </div>
@@ -839,436 +869,342 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                           {/* Analitos de esta Área */}
                           {areaResults.map((res, index) => {
-                      const { text, isLate } = getTimeAgoData(res.createdAt);
-                      const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
-                      const isNoteExpanded = expandingNotesId === res.id;
-                      const isHigh = res.flag === 'ALTO';
-                      const isLow = res.flag === 'BAJO';
-                      const isCritical = res.flag?.includes('CRITICO');
+                            const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
+                            const isNoteExpanded = expandingNotesId === res.id;
+                            const isHigh = res.flag === 'ALTO';
+                            const isLow = res.flag === 'BAJO';
+                            const isCritical = res.flag?.includes('CRITICO') || res.flag === 'PANICO';
 
-                      return (
-                        <React.Fragment key={`frag-${res.id}-${index}`}>
-                        <tr
-                          key={`tr-main-${res.id}-${index}`}
-                          onClick={() => setActiveTraceabilityId(res.id)}
-                          className={`group/row cursor-pointer transition-all border-l-4 ${
-                            isCritical
-                              ? 'bg-rose-950/40 border-l-rose-500 border-y border-rose-500/40'
-                              : isHigh
-                              ? 'bg-amber-950/30 border-l-amber-400 border-y border-amber-500/40'
-                              : isLow
-                              ? 'bg-blue-950/30 border-l-blue-400 border-y border-blue-500/40'
-                              : selectedResults.includes(res.id)
-                              ? 'bg-teal-500/15 border-l-teal-400 shadow-inner'
-                              : isValidated
-                              ? 'bg-emerald-500/[0.06] border-l-emerald-500/60'
-                              : 'border-l-transparent hover:bg-slate-900/80'
-                          }`}
-                        >
-                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
-                                className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center mx-auto cursor-pointer ${
-                                  selectedResults.includes(res.id)
-                                    ? 'bg-teal-500 border-teal-500 text-slate-950 shadow-lg shadow-teal-500/20 font-black'
-                                    : 'bg-slate-950 border-slate-700 text-transparent group-hover/row:border-teal-400'
-                                }`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                              </button>
-                           </td>
-                           <td className="py-1 px-2.5">
-                              <div className="flex items-center gap-2">
-                                 {isValidated && (
-                                   <span title="Resultado Validado" className="shrink-0">
-                                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                   </span>
-                                 )}
-                                <div className={`font-black text-sm uppercase ${isValidated ? 'text-slate-300' : 'text-white'}`}>{res.parameterName}</div>
-                                {res.isExtra && (
-                                  <span className="bg-purple-500/20 text-purple-300 border border-purple-400/40 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">HALLAZGO</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="text-xs text-slate-400 font-mono font-bold">{res.parameterCode}</div>
-                                <div className="h-3 w-px bg-slate-700"></div>
-                                {res.source?.includes('MIDDLEWARE') ? (
-                                  <div className="flex items-center gap-1.5 text-xs text-teal-300 font-bold" title={`Recibido de: ${res.analyzerName || 'Analizador LIS'}`}>
-                                    <Cpu className="w-3 h-3 text-teal-400" /> <span className="uppercase tracking-wider">{res.analyzerName || 'ASTM E1394'}</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-bold" title="Ingresado Manualmente">
-                                    <PencilLine className="w-3 h-3 text-indigo-400" /> <span className="uppercase tracking-wider">MANUAL TM</span>
-                                  </div>
-                                )}
-                              </div>
-                           </td>
-                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                              <ResultValueInput
-                                result={res}
-                                isValidated={isValidated}
-                                canEdit={canModifyThisOrder}
-                                onSave={onUpdateResultValue}
-                              />
-                           </td>
-                           <td className="py-1 px-2 text-center text-slate-300 font-mono text-xs font-bold uppercase">{res.unit || '—'}</td>
-                           <td className="py-1 px-2.5 text-slate-200 font-mono text-xs">
-                              <div className="font-bold">{res.refRangeText || 'Normal'}</div>
-                              {/* Visual Range Gauge Slider Bar */}
-                              <div className="w-24 h-1.5 bg-slate-900 border border-slate-700 rounded-full mt-0.5 relative overflow-hidden">
-                                 <div className="absolute inset-y-0 bg-emerald-500/30 border-x border-emerald-500/60" style={{ left: '20%', width: '60%' }} />
-                                 <div
-                                   className={`absolute top-0 bottom-0 w-2.5 rounded-full border border-slate-950 ${
-                                     res.flag?.includes('CRITICO')
-                                       ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse'
-                                       : res.flag === 'ALTO'
-                                       ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
-                                       : res.flag === 'BAJO'
-                                       ? 'bg-blue-400 shadow-[0_0_8px_#3b82f6]'
-                                       : 'bg-emerald-400 shadow-[0_0_8px_#10b981]'
-                                   }`}
-                                   style={{
-                                     left: res.flag === 'ALTO' || res.flag?.includes('CRITICO') ? '85%' : res.flag === 'BAJO' ? '10%' : '50%'
-                                   }}
-                                 />
-                              </div>
-                           </td>
-                           <td className="py-1 px-2 text-center">
-                              {res.source?.includes('MIDDLEWARE') && !isValidated ? (
-                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${isLate ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : 'border-teal-500/30 bg-teal-500/10 text-teal-300'}`}>
-                                   <Timer className={`w-3.5 h-3.5 ${isLate ? 'animate-pulse' : ''}`} />
-                                   <span className="text-xs font-black font-mono">{text}</span>
-                                </div>
-                              ) : (
-                                <span className="text-xs font-mono font-bold text-slate-400">{res.analyzerName || 'Manual TM'}</span>
-                              )}
-                           </td>
-                           {/* Dedicated ESTADO / VALIDACIÓN Column */}
-                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                              {isValidated ? (
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs font-black uppercase rounded-xl shadow-md">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                  <span>VALIDADO</span>
-                                </span>
-                              ) : res.status === 'LIBERADO' ? (
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 text-xs font-black uppercase rounded-xl shadow-md">
-                                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                                  <span>LIBERADO</span>
-                                </span>
-                              ) : res.status === 'RECHAZADO' ? (
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/50 text-xs font-black uppercase rounded-xl shadow-md animate-pulse">
-                                  <X className="w-4 h-4 text-rose-400" />
-                                  <span>RECHAZADO</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-400/50 text-xs font-black uppercase rounded-xl shadow-md">
-                                  <Timer className="w-4 h-4 text-amber-400 animate-pulse" />
-                                  <span>PENDIENTE</span>
-                                </span>
-                              )}
-                           </td>
-                        </tr>
+                            return (
+                              <React.Fragment key={`frag-${res.id}-${index}`}>
+                                <tr
+                                  key={`tr-main-${res.id}-${index}`}
+                                  onClick={() => setActiveTraceabilityId(res.id)}
+                                  className={`cursor-pointer transition-colors border-b border-blue-950/40 hover:bg-[#061438]/80 ${
+                                    isCritical
+                                      ? 'bg-[#1f0b14]/50'
+                                      : isHigh
+                                      ? 'bg-[#1e1708]/40'
+                                      : selectedResults.includes(res.id)
+                                      ? 'bg-cyan-950/30'
+                                      : 'bg-transparent'
+                                  }`}
+                                >
+                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
+                                      className={`w-4 h-4 rounded border transition-all flex items-center justify-center mx-auto cursor-pointer ${
+                                        selectedResults.includes(res.id)
+                                          ? 'bg-cyan-500 border-cyan-500 text-slate-950'
+                                          : 'border-blue-900 bg-transparent hover:border-cyan-400'
+                                      }`}
+                                    >
+                                      {selectedResults.includes(res.id) && <Check className="w-3 h-3 stroke-[3]" />}
+                                    </button>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-left">
+                                    <div className="font-bold text-xs uppercase text-white tracking-wide">
+                                      {res.parameterName}
+                                    </div>
+                                    <div className="text-[11px] font-mono text-cyan-400 mt-0.5 flex items-center gap-1.5">
+                                      <span>{res.parameterCode || res.parameterName.slice(0, 4)}</span>
+                                      <span className="text-slate-600">•</span>
+                                      <span>{res.analyzerName || 'ASTM E1394'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <ResultValueInput
+                                      result={res}
+                                      isValidated={isValidated}
+                                      canEdit={canModifyThisOrder}
+                                      onSave={onUpdateResultValue}
+                                    />
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center text-slate-300 font-mono text-xs font-semibold">
+                                    {res.unit || '—'}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center">
+                                    <div className="font-mono text-xs text-slate-200 font-medium">{res.refRangeText || 'Normal'}</div>
+                                    {/* Visual Range Gauge Slider Bar */}
+                                    <div className="w-24 h-1.5 bg-[#071333] border border-blue-900/60 rounded-full mx-auto mt-1 relative overflow-hidden">
+                                      <div className="absolute inset-y-0 bg-emerald-500/30" style={{ left: '20%', width: '60%' }} />
+                                      <div
+                                        className={`absolute top-0 bottom-0 w-2 rounded-full ${
+                                          isCritical
+                                            ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
+                                            : isHigh
+                                            ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+                                            : isLow
+                                            ? 'bg-blue-400 shadow-[0_0_8px_#3b82f6]'
+                                            : 'bg-emerald-400 shadow-[0_0_8px_#10b981]'
+                                        }`}
+                                        style={{
+                                          left: isHigh || isCritical ? '80%' : isLow ? '10%' : '50%'
+                                        }}
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center text-slate-400 text-xs font-medium">
+                                    {res.analyzerName || 'Manual TM'}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                    {isValidated ? (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#052923] border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span>VALIDADO</span>
+                                      </span>
+                                    ) : res.status === 'LIBERADO' ? (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#072445] border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                                        <span>LIBERADO</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#2e1d05] border border-amber-500/40 text-amber-300 text-xs font-bold rounded-full">
+                                        <Timer className="w-3.5 h-3.5 text-amber-400" />
+                                        <span>PENDIENTE</span>
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
 
-                        {/* Inline Clinical Alert Card for High or Critical Values */}
-                        {(res.flag === 'ALTO' || res.flag?.includes('CRITICO')) && (
-                          <tr key={`tr-alert-${res.id}-${index}`} className={res.flag?.includes('CRITICO') ? 'bg-rose-950/60 border-b border-rose-500/40' : 'bg-amber-950/40 border-b border-amber-500/30'}>
-                            <td colSpan={7} className="px-4 py-2.5">
-                               <div className="flex items-center gap-2.5 text-xs font-bold">
-                                  <AlertTriangle className={`w-4 h-4 shrink-0 ${res.flag?.includes('CRITICO') ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
-                                  <span className={res.flag?.includes('CRITICO') ? 'text-rose-200 font-black' : 'text-amber-200 font-bold'}>
-                                     {res.flag?.includes('CRITICO')
-                                        ? `🚨 VALOR CRÍTICO DE PÁNICO: ${res.parameterName} (${res.value} ${res.unit}) — Notificación inmediata obligatoria al médico tratante según norma ISO 15189.`
-                                        : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el límite de referencia (${res.refRangeText}).`
-                                     }
-                                  </span>
-                               </div>
-                            </td>
-                          </tr>
-                        )}
-                        {isNoteExpanded && (
-                          <tr key={`tr-note-${res.id}-${index}`} className="bg-slate-900/90 border-b border-slate-700">
-                            <td colSpan={7} className="p-4">
-                               <div className="flex gap-4 items-start animate-in slide-in-from-top-2 duration-300">
-                                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0"><MessageSquare className="w-5 h-5" /></div>
-                                  <div className="flex-1 space-y-3">
-                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-black text-slate-300 uppercase tracking-wider">Interpretación Clínica & Observaciones del Tecnólogo</span>
-                                        <div className="flex gap-2">
-                                           <button onClick={() => { onUpdateInterpretation(res.id, tempNote); setExpandingNotesId(null); }} className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black rounded-xl uppercase shadow-md cursor-pointer transition">Guardar Nota</button>
-                                           <button onClick={() => setExpandingNotesId(null)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl uppercase cursor-pointer transition">Cerrar</button>
+                                {/* Inline Clinical Alert Card for High or Critical Values (Exacto al Mock) */}
+                                {(res.flag === 'ALTO' || res.flag?.includes('CRITICO') || res.flag === 'BAJO') && (
+                                  <tr key={`tr-alert-${res.id}-${index}`} className="bg-[#240b15] border-y border-rose-900/60">
+                                    <td className="py-2 px-3 text-center">
+                                      <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-black mx-auto shadow-sm shadow-rose-600/50">!</span>
+                                    </td>
+                                    <td colSpan={6} className="py-2 px-2 text-left">
+                                      <div className="text-xs font-bold">
+                                        <span className="text-rose-400 uppercase font-black tracking-tight">
+                                          {res.flag?.includes('CRITICO') ? 'ALERTA CRÍTICA: ' : 'ALERTA DE RANGO: '}
+                                        </span>
+                                        <span className="text-rose-200 font-medium">
+                                          {res.parameterName} ({res.value} {res.unit}) {res.flag?.includes('CRITICO') ? 'requiere notificación inmediata.' : `excede el límite de referencia (${res.refRangeText}).`}
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+
+                                {isNoteExpanded && (
+                                  <tr key={`tr-note-${res.id}-${index}`} className="bg-[#040e2b] border-b border-blue-900/60">
+                                    <td colSpan={7} className="p-3">
+                                      <div className="flex gap-3 items-start">
+                                        <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0">
+                                          <MessageSquare className="w-4 h-4" />
                                         </div>
-                                     </div>
-
-                                     {/* Quick Tag Pills */}
-                                     <div className="flex flex-wrap gap-1.5 items-center">
-                                       <span className="text-[11px] text-slate-400 font-bold">Etiquetas Rápidas:</span>
-                                       {['Muestra Lipémica', 'Confirmado por Repetición', 'Dilución 1:10', 'Muestra Hemolizada', 'Paciente en Ayuno', 'Valores Normales'].map((tag) => (
-                                         <button
-                                           key={tag}
-                                           type="button"
-                                           onClick={() => setTempNote(prev => prev ? `${prev} • ${tag}` : tag)}
-                                           className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 text-[11px] font-bold cursor-pointer transition"
-                                         >
-                                           + {tag}
-                                         </button>
-                                       ))}
-                                     </div>
-
-                                     <textarea
-                                       disabled={isValidated}
-                                       value={tempNote}
-                                       onChange={(e) => setTempNote(e.target.value)}
-                                       className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 min-h-[70px] focus:outline-none focus:border-teal-400 transition-all placeholder:text-slate-600"
-                                       placeholder="Ingrese observaciones técnicas, comentarios sobre la muestra o hallazgos del analizador..."
-                                     />
-                                  </div>
-                               </div>
-                            </td>
-                          </tr>
-                        )}
+                                        <div className="flex-1 space-y-2">
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Observaciones del Analito</span>
+                                            <div className="flex gap-2">
+                                              <button onClick={() => { onUpdateInterpretation(res.id, tempNote); setExpandingNotesId(null); }} className="px-3 py-1 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold rounded-lg uppercase cursor-pointer transition">Guardar</button>
+                                              <button onClick={() => setExpandingNotesId(null)} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg uppercase cursor-pointer transition">Cerrar</button>
+                                            </div>
+                                          </div>
+                                          <textarea
+                                            disabled={isValidated}
+                                            value={tempNote}
+                                            onChange={(e) => setTempNote(e.target.value)}
+                                            className="w-full bg-[#03091e] border border-blue-900/60 rounded-xl p-2.5 text-xs text-slate-200 min-h-[60px] focus:outline-none focus:border-cyan-400 transition-all placeholder:text-slate-600"
+                                            placeholder="Ingrese observaciones técnicas del analito..."
+                                          />
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </React.Fragment>
                       );
                     })}
-                  </React.Fragment>
-                );
-              })}
                  </tbody>
               </table>
            </div>
         </div>
 
-        {/* Barra de Gestión de Resultados y Acciones Rápidas (Encabezado + 10 Acciones en 1 Sola Fila) */}
-        <div className="py-1.5 px-2 sm:px-4 shrink-0 border-t border-cyan-500/30 bg-[#020924] z-20 shadow-2xl isolate">
-          <div className="bg-gradient-to-b from-[#030d2a]/95 via-[#020b22]/95 to-[#010617]/95 border border-cyan-500/40 rounded-xl p-1.5 sm:p-2 shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col gap-1.5">
+        {/* Barra de Acciones Fija en la Parte Inferior (Diseño Exacto del Mock) */}
+        <div className="h-[68px] shrink-0 border-t border-blue-900/60 bg-[#03091e] px-3 sm:px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-20 shadow-2xl isolate">
 
-            {/* 1. Encabezado del Módulo */}
-            <div className="flex items-center justify-between flex-wrap gap-2 px-1">
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Icono de laboratorio con matraz */}
-                <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-blue-950/80 border border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.4)] text-cyan-300">
-                  <FlaskConical className="w-4 h-4 stroke-[2.2]" />
-                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                  </span>
-                </div>
+          {/* 1. Alertas y Pánicos (Rojo) */}
+          <button
+            type="button"
+            onClick={() => setShowAlertsCenterModal(true)}
+            title="Identificar resultados críticos y alertas (ISO 15189)"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
+          >
+            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="whitespace-nowrap">Alertas y Pánicos</span>
+            {criticalResultsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                {criticalResultsCount}
+              </span>
+            )}
+          </button>
 
-                <div className="h-5 w-[1.5px] bg-blue-400/30" />
+          {/* 2. Calculadoras (Amarillo) */}
+          <button
+            type="button"
+            onClick={() => setShowClinicalCalcModal(true)}
+            title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
+          >
+            <Calculator className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="whitespace-nowrap">Calculadoras</span>
+          </button>
 
-                {/* Título GESTIÓN DE RESULTADOS */}
-                <h2 className="text-xs sm:text-sm font-black tracking-wider text-white uppercase drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                  GESTIÓN DE RESULTADOS
-                </h2>
+          {/* 3. Telemetría (Turquesa) */}
+          <button
+            type="button"
+            onClick={() => setShowTelemetryModal(true)}
+            title="Consultar información de monitoreo y telemetría de analizadores"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
+          >
+            <TrendingUp className="w-4 h-4 text-teal-400 shrink-0" />
+            <span className="whitespace-nowrap">Telemetría</span>
+          </button>
 
-                <div className="h-5 w-[1.5px] bg-blue-400/30 hidden sm:block" />
+          {/* 4. Trazabilidad (Azul grisáceo) */}
+          <button
+            type="button"
+            onClick={() => setShowAuditLog(true)}
+            title="Consultar el historial y bitácora de auditoría ISO 15189"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 text-xs font-bold cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="whitespace-nowrap">Trazabilidad</span>
+          </button>
 
-                {/* Indicador de actividad tipo electrocardiograma (ECG) */}
-                <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-950/50 border border-cyan-500/30 shadow-inner">
-                  <svg className="w-14 h-4 stroke-cyan-400 fill-none drop-shadow-[0_0_6px_rgba(6,182,212,0.9)]" viewBox="0 0 70 20">
-                    <path
-                      d="M 0 10 L 14 10 L 20 3 L 27 17 L 33 10 L 40 10 L 44 6 L 48 14 L 52 10 L 70 10"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
+          {/* 5. Informe Carta (Cian) */}
+          <button
+            type="button"
+            onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
+            title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
+          >
+            <Printer className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="whitespace-nowrap">Informe Carta</span>
+          </button>
 
-                {/* Contador de pendientes de liberación */}
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs text-cyan-100/90 font-medium">
-                  <span className="font-extrabold text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-400/30">
-                    {pendingReleaseCount}
-                  </span>
-                  <span>pendientes de liberación</span>
-                </div>
-              </div>
+          {/* 6. Desvalidar (Morado) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedValidatedCount > 0) {
+                handleInitiateUnvalidate();
+              } else {
+                const validatedInOrder = patientResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO');
+                if (validatedInOrder.length > 0) {
+                  setSelectedResults(validatedInOrder.map(r => r.id));
+                  handleInitiateUnvalidate();
+                } else {
+                  notifyToast.info('No hay analitos validados en esta orden para desvalidar.');
+                }
+              }
+            }}
+            title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
+          >
+            <Undo2 className="w-4 h-4 text-purple-400 shrink-0" />
+            <span className="whitespace-nowrap">
+              Desvalidar {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
+            </span>
+          </button>
 
+          {/* 7. Validar Analitos (Azul grisáceo) */}
+          <button
+            type="button"
+            disabled={!canModifyThisOrder || selectedUnvalidatedCount === 0}
+            onClick={() => {
+              const toValidate = selectedResults.filter(id => {
+                const res = results.find(r => r.id === id);
+                return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
+              });
+              if (toValidate.length === 0) return;
+              toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+              setSelectedResults([]);
+              notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
+            }}
+            title="Validar los analitos seleccionados"
+            className={`shrink-0 h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+              selectedUnvalidatedCount > 0 && canModifyThisOrder
+                ? 'border-blue-400/80 bg-blue-950/40 text-blue-200 hover:bg-blue-900/50 hover:border-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] cursor-pointer'
+                : 'border-slate-700/60 bg-slate-900/40 text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            <CheckCircle2 className={`w-4 h-4 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-600'}`} />
+            <span className="whitespace-nowrap">
+              Validar Analitos
+            </span>
+          </button>
 
-            </div>
+          {/* 8. Informes / Comentarios (Turquesa) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedResults.length === 1) {
+                setSelectedCommentResultId(selectedResults[0]);
+                const res = patientResults.find(r => r.id === selectedResults[0]);
+                setAnalyteCommentDraft(res?.interpretation || '');
+              } else if (patientResults.length > 0 && !selectedCommentResultId) {
+                setSelectedCommentResultId(patientResults[0].id);
+                setAnalyteCommentDraft(patientResults[0].interpretation || '');
+              }
+              setOrderGeneralComment(currentOrder?.notes || '');
+              setShowCommentsModal(true);
+            }}
+            title="Agregar observaciones e informes a resultados individuales o a la orden"
+            className="shrink-0 h-10 px-3.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
+          >
+            <MessageSquareText className="w-4 h-4 text-teal-400 shrink-0" />
+            <span className="whitespace-nowrap">Informes / Comentarios</span>
+          </button>
 
-            {/* 2. Barra de acciones en una sola fila (Horizontal compacta para App/Móvil y Desktop) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 flex-nowrap w-full touch-pan-x">
+          {/* 9. Validar Todo (Verde) */}
+          <button
+            type="button"
+            disabled={!canModifyThisOrder || unvalidatedCount === 0}
+            onClick={() => {
+              const unvalidated = patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
+              if (unvalidated.length === 0) return;
+              unvalidated.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
+              setSelectedResults([]);
+              notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
+            }}
+            title="Validar todos los analitos correspondientes de la orden"
+            className={`shrink-0 h-10 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+              unvalidatedCount > 0 && canModifyThisOrder
+                ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
+                : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            <Check className={`w-4 h-4 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
+            <span className="whitespace-nowrap">Validar Todo</span>
+          </button>
 
-              {/* 1. Alertas y Pánicos (Rojo) */}
-              <button
-                type="button"
-                onClick={() => setShowAlertsCenterModal(true)}
-                title="Identificar resultados críticos y alertas (ISO 15189)"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="whitespace-nowrap">Alertas y Pánicos</span>
-                {criticalResultsCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
-                    {criticalResultsCount}
-                  </span>
-                )}
-              </button>
+          {/* 10. Liberar (Azul-cian con Glow) */}
+          <button
+            type="button"
+            disabled={!canReleaseThisOrder || toReleaseCount === 0}
+            onClick={() => {
+              const toRelease = patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO');
+              if (toRelease.length === 0) return;
+              toRelease.forEach(r => onUpdateResultStatus(r.id, 'LIBERADO'));
+              setSelectedResults([]);
+              notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
+            }}
+            title="Liberar formalmente resultados para entrega a médicos y pacientes"
+            className={`shrink-0 h-10 px-4 rounded-xl flex items-center gap-2 text-xs font-black tracking-wide uppercase transition-all ${
+              toReleaseCount > 0 && canReleaseThisOrder
+                ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
+                : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0 stroke-[2.5]" />
+            <span className="whitespace-nowrap">Liberar ({toReleaseCount})</span>
+          </button>
 
-              {/* 2. Calculadoras (Amarillo) */}
-              <button
-                type="button"
-                onClick={() => setShowClinicalCalcModal(true)}
-                title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
-              >
-                <Calculator className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="whitespace-nowrap">Calculadoras</span>
-              </button>
-
-              {/* 3. Telemetría (Turquesa) */}
-              <button
-                type="button"
-                onClick={() => setShowTelemetryModal(true)}
-                title="Consultar información de monitoreo y telemetría de analizadores"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
-              >
-                <TrendingUp className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="whitespace-nowrap">Telemetría</span>
-              </button>
-
-              {/* 4. Trazabilidad (Azul grisáceo) */}
-              <button
-                type="button"
-                onClick={() => setShowAuditLog(true)}
-                title="Consultar el historial y bitácora de auditoría ISO 15189"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="whitespace-nowrap">Trazabilidad</span>
-              </button>
-
-              {/* 5. Informe Carta (Cian) */}
-              <button
-                type="button"
-                onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
-                title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span className="whitespace-nowrap">Informe Carta</span>
-              </button>
-
-              {/* 6. Desvalidar (Morado) */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedValidatedCount > 0) {
-                    handleInitiateUnvalidate();
-                  } else {
-                    const validatedInOrder = patientResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO');
-                    if (validatedInOrder.length > 0) {
-                      setSelectedResults(validatedInOrder.map(r => r.id));
-                      handleInitiateUnvalidate();
-                    } else {
-                      notifyToast.info('No hay analitos validados en esta orden para desvalidar.');
-                    }
-                  }
-                }}
-                title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
-              >
-                <Undo2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <span className="whitespace-nowrap">
-                  Desvalidar {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
-                </span>
-              </button>
-
-              {/* 7. Validar (Azul grisáceo) */}
-              <button
-                type="button"
-                disabled={!canModifyThisOrder || selectedUnvalidatedCount === 0}
-                onClick={() => {
-                  const toValidate = selectedResults.filter(id => {
-                    const res = results.find(r => r.id === id);
-                    return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
-                  });
-                  if (toValidate.length === 0) return;
-                  toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
-                  setSelectedResults([]);
-                  notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
-                }}
-                title="Validar los analitos seleccionados"
-                className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-[11px] sm:text-xs font-bold transition-all ${
-                  selectedUnvalidatedCount > 0 && canModifyThisOrder
-                    ? 'border-blue-400/80 bg-blue-950/40 text-blue-200 hover:bg-blue-900/50 hover:border-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] cursor-pointer'
-                    : 'border-slate-700/60 bg-slate-900/40 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-600'}`} />
-                <span className="whitespace-nowrap">
-                  Validar ({selectedUnvalidatedCount})
-                </span>
-              </button>
-
-              {/* 8. Informes / Comentarios (Turquesa) */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedResults.length === 1) {
-                    setSelectedCommentResultId(selectedResults[0]);
-                    const res = patientResults.find(r => r.id === selectedResults[0]);
-                    setAnalyteCommentDraft(res?.interpretation || '');
-                  } else if (patientResults.length > 0 && !selectedCommentResultId) {
-                    setSelectedCommentResultId(patientResults[0].id);
-                    setAnalyteCommentDraft(patientResults[0].interpretation || '');
-                  }
-                  setOrderGeneralComment(currentOrder?.notes || '');
-                  setShowCommentsModal(true);
-                }}
-                title="Agregar observaciones e informes a resultados individuales o a la orden"
-                className="shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
-              >
-                <MessageSquareText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="whitespace-nowrap">Comentarios</span>
-              </button>
-
-              {/* 9. Validar Todo (Verde) */}
-              <button
-                type="button"
-                disabled={!canModifyThisOrder || unvalidatedCount === 0}
-                onClick={() => {
-                  const unvalidated = patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
-                  if (unvalidated.length === 0) return;
-                  unvalidated.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
-                  setSelectedResults([]);
-                  notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
-                }}
-                title="Validar todos los analitos correspondientes de la orden"
-                className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-[11px] sm:text-xs font-bold transition-all ${
-                  unvalidatedCount > 0 && canModifyThisOrder
-                    ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
-                    : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <Check className={`w-3.5 h-3.5 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                <span className="whitespace-nowrap">Validar Todo</span>
-              </button>
-
-              {/* 10. Liberar (Azul-cian) */}
-              <button
-                type="button"
-                disabled={!canReleaseThisOrder || toReleaseCount === 0}
-                onClick={() => {
-                  const toRelease = patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO');
-                  if (toRelease.length === 0) return;
-                  toRelease.forEach(r => onUpdateResultStatus(r.id, 'LIBERADO'));
-                  setSelectedResults([]);
-                  notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
-                }}
-                title="Liberar formalmente resultados para entrega a médicos y pacientes"
-                className={`shrink-0 h-8 sm:h-9 px-3 sm:px-3.5 rounded-xl flex items-center gap-1.5 text-[11px] sm:text-xs font-black tracking-wide uppercase transition-all ${
-                  toReleaseCount > 0 && canReleaseThisOrder
-                    ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-                <span className="whitespace-nowrap">Liberar ({toReleaseCount})</span>
-              </button>
-
-            </div>
-          </div>
         </div>
 
         {/* Modal / Overlays for Advanced Functions */}
