@@ -49,7 +49,7 @@ const ResultValueInput: React.FC<{
 
   if (isValidated || !canEdit) {
     return (
-      <span className={`px-4 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base border ${
+      <span className={`px-2.5 py-0.5 rounded-lg font-mono font-black text-xs sm:text-sm border ${
         isValidated
           ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
           : 'border-slate-800 bg-slate-900/60 text-slate-400'
@@ -546,176 +546,123 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
-        {/* Rich Clinical Patient Header */}
-        <div className="px-6 py-3 bg-slate-950/80 border-b border-teal-500/20 flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500/20 to-emerald-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shadow-md">
-                 <UserCircle className="w-7 h-7" />
+        {/* Compact Clinical Patient Header (Optimized for Maximum Table Visibility) */}
+        <div className="px-3 py-1.5 bg-slate-950/90 border-b border-teal-500/20 flex flex-wrap items-center justify-between gap-2 shrink-0">
+           <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-teal-500/20 to-emerald-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shadow-sm shrink-0">
+                 <UserCircle className="w-3.5 h-3.5" />
               </div>
-              <div>
-                 <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-black text-white uppercase italic tracking-tight">{patientFullName}</h2>
-                    {currentOrder ? (
-                       currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE' ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
-                             <Zap className="w-3 h-3 fill-current" /> URGENTE
-                          </span>
-                       ) : (
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">
-                             {currentOrder.priority}
-                          </span>
-                       )
-                    ) : (
-                       <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[9px] font-bold uppercase tracking-widest">
-                          SIN ORDEN
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                 <span className="font-black text-white uppercase italic text-xs sm:text-sm">{patientFullName}</span>
+                 {currentOrder && (
+                    (currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE') ? (
+                       <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5 fill-current" /> STAT
                        </span>
-                    )}
-                 </div>
-
-                 <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-bold uppercase mt-1">
-                    <span className="flex items-center gap-1 text-teal-400"><Fingerprint className="w-3.5 h-3.5" />{patientNationalId}</span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-300">Orden: <strong className="text-white font-mono">{orderNumberDisplay}</strong></span>
-                    {currentOrder && (
-                       <>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-indigo-300">{patientAgeDisplay} / {patientGenderDisplay}</span>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-amber-300">🏥 {serviceOriginDisplay}</span>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-slate-400">{doctorDisplay}</span>
-                       </>
-                    )}
-                 </div>
+                    ) : (
+                       <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-widest">
+                          {currentOrder.priority}
+                       </span>
+                    )
+                 )}
+                 <span className="text-slate-600">•</span>
+                 <span className="text-teal-400 font-mono font-bold text-[10px]"><Fingerprint className="w-3 h-3 inline mr-0.5" />{patientNationalId}</span>
+                 <span className="text-slate-600">•</span>
+                 <span className="text-slate-300 text-[10px]">Orden: <strong className="text-white font-mono">{orderNumberDisplay}</strong></span>
+                 {currentOrder && (
+                    <>
+                       <span className="text-slate-600">•</span>
+                       <span className="text-indigo-300 text-[10px]">{patientAgeDisplay} / {patientGenderDisplay}</span>
+                       <span className="text-slate-600 hidden sm:inline">•</span>
+                       <span className="text-amber-300 text-[10px] hidden sm:inline">🏥 {serviceOriginDisplay}</span>
+                       <span className="text-slate-600 hidden md:inline">•</span>
+                       <span className="text-slate-400 text-[10px] hidden md:inline">{doctorDisplay}</span>
+                    </>
+                 )}
               </div>
            </div>
 
-           <div className="flex flex-wrap items-center gap-2.5">
-              <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/30 text-xs font-mono text-teal-300 flex items-center gap-2 shadow-inner">
-                 <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                  <span className="text-xs font-bold text-slate-200">Muestras: <strong className="text-teal-300">{specimensDisplay}</strong></span>
+           <div className="flex items-center gap-2">
+              <div className="hidden xl:flex px-2 py-0.5 rounded bg-slate-900 border border-teal-500/30 text-[10px] font-mono text-teal-300 items-center gap-1 shadow-inner">
+                 <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                 <span className="text-slate-300 truncate max-w-[200px]">Muestras: <strong className="text-teal-300">{specimensDisplay}</strong></span>
               </div>
 
               {/* Segmented Filter Bar for Analytes */}
-              <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 gap-1 shadow-md">
+              <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 gap-0.5 shadow-sm">
                  <button
                    type="button"
                    onClick={() => setAnalyteFilter('ALL')}
-                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
                      analyteFilter === 'ALL'
-                       ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
+                       ? 'bg-teal-500 text-slate-950 font-black shadow-sm'
                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
                    }`}
                    title="Mostrar todos los analitos de la orden"
                  >
                    <span>Todos</span>
-                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'ALL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.all}</span>
+                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'ALL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.all}</span>
                  </button>
 
                  <button
                    type="button"
                    onClick={() => setAnalyteFilter('PENDING')}
-                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
                      analyteFilter === 'PENDING'
-                       ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/20'
+                       ? 'bg-cyan-400 text-slate-950 font-black shadow-sm'
                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
                    }`}
-                   title="Filtrar analitos pendientes de ingresar o validar"
+                   title="Filtrar analitos pendientes"
                  >
-                   <span>Pendientes</span>
-                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'PENDING' ? 'bg-slate-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.pending}</span>
+                   <span>Pend.</span>
+                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'PENDING' ? 'bg-slate-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.pending}</span>
                  </button>
 
                  <button
                    type="button"
                    onClick={() => setAnalyteFilter('CRITICAL')}
-                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
                      analyteFilter === 'CRITICAL'
-                       ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 animate-pulse'
+                       ? 'bg-rose-500 text-white font-black shadow-sm animate-pulse'
                        : 'text-rose-300 hover:text-rose-200 hover:bg-rose-500/10'
                    }`}
-                   title="Filtrar valores críticos / de pánico clínico"
+                   title="Filtrar valores críticos"
                  >
-                   <span>🚨 Críticos</span>
-                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'CRITICAL' ? 'bg-white text-rose-600' : 'bg-rose-500/20 text-rose-300'}`}>{analyteCounts.critical}</span>
+                   <span>🚨 Crít.</span>
+                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'CRITICAL' ? 'bg-white text-rose-600' : 'bg-rose-500/20 text-rose-300'}`}>{analyteCounts.critical}</span>
                  </button>
 
                  <button
                    type="button"
                    onClick={() => setAnalyteFilter('VALIDATED')}
-                   className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                   className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
                      analyteFilter === 'VALIDATED'
-                       ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                       ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
                    }`}
-                   title="Filtrar analitos con validación técnica o médica"
+                   title="Filtrar analitos validados"
                  >
-                   <span>✓ Validados</span>
-                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${analyteFilter === 'VALIDATED' ? 'bg-slate-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.validated}</span>
+                   <span>✓ Val.</span>
+                   <span className={`text-[9px] px-1 rounded-full font-mono font-bold ${analyteFilter === 'VALIDATED' ? 'bg-slate-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>{analyteCounts.validated}</span>
                  </button>
               </div>
            </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-2 space-y-1.5 custom-scrollbar">
 
-           {/* Cinta de Métricas Clínicas de la Orden */}
-           <div className="p-3 bg-slate-900/90 backdrop-blur-2xl border border-teal-500/30 rounded-2xl flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 shadow-xl">
+           {/* Banner de Protección por Propiedad de la Orden (Normativa LIS/HIS) */}
+           {!canModifyThisOrder && (
+             <div className="p-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center space-x-2 text-amber-200 text-xs shadow-sm">
+               <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+               <div className="text-[10px]">
+                 <strong className="text-white mr-1.5 font-bold">🔒 Modo lectura:</strong>
+                 <span>Esta orden pertenece a otro Tecnólogo Médico. Solo su dueño o la Jefatura pueden modificarla.</span>
+               </div>
+             </div>
+           )}
 
-              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl flex items-center justify-between">
-                 <div>
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">Pendientes</span>
-                    <span className="text-xl font-black text-cyan-300 font-mono">{patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO').length} <span className="text-xs text-slate-400 font-normal">/ {patientResults.length}</span></span>
-                 </div>
-                 <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold">
-                    <Microscope className="w-5 h-5" />
-                 </div>
-              </div>
-
-              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-rose-500/30 rounded-xl flex items-center justify-between">
-                 <div>
-                    <span className="text-xs font-bold text-rose-300 uppercase tracking-wider block">Valores de Pánico</span>
-                    <span className="text-xl font-black text-rose-400 font-mono">{patientResults.filter(r => r.flag?.includes('CRITICO')).length} <span className="text-xs text-rose-300/80 font-normal">Críticos</span></span>
-                 </div>
-                 <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
-                    <ShieldAlert className="w-5 h-5 animate-pulse" />
-                 </div>
-              </div>
-
-              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-amber-500/30 rounded-xl flex items-center justify-between">
-                 <div>
-                    <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Prioridad de Atención</span>
-                    <span className="text-sm sm:text-base font-black text-amber-300">{currentOrder?.priority === 'STAT' || currentOrder?.priority === 'URGENTE' ? '🚨 STAT URGENTE' : 'RUTINA NORMAL'}</span>
-                 </div>
-                 <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
-                    <Zap className="w-5 h-5" />
-                 </div>
-              </div>
-
-              <div className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-950/80 border border-teal-500/30 rounded-xl flex items-center justify-between">
-                 <div>
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">Tiempo Respuesta (TAT)</span>
-                    <span className={`text-xl font-black font-mono ${tatData.colorClass}`}>{tatData.value} <span className="text-xs text-slate-400 font-normal">{tatData.sub}</span></span>
-                 </div>
-                 <div className="w-9 h-9 rounded-xl bg-teal-400/20 text-teal-300 flex items-center justify-center font-bold">
-                    <Timer className="w-5 h-5" />
-                 </div>
-              </div>
-
-            </div>
-
-            {/* Banner de Protección por Propiedad de la Orden (Normativa LIS/HIS) */}
-            {!canModifyThisOrder && (
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center space-x-3 text-amber-200 text-xs shadow-md">
-                <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <strong className="text-white block font-bold">🔒 Expediente Protegido por Normativa LIS/HIS</strong>
-                  <span>Esta orden pertenece a otro Tecnólogo Médico. Puede consultar sus resultados y trazabilidad en modo solo lectura, pero únicamente su dueño o la Jefatura de Laboratorio pueden modificarla, validarla o desvalidarla.</span>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Card View (< md) Grouped by Clinical Area */}
+           {/* Mobile Card View (< md) Grouped by Clinical Area */}
            <div className="block md:hidden space-y-4">
               {groupedResults.map(({ area, results: areaResults }) => (
                 <div key={`mob-area-${area.id}`} className="space-y-3">
@@ -811,7 +758,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <table className="w-full text-left text-xs border-collapse">
                  <thead className="bg-slate-950/95 text-slate-300 font-black uppercase text-xs tracking-wider border-b-2 border-teal-500/40 sticky top-0 z-20 backdrop-blur-md">
                     <tr>
-                      <th className="p-4 w-12 text-center">
+                      <th className="py-1.5 px-2 w-10 text-center">
                         <button
                           onClick={toggleSelectAll}
                           className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
@@ -825,12 +772,12 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       </th>
-                      <th className="p-4">Analito / Examen</th>
-                      <th className="p-4 text-center">Resultado Clínico</th>
-                      <th className="p-4 text-center">Unidad</th>
-                      <th className="p-4">Intervalo de Referencia</th>
-                      <th className="p-4 text-center">Origen / Equipo</th>
-                      <th className="p-4 text-center">Estado</th>
+                      <th className="py-1.5 px-2.5">Analito / Examen</th>
+                      <th className="py-1.5 px-2 text-center">Resultado Clínico</th>
+                      <th className="py-1.5 px-2 text-center">Unidad</th>
+                      <th className="py-1.5 px-2.5">Intervalo de Referencia</th>
+                      <th className="py-1.5 px-2 text-center">Origen / Equipo</th>
+                      <th className="py-1.5 px-2 text-center">Estado</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-800">
@@ -918,7 +865,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               : 'border-l-transparent hover:bg-slate-900/80'
                           }`}
                         >
-                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setSelectedResults(prev => prev.includes(res.id) ? prev.filter(id => id !== res.id) : [...prev, res.id])}
                                 className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center mx-auto cursor-pointer ${
@@ -930,7 +877,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </button>
                            </td>
-                           <td className="p-4">
+                           <td className="py-1 px-2.5">
                               <div className="flex items-center gap-2">
                                  {isValidated && (
                                    <span title="Resultado Validado" className="shrink-0">
@@ -956,7 +903,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                 )}
                               </div>
                            </td>
-                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                               <ResultValueInput
                                 result={res}
                                 isValidated={isValidated}
@@ -964,11 +911,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                 onSave={onUpdateResultValue}
                               />
                            </td>
-                           <td className="p-4 text-center text-slate-300 font-mono text-xs font-bold uppercase">{res.unit || '—'}</td>
-                           <td className="p-4 text-slate-200 font-mono text-xs">
+                           <td className="py-1 px-2 text-center text-slate-300 font-mono text-xs font-bold uppercase">{res.unit || '—'}</td>
+                           <td className="py-1 px-2.5 text-slate-200 font-mono text-xs">
                               <div className="font-bold">{res.refRangeText || 'Normal'}</div>
                               {/* Visual Range Gauge Slider Bar */}
-                              <div className="w-32 h-2 bg-slate-900 border border-slate-700 rounded-full mt-1.5 relative overflow-hidden">
+                              <div className="w-24 h-1.5 bg-slate-900 border border-slate-700 rounded-full mt-0.5 relative overflow-hidden">
                                  <div className="absolute inset-y-0 bg-emerald-500/30 border-x border-emerald-500/60" style={{ left: '20%', width: '60%' }} />
                                  <div
                                    className={`absolute top-0 bottom-0 w-2.5 rounded-full border border-slate-950 ${
@@ -986,7 +933,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                  />
                               </div>
                            </td>
-                           <td className="p-4 text-center">
+                           <td className="py-1 px-2 text-center">
                               {res.source?.includes('MIDDLEWARE') && !isValidated ? (
                                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${isLate ? 'border-amber-500/40 bg-amber-500/10 text-amber-300' : 'border-teal-500/30 bg-teal-500/10 text-teal-300'}`}>
                                    <Timer className={`w-3.5 h-3.5 ${isLate ? 'animate-pulse' : ''}`} />
@@ -997,7 +944,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                               )}
                            </td>
                            {/* Dedicated ESTADO / VALIDACIÓN Column */}
-                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                           <td className="py-1 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                               {isValidated ? (
                                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs font-black uppercase rounded-xl shadow-md">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -1091,8 +1038,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         </div>
 
         {/* Barra de Gestión de Resultados y Acciones Rápidas (Encabezado + 10 Acciones en 1 Sola Fila) */}
-        <div className="py-2.5 px-2 sm:px-6 shrink-0 border-t border-cyan-500/30 bg-[#020924] z-20 shadow-2xl isolate">
-          <div className="bg-gradient-to-b from-[#030d2a]/95 via-[#020b22]/95 to-[#010617]/95 border border-cyan-500/40 rounded-2xl p-2.5 sm:p-3 shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col gap-2.5">
+        <div className="py-1.5 px-2 sm:px-4 shrink-0 border-t border-cyan-500/30 bg-[#020924] z-20 shadow-2xl isolate">
+          <div className="bg-gradient-to-b from-[#030d2a]/95 via-[#020b22]/95 to-[#010617]/95 border border-cyan-500/40 rounded-xl p-1.5 sm:p-2 shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col gap-1.5">
 
             {/* 1. Encabezado del Módulo */}
             <div className="flex items-center justify-between flex-wrap gap-2 px-1">
@@ -1136,18 +1083,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 </div>
               </div>
 
-              {/* Orden activa e identificador */}
-              <div className="hidden lg:flex items-center gap-2 text-xs">
-                <span className="text-slate-400 font-mono">Orden:</span>
-                <span className="font-mono font-bold text-cyan-300 px-2 py-0.5 rounded bg-blue-950/80 border border-cyan-500/30">
-                  #{orderNumberDisplay}
-                </span>
-                {currentPatient && (
-                  <span className="text-slate-300 font-semibold truncate max-w-[200px]">
-                    {currentPatient.firstName} {currentPatient.lastName}
-                  </span>
-                )}
-              </div>
+
             </div>
 
             {/* 2. Barra de acciones en una sola fila (Horizontal compacta para App/Móvil y Desktop) */}
