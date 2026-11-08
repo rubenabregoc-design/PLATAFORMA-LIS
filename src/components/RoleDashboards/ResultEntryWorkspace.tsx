@@ -13,7 +13,8 @@ import {
   Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
   ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
   Microscope, AlertTriangle, Check, Lock, ShieldCheck,
-  FlaskConical, MessageSquareText, Undo2
+  FlaskConical, MessageSquareText, Undo2,
+  Filter, Clock, Info, LayoutGrid, FileText
 } from 'lucide-react';
 import { notifyToast } from '../../utils/toastNotification';
 
