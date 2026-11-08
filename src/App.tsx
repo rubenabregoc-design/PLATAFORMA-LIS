@@ -1203,6 +1203,7 @@ export default function App() {
                 onUpdateInterpretation={handleUpdateInterpretation}
                 onUpdateResultStatus={(resultId, status) => setResults((prev) => prev.map((r) => r.id === resultId ? { ...r, status } : r))}
                 onOpenPdf={setPreviewOrderId}
+                onUpdateOrderNotes={(orderId, notes) => setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, notes } : o))}
                 allOrders={orders}
                 allPatients={patients}
               />

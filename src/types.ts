@@ -159,6 +159,7 @@ export interface Order {
   expandedTestIds?: string[];
   assignedTechMedId?: string; // TM asignado / propietario de la orden
   assignedTechId?: string;    // TC asignado (flebotomista / toma de muestra)
+  notes?: string;             // Observaciones e informe general de la orden
 }
 
 export interface Specimen {
