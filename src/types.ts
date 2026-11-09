@@ -1,5 +1,6 @@
 // Re-exports from database.types — keep front-end types aligned with DB
 export type { DbResultFlag, DbResultStatus, DbAuditAction } from './database.types';
+export * from './types/licensing';
 
 export type Role = 
   | 'owner'            // Dueño / Gerente de laboratorio
@@ -49,6 +50,7 @@ export interface Branch {
   code: string;
   address: string;
   phone: string;
+  license?: BranchLicense;
 }
 
 export interface User {

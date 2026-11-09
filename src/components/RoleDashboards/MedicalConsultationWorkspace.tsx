@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Order, TestResult } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
+import { useLicencias } from '../../hooks/useLicencias';
 import { MOCK_TEST_CATALOG } from '../../data/mockData';
 import {
   Stethoscope, User, Calendar, Clock, AlertTriangle, CheckCircle2,
@@ -1773,7 +1774,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
               { id: 'recetas',     label: 'Medicamentos & Farmacia (Rx)',   icon: Pill,          color: 'amber',  badge: activePatient.prescriptions.length || null },
               { id: 'laboratorio', label: 'Laboratorio LIS',               icon: HeartPulse,    color: 'teal',   badge: activePatient.labOrders.length || null },
               { id: 'imagenes',    label: 'Imágenes RIS / PACS',           icon: Zap,           color: 'sky',    badge: activePatient.imagingOrders.length || null },
-              { id: 'bloodbank',   label: 'Banco de Sangre & Transfusiones', icon: Droplets,    color: 'rose',   badge: (activePatient.bloodOrders?.length) || null },
+              ...(canAccessSystem('BANCO_SANGRE') ? [{ id: 'bloodbank' as const, label: 'Banco de Sangre & Transfusiones', icon: Droplets, color: 'rose' as const, badge: (activePatient.bloodOrders?.length) || null }] : []),
               { id: 'incapacidad', label: 'Incapacidad Médica',            icon: FileCheck,     color: 'indigo', badge: activePatient.medicalLeave ? 1 : null },
               { id: 'referencia',  label: 'Interconsulta / Referencia',    icon: Share2,        color: 'indigo', badge: activePatient.referral ? 1 : null },
               { id: 'historial',   label: 'Historial & Labs Previos',      icon: Clock,         color: 'indigo', badge: null },

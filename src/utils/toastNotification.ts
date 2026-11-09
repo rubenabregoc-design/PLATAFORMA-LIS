@@ -17,3 +17,8 @@ export const notifyToast = (
     );
   }
 };
+
+notifyToast.success = (message: string, duration = 3500) => notifyToast(message, 'success', duration);
+notifyToast.error = (message: string, duration = 3500) => notifyToast(message, 'error', duration);
+notifyToast.warning = (message: string, duration = 3500) => notifyToast(message, 'warning', duration);
+notifyToast.info = (message: string, duration = 3500) => notifyToast(message, 'info', duration);

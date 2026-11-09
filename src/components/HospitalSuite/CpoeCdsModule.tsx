@@ -7,10 +7,12 @@ import {
 import { useHisStore } from '../../store/useHisStore';
 import { useLisStore } from '../../store/useLisStore';
 import { Order } from '../../types';
+import { useLicencias } from '../../hooks/useLicencias';
 
 export const CpoeCdsModule: React.FC = () => {
   const { admissions, selectedAdmissionId, addMedicationOrder } = useHisStore();
   const { addOrder, currentUser } = useLisStore();
+  const { canAccessSystem } = useLicencias();
 
   const activeAdmission = admissions.find((a) => a.id === selectedAdmissionId) || admissions[0];
 

@@ -3,8 +3,9 @@ import { Patient, Order, TestResult, Role, User as UserType } from '../types';
 import {
   User, FileText, Calendar, ChevronRight, Search,
   Clock, CheckCircle2, Heart, MapPin, Phone, Printer,
-  ClipboardList, TestTube2, ShieldCheck, AlertCircle
+  ClipboardList, TestTube2, ShieldCheck, AlertCircle, Pencil, X, Save
 } from 'lucide-react';
+import { useLisStore } from '../store/useLisStore';
 
 interface PatientResultsPortalProps {
   patients: Patient[];
@@ -26,6 +27,51 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
   language = 'ES'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { updatePatient } = useLisStore();
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    nationalId: '',
+    firstName: '',
+    lastName: '',
+    dob: '',
+    gender: 'M' as 'M' | 'F',
+    phone: '',
+    email: '',
+    address: ''
+  });
+
+  const handleOpenEditModal = (p: Patient) => {
+    setEditingPatient(p);
+    setEditFormData({
+      nationalId: p.nationalId,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      dob: p.dob,
+      gender: p.gender,
+      phone: p.phone || '',
+      email: p.email || '',
+      address: p.address || ''
+    });
+  };
+
+  const handleSavePatientCorrection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPatient) return;
+    if (!editFormData.nationalId.trim()) return;
+
+    updatePatient(editingPatient.id, {
+      nationalId: editFormData.nationalId.trim(),
+      firstName: editFormData.firstName.trim(),
+      lastName: editFormData.lastName.trim(),
+      dob: editFormData.dob,
+      gender: editFormData.gender,
+      phone: editFormData.phone.trim(),
+      email: editFormData.email.trim(),
+      address: editFormData.address.trim()
+    });
+
+    setEditingPatient(null);
+  };
 
   const calculateAge = (dob: string) => {
     if (!dob) return '---';
@@ -205,11 +251,22 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex flex-col items-end gap-1.5">
                     <div className="flex items-center justify-end space-x-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                       <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
                       <span className="text-[10px] font-black text-emerald-300 uppercase">{language === 'EN' ? 'Verified' : 'Verificado'}</span>
                     </div>
+                    {currentRole !== 'patient' && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(patient)}
+                        className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                        title="Corregir cédula, nombre o datos del paciente"
+                      >
+                        <Pencil className="w-3 h-3 text-amber-400" />
+                        <span>Corregir Cédula</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -346,6 +403,141 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
           );
         })}
       </div>
+      {/* Modal de Corrección de Cédula y Datos Demográficos */}
+      {editingPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#03091e] border border-cyan-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Corregir Cédula & Expediente Clínico</h3>
+                  <p className="text-[10px] text-slate-400">Actualiza la cédula y sincroniza las órdenes asociadas</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingPatient(null)}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePatientCorrection} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10px] font-black uppercase text-amber-300 block mb-1">
+                  Cédula / Documento de Identidad Oficial *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.nationalId}
+                  onChange={(e) => setEditFormData({ ...editFormData, nationalId: e.target.value })}
+                  placeholder="Ej. 8-812-4432"
+                  className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-white font-mono font-black text-sm focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Nombre(s) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.firstName}
+                    onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3 py-2 text-white font-bold focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Apellido(s) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.lastName}
+                    onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3 py-2 text-white font-bold focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Fecha Nacimiento</label>
+                  <input
+                    type="date"
+                    value={editFormData.dob}
+                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-2.5 py-1.5 text-white font-bold focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Sexo Biológico</label>
+                  <select
+                    value={editFormData.gender}
+                    onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value as any })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-2.5 py-1.5 text-white font-bold focus:border-cyan-400 focus:outline-none cursor-pointer"
+                  >
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3 py-1.5 text-white font-mono focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-300 block mb-1">Dirección Residencial</label>
+                <input
+                  type="text"
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingPatient(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold cursor-pointer transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl font-black shadow-lg shadow-amber-500/20 cursor-pointer flex items-center gap-1.5 transition"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Guardar Corrección</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

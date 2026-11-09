@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Role, Tenant, Branch, Order, TestResult, Patient, MiddlewareMessageLog, Specimen, User, AnalyzerTestMapping } from './types';
 import {
   MOCK_TENANTS,
@@ -16,8 +17,10 @@ import {
 import { useLisStore } from './store/useLisStore';
 import { SupabaseService } from './services/SupabaseService';
 import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
+import { useLicencias } from './hooks/useLicencias';
+import { ensureBranchesHaveLicenses } from './services/licensingCatalog';
 import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
-import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck, Settings } from 'lucide-react';
+import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck, Settings, MessageSquare, Receipt, FlaskConical, HeartPulse, Bed, FileText, BarChart3, Grid } from 'lucide-react';
 import { getTimeBasedGreeting } from './utils/greeting';
 import { getTabLabel, getBranchName, getRoleLabel } from './utils/i18n';
 import { LoginScreen } from './components/LoginScreen';
@@ -165,7 +168,7 @@ export default function App() {
         console.error('Error cargando tenants:', e);
       }
     }
-    return MOCK_TENANTS;
+    return ensureBranchesHaveLicenses(MOCK_TENANTS);
   };
 
   // Tenant, Branch and User State (Instant zero-flicker restoration)
@@ -234,7 +237,11 @@ export default function App() {
   const [autoLockReason, setAutoLockReason] = useState<'inactivity' | 'manual' | null>(null);
   const [unlockPinInput, setUnlockPinInput] = useState<string>('');
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [isMoreModulesOpen, setIsMoreModulesOpen] = useState<boolean>(false);
+  const [moreMenuCoords, setMoreMenuCoords] = useState<{ top: number; right: number } | null>(null);
+  const moreModulesBtnRef = useRef<HTMLButtonElement | null>(null);
   const [globalToast, setGlobalToast] = useState<{ message: string; type: string } | null>(null);
+  const { can, canAccessTab, canAccessSystem, licenseEvaluation, isReadOnly, isUserLimitReached } = useLicencias();
 
   useEffect(() => {
     const handleToast = (e: Event) => {
@@ -640,7 +647,8 @@ export default function App() {
   const pdfResults = results.filter((r) => r.orderId === pdfOrder?.id);
 
   const allowedTabsForRole = ALLOWED_TABS_PER_ROLE[currentRole] || ['dashboard'];
-  const isTabAuthorized = showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab);
+  const isTabLicensed = activeTab === 'dashboard' || activeTab === 'superadmin' || canAccessTab(activeTab);
+  const isTabAuthorized = (showAllModules || activeTab === 'dashboard' || allowedTabsForRole.includes(activeTab)) && isTabLicensed;
 
   // Auto-redirect unauthorized tab to user's primary default tab (Must be placed before any conditional returns to obey React Rules of Hooks)
   useEffect(() => {
@@ -835,7 +843,7 @@ export default function App() {
   }
 
   return (
-    <div className={`${activeTab === 'validation' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen overflow-x-hidden'} bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative selection:bg-teal-500/30`}>
+    <div className={`${activeTab === 'validation' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-[100dvh] overflow-x-hidden'} bg-[#020617] text-slate-100 font-sans antialiased flex flex-col relative selection:bg-teal-500/30`}>
       {/* Dynamic Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px]"></div>
@@ -867,28 +875,34 @@ export default function App() {
 
               {/* Left: Platform Badge & Module Name */}
               <div className="flex items-center space-x-2 shrink-0 min-w-0 max-w-full md:max-w-md lg:max-w-lg">
-                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border flex items-center space-x-1 shrink-0 ${
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 shrink-0 shadow-sm ${
                   activePlatformCategory === 'lis'
-                    ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                    ? 'bg-sky-500/15 text-sky-300 border-sky-500/40 shadow-sky-500/10'
                     : activePlatformCategory === 'his'
-                    ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
+                    ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40 shadow-indigo-500/10'
                     : activePlatformCategory === 'bloodbank'
-                    ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                    : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                    ? 'bg-rose-500/15 text-rose-300 border-rose-500/40 shadow-rose-500/10'
+                    : 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-amber-500/10'
                 }`}>
-                  <span>
-                    {activePlatformCategory === 'lis' && '🔬 LIS'}
-                    {activePlatformCategory === 'his' && '🏥 HIS'}
-                    {activePlatformCategory === 'bloodbank' && '🩸 SANGRE'}
-                    {activePlatformCategory === 'bi' && '💼 GESTIÓN'}
+                  {activePlatformCategory === 'lis' && <Microscope className="w-4 h-4 text-cyan-400" />}
+                  {activePlatformCategory === 'his' && <Building2 className="w-4 h-4 text-indigo-400" />}
+                  {activePlatformCategory === 'bloodbank' && <Droplets className="w-4 h-4 text-rose-400" />}
+                  {activePlatformCategory === 'bi' && <BarChart3 className="w-4 h-4 text-amber-400" />}
+                  <span className="font-black">
+                    {activePlatformCategory === 'lis' && 'LIS'}
+                    {activePlatformCategory === 'his' && 'HIS'}
+                    {activePlatformCategory === 'bloodbank' && 'BANCO SANGRE'}
+                    {activePlatformCategory === 'bi' && 'GESTIÓN'}
                   </span>
                 </span>
 
                 <span className="text-slate-600 font-bold">•</span>
 
-                <span className="font-semibold text-slate-100 text-xs tracking-tight truncate">
-                  <span className="text-slate-400 font-normal hidden sm:inline">{language === 'EN' ? 'Module: ' : 'Módulo: '}</span>
-                  <span className="text-white">
+                <span className="font-bold text-slate-100 text-sm tracking-tight truncate flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold hidden sm:inline text-xs uppercase tracking-wider">
+                    {language === 'EN' ? 'Module:' : 'Módulo:'}
+                  </span>
+                  <span className="text-white font-black text-sm tracking-tight">
                     {getTabLabel(currentTabObj.id, currentTabObj.label, language)}
                   </span>
                 </span>
@@ -900,93 +914,248 @@ export default function App() {
                   {language === 'EN' ? 'QUICK ACCESS:' : 'ACCESOS RÁPIDOS:'}
                 </span>
 
+                {can('LIS', 'admision_pos') && (
                 <button
                   onClick={() => setActiveTab('billing')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeTab === 'billing'
-                      ? 'bg-sky-500/15 border-sky-500/40 text-sky-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
+                      ? 'bg-sky-500/20 border-sky-400 text-sky-200 shadow-sm shadow-sky-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
                   }`}
                   title={language === 'EN' ? "POS Admission & Invoicing" : "Admisión & Facturación POS"}
                 >
-                  <span>{language === 'EN' ? '🔬 POS Admission' : '🔬 Admisión POS'}</span>
+                  <Receipt className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>{language === 'EN' ? 'POS Admission' : 'Admisión POS'}</span>
                 </button>
+                )}
 
+                {can('LIS', 'validacion_medica') && (
                 <button
                   onClick={() => setActiveTab('validation')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeTab === 'validation'
-                      ? 'bg-sky-500/15 border-sky-500/40 text-sky-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-sm shadow-emerald-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
                   }`}
                   title={language === 'EN' ? "Results & Medical Validation" : "Resultados & Validación Médica"}
                 >
-                  <span>{language === 'EN' ? '🧪 Validation' : '🧪 Validación'}</span>
+                  <FlaskConical className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{language === 'EN' ? 'Validation' : 'Validación'}</span>
                 </button>
+                )}
 
+                {can('HIS', 'command_center') && (
                 <button
                   onClick={() => setActiveTab('his_command')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeTab === 'his_command'
-                      ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
+                      ? 'bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-sm shadow-indigo-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
                   }`}
                   title={language === 'EN' ? "Hospital Command Center HIS" : "Command Center Hospitalario HIS"}
                 >
-                  <span>{language === 'EN' ? '🏥 HIS Command' : '🏥 Command HIS'}</span>
+                  <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>{language === 'EN' ? 'HIS Command' : 'Command HIS'}</span>
                 </button>
+                )}
 
+                {can('HIS', 'urgencias_triage') && (
                 <button
                   onClick={() => setActiveTab('his_triage')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
+                  className={`hidden md:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
                     activeTab === 'his_triage'
-                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
+                      ? 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
                   }`}
                   title={language === 'EN' ? "Manchester Emergency Triage" : "Triage Urgencias Manchester"}
                 >
-                  <span>{language === 'EN' ? '🫀 ER / Triage' : '🫀 Urgencias'}</span>
+                  <HeartPulse className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{language === 'EN' ? 'ER / Triage' : 'Urgencias'}</span>
                 </button>
+                )}
 
-                <button
-                  onClick={() => setActiveTab('his_beds')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
-                    activeTab === 'his_beds'
-                      ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
-                  }`}
-                  title={language === 'EN' ? "Bed Census & Map" : "Censo & Mapa de Camas"}
-                >
-                  <span>{language === 'EN' ? '🛏️ Beds' : '🛏️ Camas'}</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('his_ehr')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
-                    activeTab === 'his_ehr'
-                      ? 'bg-slate-700 border-slate-600 text-white font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
-                  }`}
-                  title={language === 'EN' ? "Electronic Health Record EHR" : "Historia Clínica EHR"}
-                >
-                  <span>📋 EHR</span>
-                </button>
-
+                {canAccessSystem('BANCO_SANGRE') && (
                 <button
                   onClick={() => setActiveTab('bloodbank')}
-                  className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] transition-colors cursor-pointer flex items-center space-x-1 shrink-0 ${
+                  className={`hidden lg:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
                     activeTab === 'bloodbank'
-                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-200 font-semibold'
-                      : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50'
+                      ? 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
                   }`}
                   title={language === 'EN' ? "Blood Bank Center" : "Centro Banco de Sangre"}
                 >
-                  <span>{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
+                  <Droplets className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{language === 'EN' ? 'Blood Bank' : 'Banco Sangre'}</span>
                 </button>
+                )}
 
-                <span className="text-slate-300 font-medium bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-lg text-[11px] shrink-0">
-                  {getBranchName(currentBranch?.name, language)}
-                </span>
+                {can('HIS', 'gestion_camas') && (
+                <button
+                  onClick={() => setActiveTab('his_beds')}
+                  className={`hidden xl:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
+                    activeTab === 'his_beds'
+                      ? 'bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-sm shadow-indigo-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
+                  }`}
+                  title={language === 'EN' ? "Bed Census & Map" : "Censo & Mapa de Camas"}
+                >
+                  <Bed className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>{language === 'EN' ? 'Beds' : 'Camas'}</span>
+                </button>
+                )}
+
+                {can('HIS', 'historia_clinica_ehr') && (
+                <button
+                  onClick={() => setActiveTab('his_ehr')}
+                  className={`hidden 2xl:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
+                    activeTab === 'his_ehr'
+                      ? 'bg-teal-500/20 border-teal-400 text-teal-200 shadow-sm shadow-teal-500/20'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
+                  }`}
+                  title={language === 'EN' ? "Electronic Health Record EHR" : "Historia Clínica EHR"}
+                >
+                  <FileText className="w-4 h-4 text-teal-400 shrink-0" />
+                  <span>EHR</span>
+                </button>
+                )}
+
+                {/* Menú Interactivo "Más ▾" para Acceso Directo a Todos los Módulos */}
+                <div className="relative shrink-0">
+                  <button
+                    ref={moreModulesBtnRef}
+                    type="button"
+                    onClick={() => {
+                      if (!isMoreModulesOpen && moreModulesBtnRef.current) {
+                        const rect = moreModulesBtnRef.current.getBoundingClientRect();
+                        setMoreMenuCoords({
+                          top: rect.bottom + 8,
+                          right: Math.max(12, window.innerWidth - rect.right)
+                        });
+                        setIsMoreModulesOpen(true);
+                      } else {
+                        setIsMoreModulesOpen(false);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border font-bold text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isMoreModulesOpen
+                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400'
+                        : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
+                    }`}
+                    title={language === 'EN' ? "Explore Clinical Suites & Modules" : "Explorar Módulos y Suites Clínicas"}
+                  >
+                    <span>{language === 'EN' ? 'More ▾' : 'Más ▾'}</span>
+                  </button>
+
+                  {/* Renderizado vía Portal en document.body para evitar cortes por overflow */}
+                  {isMoreModulesOpen && moreMenuCoords && typeof document !== 'undefined' && createPortal(
+                    <>
+                      {/* Backdrop transparente para cerrar al hacer clic afuera */}
+                      <div
+                        className="fixed inset-0 z-[99998] bg-black/30 backdrop-blur-[1px]"
+                        onClick={() => setIsMoreModulesOpen(false)}
+                      />
+                      <div
+                        style={{ top: `${moreMenuCoords.top}px`, right: `${moreMenuCoords.right}px` }}
+                        className="fixed w-80 bg-[#02081d] border border-cyan-500/40 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-2.5 z-[99999] space-y-1.5 backdrop-blur-2xl ring-1 ring-cyan-500/30 animate-in fade-in zoom-in-95 duration-150"
+                      >
+                        <div className="px-3 py-1.5 text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider border-b border-blue-900/60 flex items-center justify-between">
+                          <span>{language === 'EN' ? 'Clinical Navigation' : 'Módulos Clínicos LIS / HIS'}</span>
+                          <span className="text-[9px] text-slate-500">AbregoTech</span>
+                        </div>
+
+                        <button
+                          onClick={() => { setActiveTab('his_triage'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0">
+                            <HeartPulse className="w-4 h-4 text-rose-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'ER / Triage' : 'Urgencias & Triage'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Clasificación Manchester / ESI</span>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => { setActiveTab('bloodbank'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0">
+                            <Droplets className="w-4 h-4 text-red-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'Blood Bank' : 'Banco de Sangre'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Medicina Transfusional & Donantes</span>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => { setActiveTab('his_beds'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                            <Bed className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'Bed Census & Map' : 'Censo & Mapa de Camas'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Gestión visual ADT hospitalaria</span>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => { setActiveTab('his_ehr'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4 text-teal-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'Electronic Health Record' : 'Historia Clínica EHR'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Expediente unificado del paciente</span>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => { setActiveTab('shifts'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                            <Calendar className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'Appointments & Shifts' : 'Turnos & Citas'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Agenda médica y turnos de personal</span>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => { setActiveTab('qc'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0">
+                            <BarChart3 className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">{language === 'EN' ? 'Quality Control QC' : 'Control de Calidad QC'}</span>
+                            <span className="text-[10px] text-slate-400 truncate">Reglas Westgard & Levey-Jennings</span>
+                          </div>
+                        </button>
+                      </div>
+                    </>,
+                    document.body
+                  )}
+                </div>
+
+                {/* Sede Operativa Activa */}
+                <button
+                  type="button"
+                  onClick={() => setIsBranchModalOpen(true)}
+                  title={language === 'EN' ? "Switch Operating Branch" : "Cambiar Sede Operativa"}
+                  className="text-slate-200 hover:text-white font-bold bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 px-3 py-1.5 rounded-xl text-xs sm:text-[13px] shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <span>{getBranchName(currentBranch?.name, language)}</span>
+                </button>
               </div>
 
             </div>
@@ -1001,6 +1170,69 @@ export default function App() {
         {isLoading ? (
           <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <SkeletonLoader />
+          </div>
+        ) : !isTabLicensed ? (
+          /* 403 Clinical Licensing Guard: Módulo no contratado para esta sede */
+          <div className="max-w-2xl mx-auto my-12 p-8 bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl space-y-6 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-400 rounded-3xl border border-amber-500/30 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] sm:text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                {language === 'EN' ? '403 Feature Not Contracted' : '403 Módulo No Contratado en esta Sede'}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                {language === 'EN' ? 'Module Not Included in Branch License' : 'Módulo No Incluido en su Licencia'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                {language === 'EN' ? (
+                  <>The branch <strong className="text-cyan-300">{currentBranch?.name || 'Active Branch'}</strong> is operating under plan <strong className="text-amber-300">{currentBranch?.license?.planPresetId || 'Standard'}</strong>, which does not include access to <span className="font-mono text-cyan-300 uppercase font-bold">{activeTab}</span>.</>
+                ) : (
+                  <>La sede <strong className="text-cyan-300">{currentBranch?.name || 'Sede activa'}</strong> opera con el plan <strong className="text-amber-300">{currentBranch?.license?.planPresetId || 'Estándar'}</strong>, el cual no incluye el módulo <span className="font-mono text-cyan-300 uppercase font-bold">{activeTab}</span>.</>
+                )}
+              </p>
+            </div>
+
+            {/* Tarjeta de Contacto Comercial AbregoTech */}
+            <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 text-left space-y-2.5">
+              <div className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'EN' ? 'To activate or contract this module:' : 'Para contratar o habilitar este módulo:'}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-200">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>AbregoTech Solutions S.A.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span className="font-mono text-cyan-300">ventas@abregotech.com</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Atención Panamá: +507 264-5500</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>www.abregotech.com</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-cyan-500/20 cursor-pointer"
+              >
+                {language === 'EN' ? 'Back to Dashboard' : 'Volver al Dashboard'}
+              </button>
+              <button
+                onClick={() => setIsBranchModalOpen(true)}
+                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition border border-slate-700 cursor-pointer"
+              >
+                {language === 'EN' ? 'Switch Branch' : 'Cambiar de Sede'}
+              </button>
+            </div>
           </div>
         ) : !isTabAuthorized ? (
           /* 403 RBAC Access Denied Security Screen */
@@ -1035,12 +1267,13 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className={`max-w-[1920px] w-full mx-auto min-w-0 ${activeTab === 'validation' ? 'p-1 sm:p-1.5 h-full flex flex-col overflow-hidden flex-1' : 'p-2 sm:p-4 lg:p-6 overflow-x-hidden'}`}>
+          <div className={`max-w-[1920px] w-full mx-auto min-w-0 ${activeTab === 'validation' ? 'p-0 sm:p-1 h-full flex flex-col overflow-hidden flex-1 min-h-0' : 'p-2 sm:p-4 lg:p-6 overflow-x-hidden'}`}>
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 {/* 🌟 Suite Dashboard Mode Switcher Bar (Adaptive Responsive Layout) */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-900/90 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-xl">
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                    {canAccessSystem('LIS') && (
                     <button
                       onClick={() => handleDashboardSubModeChange('LIS')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
@@ -1053,7 +1286,9 @@ export default function App() {
                       <span className="hidden sm:inline">{language === 'EN' ? 'LIS Dashboard (Laboratory)' : 'Dashboard LIS (Laboratorio)'}</span>
                       <span className="sm:hidden font-mono font-black">🔬 LIS</span>
                     </button>
+                    )}
 
+                    {canAccessSystem('HIS') && (
                     <button
                       onClick={() => handleDashboardSubModeChange('HIS')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
@@ -1066,7 +1301,9 @@ export default function App() {
                       <span className="hidden sm:inline">{language === 'EN' ? 'HIS Dashboard (Hospital)' : 'Dashboard HIS (Hospital)'}</span>
                       <span className="sm:hidden font-mono font-black">🏥 HIS</span>
                     </button>
+                    )}
 
+                    {canAccessSystem('BANCO_SANGRE') && (
                     <button
                       onClick={() => handleDashboardSubModeChange('BLOODBANK')}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 ${
@@ -1079,6 +1316,7 @@ export default function App() {
                       <span className="hidden sm:inline">{language === 'EN' ? 'Blood Bank Dashboard' : 'Dashboard Banco de Sangre'}</span>
                       <span className="sm:hidden font-mono font-black">{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
                     </button>
+                    )}
 
                     {(currentRole === 'abregotech_admin' || currentRole === 'owner') && (
                       <button
@@ -1371,13 +1609,15 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800/80 py-6 text-xs text-center relative z-10 no-print">
-        <div className="max-w-7xl mx-auto px-4 space-y-1">
-          <div className="font-bold text-slate-200">AbregoTech Solutions S.A. — LIS-Core + Middleware Engine</div>
-          <div>Diseñado para Laboratorios Clínicos e Integración ASTM/HL7 en Panamá y Centroamérica</div>
-        </div>
-      </footer>
+      {/* Footer (Hidden in Workstation / Validation view for maximum analytical viewport) */}
+      {activeTab !== 'validation' && (
+        <footer className="app-footer bg-slate-950 text-slate-400 border-t border-slate-800/80 py-4 text-xs text-center relative z-10 no-print">
+          <div className="max-w-7xl mx-auto px-4 space-y-1">
+            <div className="font-bold text-slate-200">AbregoTech Solutions S.A. — LIS-Core + Middleware Engine</div>
+            <div>Diseñado para Laboratorios Clínicos e Integración ASTM/HL7 en Panamá y Centroamérica</div>
+          </div>
+        </footer>
+      )}
 
       {/* PDF Modal Preview */}
       {previewOrderId && (

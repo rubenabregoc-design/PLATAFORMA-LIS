@@ -59,6 +59,7 @@ interface LisState {
   setResults: (results: TestResult[] | ((prev: TestResult[]) => TestResult[])) => void;
   setPatients: (patients: Patient[] | ((prev: Patient[]) => Patient[])) => void;
   addPatient: (patient: Patient) => void;
+  updatePatient: (patientId: string, updatedData: Partial<Patient>) => void;
   addOrder: (order: Order) => void;
   addResults: (newResults: TestResult[]) => void;
   updateResult: (resultId: string, newValue: string, resultData?: TestResult) => void;
@@ -507,6 +508,35 @@ export const useLisStore = create<LisState>()(
       setOrders: (orders) => set((state) => ({ orders: typeof orders === 'function' ? orders(state.orders) : orders })),
       setResults: (results) => set((state) => ({ results: typeof results === 'function' ? results(state.results) : results })),
       setPatients: (patients) => set((state) => ({ patients: typeof patients === 'function' ? patients(state.patients) : patients })),
+
+      updatePatient: (patientId, updatedData) => {
+        set((state) => {
+          const updatedPatients = state.patients.map((p) =>
+            p.id === patientId ? { ...p, ...updatedData } : p
+          );
+
+          // Si cambió la cédula o el nombre, actualizar en cascada las órdenes asociadas
+          let updatedOrders = state.orders;
+          if (updatedData.nationalId || (updatedData.firstName && updatedData.lastName)) {
+            updatedOrders = state.orders.map((o) => {
+              if (o.patientId === patientId) {
+                return {
+                  ...o,
+                  patientNationalId: updatedData.nationalId || o.patientNationalId,
+                  patientName: (updatedData.firstName && updatedData.lastName)
+                    ? `${updatedData.lastName}, ${updatedData.firstName}`
+                    : o.patientName
+                };
+              }
+              return o;
+            });
+          }
+
+          return { patients: updatedPatients, orders: updatedOrders };
+        });
+
+        notifyToast('✓ Cédula y datos del paciente corregidos exitosamente en el sistema.', 'success', 3500);
+      },
 
       addPatient: (patient) => {
         set((state) => ({ patients: [patient, ...state.patients] }));

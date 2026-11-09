@@ -14,7 +14,7 @@ import {
   ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
   Microscope, AlertTriangle, Check, Lock, ShieldCheck,
   FlaskConical, MessageSquareText, Undo2,
-  Filter, Clock, Info, LayoutGrid, FileText
+  Filter, Clock, Info, LayoutGrid, FileText, Droplets, Sparkles, HeartPulse, Calendar
 } from 'lucide-react';
 import { notifyToast } from '../../utils/toastNotification';
 
@@ -80,20 +80,255 @@ const ResultValueInput: React.FC<{
   );
 };
 
+// 🎨 Paleta Clínica ISO 15189 por Área (Diferenciación instantánea por código de color)
+const getClinicalAreaStyles = (areaId: string) => {
+  const normalized = (areaId || '').toUpperCase();
+
+  // 1. HEMATOLOGÍA: Púrpura / Lavanda / Violeta (Normativa tubo EDTA lila)
+  if (normalized.includes('HEMATO')) {
+    return {
+      borderLeft: 'border-l-4 border-l-purple-500',
+      rowBg: 'bg-gradient-to-r from-purple-950/70 via-purple-900/30 to-[#03091e]',
+      badgeBg: 'bg-purple-500/25 border-purple-500/50 text-purple-300',
+      titleColor: 'text-purple-200',
+      accentColor: 'text-purple-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(168,85,247,0.3)]',
+      btnBg: 'bg-purple-950/70 hover:bg-purple-900/80 border-purple-500/50 text-purple-200',
+      pillBg: 'bg-purple-950/90 text-purple-300 border-purple-700/60',
+      icon: Droplets,
+    };
+  }
+
+  // 2. QUÍMICA CLÍNICA Y ENZIMAS: Ámbar / Dorado / Oro (Normativa tubo SST amarillo/oro)
+  if (normalized.includes('QUIM') || normalized.includes('ENZIM')) {
+    return {
+      borderLeft: 'border-l-4 border-l-amber-500',
+      rowBg: 'bg-gradient-to-r from-amber-950/70 via-amber-900/30 to-[#03091e]',
+      badgeBg: 'bg-amber-500/25 border-amber-500/50 text-amber-300',
+      titleColor: 'text-amber-200',
+      accentColor: 'text-amber-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(245,158,11,0.3)]',
+      btnBg: 'bg-amber-950/70 hover:bg-amber-900/80 border-amber-500/50 text-amber-200',
+      pillBg: 'bg-amber-950/90 text-amber-300 border-amber-700/60',
+      icon: FlaskConical,
+    };
+  }
+
+  // 3. INMUNOLOGÍA Y SEROLOGÍA: Esmeralda / Verde Azulado
+  if (normalized.includes('INMUNO') || normalized.includes('SEROL')) {
+    return {
+      borderLeft: 'border-l-4 border-l-emerald-500',
+      rowBg: 'bg-gradient-to-r from-emerald-950/70 via-emerald-900/30 to-[#03091e]',
+      badgeBg: 'bg-emerald-500/25 border-emerald-500/50 text-emerald-300',
+      titleColor: 'text-emerald-200',
+      accentColor: 'text-emerald-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(16,185,129,0.3)]',
+      btnBg: 'bg-emerald-950/70 hover:bg-emerald-900/80 border-emerald-500/50 text-emerald-200',
+      pillBg: 'bg-emerald-950/90 text-emerald-300 border-emerald-700/60',
+      icon: Sparkles,
+    };
+  }
+
+  // 4. COAGULACIÓN Y HEMOSTASIA: Celeste / Azul Cielo (Normativa tubo Citrato celeste)
+  if (normalized.includes('COAGULA') || normalized.includes('HEMOST')) {
+    return {
+      borderLeft: 'border-l-4 border-l-sky-400',
+      rowBg: 'bg-gradient-to-r from-sky-950/70 via-sky-900/30 to-[#03091e]',
+      badgeBg: 'bg-sky-500/25 border-sky-500/50 text-sky-300',
+      titleColor: 'text-sky-200',
+      accentColor: 'text-sky-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(56,189,248,0.3)]',
+      btnBg: 'bg-sky-950/70 hover:bg-sky-900/80 border-sky-500/50 text-sky-200',
+      pillBg: 'bg-sky-950/90 text-sky-300 border-sky-700/60',
+      icon: Activity,
+    };
+  }
+
+  // 5. MARCADORES CARDIACOS / PRUEBAS STAT: Rojo Carmesí Intenso
+  if (normalized.includes('STAT') || normalized.includes('CARDIA') || normalized.includes('GASOM')) {
+    return {
+      borderLeft: 'border-l-4 border-l-rose-500',
+      rowBg: 'bg-gradient-to-r from-rose-950/80 via-rose-900/40 to-[#03091e]',
+      badgeBg: 'bg-rose-500/30 border-rose-500/60 text-rose-200',
+      titleColor: 'text-rose-200',
+      accentColor: 'text-rose-400',
+      glow: 'shadow-[inset_4px_0_16px_rgba(244,63,94,0.4)]',
+      btnBg: 'bg-rose-950/70 hover:bg-rose-900/80 border-rose-500/50 text-rose-200',
+      pillBg: 'bg-rose-950/90 text-rose-300 border-rose-700/60',
+      icon: HeartPulse,
+    };
+  }
+
+  // 6. URIANÁLISIS Y LÍQUIDOS: Amarillo / Lima
+  if (normalized.includes('URI') || normalized.includes('ORINA')) {
+    return {
+      borderLeft: 'border-l-4 border-l-yellow-400',
+      rowBg: 'bg-gradient-to-r from-yellow-950/70 via-yellow-900/30 to-[#03091e]',
+      badgeBg: 'bg-yellow-500/25 border-yellow-500/50 text-yellow-300',
+      titleColor: 'text-yellow-200',
+      accentColor: 'text-yellow-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(250,204,21,0.3)]',
+      btnBg: 'bg-yellow-950/70 hover:bg-yellow-900/80 border-yellow-500/50 text-yellow-200',
+      pillBg: 'bg-yellow-950/90 text-yellow-300 border-yellow-700/60',
+      icon: Filter,
+    };
+  }
+
+  // 7. ENDOCRINOLOGÍA Y HORMONAS: Índigo / Fucsia
+  if (normalized.includes('ENDOCRIN') || normalized.includes('HORMON')) {
+    return {
+      borderLeft: 'border-l-4 border-l-indigo-400',
+      rowBg: 'bg-gradient-to-r from-indigo-950/70 via-indigo-900/30 to-[#03091e]',
+      badgeBg: 'bg-indigo-500/25 border-indigo-500/50 text-indigo-300',
+      titleColor: 'text-indigo-200',
+      accentColor: 'text-indigo-400',
+      glow: 'shadow-[inset_4px_0_14px_rgba(129,140,248,0.3)]',
+      btnBg: 'bg-indigo-950/70 hover:bg-indigo-900/80 border-indigo-500/50 text-indigo-200',
+      pillBg: 'bg-indigo-950/90 text-indigo-300 border-indigo-700/60',
+      icon: Microscope,
+    };
+  }
+
+  // Por defecto: Cian / Azul LIS
+  return {
+    borderLeft: 'border-l-4 border-l-cyan-500',
+    rowBg: 'bg-gradient-to-r from-cyan-950/60 via-blue-950/30 to-[#03091e]',
+    badgeBg: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300',
+    titleColor: 'text-cyan-200',
+    accentColor: 'text-cyan-400',
+    glow: 'shadow-[inset_4px_0_12px_rgba(6,182,212,0.2)]',
+    btnBg: 'bg-[#0c224d] hover:bg-[#12316e] border-blue-500/50 text-cyan-300',
+    pillBg: 'bg-[#091b42] text-cyan-300 border-blue-800/60',
+    icon: FlaskConical,
+  };
+};
+
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   order: initialOrder, patient: initialPatient, results, analyzers = MOCK_ANALYZERS, currentUser,
   onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
   onConsultInterBranch, onUpdateOrderTests, onUpdateOrderNotes, allOrders = [], allPatients = []
 }) => {
   const [activeOrderId, setActiveOrderId] = useState<string>(initialOrder?.id || allOrders[0]?.id || '');
+  const currentOrder = (allOrders.length > 0 ? allOrders.find(o => o.id === activeOrderId) : undefined) || initialOrder || allOrders[0];
+  const currentPatient = (allPatients.length > 0 ? allPatients.find(p => p.id === currentOrder?.patientId) : undefined) || initialPatient || allPatients[0];
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'validated'>('all');
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayOrdersCount = useMemo(() => {
+    return allOrders.filter(o => o.createdAt && o.createdAt.startsWith(todayStr)).length;
+  }, [allOrders, todayStr]);
+  const [orderDateFilter, setOrderDateFilter] = useState<'today' | 'all'>(() => {
+    const hasToday = allOrders.some(o => o.createdAt && o.createdAt.startsWith(new Date().toISOString().split('T')[0]));
+    return hasToday ? 'today' : 'all';
+  });
 
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null);
   const [showTrendViewer, setShowTrendViewer] = useState(false);
   const [isTrendsLoading, setIsTrendsLoading] = useState(true);
   const [showAuditLog, setShowAuditLog] = useState(false);
+
+  // 🛡️ Trazabilidad de Auditoría ISO 15189 Real & Persistente
+  const [auditTrailList, setAuditTrailList] = useState<Array<{
+    id: string;
+    orderId: string;
+    type: 'DESVALIDACION' | 'VALIDACION' | 'LIBERACION' | 'RECEPCION' | 'MODIFICACION';
+    title: string;
+    userName: string;
+    detail: string;
+    reason?: string;
+    analytes?: string[];
+    timestamp: string;
+  }>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lis_audit_events_' + (initialOrder?.id || allOrders[0]?.id || 'default'));
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return [
+      {
+        id: 'audit-init-1',
+        orderId: initialOrder?.id || '',
+        type: 'RECEPCION',
+        title: 'Muestras ingresadas al sistema LIS',
+        userName: 'Recepción Central LIS',
+        detail: 'Orden registrada en el sistema con código de barras y analitos correspondientes.',
+        timestamp: '2026-03-15 08:30:10'
+      },
+      {
+        id: 'audit-init-2',
+        orderId: initialOrder?.id || '',
+        type: 'VALIDACION',
+        title: 'Resultado validado por Middleware ASTM',
+        userName: 'Middleware ASTM E1394',
+        detail: 'Transmisión bidireccional y validación técnica previa.',
+        timestamp: '2026-03-15 14:30:22'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentOrder?.id) {
+      const saved = localStorage.getItem('lis_audit_events_' + currentOrder.id);
+      if (saved) {
+        try {
+          setAuditTrailList(JSON.parse(saved));
+          return;
+        } catch (e) {}
+      }
+      setAuditTrailList([
+        {
+          id: 'audit-' + currentOrder.id + '-1',
+          orderId: currentOrder.id,
+          type: 'RECEPCION',
+          title: 'Muestras ingresadas al sistema LIS',
+          userName: 'Recepción Central LIS',
+          detail: 'Orden #' + (currentOrder.orderNumber || currentOrder.id) + ' registrada en el sistema.',
+          timestamp: '2026-03-15 08:30:10'
+        },
+        {
+          id: 'audit-' + currentOrder.id + '-2',
+          orderId: currentOrder.id,
+          type: 'VALIDACION',
+          title: 'Resultado validado por Middleware ASTM',
+          userName: 'Middleware ASTM E1394',
+          detail: 'Transmisión bidireccional y validación técnica previa.',
+          timestamp: '2026-03-15 14:30:22'
+        }
+      ]);
+    }
+  }, [currentOrder?.id]);
+
+  const addAuditEntry = (entry: {
+    orderId: string;
+    type: 'DESVALIDACION' | 'VALIDACION' | 'LIBERACION' | 'RECEPCION' | 'MODIFICACION';
+    title: string;
+    userName: string;
+    detail: string;
+    reason?: string;
+    analytes?: string[];
+  }) => {
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+    const newEntry = {
+      ...entry,
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: formatted
+    };
+
+    setAuditTrailList(prev => {
+      const updated = [newEntry, ...prev];
+      if (typeof window !== 'undefined' && currentOrder?.id) {
+        localStorage.setItem('lis_audit_events_' + currentOrder.id, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
 
   useEffect(() => {
     if (!activeOrderId && (initialOrder?.id || allOrders[0]?.id)) {
@@ -108,9 +343,6 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       return () => clearTimeout(timer);
     }
   }, [showTrendViewer]);
-
-  const currentOrder = (allOrders.length > 0 ? allOrders.find(o => o.id === activeOrderId) : undefined) || initialOrder || allOrders[0];
-  const currentPatient = (allPatients.length > 0 ? allPatients.find(p => p.id === currentOrder?.patientId) : undefined) || initialPatient || allPatients[0];
 
   // Reglas de propiedad y permisos según Especificación LIS/HIS:
   // - JL, Dueño y Admin: autoridad de supervisión total sin restricción de propiedad
@@ -382,11 +614,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       const orderResults = results.filter(r => r.orderId === o.id);
       const isPending = orderResults.some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
 
+      const matchesDate = orderDateFilter === 'all' || (o.createdAt && o.createdAt.startsWith(todayStr));
+      if (!matchesDate) return false;
+
       if (orderStatusFilter === 'pending') return matchesSearch && isPending;
       if (orderStatusFilter === 'validated') return matchesSearch && !isPending;
       return matchesSearch;
     });
-  }, [allOrders, orderSearchQuery, orderStatusFilter, results]);
+  }, [allOrders, orderSearchQuery, orderStatusFilter, orderDateFilter, results, todayStr]);
 
   const pendingCount = useMemo(() => {
     return allOrders.filter(o =>
@@ -405,36 +640,53 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-full max-h-full flex-1 min-h-0 bg-[#020617] overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
-      {/* Sidebar: Órdenes (Diseño Moderno Compacto 310px) */}
-      <div className={`${isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-[310px]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-7 w-6 h-6 bg-cyan-400 rounded-full items-center justify-center shadow-lg shadow-cyan-500/30 z-20 hover:scale-110 transition-transform cursor-pointer"
-        >
-          <ChevronRight className={`w-3.5 h-3.5 text-slate-950 transition-transform duration-300 ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
-        </button>
-
-        <div className="p-3 flex flex-col h-full space-y-2.5 overflow-hidden">
+      {/* Sidebar: Órdenes (Diseño Adaptativo clamp 260px - 330px, Colapsable a 60px) */}
+      <div className={`${isSidebarCollapsed ? "w-full lg:w-[60px]" : "w-full lg:w-[clamp(260px,20vw,330px)]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
+        <div className={`${isSidebarCollapsed ? "p-1.5" : "p-2.5 sm:p-3"} flex flex-col h-full space-y-2 overflow-hidden`}>
           {/* Header Bandeja de Órdenes */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-              {!isSidebarCollapsed && (
-                <h3 className="text-xs font-black text-white tracking-wider uppercase">
-                  Bandeja de Órdenes
-                </h3>
-              )}
-            </div>
-            {!isSidebarCollapsed && (
-              <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse">
+          {isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-1.5 pb-1 border-b border-blue-950/60 pt-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(false)}
+                title="Expandir bandeja de órdenes"
+                className="w-8 h-8 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/40 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <span
+                title={`${pendingCount || filteredOrders.length} órdenes en bandeja`}
+                className="w-5 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[9px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)] cursor-default"
+              >
                 {pendingCount || filteredOrders.length}
               </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between px-1 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <FlaskConical className="w-5 h-5 text-cyan-400 shrink-0 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                <h3 className="text-xs font-black text-white tracking-wider uppercase truncate">
+                  Bandeja de Órdenes
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+                  {pendingCount || filteredOrders.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  title="Colapsar bandeja"
+                  className="w-6 h-6 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/40 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 transition-transform duration-300 rotate-180" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {!isSidebarCollapsed && (
-            <div className="space-y-2">
+            <div className="space-y-2 shrink-0">
               {/* Search Bar with Filter Icon */}
               <div className="relative flex items-center">
                 <Search className="absolute left-3 w-3.5 h-3.5 text-slate-500" />
@@ -454,20 +706,49 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 </button>
               </div>
 
+              {/* Filtro Rápido Fecha: Hoy vs Todas */}
+              <div className="flex gap-1 bg-[#02071a] p-1 rounded-xl border border-blue-950/80">
+                <button
+                  type="button"
+                  onClick={() => setOrderDateFilter('today')}
+                  className={`flex-1 py-1 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer ${
+                    orderDateFilter === 'today'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                  }`}
+                  title="Mostrar únicamente órdenes ingresadas en la fecha de hoy"
+                >
+                  <Calendar className="w-3 h-3 text-cyan-400" />
+                  <span>Solo Hoy ({todayOrdersCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderDateFilter('all')}
+                  className={`flex-1 py-1 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer ${
+                    orderDateFilter === 'all'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                  }`}
+                  title="Mostrar órdenes de todas las fechas acumuladas"
+                >
+                  <span>Todas ({allOrders.length})</span>
+                </button>
+              </div>
+
               {/* Segmented Filter Pills */}
               <div className="flex gap-1.5 bg-[#03091e] p-1 rounded-xl border border-blue-950">
-                {(['all', 'pending', 'validated'] as const).map((status) => (
+                {(["all", "pending", "validated"] as const).map((status) => (
                   <button
                     key={status}
                     type="button"
                     onClick={() => setOrderStatusFilter(status)}
                     className={`flex-1 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                       orderStatusFilter === status
-                        ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                        ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                        : "text-slate-400 hover:text-white hover:bg-slate-900/60"
                     }`}
                   >
-                    {status === 'all' ? 'Todo' : status === 'pending' ? 'Pend.' : 'Val.'}
+                    {status === "all" ? "Todo" : status === "pending" ? "Pend." : "Val."}
                   </button>
                 ))}
               </div>
@@ -475,18 +756,77 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           )}
 
           {/* Orders Scroll Container */}
-          <div className="overflow-y-auto space-y-2 flex-1 custom-scrollbar pr-0.5 min-h-0">
+          <div className="overflow-y-auto space-y-2.5 flex-1 custom-scrollbar min-h-0 overflow-x-hidden pt-1.5 pb-2 px-1">
             {filteredOrders.map(o => {
               const orderResults = results.filter(r => r.orderId === o.id);
               const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
               const validatedCount = uniqueParams.filter(pId =>
-                orderResults.find(r => r.parameterId === pId && (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO'))
+                orderResults.find(r => r.parameterId === pId && (r.status === "VALIDADO_TEC" || r.status === "VALIDADO_MED" || r.status === "VALIDADO"))
               ).length;
-              const hasCritical = orderResults.some(r => r.flag?.includes('CRITICO') || r.flag === 'PANICO');
-              const isStat = o.priority === 'STAT' || o.priority === 'URGENTE';
+              const hasCritical = orderResults.some(r => r.flag?.includes("CRITICO") || r.flag === "PANICO");
+              const isStat = o.priority === "STAT" || o.priority === "URGENTE";
               const isActive = o.id === activeOrderId;
               const progressPct = Math.round((validatedCount / Math.max(1, uniqueParams.length)) * 100);
+              const isFullyValidated = uniqueParams.length > 0 && validatedCount === uniqueParams.length;
 
+              // Vista compacta cuando la bandeja está colapsada (Pills cilíndricos con iniciales y micro-barra)
+              if (isSidebarCollapsed) {
+                const initials = o.patientName
+                  ? o.patientName.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]?.toUpperCase()).join("")
+                  : "PX";
+                const orderShortCode = (o.orderNumber || o.id).slice(-4);
+
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setActiveOrderId(o.id)}
+                    title={`${o.orderNumber || o.id} - ${o.patientName} (${validatedCount}/${uniqueParams.length} Validados)`}
+                    className={`w-11 h-14 mx-auto rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200 cursor-pointer relative shrink-0 group ${
+                      isActive
+                        ? (isStat || hasCritical
+                            ? "bg-rose-950/90 border-2 border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.6)] text-white ring-2 ring-rose-500/50"
+                            : "bg-cyan-950/90 border-2 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.5)] text-white ring-2 ring-cyan-400/50")
+                        : (isStat || hasCritical
+                            ? "bg-[#0c1430] border border-rose-900/60 hover:border-rose-500 text-rose-300"
+                            : "bg-[#07112b] border border-blue-950 hover:border-cyan-500/50 text-slate-300")
+                    }`}
+                  >
+                    {/* Indicador de estado */}
+                    {(hasCritical || isStat) && (
+                      <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1 right-1 shadow-[0_0_8px_rgba(244,63,94,1)] animate-pulse" />
+                    )}
+                    {!hasCritical && !isStat && isFullyValidated && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-1 right-1 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                    )}
+                    {!hasCritical && !isStat && !isFullyValidated && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 absolute top-1 right-1 shadow-[0_0_6px_rgba(6,182,212,0.8)]" />
+                    )}
+
+                    {/* Iniciales del Paciente */}
+                    <span className="text-[11px] font-black tracking-tight leading-none text-white">
+                      {initials}
+                    </span>
+
+                    {/* Últimos 4 dígitos de la orden */}
+                    <span className="text-[9px] font-mono font-bold text-slate-400 leading-none">
+                      {orderShortCode}
+                    </span>
+
+                    {/* Micro barra de progreso */}
+                    <div className="w-7 h-1 bg-slate-900/90 rounded-full overflow-hidden mt-0.5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isStat || hasCritical ? "bg-rose-500" : isFullyValidated ? "bg-emerald-400" : "bg-cyan-400"
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              }
+
+              // Vista expandida normal
               return (
                 <button
                   key={o.id}
@@ -494,17 +834,17 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   className={`w-full text-left rounded-xl border p-2.5 transition-all duration-200 cursor-pointer ${
                     isActive
                       ? (isStat || hasCritical
-                          ? 'bg-[#0f1738] border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.35)]'
-                          : 'bg-[#091538] border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]')
+                          ? "bg-[#0f1738] border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.35)]"
+                          : "bg-[#091538] border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]")
                       : (isStat || hasCritical
-                          ? 'bg-[#0c1430] border-rose-900/50 hover:border-rose-500/60'
-                          : 'bg-[#07112b] border-blue-950 hover:border-blue-800')
+                          ? "bg-[#0c1430] border-rose-900/50 hover:border-rose-500/60"
+                          : "bg-[#07112b] border-blue-950 hover:border-blue-800")
                   }`}
                 >
                   {/* Top row: Order Number & Alert Badge */}
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-[11px] font-mono font-bold tracking-tight ${
-                      isStat || hasCritical ? 'text-rose-400' : 'text-slate-400'
+                      isStat || hasCritical ? "text-rose-400" : "text-slate-400"
                     }`}>
                       {o.orderNumber || o.id}
                     </span>
@@ -516,7 +856,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   </div>
 
                   {/* Middle row: Patient Name */}
-                  <div className="text-xs font-black uppercase text-white truncate leading-snug">
+                  <div className="text-xs font-black uppercase text-white truncate leading-snug" title={o.patientName}>
                     {o.patientName}
                   </div>
 
@@ -525,7 +865,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     <div className="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
-                          isStat || hasCritical ? 'bg-rose-500' : 'bg-cyan-400'
+                          isStat || hasCritical ? "bg-rose-500" : "bg-cyan-400"
                         }`}
                         style={{ width: `${progressPct}%` }}
                       />
@@ -535,7 +875,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                         <Clock className="w-2.5 h-2.5 inline" />
                         12/10/2026 09:42 AM
                       </span>
-                      <span className={`font-bold ${isStat || hasCritical ? 'text-rose-400' : 'text-cyan-400'}`}>
+                      <span className={`font-bold ${isStat || hasCritical ? "text-rose-400" : "text-cyan-400"}`}>
                         {validatedCount} / {uniqueParams.length} VAL.
                       </span>
                     </div>
@@ -651,7 +991,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-1.5 space-y-1.5 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-6 space-y-2 custom-scrollbar">
 
            {/* Banner de Protección por Propiedad de la Orden (Normativa LIS/HIS) */}
            {!canModifyThisOrder && (
@@ -797,11 +1137,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       const allAreaValidated = areaResults.every(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO');
                       const allAreaSelected = areaResults.every(r => selectedResults.includes(r.id));
                       const hasCriticalInArea = areaResults.some(r => r.flag?.includes('CRITICO'));
+                      const areaStyle = getClinicalAreaStyles(area.id);
+                      const AreaIcon = areaStyle.icon;
 
                       return (
                         <React.Fragment key={`area-section-${area.id}`}>
-                          {/* Fila Encabezado de Área / Sección Clínica (Exacto al Mock) */}
-                          <tr className="bg-[#05112e] border-y border-blue-900/60">
+                          {/* Fila Encabezado de Área Diferenciada por Color ISO 15189 */}
+                          <tr className={`${areaStyle.rowBg} ${areaStyle.borderLeft} ${areaStyle.glow} border-y border-blue-900/60 transition-all`}>
                             <td className="py-2 px-3 text-center">
                               <button
                                 type="button"
@@ -826,10 +1168,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                             <td colSpan={6} className="py-2 px-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <span className="font-bold text-xs uppercase tracking-wider text-white">
-                                    {area.name}
-                                  </span>
-                                  <span className="px-2.5 py-0.5 rounded-full bg-[#091b42] text-[11px] font-mono text-cyan-300 font-semibold border border-blue-800/60">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-6 h-6 rounded-lg ${areaStyle.badgeBg} flex items-center justify-center shrink-0 shadow-sm`}>
+                                      <AreaIcon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className={`font-black text-xs sm:text-[13px] uppercase tracking-wider ${areaStyle.titleColor}`}>
+                                      {area.name}
+                                    </span>
+                                  </div>
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold border ${areaStyle.pillBg}`}>
                                     {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
                                   </span>
                                   <span className="text-[11px] text-cyan-400/80 flex items-center gap-1 font-mono">
@@ -858,7 +1205,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                         setSelectedResults(prev => Array.from(new Set([...prev, ...idsToAdd])));
                                       }
                                     }}
-                                    className="px-3 py-1 rounded-lg bg-[#0c224d] hover:bg-[#12316e] border border-blue-500/50 text-cyan-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                                    className={`px-3 py-1 rounded-lg border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer shadow-sm ${areaStyle.btnBg}`}
                                   >
                                     <LayoutGrid className="w-3.5 h-3.5" />
                                     <span>{allAreaSelected ? 'DESELECCIONAR ÁREA' : 'SELECCIONAR ÁREA'}</span>
@@ -881,7 +1228,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                 <tr
                                   key={`tr-main-${res.id}-${index}`}
                                   onClick={() => setActiveTraceabilityId(res.id)}
-                                  className={`cursor-pointer transition-colors border-b border-blue-950/40 hover:bg-[#061438]/80 ${
+                                  className={`cursor-pointer transition-colors border-b border-blue-950/40 hover:bg-[#061438]/80 ${areaStyle.borderLeft.replace("border-l-4", "border-l-2 border-l-opacity-60")} ${
                                     isCritical
                                       ? 'bg-[#1f0b14]/50'
                                       : isHigh
@@ -1025,20 +1372,20 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
            </div>
         </div>
 
-        {/* Barra de Acciones Fija en la Parte Inferior (Diseño Exacto del Mock) */}
-        <div className="h-[60px] shrink-0 border-t border-blue-900/60 bg-[#03091e] px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar z-20 shadow-2xl isolate">
+        {/* Barra de Acciones Fija en la Parte Inferior (Diseño Adaptativo Responsive) */}
+        <div className="min-h-[48px] sm:h-[54px] shrink-0 border-t border-blue-900/60 bg-[#03091e] px-2 sm:px-3 py-1 flex items-center justify-between gap-1 sm:gap-1.5 overflow-x-auto custom-scrollbar z-20 shadow-2xl isolate">
 
           {/* 1. Alertas y Pánicos (Rojo) */}
           <button
             type="button"
             onClick={() => setShowAlertsCenterModal(true)}
             title="Identificar resultados críticos y alertas (ISO 15189)"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
           >
-            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="whitespace-nowrap">Alertas y Pánicos</span>
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span className="whitespace-nowrap">Alertas</span>
             {criticalResultsCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">
                 {criticalResultsCount}
               </span>
             )}
@@ -1049,10 +1396,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowClinicalCalcModal(true)}
             title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
           >
-            <Calculator className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="whitespace-nowrap">Calculadoras</span>
+            <Calculator className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="whitespace-nowrap">Cálculos</span>
           </button>
 
           {/* 3. Telemetría (Turquesa) */}
@@ -1060,9 +1407,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowTelemetryModal(true)}
             title="Consultar información de monitoreo y telemetría de analizadores"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
           >
-            <TrendingUp className="w-4 h-4 text-teal-400 shrink-0" />
+            <TrendingUp className="w-3.5 h-3.5 text-teal-400 shrink-0" />
             <span className="whitespace-nowrap">Telemetría</span>
           </button>
 
@@ -1071,10 +1418,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => setShowAuditLog(true)}
             title="Consultar el historial y bitácora de auditoría ISO 15189"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 text-xs font-bold cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="whitespace-nowrap">Trazabilidad</span>
+            <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="whitespace-nowrap">Auditoría</span>
           </button>
 
           {/* 5. Informe Carta (Cian) */}
@@ -1082,10 +1429,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             type="button"
             onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
             title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span className="whitespace-nowrap">Informe Carta</span>
+            <Printer className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="whitespace-nowrap">Reporte</span>
           </button>
 
           {/* 6. Desvalidar (Morado) */}
@@ -1105,38 +1452,51 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               }
             }}
             title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
           >
-            <Undo2 className="w-4 h-4 text-purple-400 shrink-0" />
+            <Undo2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             <span className="whitespace-nowrap">
               Desvalidar {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
             </span>
           </button>
 
-          {/* 7. Validar Analitos (Azul grisáceo) */}
+          {/* 7. Validar Analitos (Azul con feedback reactivo) */}
           <button
             type="button"
-            disabled={!canModifyThisOrder || selectedUnvalidatedCount === 0}
+            disabled={!canModifyThisOrder}
             onClick={() => {
+              if (selectedUnvalidatedCount === 0) {
+                notifyToast.info('Seleccione uno o más analitos pendientes en las casillas para validar, o use "Validar Todo".');
+                return;
+              }
               const toValidate = selectedResults.filter(id => {
                 const res = results.find(r => r.id === id);
                 return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
               });
               if (toValidate.length === 0) return;
               toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+              const validatedNames = toValidate.map(id => results.find(r => r.id === id)?.parameterName || id);
+              addAuditEntry({
+                orderId: currentOrder?.id || '',
+                type: 'VALIDACION',
+                title: 'Validación Técnica de Analitos',
+                userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                detail: `Validación técnica aprobada bajo ISO 15189 (${toValidate.length} analitos: ${validatedNames.join(', ')}).`,
+                analytes: validatedNames
+              });
               setSelectedResults([]);
               notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
             }}
-            title="Validar los analitos seleccionados"
-            className={`shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] flex items-center gap-2 text-xs font-bold transition-all ${
+            title={selectedUnvalidatedCount > 0 ? "Validar los analitos seleccionados" : "Seleccione casillas de analitos pendientes para validar"}
+            className={`shrink-0 h-8 sm:h-8.5 px-2.5 sm:px-3 rounded-xl border text-[10px] sm:text-[11px] flex items-center gap-1.5 font-bold transition-all ${
               selectedUnvalidatedCount > 0 && canModifyThisOrder
-                ? 'border-blue-400/80 bg-blue-950/40 text-blue-200 hover:bg-blue-900/50 hover:border-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] cursor-pointer'
-                : 'border-slate-700/60 bg-slate-900/40 text-slate-500 cursor-not-allowed'
+                ? 'border-blue-400/80 bg-blue-950/50 text-blue-200 hover:bg-blue-900/60 hover:border-blue-300 shadow-[0_0_14px_rgba(59,130,246,0.35)] cursor-pointer'
+                : 'border-slate-700/60 bg-slate-900/50 text-slate-400 hover:text-slate-200 hover:border-slate-600 cursor-pointer'
             }`}
           >
-            <CheckCircle2 className={`w-4 h-4 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-600'}`} />
+            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-400'}`} />
             <span className="whitespace-nowrap">
-              Validar Analitos
+              Validar {selectedUnvalidatedCount > 0 ? `(${selectedUnvalidatedCount})` : 'Analitos'}
             </span>
           </button>
 
@@ -1156,10 +1516,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               setShowCommentsModal(true);
             }}
             title="Agregar observaciones e informes a resultados individuales o a la orden"
-            className="shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-2 text-xs font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
+            className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
           >
-            <MessageSquareText className="w-4 h-4 text-teal-400 shrink-0" />
-            <span className="whitespace-nowrap">Informes / Comentarios</span>
+            <MessageSquareText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+            <span className="whitespace-nowrap">Comentarios</span>
           </button>
 
           {/* 9. Validar Todo (Verde) */}
@@ -1170,18 +1530,27 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               const unvalidated = patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
               if (unvalidated.length === 0) return;
               unvalidated.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
+              const approvedNames = unvalidated.map(r => r.parameterName);
+              addAuditEntry({
+                orderId: currentOrder?.id || '',
+                type: 'VALIDACION',
+                title: 'Aprobación Técnica Total de la Orden',
+                userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                detail: `Validación técnica completa de todos los analitos pendientes (${unvalidated.length} analitos: ${approvedNames.join(', ')}).`,
+                analytes: approvedNames
+              });
               setSelectedResults([]);
               notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
             }}
             title="Validar todos los analitos correspondientes de la orden"
-            className={`shrink-0 h-9 px-2.5 sm:px-3 rounded-xl border text-[11px] flex items-center gap-2 text-xs font-bold transition-all ${
+            className={`shrink-0 h-8 sm:h-8.5 px-2.5 sm:px-3 rounded-xl border text-[10px] sm:text-[11px] flex items-center gap-1.5 font-bold transition-all ${
               unvalidatedCount > 0 && canModifyThisOrder
                 ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
                 : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
             }`}
           >
-            <Check className={`w-4 h-4 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
-            <span className="whitespace-nowrap">Validar Todo</span>
+            <Check className={`w-3.5 h-3.5 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
+            <span className="whitespace-nowrap">Aprobar</span>
           </button>
 
           {/* 10. Liberar (Azul-cian con Glow) */}
@@ -1192,17 +1561,26 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               const toRelease = patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO');
               if (toRelease.length === 0) return;
               toRelease.forEach(r => onUpdateResultStatus(r.id, 'LIBERADO'));
+              const releasedNames = toRelease.map(r => r.parameterName);
+              addAuditEntry({
+                orderId: currentOrder?.id || '',
+                type: 'LIBERACION',
+                title: 'Liberación Oficial de Resultados',
+                userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                detail: `Firma digital y liberación formal de ${toRelease.length} analitos (${releasedNames.join(', ')}). Disponibles para reporte a médicos y pacientes.`,
+                analytes: releasedNames
+              });
               setSelectedResults([]);
               notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
             }}
             title="Liberar formalmente resultados para entrega a médicos y pacientes"
-            className={`shrink-0 h-9 px-3.5 rounded-xl flex items-center gap-2 text-xs font-black tracking-wide uppercase transition-all ${
+            className={`shrink-0 h-8 sm:h-8.5 px-3 rounded-xl flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black tracking-wide uppercase transition-all ${
               toReleaseCount > 0 && canReleaseThisOrder
                 ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
                 : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
             }`}
           >
-            <ShieldCheck className="w-4 h-4 shrink-0 stroke-[2.5]" />
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
             <span className="whitespace-nowrap">Liberar ({toReleaseCount})</span>
           </button>
 
@@ -1373,22 +1751,92 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       )}
 
         {showAuditLog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md p-10">
-            <div className="bg-slate-900 border border-white/10 rounded-[3rem] w-full max-w-3xl h-[70vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-300">
-               <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                  <h3 className="text-xl font-black text-white italic">Trazabilidad de Resultados (Audit Trail)</h3>
-                  <button onClick={() => setShowAuditLog(false)} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
-               </div>
-               <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                       <div>
-                         <div className="text-[10px] text-slate-500 font-black uppercase">Evento {i}</div>
-                         <div className="text-xs text-white font-bold mt-1">Resultado validado por Middleware ASTM</div>
-                       </div>
-                       <div className="text-right text-[10px] font-mono text-teal-500">2026-03-15 14:30:22</div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md p-4 sm:p-10">
+            <div className="bg-[#03091e] border border-cyan-500/40 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+               {/* Encabezado Profesional */}
+               <div className="p-6 border-b border-blue-900/60 flex justify-between items-center bg-[#040e2b] rounded-t-3xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                      <RotateCcw className="w-5 h-5" />
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight">Trazabilidad de Resultados (Audit Trail)</h3>
+                      <p className="text-xs text-slate-400 font-mono">
+                        Orden: <strong className="text-cyan-300">{orderNumberDisplay}</strong> • Paciente: <span className="text-white font-bold">{patientFullName}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowAuditLog(false)} className="w-9 h-9 bg-slate-800 hover:bg-rose-500 rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-white cursor-pointer">
+                    <X className="w-5 h-5" />
+                  </button>
+               </div>
+
+               {/* Timeline de Eventos Reales */}
+               <div className="flex-1 overflow-y-auto p-6 space-y-3.5 custom-scrollbar">
+                  {auditTrailList.map((entry, idx) => {
+                    const isRevocation = entry.type === 'DESVALIDACION';
+                    const isValidated = entry.type === 'VALIDACION';
+                    const isLiberated = entry.type === 'LIBERACION';
+
+                    return (
+                      <div
+                        key={entry.id || idx}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          isRevocation
+                            ? 'bg-purple-950/20 border-purple-500/50 shadow-md shadow-purple-950/30'
+                            : isValidated
+                            ? 'bg-emerald-950/20 border-emerald-500/40'
+                            : isLiberated
+                            ? 'bg-cyan-950/20 border-cyan-500/40'
+                            : 'bg-[#061438]/60 border-blue-900/40'
+                        }`}
+                      >
+                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2 border-b border-white/[0.06] pb-2">
+                           <div className="flex items-center gap-2">
+                             <span className={`text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full border ${
+                               isRevocation
+                                 ? 'bg-purple-500/20 text-purple-300 border-purple-400/50'
+                                 : isValidated
+                                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+                                 : isLiberated
+                                 ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50'
+                                 : 'bg-slate-800 text-slate-300 border-slate-700'
+                             }`}>
+                               {entry.type}
+                             </span>
+                             <span className="text-xs font-black text-white">{entry.title}</span>
+                           </div>
+                           <span className="text-[11px] font-mono text-cyan-400 font-bold shrink-0">{entry.timestamp}</span>
+                         </div>
+
+                         <div className="text-xs text-slate-300 space-y-1.5">
+                           <div className="flex items-center gap-1.5 text-slate-200">
+                             <span className="text-slate-400">Responsable / Firma:</span>
+                             <strong className="text-cyan-300 font-bold">{entry.userName}</strong>
+                           </div>
+
+                           <p className="text-slate-300 leading-relaxed">{entry.detail}</p>
+
+                           {entry.reason && (
+                             <div className="mt-2 p-2.5 rounded-xl bg-purple-900/30 border border-purple-500/30 text-xs">
+                               <span className="text-purple-300 font-bold block mb-0.5">Motivo de revocación registrado (ISO 15189):</span>
+                               <span className="text-purple-100 italic">"{entry.reason}"</span>
+                             </div>
+                           )}
+
+                           {entry.analytes && entry.analytes.length > 0 && (
+                             <div className="flex flex-wrap gap-1 mt-2">
+                               {entry.analytes.map((a, aIdx) => (
+                                 <span key={aIdx} className="text-[10px] bg-slate-900 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md font-mono">
+                                   {a}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
+                         </div>
+                      </div>
+                    );
+                  })}
                </div>
             </div>
           </div>
@@ -1539,7 +1987,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                                   res.medicalValidatedBy === currentUser.name;
 
                               if (!canUnvalidate) {
-                                alert('Seguridad ISO: Solo el autor de la validación o el Súper-Admin pueden revocar este estado.');
+                                notifyToast.warning('Seguridad ISO 15189: Solo el profesional que firmó originalmente o la Dirección Médica pueden revocar esta validación.');
                                 return;
                               }
                               setShowUnvalidateModal(true);
@@ -1641,20 +2089,32 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                         });
 
                         if (idsToRevoke.length === 0) {
-                          alert('Error: No se encontraron resultados válidos para revocar.');
+                          notifyToast.error('Acción denegada: No se encontraron resultados validados autorizados para revocación.');
                           return;
                         }
+
+                        const affectedNames = idsToRevoke.map(id => results.find(r => r.id === id)?.parameterName || id);
 
                         idsToRevoke.forEach(id => {
                           onUpdateResultStatus(id, 'INGRESADO');
                           console.log(`[ISO 15189 AUDIT] Result ${id} REVOKED by ${currentUser?.name || 'Sistema'}. Reason: ${unvalidateReason}`);
                         });
 
+                        addAuditEntry({
+                          orderId: currentOrder?.id || '',
+                          type: 'DESVALIDACION',
+                          title: 'Revocación de Validación Técnica (Desvalidación)',
+                          userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                          detail: `Validación técnica revocada por el profesional. Estado restablecido a INGRESADO para rectificación analítica. Analitos: ${affectedNames.join(', ')}.`,
+                          reason: unvalidateReason.trim(),
+                          analytes: affectedNames
+                        });
+
                         setShowUnvalidateModal(false);
                         setUnvalidateReason('');
                         setActiveTraceabilityId(null);
                         setSelectedResults([]);
-                        alert(`AUDITORÍA PROCESADA: Se han revocado ${idsToRevoke.length} validaciones. Los analitos vuelven a estado de edición.`);
+                        notifyToast.success(`Auditoría ISO 15189: Revocación procesada exitosamente (${idsToRevoke.length} ${idsToRevoke.length === 1 ? 'analito' : 'analitos'}). Registros habilitados para rectificación técnica.`);
                      }}
                      className="py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs transition-all shadow-xl shadow-amber-500/20 uppercase tracking-widest disabled:opacity-30 disabled:grayscale cursor-pointer"
                    >

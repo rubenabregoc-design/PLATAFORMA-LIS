@@ -9,7 +9,7 @@ import {
   Fingerprint, Info, Smartphone, Globe, BriefcaseMedical, Microscope, Beaker, Droplets, Timer,
   Users, Volume2, Settings2, Sliders, Check, RotateCw, Sparkles, FileCode, Tag,
   AlertTriangle, Flame, BellRing, PhoneCall, MessageSquare, Send, ShieldAlert,
-  Share2, UserCheck, History, ExternalLink, Flag, Camera
+  Share2, UserCheck, History, ExternalLink, Flag, Camera, Pencil
 } from 'lucide-react';
 import { QuickScanCameraModal } from '../Phase6Suite/QuickScanCameraModal';
 import { ReceptionTurnManagement } from './ReceptionTurnManagement';
@@ -591,6 +591,24 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
   const handleCreateOrderSubmit = async () => {
     let patientToUse = foundPatient;
 
+    if (foundPatient && isRegistering && newPatientData.nationalId && (
+      newPatientData.nationalId !== foundPatient.nationalId ||
+      newPatientData.firstName !== foundPatient.firstName ||
+      newPatientData.lastName !== foundPatient.lastName
+    )) {
+      useLisStore.getState().updatePatient(foundPatient.id, {
+        nationalId: newPatientData.nationalId,
+        firstName: newPatientData.firstName,
+        lastName: newPatientData.lastName,
+        dob: newPatientData.dob,
+        gender: newPatientData.gender,
+        phone: newPatientData.phone,
+        email: newPatientData.email,
+        address: newPatientData.address
+      });
+      patientToUse = { ...foundPatient, ...newPatientData };
+    }
+
     if (!patientToUse) {
       patientToUse = {
         id: `p-${Date.now()}`,
@@ -933,6 +951,36 @@ export const ReceptionDashboard: React.FC<ReceptionDashboardProps> = ({
                       {foundPatient.firstName} {foundPatient.lastName}
                     </h3>
                     <p className="text-xs text-teal-300 font-mono font-bold mt-1">CÉDULA: {foundPatient.nationalId}</p>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewPatientData({
+                            firstName: foundPatient.firstName,
+                            lastName: foundPatient.lastName,
+                            nationalId: foundPatient.nationalId,
+                            gender: foundPatient.gender,
+                            dob: foundPatient.dob,
+                            phone: foundPatient.phone || '',
+                            email: foundPatient.email || '',
+                            address: foundPatient.address || '',
+                            isPregnant: false,
+                            clinicalNotes: '',
+                            emergencyContact: '',
+                            insuranceProvider: (foundPatient.insuranceProvider as any) || 'PARTICULAR',
+                            attendingDoctor: '',
+                            patientOrigin: 'Consulta Externa',
+                            gestationalWeeks: ''
+                          });
+                          setIsRegistering(true);
+                        }}
+                        className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                        title="Corregir cédula o datos demográficos de este paciente"
+                      >
+                        <Pencil className="w-3 h-3 text-amber-400" />
+                        <span>Corregir Cédula o Datos</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5 text-xs">

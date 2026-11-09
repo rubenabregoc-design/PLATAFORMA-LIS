@@ -248,7 +248,8 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   activeSampleContext,
   onClose
 }) => {
-  const { currentUser, currentTenant: storeTenant, currentBranch: storeBranch, orders, language } = useLisStore();
+  const { currentUser, currentTenant: storeTenant, currentBranch: storeBranch, orders, language, activeTab } = useLisStore();
+  const isWorkstationTab = activeTab === 'validation' || activeTab === 'lis_workstation';
   const isEn = language === 'EN';
 
   // 1. Detección Reactiva del Cliente (Tenant) Activo con Sincronización en Tiempo Real
@@ -303,6 +304,17 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       setCurrentTenantId(storeTenant.id);
     }
   }, [storeTenant?.id, currentTenantId]);
+
+  // Listener global para invocar el Intercom desde la barra de navegación o cabecera
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsOpen(prev => !prev);
+      setIsMinimized(false);
+      setUnreadCount(0);
+    };
+    window.addEventListener('lis_toggle_intercom', handleToggle);
+    return () => window.removeEventListener('lis_toggle_intercom', handleToggle);
+  }, []);
 
   // Cliente (Tenant) Activo
   const activeTenant: Tenant = useMemo(() => {
@@ -595,9 +607,14 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   }, [orders, activeTenant.id]);
 
   // =========================================================================
-  // 🔘 TRIGGER FLOTANTE ELEGANTE CON AISLAMIENTO POR CLIENTE & SEDES REALES
+  // 🔘 TRIGGER FLOTANTE (Oculto en módulo de validación para evitar sobreposiciones)
   // =========================================================================
   if (!isOpen && !embeddedMode) {
+    if (isWorkstationTab) {
+      // En la consola de validación se invoca limpiamente desde el subheader/header
+      return null;
+    }
+
     return (
       <div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 flex items-center">
         <button
@@ -634,7 +651,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   // =========================================================================
   if (isMinimized && !embeddedMode) {
     return (
-      <div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-50 flex items-center bg-slate-950/95 border border-cyan-500/40 rounded-2xl shadow-2xl backdrop-blur-2xl ring-1 ring-cyan-500/30 px-3 py-2 space-x-3 animate-in fade-in duration-150">
+      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 z-50 flex items-center bg-slate-950/95 border border-cyan-500/40 rounded-2xl shadow-2xl backdrop-blur-2xl ring-1 ring-cyan-500/30 px-3 py-1.5 space-x-3 animate-in fade-in duration-150">
         <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 text-white shrink-0">
           <MessageSquare className="w-3.5 h-3.5" />
           <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-slate-950 shadow-[0_0_6px_#34d399]" />
@@ -677,7 +694,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
 
   const containerClasses = embeddedMode
     ? 'w-full bg-slate-950/95 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[700px] backdrop-blur-2xl'
-    : 'fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-50 w-[calc(100vw-1.5rem)] sm:w-[580px] md:w-[720px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-2rem)] bg-slate-950/95 border border-slate-750 rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col transition-all backdrop-blur-2xl ring-1 ring-cyan-500/30 h-[min(680px,90vh)]';
+    : `fixed ${isWorkstationTab ? 'top-16 sm:top-20' : 'bottom-3 sm:bottom-5'} right-3 sm:right-5 z-50 w-[calc(100vw-1.5rem)] sm:w-[580px] md:w-[720px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-6rem)] bg-slate-950/95 border border-slate-750 rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col transition-all backdrop-blur-2xl ring-1 ring-cyan-500/30 h-[min(640px,80vh)]`;
 
   return (
     <div className={containerClasses}>

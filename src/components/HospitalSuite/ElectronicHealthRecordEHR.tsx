@@ -47,6 +47,7 @@ import {
   Info
 } from 'lucide-react';
 import { useHisStore } from '../../store/useHisStore';
+import { useLicencias } from '../../hooks/useLicencias';
 import { useLisStore } from '../../store/useLisStore';
 import { SoapNote, Order, MedicationOrder, Priority } from '../../types';
 import { MOCK_TEST_CATALOG } from '../../data/mockData';
@@ -851,6 +852,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
           <span>Imágenes RIS / PACS ({patientImagingStudies.length})</span>
         </button>
 
+        {canAccessSystem('BANCO_SANGRE') && (
         <button
           onClick={() => setSubTab('bloodbank')}
           className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -860,6 +862,7 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
           <Droplets className="w-4 h-4 text-rose-300" />
           <span>Banco de Sangre & Transfusiones ({patientTransfusions.length})</span>
         </button>
+        )}
       </div>
 
       {/* DIMENSIÓN 1: RESUMEN CLÍNICO 360° */}

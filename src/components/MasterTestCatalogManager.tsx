@@ -173,36 +173,7 @@ export const MASTER_TESTS: LisMasterTest[] = [
     stabilityDetails: '24 horas a 2°C–8°C. Mezclar por inversión 8–10 veces inmediatamente tras punción.',
     rejectionCriteria: 'Muestra coagulada, hemolizada grave, volumen < 1.0 mL o tubo con anticoagulante incorrecto.',
     active: true,
-    parameters: [
-      {
-        id: 'p-hb',
-        code: 'HB',
-        loincCode: '718-7',
-        name: 'Hemoglobina (Hb)',
-        unit: 'g/dL',
-        resultType: 'NUMERIC',
-        astmMappingCode: 'HGB',
-        referenceRanges: [
-          { id: 'ref-hb-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 13.5, maxValue: 17.5, unit: 'g/dL', source: 'CLSI EP28-A3' },
-          { id: 'ref-hb-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 12.0, maxValue: 15.5, unit: 'g/dL', source: 'CLSI EP28-A3' },
-          { id: 'ref-hb-f-emb', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 45, condition: 'Embarazo T1/T3', minValue: 11.0, maxValue: 14.0, unit: 'g/dL', source: 'ACOG Guidelines' }
-        ],
-        criticalValue: { id: 'crit-hb', parameterName: 'Hemoglobina', unit: 'g/dL', panicLow: 6.0, panicHigh: 20.0, actionRequired: 'Notificar inmediatamente a médico o enfermería + Repetición por duplicado' }
-      },
-      {
-        id: 'p-hto',
-        code: 'HTO',
-        loincCode: '4544-3',
-        name: 'Hematocrito (Hto)',
-        unit: '%',
-        resultType: 'NUMERIC',
-        astmMappingCode: 'HCT',
-        referenceRanges: [
-          { id: 'ref-hto-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 38.8, maxValue: 50.0, unit: '%', source: 'CLSI EP28-A3' },
-          { id: 'ref-hto-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 34.9, maxValue: 44.5, unit: '%', source: 'CLSI EP28-A3' }
-        ],
-        criticalValue: { id: 'crit-hto', parameterName: 'Hematocrito', unit: '%', panicLow: 18.0, panicHigh: 60.0, actionRequired: 'Llamada crítica urgente + Confirmación visual de paquete celular' }
-      },
+        parameters: [
       {
         id: 'p-wbc',
         code: 'WBC',
@@ -217,10 +188,112 @@ export const MASTER_TESTS: LisMasterTest[] = [
         criticalValue: { id: 'crit-wbc', parameterName: 'Leucocitos Totales', unit: 'x10³/µL', panicLow: 1.5, panicHigh: 30.0, actionRequired: 'Frotis urgente por Tecnólogo Médico para blastos o neutropenia febril' }
       },
       {
+        id: 'p-rbc',
+        code: 'RBC',
+        loincCode: '789-8',
+        name: 'Eritrocitos / Glóbulos Rojos (RBC)',
+        unit: 'x10⁶/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'RBC',
+        referenceRanges: [
+          { id: 'ref-rbc-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 4.30, maxValue: 5.90, unit: 'x10⁶/µL', source: 'CLSI EP28-A3' },
+          { id: 'ref-rbc-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 3.80, maxValue: 5.20, unit: 'x10⁶/µL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-hb',
+        code: 'HB',
+        loincCode: '718-7',
+        name: 'Hemoglobina (Hb / HGB)',
+        unit: 'g/dL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'HGB',
+        referenceRanges: [
+          { id: 'ref-hb-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 13.5, maxValue: 17.5, unit: 'g/dL', source: 'CLSI EP28-A3' },
+          { id: 'ref-hb-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 12.0, maxValue: 15.5, unit: 'g/dL', source: 'CLSI EP28-A3' },
+          { id: 'ref-hb-f-emb', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 45, condition: 'Embarazo T1/T3', minValue: 11.0, maxValue: 14.0, unit: 'g/dL', source: 'ACOG Guidelines' }
+        ],
+        criticalValue: { id: 'crit-hb', parameterName: 'Hemoglobina', unit: 'g/dL', panicLow: 6.0, panicHigh: 20.0, actionRequired: 'Notificar inmediatamente a médico o enfermería + Repetición por duplicado' }
+      },
+      {
+        id: 'p-hto',
+        code: 'HTO',
+        loincCode: '4544-3',
+        name: 'Hematocrito (Hto / HCT)',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'HCT',
+        referenceRanges: [
+          { id: 'ref-hto-m', sex: 'MASCULINO', ageMinYears: 18, ageMaxYears: 99, minValue: 38.8, maxValue: 50.0, unit: '%', source: 'CLSI EP28-A3' },
+          { id: 'ref-hto-f', sex: 'FEMENINO', ageMinYears: 18, ageMaxYears: 99, minValue: 34.9, maxValue: 44.5, unit: '%', source: 'CLSI EP28-A3' }
+        ],
+        criticalValue: { id: 'crit-hto', parameterName: 'Hematocrito', unit: '%', panicLow: 18.0, panicHigh: 60.0, actionRequired: 'Llamada crítica urgente + Confirmación visual de paquete celular' }
+      },
+      {
+        id: 'p-vcm',
+        code: 'VCM',
+        loincCode: '787-2',
+        name: 'Volumen Corpuscular Medio (VCM / MCV)',
+        unit: 'fL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MCV',
+        referenceRanges: [
+          { id: 'ref-vcm-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 80.0, maxValue: 98.0, unit: 'fL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-hcm',
+        code: 'HCM',
+        loincCode: '785-6',
+        name: 'Hemoglobina Corpuscular Media (HCM / MCH)',
+        unit: 'pg',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MCH',
+        referenceRanges: [
+          { id: 'ref-hcm-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 27.0, maxValue: 33.0, unit: 'pg', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-chcm',
+        code: 'CHCM',
+        loincCode: '786-4',
+        name: 'Conc. Corpuscular Media de Hemoglobina (CHCM / MCHC)',
+        unit: 'g/dL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MCHC',
+        referenceRanges: [
+          { id: 'ref-chcm-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 32.0, maxValue: 36.0, unit: 'g/dL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-rdw-cv',
+        code: 'RDW_CV',
+        loincCode: '21000-5',
+        name: 'Ancho de Distribución Eritrocitaria (RDW-CV)',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'RDW',
+        referenceRanges: [
+          { id: 'ref-rdw-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 11.5, maxValue: 14.5, unit: '%', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-rdw-sd',
+        code: 'RDW_SD',
+        loincCode: '788-0',
+        name: 'Ancho de Distribución Eritrocitaria (RDW-SD)',
+        unit: 'fL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'RDWSD',
+        referenceRanges: [
+          { id: 'ref-rdwsd-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 39.0, maxValue: 46.0, unit: 'fL', source: 'ICSH Reference' }
+        ]
+      },
+      {
         id: 'p-plt',
         code: 'PLT',
         loincCode: '777-3',
-        name: 'Plaquetas (PLT)',
+        name: 'Recuento de Plaquetas (PLT)',
         unit: 'x10³/µL',
         resultType: 'NUMERIC',
         astmMappingCode: 'PLT',
@@ -230,10 +303,34 @@ export const MASTER_TESTS: LisMasterTest[] = [
         criticalValue: { id: 'crit-plt', parameterName: 'Plaquetas', unit: 'x10³/µL', panicLow: 20, panicHigh: 1000, actionRequired: 'Descarte de pseudotrombocitopenia por EDTA en frotis + Notificación inmediata' }
       },
       {
-        id: 'p-neu',
+        id: 'p-vpm',
+        code: 'VPM',
+        loincCode: '32623-1',
+        name: 'Volumen Plaquetario Medio (VPM / MPV)',
+        unit: 'fL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MPV',
+        referenceRanges: [
+          { id: 'ref-mpv-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 7.4, maxValue: 10.4, unit: 'fL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-pct',
+        code: 'PCT',
+        loincCode: '766-0',
+        name: 'Plaquetocrito (PCT)',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'PCT',
+        referenceRanges: [
+          { id: 'ref-pct-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.15, maxValue: 0.40, unit: '%', source: 'Sysmex Reference' }
+        ]
+      },
+      {
+        id: 'p-neu-pct',
         code: 'NEU_PCT',
-        loincCode: '3705-7',
-        name: 'Neutrófilos %',
+        loincCode: '770-8',
+        name: 'Neutrófilos Segmentados %',
         unit: '%',
         resultType: 'NUMERIC',
         astmMappingCode: 'NEU%',
@@ -242,15 +339,112 @@ export const MASTER_TESTS: LisMasterTest[] = [
         ]
       },
       {
-        id: 'p-lym',
+        id: 'p-lym-pct',
         code: 'LYM_PCT',
-        loincCode: '3703-2',
+        loincCode: '736-9',
         name: 'Linfocitos %',
         unit: '%',
         resultType: 'NUMERIC',
         astmMappingCode: 'LYM%',
         referenceRanges: [
           { id: 'ref-lym-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 20.0, maxValue: 45.0, unit: '%', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-mon-pct',
+        code: 'MON_PCT',
+        loincCode: '742-7',
+        name: 'Monocitos %',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MON%',
+        referenceRanges: [
+          { id: 'ref-mon-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 2.0, maxValue: 10.0, unit: '%', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-eos-pct',
+        code: 'EOS_PCT',
+        loincCode: '711-2',
+        name: 'Eosinófilos %',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'EOS%',
+        referenceRanges: [
+          { id: 'ref-eos-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 1.0, maxValue: 5.0, unit: '%', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-bas-pct',
+        code: 'BAS_PCT',
+        loincCode: '704-7',
+        name: 'Basófilos %',
+        unit: '%',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'BAS%',
+        referenceRanges: [
+          { id: 'ref-bas-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.0, maxValue: 2.0, unit: '%', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-neu-abs',
+        code: 'NEU_ABS',
+        loincCode: '751-8',
+        name: 'Neutrófilos Absolutos (ANC / NEU#)',
+        unit: 'x10³/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'NEU#',
+        referenceRanges: [
+          { id: 'ref-neua-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 1.80, maxValue: 7.50, unit: 'x10³/µL', source: 'CLSI EP28-A3' }
+        ],
+        criticalValue: { id: 'crit-neua', parameterName: 'Neutrófilos Absolutos', unit: 'x10³/µL', panicLow: 0.5, panicHigh: 20.0, actionRequired: 'ALERTA: Neutropenia febril severa. Aislar al paciente y avisar al oncólogo/médico' }
+      },
+      {
+        id: 'p-lym-abs',
+        code: 'LYM_ABS',
+        loincCode: '731-0',
+        name: 'Linfocitos Absolutos (LYM#)',
+        unit: 'x10³/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'LYM#',
+        referenceRanges: [
+          { id: 'ref-lyma-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 1.00, maxValue: 4.00, unit: 'x10³/µL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-mon-abs',
+        code: 'MON_ABS',
+        loincCode: '744-3',
+        name: 'Monocitos Absolutos (MON#)',
+        unit: 'x10³/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'MON#',
+        referenceRanges: [
+          { id: 'ref-mona-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.10, maxValue: 0.80, unit: 'x10³/µL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-eos-abs',
+        code: 'EOS_ABS',
+        loincCode: '713-8',
+        name: 'Eosinófilos Absolutos (EOS#)',
+        unit: 'x10³/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'EOS#',
+        referenceRanges: [
+          { id: 'ref-eosa-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.04, maxValue: 0.45, unit: 'x10³/µL', source: 'CLSI EP28-A3' }
+        ]
+      },
+      {
+        id: 'p-bas-abs',
+        code: 'BAS_ABS',
+        loincCode: '706-2',
+        name: 'Basófilos Absolutos (BAS#)',
+        unit: 'x10³/µL',
+        resultType: 'NUMERIC',
+        astmMappingCode: 'BAS#',
+        referenceRanges: [
+          { id: 'ref-basa-a', sex: 'AMBOS', ageMinYears: 18, ageMaxYears: 99, minValue: 0.01, maxValue: 0.10, unit: 'x10³/µL', source: 'CLSI EP28-A3' }
         ]
       }
     ]
@@ -1072,7 +1266,10 @@ export const MasterTestCatalogManager: React.FC = () => {
       const saved = localStorage.getItem('lis_master_catalog');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= MASTER_TESTS.length) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= MASTER_TESTS.length) {
+          const hem = parsed.find((t: any) => t.id === 'test-hem-001');
+          if (hem && hem.parameters && hem.parameters.length >= 20) return parsed;
+        }
       }
     } catch {}
     return MASTER_TESTS;
@@ -1082,7 +1279,10 @@ export const MasterTestCatalogManager: React.FC = () => {
       const saved = localStorage.getItem('lis_master_catalog');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hem = parsed.find((t: any) => t.id === 'test-hem-001');
+          if (hem && hem.parameters && hem.parameters.length >= 20) return parsed[0];
+        }
       }
     } catch {}
     return MASTER_TESTS[0];
@@ -1096,6 +1296,181 @@ export const MasterTestCatalogManager: React.FC = () => {
   
   // Modal for New Test Creation
   const [isNewTestModalOpen, setIsNewTestModalOpen] = useState<boolean>(false);
+
+  // Estados para Edición y Creación de Paneles & Componentes
+  const [isNewPanelModalOpen, setIsNewPanelModalOpen] = useState<boolean>(false);
+  const [panelFormName, setPanelFormName] = useState<string>('Perfil Renal Integral');
+  const [panelFormShortName, setPanelFormShortName] = useState<string>('Perfil Renal');
+  const [panelFormCode, setPanelFormCode] = useState<string>('REN-001');
+  const [panelFormLoinc, setPanelFormLoinc] = useState<string>('24362-6');
+  const [panelFormArea, setPanelFormArea] = useState<string>('QCL');
+  const [panelFormTube, setPanelFormTube] = useState<LisMasterTest['tubeType']>('SST_AMARILLO');
+  const [panelFormPrice, setPanelFormPrice] = useState<number>(28.00);
+  const [panelFormSpecimen, setPanelFormSpecimen] = useState<string>('Suero Sérico');
+
+  // Estado para Agregar Componente a un Panel Existente
+  const [activePanelForComponent, setActivePanelForComponent] = useState<string | null>(null);
+  const [compName, setCompName] = useState<string>('');
+  const [compCode, setCompCode] = useState<string>('');
+  const [compLoinc, setCompLoinc] = useState<string>('');
+  const [compAstm, setCompAstm] = useState<string>('');
+  const [compUnit, setCompUnit] = useState<string>('mg/dL');
+  const [compMinRef, setCompMinRef] = useState<string>('0.7');
+  const [compMaxRef, setCompMaxRef] = useState<string>('1.3');
+  const [compSexRef, setCompSexRef] = useState<'AMBOS' | 'MASCULINO' | 'FEMENINO'>('AMBOS');
+  const [compPanicLow, setCompPanicLow] = useState<string>('');
+  const [compPanicHigh, setCompPanicHigh] = useState<string>('');
+
+  // Handlers para Paneles y Componentes
+  const handleCreateNewPanel = (e: React.FormEvent) => {
+    e.preventDefault();
+    const areaObj = areas.find(a => a.id === panelFormArea);
+    const newPanel: LisMasterTest = {
+      id: `panel-${Date.now()}`,
+      code: panelFormCode,
+      loincCode: panelFormLoinc,
+      loincName: `${panelFormName} LOINC Term`,
+      name: panelFormName,
+      shortName: panelFormShortName,
+      synonyms: [panelFormShortName, panelFormName],
+      areaId: panelFormArea,
+      areaName: areaObj ? areaObj.name : 'Química Clínica',
+      subarea: areaObj ? areaObj.subareas[0] : 'General',
+      resultType: 'PANEL_MULTI_COMPONENT',
+      specimenType: panelFormSpecimen,
+      tubeType: panelFormTube,
+      tubeColorHex: panelFormTube === 'EDTA_LILA' ? '#a855f7' : panelFormTube === 'CITRATO_AZUL' ? '#0ea5e9' : '#eab308',
+      tubeAdditive: panelFormTube === 'EDTA_LILA' ? 'K2-EDTA' : 'Gel Separador / Coágulo',
+      minVolumeMl: 3.5,
+      method: 'Automatizado / Analizador Clínico',
+      defaultUnit: '—',
+      fastingRequired: true,
+      fastingHours: 8,
+      tatHours: 3,
+      priceUsd: panelFormPrice,
+      stabilityDetails: '24-48 horas refrigerado a 2°C–8°C.',
+      rejectionCriteria: 'Muestra hemolizada o volumen insuficiente.',
+      active: true,
+      parameters: []
+    };
+
+    const updated = [newPanel, ...tests];
+    setTests(updated);
+    try {
+      localStorage.setItem('lis_master_catalog', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error guardando en localStorage:', err);
+    }
+    setIsNewPanelModalOpen(false);
+    alert(`¡Panel "${panelFormName}" creado con éxito! Ahora puedes agregarle componentes con el botón "+ Agregar Componente".`);
+  };
+
+  const handleDeletePanel = (panelId: string, panelName: string) => {
+    if (!window.confirm(`¿Está seguro de eliminar el panel "${panelName}" del catálogo maestro?`)) return;
+    const updated = tests.filter(t => t.id !== panelId);
+    setTests(updated);
+    if (selectedTest.id === panelId && updated.length > 0) {
+      setSelectedTest(updated[0]);
+    }
+    try {
+      localStorage.setItem('lis_master_catalog', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error guardando en localStorage:', err);
+    }
+  };
+
+  const handleAddComponentToPanel = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePanelForComponent || !compName.trim()) return;
+
+    const newParam: LisTestParameter = {
+      id: `p-${Date.now()}`,
+      code: compCode.trim() || compName.substring(0, 4).toUpperCase(),
+      loincCode: compLoinc.trim() || 'N/A',
+      name: compName.trim(),
+      unit: compUnit.trim(),
+      resultType: 'NUMERIC',
+      astmMappingCode: compAstm.trim() || compCode.trim() || compName.substring(0, 4).toUpperCase(),
+      referenceRanges: compMinRef && compMaxRef ? [
+        {
+          id: `ref-${Date.now()}`,
+          sex: compSexRef,
+          ageMinYears: 18,
+          ageMaxYears: 99,
+          minValue: parseFloat(compMinRef) || 0,
+          maxValue: parseFloat(compMaxRef) || 100,
+          unit: compUnit.trim(),
+          source: 'CLSI EP28-A3'
+        }
+      ] : [],
+      criticalValue: compPanicLow || compPanicHigh ? {
+        id: `crit-${Date.now()}`,
+        parameterName: compName.trim(),
+        unit: compUnit.trim(),
+        panicLow: compPanicLow ? parseFloat(compPanicLow) : undefined,
+        panicHigh: compPanicHigh ? parseFloat(compPanicHigh) : undefined,
+        actionRequired: 'Llamada crítica urgente al médico tratante + Repetición por duplicado'
+      } : undefined
+    };
+
+    const updated = tests.map(t => {
+      if (t.id === activePanelForComponent) {
+        return {
+          ...t,
+          parameters: [...t.parameters, newParam]
+        };
+      }
+      return t;
+    });
+
+    setTests(updated);
+    if (selectedTest.id === activePanelForComponent) {
+      const updatedSel = updated.find(t => t.id === activePanelForComponent);
+      if (updatedSel) setSelectedTest(updatedSel);
+    }
+    try {
+      localStorage.setItem('lis_master_catalog', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error guardando en localStorage:', err);
+    }
+
+    // Reset component form
+    setCompName('');
+    setCompCode('');
+    setCompLoinc('');
+    setCompAstm('');
+    setCompUnit('mg/dL');
+    setCompMinRef('');
+    setCompMaxRef('');
+    setCompPanicLow('');
+    setCompPanicHigh('');
+    setActivePanelForComponent(null);
+  };
+
+  const handleRemoveComponentFromPanel = (panelId: string, paramId: string, paramName: string) => {
+    if (!window.confirm(`¿Eliminar el componente "${paramName}" de este panel?`)) return;
+
+    const updated = tests.map(t => {
+      if (t.id === panelId) {
+        return {
+          ...t,
+          parameters: t.parameters.filter(p => p.id !== paramId)
+        };
+      }
+      return t;
+    });
+
+    setTests(updated);
+    if (selectedTest.id === panelId) {
+      const updatedSel = updated.find(t => t.id === panelId);
+      if (updatedSel) setSelectedTest(updatedSel);
+    }
+    try {
+      localStorage.setItem('lis_master_catalog', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error guardando en localStorage:', err);
+    }
+  };
   const [formCode, setFormCode] = useState<string>('QCL-020');
   const [formLoinc, setFormLoinc] = useState<string>('24325-3');
   const [formName, setFormName] = useState<string>('Perfil Hepático Completo');
@@ -1555,51 +1930,121 @@ export const MasterTestCatalogManager: React.FC = () => {
       {/* TAB 2: PANEL & COMPONENT INSPECTOR */}
       {activeTab === 'PANEL_INSPECTOR' && (
         <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          {/* Header con botón para Crear Nuevo Panel */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
             <div>
               <h2 className="text-lg font-black text-white flex items-center space-x-2">
                 <Layers className="w-5 h-5 text-teal-400" />
                 <span>Inspector de Jerarquía de Paneles y Componentes LIS</span>
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Desglose estructural de exámenes agrupados en perfiles clínicos (Hemogramas, Perfiles Lipídicos, EGO, Urocultivo)
+                Configure y administre la composición de exámenes agrupados en perfiles clínicos (Hemogramas, Perfiles Lipídicos, EGO, Urocultivo, Perfiles Renales y Hepáticos).
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsNewPanelModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-teal-500/20 flex items-center space-x-2 cursor-pointer transition shrink-0"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Crear Nuevo Panel Clínico</span>
+            </button>
           </div>
 
+          {/* Grid de Paneles Clínicos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {tests.filter(t => t.resultType === 'PANEL_MULTI_COMPONENT' || t.resultType === 'MICROBIOLOGY_CULTURE').map((panel) => (
-              <div key={panel.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="font-mono text-xs font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20 mr-2">
-                      {panel.code}
-                    </span>
-                    <span className="font-mono text-xs font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                      LOINC {panel.loincCode}
-                    </span>
-                    <h3 className="text-sm font-black text-white mt-1">{panel.name}</h3>
+              <div key={panel.id} className="bg-slate-950 border border-slate-800/90 rounded-2xl p-5 space-y-4 shadow-xl hover:border-slate-700/80 transition group">
+                {/* Cabecera del Panel */}
+                <div className="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono text-[11px] font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                        {panel.code}
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                        LOINC {panel.loincCode}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/50">
+                        {panel.areaName}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-black text-white mt-1.5 truncate">{panel.name}</h3>
                   </div>
 
-                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                    {panel.parameters.length || (panel.microbiologyData ? panel.microbiologyData.antibiogramRules.length : 0)} Componentes
-                  </span>
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                      {panel.parameters.length || (panel.microbiologyData ? panel.microbiologyData.antibiogramRules.length : 0)} Pruebas
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePanel(panel.id, panel.name)}
+                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
+                      title="Eliminar este panel completo"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Component List */}
-                <div className="space-y-2">
+                {/* Botón de Acción para Agregar Analito */}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Componentes Analíticos:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePanelForComponent(panel.id);
+                      setCompName('');
+                      setCompCode('');
+                      setCompLoinc('');
+                      setCompAstm('');
+                      setCompUnit('mg/dL');
+                      setCompMinRef('');
+                      setCompMaxRef('');
+                      setCompPanicLow('');
+                      setCompPanicHigh('');
+                    }}
+                    className="px-3 py-1 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Agregar Analito / Prueba</span>
+                  </button>
+                </div>
+
+                {/* Lista de Componentes del Panel */}
+                <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                  {panel.parameters.length === 0 && !panel.microbiologyData && (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500 space-y-1">
+                      <div>Este panel aún no tiene componentes analíticos asignados.</div>
+                      <div className="text-[10px] text-teal-400 font-medium">Haz clic en "+ Agregar Analito / Prueba" para añadir el primero.</div>
+                    </div>
+                  )}
+
                   {panel.parameters.map((param, index) => (
-                    <div key={param.id} className="bg-slate-900/90 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[10px] text-slate-500 font-bold">#{index + 1}</span>
-                        <div>
-                          <div className="font-bold text-white">{param.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">LOINC: {param.loincCode} | ASTM: {param.astmMappingCode || 'N/A'}</div>
+                    <div key={param.id} className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs hover:border-slate-700 transition group/param">
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <span className="font-mono text-[10px] text-slate-500 font-bold shrink-0">#{index + 1}</span>
+                        <div className="min-w-0">
+                          <div className="font-bold text-white truncate">{param.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono truncate">
+                            LOINC: <span className="text-amber-400/90">{param.loincCode}</span> • ASTM: <span className="text-cyan-400/90">{param.astmMappingCode || param.code}</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <span className="font-mono text-xs text-amber-300 font-bold">{param.unit}</span>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className="font-mono text-xs text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                          {param.unit}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveComponentFromPanel(panel.id, param.id, param.name)}
+                          className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded transition cursor-pointer"
+                          title="Eliminar este analito del panel"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1620,6 +2065,321 @@ export const MasterTestCatalogManager: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* MODAL 1: CREAR NUEVO PANEL CLÍNICO */}
+          {isNewPanelModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-slate-950 border border-teal-500/40 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Layers className="w-5 h-5 text-teal-400" />
+                    <h3 className="text-base font-black text-white">Crear Nuevo Panel / Perfil Clínico</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsNewPanelModalOpen(false)}
+                    className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateNewPanel} className="space-y-4 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Nombre Completo del Panel:</label>
+                      <input
+                        type="text"
+                        required
+                        value={panelFormName}
+                        onChange={(e) => setPanelFormName(e.target.value)}
+                        placeholder="Ej. Perfil Renal Integral"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Nombre Corto / Abreviado:</label>
+                      <input
+                        type="text"
+                        required
+                        value={panelFormShortName}
+                        onChange={(e) => setPanelFormShortName(e.target.value)}
+                        placeholder="Ej. Perfil Renal"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Código LIS Interno:</label>
+                      <input
+                        type="text"
+                        required
+                        value={panelFormCode}
+                        onChange={(e) => setPanelFormCode(e.target.value)}
+                        placeholder="Ej. REN-001"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Código LOINC del Panel:</label>
+                      <input
+                        type="text"
+                        required
+                        value={panelFormLoinc}
+                        onChange={(e) => setPanelFormLoinc(e.target.value)}
+                        placeholder="Ej. 24362-6"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Área / Especialidad:</label>
+                      <select
+                        value={panelFormArea}
+                        onChange={(e) => setPanelFormArea(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
+                      >
+                        {areas.map(a => (
+                          <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Tubo / Contenedor Primario:</label>
+                      <select
+                        value={panelFormTube}
+                        onChange={(e) => setPanelFormTube(e.target.value as any)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
+                      >
+                        <option value="SST_AMARILLO">SST Amarillo / Rojo (Suero con Gel)</option>
+                        <option value="EDTA_LILA">EDTA Lila K2/K3 (Sangre Total)</option>
+                        <option value="CITRATO_AZUL">Citrato Azul 3.2% (Plasma Coagulación)</option>
+                        <option value="HEPARINA_VERDE">Heparina Verde (Plasma / Bioquímica)</option>
+                        <option value="FLUORURO_GRIS">Fluoruro Gris (Glicemia / Lactato)</option>
+                        <option value="FRASCO_ESTERIL">Frasco Estéril (Orina / Cultivos)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Tipo de Muestra:</label>
+                      <input
+                        type="text"
+                        value={panelFormSpecimen}
+                        onChange={(e) => setPanelFormSpecimen(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Precio Sugerido (USD):</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={panelFormPrice}
+                        onChange={(e) => setPanelFormPrice(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewPanelModalOpen(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl shadow-lg transition cursor-pointer flex items-center space-x-1.5"
+                    >
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>Guardar Panel</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 2: AGREGAR ANALITO / COMPONENTE A UN PANEL */}
+          {activePanelForComponent && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-slate-950 border border-cyan-500/40 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Plus className="w-5 h-5 text-cyan-400" />
+                    <div>
+                      <h3 className="text-base font-black text-white">Agregar Analito al Panel</h3>
+                      <p className="text-[10px] text-slate-400">
+                        {tests.find(t => t.id === activePanelForComponent)?.name} ({tests.find(t => t.id === activePanelForComponent)?.code})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActivePanelForComponent(null)}
+                    className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddComponentToPanel} className="space-y-4 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-300 block mb-1">Nombre del Analito / Examen:*</label>
+                    <input
+                      type="text"
+                      required
+                      value={compName}
+                      onChange={(e) => setCompName(e.target.value)}
+                      placeholder="Ej. Creatinina Sérica, BUN, Ácido Úrico..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Código del Parámetro:*</label>
+                      <input
+                        type="text"
+                        required
+                        value={compCode}
+                        onChange={(e) => setCompCode(e.target.value)}
+                        placeholder="Ej. CREA, BUN, ACU..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Unidad de Medida:*</label>
+                      <input
+                        type="text"
+                        required
+                        value={compUnit}
+                        onChange={(e) => setCompUnit(e.target.value)}
+                        placeholder="Ej. mg/dL, U/L, %..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Código LOINC Oficial:</label>
+                      <input
+                        type="text"
+                        value={compLoinc}
+                        onChange={(e) => setCompLoinc(e.target.value)}
+                        placeholder="Ej. 2160-0"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Código Mapeo ASTM / Equipo:</label>
+                      <input
+                        type="text"
+                        value={compAstm}
+                        onChange={(e) => setCompAstm(e.target.value)}
+                        placeholder="Ej. CREAT, BUN..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="font-bold text-teal-300 text-[11px]">Rango de Referencia Normal (CLSI EP28-A3):</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Mínimo:</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={compMinRef}
+                          onChange={(e) => setCompMinRef(e.target.value)}
+                          placeholder="0.7"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Máximo:</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={compMaxRef}
+                          onChange={(e) => setCompMaxRef(e.target.value)}
+                          placeholder="1.3"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Sexo:</label>
+                        <select
+                          value={compSexRef}
+                          onChange={(e) => setCompSexRef(e.target.value as any)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                        >
+                          <option value="AMBOS">Ambos</option>
+                          <option value="MASCULINO">Masculino</option>
+                          <option value="FEMENINO">Femenino</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="font-bold text-rose-400 text-[11px]">Límites Críticos de Pánico (Alerta Médica):</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Pánico Bajo (&lt;):</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={compPanicLow}
+                          onChange={(e) => setCompPanicLow(e.target.value)}
+                          placeholder="Opcional"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-rose-300 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Pánico Alto (&gt;):</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={compPanicHigh}
+                          onChange={(e) => setCompPanicHigh(e.target.value)}
+                          placeholder="Opcional"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-rose-300 font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setActivePanelForComponent(null)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl shadow-lg transition cursor-pointer flex items-center space-x-1.5"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                      <span>Agregar Analito al Panel</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

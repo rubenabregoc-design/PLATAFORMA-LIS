@@ -206,7 +206,7 @@ export function getClinicalAreaForResult(
       t.parameters?.some(
         (p) =>
           (res.parameterId && p.id === res.parameterId) ||
-          (res.parameterCode && p.code === res.parameterCode) ||
+          (res.parameterCode && ((p as any).code === res.parameterCode || p.astmParamCode === res.parameterCode)) ||
           (res.parameterName && p.name.trim().toLowerCase() === res.parameterName.trim().toLowerCase())
       )
     );

@@ -1,3 +1,19 @@
+import {
+  SYSTEM_MODULES_CATALOG,
+  getPlanPresetConfig,
+  evaluateLicenseStatus,
+  validateModuleDependencies,
+  recordLicenseAuditLog,
+  getLicenseAuditLogs,
+  createDefaultFullSuiteLicense
+} from '../../services/licensingCatalog';
+import {
+  BranchLicense,
+  SystemModuleId,
+  PlanPresetId,
+  LicenseStatus,
+  LicenseAuditLog
+} from '../../types/licensing';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Tenant, Analyzer, MiddlewareMessageLog, User, Role, Branch } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
@@ -10,7 +26,8 @@ import {
   CheckCheck, Trash2, Edit3, HeartPulse, Droplets, Thermometer, TestTube,
   Microscope, Sliders, Settings, Filter, Search, RefreshCw, Radio, Phone,
   MapPin, Clock, ArrowRight, Sparkles, FileText, ChevronRight, X,
-  Upload, Download, FileSpreadsheet
+  Upload, Download, FileSpreadsheet, RotateCcw, Power, Calendar, History,
+  ChevronDown, ChevronUp, CheckSquare, Square
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -1039,6 +1056,339 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [newBranchPhone, setNewBranchPhone] = useState<string>('+507 ');
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
 
+  // Estados para Administración de Licencias y Entitlements por Sede
+  const [managingLicenseBranch, setManagingLicenseBranch] = useState<Branch | null>(null);
+  const [duplicatingFromBranch, setDuplicatingFromBranch] = useState<Branch | null>(null);
+  const [targetDuplicateBranchId, setTargetDuplicateBranchId] = useState<string>('');
+  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState<boolean>(false);
+  const [auditLogsList, setAuditLogsList] = useState<LicenseAuditLog[]>([]);
+
+  // Formulario de Licencia de Sede
+  const [licPreset, setLicPreset] = useState<PlanPresetId>('SUITE_COMPLETA');
+  const [licStatus, setLicStatus] = useState<LicenseStatus>('activa');
+  const [licStartDate, setLicStartDate] = useState<string>('');
+  const [licExpirationDate, setLicExpirationDate] = useState<string>('');
+  const [licHasNoExpiration, setLicHasNoExpiration] = useState<boolean>(true);
+  const [licGracePeriod, setLicGracePeriod] = useState<number>(15);
+  const [licMaxUsers, setLicMaxUsers] = useState<number>(10);
+  const [licNotes, setLicNotes] = useState<string>('');
+  const [licEnabledSystems, setLicEnabledSystems] = useState<Record<SystemModuleId, boolean>>({
+    LIS: true,
+    HIS: true,
+    BANCO_SANGRE: true,
+    GESTION_CALIDAD: true,
+    OTROS: true
+  });
+  const [licEnabledSubmodules, setLicEnabledSubmodules] = useState<Record<string, boolean>>({});
+  const [expandedSystemAccordions, setExpandedSystemAccordions] = useState<Record<string, boolean>>({
+    LIS: true,
+    HIS: true,
+    BANCO_SANGRE: true,
+    GESTION_CALIDAD: false,
+    OTROS: false
+  });
+
+  const handleOpenLicenseManager = (branch: Branch) => {
+    const lic: BranchLicense = branch.license || createDefaultFullSuiteLicense(activeTenant.id, branch.id);
+    setManagingLicenseBranch(branch);
+    setLicPreset(lic.planPreset || 'SUITE_COMPLETA');
+    setLicStatus(lic.status || 'activa');
+    setLicStartDate(lic.startDate || new Date().toISOString().split('T')[0]);
+    setLicExpirationDate(lic.expirationDate || '');
+    setLicHasNoExpiration(!lic.expirationDate);
+    setLicGracePeriod(lic.gracePeriodDays ?? 15);
+    setLicMaxUsers(lic.maxUsers || 10);
+    setLicNotes(lic.notes || '');
+    setLicEnabledSystems(lic.enabledSystems || {
+      LIS: true, HIS: true, BANCO_SANGRE: true, GESTION_CALIDAD: true, OTROS: true
+    });
+    setLicEnabledSubmodules(lic.enabledSubmodules || {});
+  };
+
+  const handleApplyPlanPreset = (preset: PlanPresetId) => {
+    setLicPreset(preset);
+    const config = getPlanPresetConfig(preset);
+    setLicEnabledSystems(config.enabledSystems);
+    setLicEnabledSubmodules(config.enabledSubmodules);
+  };
+
+  const handleToggleSystem = (sysId: SystemModuleId) => {
+    const nextVal = !licEnabledSystems[sysId];
+    setLicEnabledSystems({
+      ...licEnabledSystems,
+      [sysId]: nextVal
+    });
+
+    // Al activar o desactivar el sistema, actualizar sus submódulos
+    const sysDef = SYSTEM_MODULES_CATALOG.find(s => s.id === sysId);
+    if (sysDef) {
+      const updatedSubs = { ...licEnabledSubmodules };
+      sysDef.submodules.forEach(sub => {
+        updatedSubs[sub.id] = nextVal;
+      });
+      setLicEnabledSubmodules(updatedSubs);
+    }
+  };
+
+  const handleToggleSubmodule = (subId: string, sysId: SystemModuleId) => {
+    const nextVal = !licEnabledSubmodules[subId];
+    const updatedSubs = {
+      ...licEnabledSubmodules,
+      [subId]: nextVal
+    };
+    setLicEnabledSubmodules(updatedSubs);
+
+    // Si se activa un submódulo y su sistema estaba apagado, encender el sistema
+    if (nextVal && !licEnabledSystems[sysId]) {
+      setLicEnabledSystems({
+        ...licEnabledSystems,
+        [sysId]: true
+      });
+    }
+  };
+
+  const handleSelectAllSubmodules = (sysId: SystemModuleId, selectAll: boolean) => {
+    const sysDef = SYSTEM_MODULES_CATALOG.find(s => s.id === sysId);
+    if (!sysDef) return;
+    const updatedSubs = { ...licEnabledSubmodules };
+    sysDef.submodules.forEach(sub => {
+      updatedSubs[sub.id] = selectAll;
+    });
+    setLicEnabledSubmodules(updatedSubs);
+    if (selectAll && !licEnabledSystems[sysId]) {
+      setLicEnabledSystems({
+        ...licEnabledSystems,
+        [sysId]: true
+      });
+    }
+  };
+
+  const handleSaveBranchLicense = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!managingLicenseBranch) return;
+
+    // Validar dependencias entre submódulos
+    const violations = validateModuleDependencies(licEnabledSystems, licEnabledSubmodules);
+    if (violations.length > 0) {
+      const issuesText = violations.map(v => `• ${v.dependentName} requiere ${v.requiredName} (${v.reason})`).join('\n');
+      if (!window.confirm(`Atención: Existen dependencias requeridas:\n\n${issuesText}\n\n¿Desea guardar de todos modos?`)) {
+        return;
+      }
+    }
+
+    if (!window.confirm(`¿Confirmar y aplicar la configuración de licencia para "${managingLicenseBranch.name}"? Los cambios afectarán inmediatamente los módulos visibles en esta sede.`)) {
+      return;
+    }
+
+    const previousLicense = managingLicenseBranch.license;
+    const updatedLicense: BranchLicense = {
+      id: managingLicenseBranch.license?.id || `lic-${activeTenant.id}-${managingLicenseBranch.id}`,
+      tenantId: activeTenant.id,
+      branchId: managingLicenseBranch.id,
+      planPreset: licPreset,
+      status: licStatus,
+      startDate: licStartDate || new Date().toISOString().split('T')[0],
+      expirationDate: licHasNoExpiration ? null : (licExpirationDate || null),
+      gracePeriodDays: Number(licGracePeriod) || 15,
+      maxUsers: Number(licMaxUsers) || 10,
+      enabledSystems: licEnabledSystems,
+      enabledSubmodules: licEnabledSubmodules,
+      notes: licNotes.trim(),
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'Súper-Admin AbregoTech'
+    };
+
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === activeTenant.id) {
+        return {
+          ...t,
+          branches: t.branches.map((b) => (b.id === managingLicenseBranch.id ? { ...b, license: updatedLicense } : b))
+        };
+      }
+      return t;
+    });
+
+    saveTenants(updatedTenants);
+
+    // Registrar en auditoría inmutable
+    recordLicenseAuditLog({
+      actorUserId: 'admin-abregotech',
+      actorUserName: 'Súper Administrador AbregoTech',
+      tenantId: activeTenant.id,
+      branchId: managingLicenseBranch.id,
+      branchName: managingLicenseBranch.name,
+      action: 'CAMBIO_PLAN',
+      details: `Actualización de licencia para sede ${managingLicenseBranch.name} (Plan: ${licPreset}, Estado: ${licStatus}, Usuarios: ${licMaxUsers})`,
+      previousValue: previousLicense,
+      newValue: updatedLicense
+    });
+
+    setManagingLicenseBranch(null);
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          message: `¡Licencia de sede "${managingLicenseBranch.name}" actualizada con éxito! Entitlements aplicados.`,
+          type: 'success'
+        }
+      })
+    );
+  };
+
+  const handleQuickRenewLicense = (branch: Branch, daysToAdd: number | 'indefinite') => {
+    const currentLic = branch.license || createDefaultFullSuiteLicense(activeTenant.id, branch.id);
+    let newExpDate: string | null = null;
+
+    if (daysToAdd !== 'indefinite') {
+      const baseDate = currentLic.expirationDate ? new Date(currentLic.expirationDate) : new Date();
+      if (baseDate.getTime() < Date.now()) {
+        baseDate.setTime(Date.now());
+      }
+      baseDate.setDate(baseDate.getDate() + daysToAdd);
+      newExpDate = baseDate.toISOString().split('T')[0];
+    }
+
+    const updatedLicense: BranchLicense = {
+      ...currentLic,
+      status: 'activa',
+      expirationDate: newExpDate,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'Súper-Admin AbregoTech (Renovación Rápida)'
+    };
+
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === activeTenant.id) {
+        return {
+          ...t,
+          branches: t.branches.map((b) => (b.id === branch.id ? { ...b, license: updatedLicense } : b))
+        };
+      }
+      return t;
+    });
+
+    saveTenants(updatedTenants);
+
+    recordLicenseAuditLog({
+      actorUserId: 'admin-abregotech',
+      actorUserName: 'Súper Administrador AbregoTech',
+      tenantId: activeTenant.id,
+      branchId: branch.id,
+      branchName: branch.name,
+      action: 'RENOVACION',
+      details: `Renovación de licencia de sede ${branch.name}. Nueva fecha de vigencia: ${newExpDate || 'Indefinida'}`,
+      previousValue: currentLic,
+      newValue: updatedLicense
+    });
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          message: `Licencia de "${branch.name}" renovada con éxito (${newExpDate ? 'Vence: ' + newExpDate : 'Indefinida'}).`,
+          type: 'success'
+        }
+      })
+    );
+  };
+
+  const handleToggleBranchSuspension = (branch: Branch) => {
+    const currentLic = branch.license || createDefaultFullSuiteLicense(activeTenant.id, branch.id);
+    const nextStatus: LicenseStatus = currentLic.status === 'suspendida' ? 'activa' : 'suspendida';
+
+    const updatedLicense: BranchLicense = {
+      ...currentLic,
+      status: nextStatus,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'Súper-Admin AbregoTech'
+    };
+
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === activeTenant.id) {
+        return {
+          ...t,
+          branches: t.branches.map((b) => (b.id === branch.id ? { ...b, license: updatedLicense } : b))
+        };
+      }
+      return t;
+    });
+
+    saveTenants(updatedTenants);
+
+    recordLicenseAuditLog({
+      actorUserId: 'admin-abregotech',
+      actorUserName: 'Súper Administrador AbregoTech',
+      tenantId: activeTenant.id,
+      branchId: branch.id,
+      branchName: branch.name,
+      action: nextStatus === 'suspendida' ? 'SUSPENSION' : 'REACTIVACION',
+      details: `Estado de licencia de sede ${branch.name} cambiado a: ${nextStatus.toUpperCase()}`,
+      previousValue: currentLic,
+      newValue: updatedLicense
+    });
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          message: `Sede "${branch.name}" ${nextStatus === 'suspendida' ? 'suspendida (Modo Solo Lectura activado)' : 'reactivada con éxito'}.`,
+          type: nextStatus === 'suspendida' ? 'warning' : 'success'
+        }
+      })
+    );
+  };
+
+  const handleDuplicateLicenseToBranch = () => {
+    if (!duplicatingFromBranch || !targetDuplicateBranchId) return;
+    const sourceLic = duplicatingFromBranch.license || createDefaultFullSuiteLicense(activeTenant.id, duplicatingFromBranch.id);
+    const targetBranch = activeTenant.branches.find(b => b.id === targetDuplicateBranchId);
+    if (!targetBranch) return;
+
+    if (!window.confirm(`¿Copiar la configuración exacta de licencia de "${duplicatingFromBranch.name}" a "${targetBranch.name}"?`)) {
+      return;
+    }
+
+    const clonedLicense: BranchLicense = {
+      ...sourceLic,
+      id: `lic-${activeTenant.id}-${targetBranch.id}`,
+      branchId: targetBranch.id,
+      notes: `Copiado de sede ${duplicatingFromBranch.name} el ${new Date().toLocaleDateString()}`,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'Súper-Admin AbregoTech (Duplicación)'
+    };
+
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === activeTenant.id) {
+        return {
+          ...t,
+          branches: t.branches.map((b) => (b.id === targetBranch.id ? { ...b, license: clonedLicense } : b))
+        };
+      }
+      return t;
+    });
+
+    saveTenants(updatedTenants);
+
+    recordLicenseAuditLog({
+      actorUserId: 'admin-abregotech',
+      actorUserName: 'Súper Administrador AbregoTech',
+      tenantId: activeTenant.id,
+      branchId: targetBranch.id,
+      branchName: targetBranch.name,
+      action: 'CAMBIO_PLAN',
+      details: `Configuración duplicada desde sede ${duplicatingFromBranch.name}`,
+      newValue: clonedLicense
+    });
+
+    setDuplicatingFromBranch(null);
+    setTargetDuplicateBranchId('');
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          message: `¡Configuración de licencia duplicada con éxito a "${targetBranch.name}"!`,
+          type: 'success'
+        }
+      })
+    );
+  };
+
   // Catálogo LIS & Valores de Referencia State
   const [customTests, setCustomTests] = useState<CustomReferenceTest[]>(() => {
     if (typeof window !== 'undefined') {
@@ -1559,6 +1909,21 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
     const targetTenant = tenants.find((t) => t.id === newUserTenant) || tenants[0];
     const targetBranch = newUserBranch || targetTenant?.branches[0]?.id || 'branch-via-espana';
+    const targetBranchObj = targetTenant?.branches?.find(b => b.id === targetBranch);
+    const branchMaxUsers = targetBranchObj?.license?.maxUsers ?? 50;
+    const branchCurrentUsers = realUsers.filter(u => u.branchId === targetBranch).length;
+
+    if (branchCurrentUsers >= branchMaxUsers) {
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: {
+            message: `Límite de licencias alcanzado (${branchCurrentUsers}/${branchMaxUsers}) para la sede "${targetBranchObj?.name || 'seleccionada'}". Actualice el plan en Sedes para habilitar más usuarios.`,
+            type: 'error'
+          }
+        })
+      );
+      return;
+    }
 
     const cleanPin = newUserPin.trim();
     if (cleanPin) {
@@ -2243,62 +2608,591 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 </button>
               </form>
 
-              {/* Lista de Sedes Existentes del Cliente */}
-              <div className="bg-slate-900/90 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-                <h4 className="font-black text-white text-xs uppercase tracking-wider flex items-center space-x-2 border-b border-slate-800 pb-3">
-                  <MapPin className="w-4 h-4 text-cyan-400" />
-                  <span>Sedes Operativas de "{activeTenant.name}" ({activeTenant.branches.length})</span>
-                </h4>
+              {/* Lista de Sedes Existentes del Cliente & Gestión de Licencias */}
+              <div className="bg-slate-900/90 p-6 rounded-3xl border border-slate-800 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <h4 className="font-black text-white text-xs uppercase tracking-wider flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-cyan-400" />
+                    <span>Sedes & Licenciamiento de "{activeTenant.name}" ({activeTenant.branches.length})</span>
+                  </h4>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuditLogsList(getLicenseAuditLogs(activeTenant.id));
+                      setIsAuditLogModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer border border-slate-700/60"
+                  >
+                    <History className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Bitácora de Licencias ({getLicenseAuditLogs(activeTenant.id).length})</span>
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {activeTenant.branches.map((branch) => (
-                    <div
-                      key={branch.id}
-                      className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 transition-all space-y-2.5 shadow-md"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 min-w-0">
-                          <span className="text-cyan-400 font-mono font-bold text-xs bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                            {branch.code}
-                          </span>
-                          <span className="font-black text-white text-sm truncate">{branch.name}</span>
+                  {activeTenant.branches.map((branch) => {
+                    const lic = branch.license || createDefaultFullSuiteLicense(activeTenant.id, branch.id);
+                    const evalRes = evaluateLicenseStatus(lic);
+                    const branchUsers = MOCK_USERS.filter(u => u.tenantId === activeTenant.id && (!u.branchId || u.branchId === branch.id)).length;
+                    const maxAllowed = lic.maxUsers || 999;
+                    const isLimitReached = branchUsers >= maxAllowed;
+
+                    return (
+                      <div
+                        key={branch.id}
+                        className="p-5 rounded-2xl bg-slate-950 border border-slate-800/90 hover:border-cyan-500/40 transition-all space-y-4 shadow-lg flex flex-col justify-between"
+                      >
+                        {/* Cabecera de la Sede con Status Badge */}
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center space-x-2 min-w-0">
+                              <span className="text-cyan-400 font-mono font-bold text-xs bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                                {branch.code}
+                              </span>
+                              <span className="font-black text-white text-sm truncate">{branch.name}</span>
+                            </div>
+
+                            <span className={`text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border shrink-0 ${evalRes.statusBadge}`}>
+                              {evalRes.status.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-slate-400 flex items-center space-x-2">
+                            <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                            <span className="truncate">{branch.address}</span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center space-x-1">
+                        {/* Resumen de Módulos Contratados (Pills) */}
+                        <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800/60 space-y-2">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Plan Contratado:</span>
+                            <span className="font-black text-cyan-300 font-mono">
+                              {lic.planPreset === 'SUITE_COMPLETA' ? '⭐ Suite Completa' : lic.planPreset.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${lic.enabledSystems?.LIS ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-slate-800/60 text-slate-500 border-slate-800'}`}>
+                              LIS {lic.enabledSystems?.LIS ? '✓' : '✕'}
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${lic.enabledSystems?.HIS ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : 'bg-slate-800/60 text-slate-500 border-slate-800'}`}>
+                              HIS {lic.enabledSystems?.HIS ? '✓' : '✕'}
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${lic.enabledSystems?.BANCO_SANGRE ? 'bg-rose-500/15 text-rose-300 border-rose-500/30' : 'bg-slate-800/60 text-slate-500 border-slate-800'}`}>
+                              Banco {lic.enabledSystems?.BANCO_SANGRE ? '✓' : '✕'}
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${lic.enabledSystems?.GESTION_CALIDAD ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-slate-800/60 text-slate-500 border-slate-800'}`}>
+                              Calidad {lic.enabledSystems?.GESTION_CALIDAD ? '✓' : '✕'}
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${lic.enabledSystems?.OTROS ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800/60 text-slate-500 border-slate-800'}`}>
+                              Otros {lic.enabledSystems?.OTROS ? '✓' : '✕'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800 text-[10px] font-mono">
+                            <div>
+                              <span className="text-slate-500 block">Vigencia:</span>
+                              <span className="text-slate-300 font-bold truncate block">
+                                {lic.expirationDate ? `Vence: ${lic.expirationDate}` : 'Indefinida / Perpetua'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block">Usuarios:</span>
+                              <span className={`font-bold truncate block ${isLimitReached ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {branchUsers} / {maxAllowed === 999 ? '∞' : maxAllowed} activos
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botonera de Acciones Comerciales y de Sede */}
+                        <div className="space-y-2 pt-1">
                           <button
-                            onClick={() => setEditingBranch(branch)}
-                            className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition cursor-pointer"
-                            title="Editar Sede"
+                            type="button"
+                            onClick={() => handleOpenLicenseManager(branch)}
+                            className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5 shadow-md shadow-cyan-500/20"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Key className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Configurar Licencia & Entitlements</span>
                           </button>
-                          <button
-                            onClick={() => handleDeleteBranch(activeTenant.id, branch.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                            title="Eliminar Sede"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickRenewLicense(branch, 365)}
+                              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-cyan-300 hover:text-white rounded-lg border border-slate-800 transition cursor-pointer flex items-center space-x-1"
+                              title="Extender vigencia 1 año adicional"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>+1 Año</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleBranchSuspension(branch)}
+                              className={`px-2 py-1 rounded-lg border transition cursor-pointer flex items-center space-x-1 ${lic.status === 'suspendida' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/15 border-rose-500/30 text-rose-300'}`}
+                              title={lic.status === 'suspendida' ? 'Reactivar sede' : 'Suspender sede (Modo Solo Lectura)'}
+                            >
+                              <Power className="w-3 h-3" />
+                              <span>{lic.status === 'suspendida' ? 'Reactivar' : 'Suspender'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDuplicatingFromBranch(branch);
+                                const otherBranches = activeTenant.branches.filter(b => b.id !== branch.id);
+                                if (otherBranches.length > 0) setTargetDuplicateBranchId(otherBranches[0].id);
+                              }}
+                              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-800 transition cursor-pointer flex items-center space-x-1"
+                              title="Copiar configuración a otra sede del cliente"
+                            >
+                              <Copy className="w-3 h-3 text-indigo-400" />
+                              <span>Duplicar</span>
+                            </button>
+
+                            <div className="flex items-center space-x-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingBranch(branch)}
+                                className="p-1 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition cursor-pointer"
+                                title="Editar dirección y teléfono de la sede"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBranch(activeTenant.id, branch.id)}
+                                className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
+                                title="Eliminar sede"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="text-xs text-slate-300 flex items-start space-x-2">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                        <span className="leading-snug">{branch.address}</span>
-                      </div>
-
-                      <div className="text-xs text-amber-300 font-mono flex items-center space-x-2">
-                        <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span>{branch.phone}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
             </div>
 
           </div>
+
+          {/* MODAL 1: CONFIGURADOR INTEGRAL DE LICENCIA Y ENTITLEMENTS */}
+          {managingLicenseBranch && (
+            <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+              <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl max-w-4xl w-full p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-150 my-auto max-h-[92vh] flex flex-col">
+                {/* Cabecera del Modal */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-md">
+                      <Key className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-black text-white text-base">Configuración de Licenciamiento & Entitlements</h3>
+                        <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                          {managingLicenseBranch.code}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        Sede: <span className="text-white font-bold">{managingLicenseBranch.name}</span> • Cliente: <span className="text-cyan-300 font-bold">{activeTenant.name}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setManagingLicenseBranch(null)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveBranchLicense} className="space-y-6 overflow-y-auto pr-1">
+                  {/* Selector de Planes Rápidos (Presets) */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Atajos de Planes Comerciales Predefinidos:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                      {[
+                        { id: 'SOLO_LIS', label: 'Solo LIS', color: 'border-cyan-500/40 hover:bg-cyan-500/10' },
+                        { id: 'SOLO_HIS', label: 'Solo HIS', color: 'border-indigo-500/40 hover:bg-indigo-500/10' },
+                        { id: 'SOLO_BANCO', label: 'Solo Banco', color: 'border-rose-500/40 hover:bg-rose-500/10' },
+                        { id: 'LIS_HIS', label: 'LIS + HIS', color: 'border-teal-500/40 hover:bg-teal-500/10' },
+                        { id: 'SUITE_COMPLETA', label: '⭐ Suite Completa', color: 'border-emerald-500/40 hover:bg-emerald-500/10' },
+                        { id: 'PERSONALIZADO', label: 'Personalizado', color: 'border-slate-700 hover:bg-slate-800' }
+                      ].map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleApplyPlanPreset(preset.id as PlanPresetId)}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer text-center ${licPreset === preset.id ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20 border-cyan-400' : 'bg-slate-950 text-slate-300 ' + preset.color}`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Parámetros de la Licencia: Estado, Fechas, Límite de Usuarios */}
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
+                    <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider block">
+                      Condiciones de la Licencia & Vigencia:
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Estado de Licencia:</label>
+                        <select
+                          value={licStatus}
+                          onChange={(e) => setLicStatus(e.target.value as LicenseStatus)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
+                        >
+                          <option value="activa">🟢 Activa</option>
+                          <option value="por_vencer">🟡 Por Vencer</option>
+                          <option value="en_gracia">🟠 En Periodo de Gracia</option>
+                          <option value="vencida">🔴 Vencida (Solo Lectura)</option>
+                          <option value="suspendida">🟣 Suspendida (Solo Lectura)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Fecha de Inicio:</label>
+                        <input
+                          type="date"
+                          value={licStartDate}
+                          onChange={(e) => setLicStartDate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Vencimiento:</label>
+                        <input
+                          type="date"
+                          disabled={licHasNoExpiration}
+                          value={licExpirationDate}
+                          onChange={(e) => setLicExpirationDate(e.target.value)}
+                          className={`w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono ${licHasNoExpiration ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        />
+                        <label className="flex items-center space-x-1.5 mt-1.5 cursor-pointer text-[10px] text-slate-400">
+                          <input
+                            type="checkbox"
+                            checked={licHasNoExpiration}
+                            onChange={(e) => {
+                              setLicHasNoExpiration(e.target.checked);
+                              if (e.target.checked) setLicExpirationDate('');
+                            }}
+                            className="rounded accent-cyan-500"
+                          />
+                          <span>Sin Vencimiento (Indefinida)</span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Máximo de Usuarios:</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={999}
+                          value={licMaxUsers}
+                          onChange={(e) => setLicMaxUsers(parseInt(e.target.value) || 1)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold"
+                        />
+                        <span className="text-[10px] text-slate-500 mt-1 block">Tope concurrente de cuentas</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-800/80">
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Periodo de Gracia Asistencial (Días):</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={90}
+                          value={licGracePeriod}
+                          onChange={(e) => setLicGracePeriod(parseInt(e.target.value) || 15)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono"
+                        />
+                        <span className="text-[10px] text-slate-500 mt-0.5 block">Días de gracia con función completa antes de Solo Lectura</span>
+                      </div>
+                      <div>
+                        <label className="text-slate-400 font-bold block mb-1">Notas Comerciales / Contrato:</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. Contrato Anual CSS / Hospital #2026-99"
+                          value={licNotes}
+                          onChange={(e) => setLicNotes(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sistemas y Submódulos Habilitados con Interruptores y Casillas */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                        Sistemas & Submódulos Contratados (Entitlements):
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Marque solo lo adquirido por la sede
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {SYSTEM_MODULES_CATALOG.map((sys) => {
+                        const isSysActive = !!licEnabledSystems[sys.id];
+                        const isExpanded = !!expandedSystemAccordions[sys.id];
+                        const activeSubsCount = sys.submodules.filter(sub => licEnabledSubmodules[sub.id]).length;
+
+                        return (
+                          <div
+                            key={sys.id}
+                            className={`rounded-2xl border transition-all ${isSysActive ? sys.borderColor + ' bg-slate-950' : 'border-slate-800 bg-slate-950/40 opacity-70'}`}
+                          >
+                            {/* Cabecera del Sistema con Toggle ON/OFF */}
+                            <div className="p-4 flex items-center justify-between gap-3">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSystem(sys.id)}
+                                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0 ${isSysActive ? 'bg-cyan-500' : 'bg-slate-800'}`}
+                                >
+                                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${isSysActive ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-2">
+                                    <h4 className={`font-black text-sm ${sys.color}`}>{sys.name}</h4>
+                                    <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                                      {activeSubsCount} / {sys.submodules.length} submódulos
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-400 truncate">{sys.description}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-2 shrink-0">
+                                {isSysActive && (
+                                  <div className="flex items-center space-x-1.5 text-[10px] text-slate-400">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectAllSubmodules(sys.id, true)}
+                                      className="hover:text-cyan-300 underline cursor-pointer"
+                                    >
+                                      Todos
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectAllSubmodules(sys.id, false)}
+                                      className="hover:text-rose-300 underline cursor-pointer"
+                                    >
+                                      Ninguno
+                                    </button>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedSystemAccordions({ ...expandedSystemAccordions, [sys.id]: !isExpanded })}
+                                  className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                                >
+                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Desglose de Submódulos con Casillas */}
+                            {isSysActive && isExpanded && (
+                              <div className="p-4 pt-0 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                {sys.submodules.map((sub) => {
+                                  const isChecked = !!licEnabledSubmodules[sub.id];
+
+                                  return (
+                                    <label
+                                      key={sub.id}
+                                      className={`p-3 rounded-xl border flex items-start space-x-2.5 cursor-pointer transition select-none ${isChecked ? 'bg-slate-900 border-cyan-500/30 text-white' : 'bg-slate-950/60 border-slate-800/60 text-slate-400 hover:border-slate-700'}`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => handleToggleSubmodule(sub.id, sys.id)}
+                                        className="mt-0.5 rounded accent-cyan-500 shrink-0"
+                                      />
+                                      <div className="space-y-0.5 min-w-0">
+                                        <div className="font-bold flex items-center space-x-1.5">
+                                          <span className="truncate">{sub.name}</span>
+                                          {sub.isCore && (
+                                            <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded font-mono">
+                                              Núcleo
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 leading-tight">
+                                          {sub.description}
+                                        </p>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Botonera de Guardado */}
+                  <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setManagingLicenseBranch(null)}
+                      className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-black transition cursor-pointer flex items-center space-x-2 shadow-lg shadow-cyan-500/25"
+                    >
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>Guardar & Aplicar Licencia de Sede</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 2: DUPLICAR LICENCIA A OTRA SEDE */}
+          {duplicatingFromBranch && (
+            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-indigo-500/40 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="font-black text-white text-sm flex items-center space-x-2">
+                    <Copy className="w-4 h-4 text-indigo-400" />
+                    <span>Duplicar Configuración de Licencia</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setDuplicatingFromBranch(null)}
+                    className="text-slate-400 hover:text-white p-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <p className="text-slate-300">
+                    Se copiarán los sistemas, submódulos contratados y límites desde:
+                  </p>
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-bold text-cyan-300 font-mono">
+                    {duplicatingFromBranch.name} ({duplicatingFromBranch.code})
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Sede de Destino:</label>
+                    <select
+                      value={targetDuplicateBranchId}
+                      onChange={(e) => setTargetDuplicateBranchId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold"
+                    >
+                      {activeTenant.branches.filter(b => b.id !== duplicatingFromBranch.id).map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setDuplicatingFromBranch(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDuplicateLicenseToBranch}
+                    className="px-5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black cursor-pointer shadow-lg shadow-indigo-500/20"
+                  >
+                    Aplicar Duplicación
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 3: BITÁCORA DE AUDITORÍA DE LICENCIAS */}
+          {isAuditLogModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <History className="w-5 h-5 text-cyan-400" />
+                    <div>
+                      <h3 className="font-black text-white text-sm">Bitácora de Auditoría de Licencias</h3>
+                      <p className="text-[10px] text-slate-400">Cliente: {activeTenant.name}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAuditLogModalOpen(false)}
+                    className="text-slate-400 hover:text-white p-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto space-y-2 pr-1">
+                  {auditLogsList.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                      Aún no se han registrado modificaciones de licencia para este cliente.
+                    </div>
+                  ) : (
+                    auditLogsList.map((log) => (
+                      <div key={log.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded">
+                            {log.action}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-white font-medium">{log.details}</div>
+                        <div className="text-[10px] text-slate-400">
+                          Sede: <span className="text-slate-300 font-bold">{log.branchName}</span> • Usuario: <span className="text-slate-300">{log.actorUserName}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-3 border-t border-slate-800 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAuditLogModalOpen(false)}
+                    className="px-5 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Modal para Editar Sede */}
           {editingBranch && (
@@ -3343,13 +4237,44 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2 shadow-lg shadow-cyan-500/20"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Registrar Usuario Clínico</span>
-              </button>
+              {(() => {
+                const targetTenant = tenants.find((t) => t.id === newUserTenant) || tenants[0];
+                const targetBranchId = newUserBranch || targetTenant?.branches[0]?.id || 'branch-via-espana';
+                const targetBranchObj = targetTenant?.branches?.find(b => b.id === targetBranchId);
+                const maxUsers = targetBranchObj?.license?.maxUsers ?? 50;
+                const currentUsersCount = realUsers.filter(u => u.branchId === targetBranchId).length;
+                const isLimitReached = currentUsersCount >= maxUsers;
+
+                return (
+                  <div className="space-y-3 pt-1">
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                      isLimitReached ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-slate-950 border-slate-800 text-slate-300'
+                    }`}>
+                      <span className="text-[11px]">
+                        Cupo de Sede: <strong>{currentUsersCount} / {maxUsers} usuarios</strong>
+                      </span>
+                      {isLimitReached && (
+                        <span className="text-[10px] uppercase font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded border border-red-500/30">
+                          Límite Alcanzado
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLimitReached}
+                      className={`w-full py-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 shadow-lg ${
+                        isLimitReached
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                          : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20 cursor-pointer'
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>{isLimitReached ? 'Límite de Usuarios Alcanzado en esta Sede' : 'Registrar Usuario Clínico'}</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </form>
 
             {/* Lista de Usuarios Registrados con Búsqueda, Filtros e Importación Masiva */}

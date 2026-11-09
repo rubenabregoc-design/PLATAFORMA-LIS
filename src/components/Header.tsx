@@ -9,6 +9,7 @@ import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
 import { getTimeBasedGreeting } from '../utils/greeting';
 import { ServerInfrastructureModal } from './Infrastructure/ServerInfrastructureModal';
+import { useLicencias } from '../hooks/useLicencias';
 import {
   ROLE_LABELS_MAP,
   getRoleLabel,
@@ -239,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
       icon: BrainCircuit,
       count: visibleTabs.filter(t => t.category === 'bi').length
     }
-  ];
+  ].filter(c => c.count > 0);
 
   // Primary suites directly accessible on laptops: LIS, HIS, Banco de Sangre
   const primaryCategories = DOMAIN_CATEGORIES.slice(0, 3);
@@ -348,6 +349,47 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       <header className="bg-[#050814]/90 backdrop-blur-2xl text-white border-b border-white/[0.08] sticky top-0 z-40 shadow-[0_4px_25px_rgba(0,0,0,0.7)] w-full select-none no-print">
+      {/* 🛡️ Clinical License Warning / Grace / Read-Only Banner */}
+      {licenseEvaluation.status !== 'activa' && (
+        <div className={`w-full px-3 py-1.5 text-xs font-medium flex items-center justify-between border-b transition-colors ${
+          licenseEvaluation.status === 'por_vencer'
+            ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
+            : licenseEvaluation.status === 'en_gracia'
+            ? 'bg-orange-950/90 border-orange-500/60 text-orange-200 animate-pulse'
+            : licenseEvaluation.status === 'suspendida'
+            ? 'bg-rose-950/90 border-rose-500/60 text-rose-200'
+            : 'bg-red-950/90 border-red-500/60 text-red-200'
+        }`}>
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <AlertTriangle className={`w-4 h-4 shrink-0 ${
+              licenseEvaluation.status === 'por_vencer' ? 'text-amber-400' :
+              licenseEvaluation.status === 'en_gracia' ? 'text-orange-400' : 'text-red-400'
+            }`} />
+            <div className="flex-1 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[12px] leading-tight">
+                <strong>
+                  {licenseEvaluation.status === 'por_vencer' && (language === 'EN' ? 'License Expiring Soon: ' : 'Aviso Comercial: Licencia por vencer. ')}
+                  {licenseEvaluation.status === 'en_gracia' && (language === 'EN' ? 'Grace Period Active: ' : 'Periodo de Gracia Activo. ')}
+                  {licenseEvaluation.status === 'vencida' && (language === 'EN' ? 'License Expired (Read-Only Mode): ' : 'Licencia Vencida (Modo Solo Lectura). ')}
+                  {licenseEvaluation.status === 'suspendida' && (language === 'EN' ? 'License Suspended (Read-Only Mode): ' : 'Licencia Suspendida (Modo Solo Lectura). ')}
+                </strong>
+                {licenseEvaluation.message}
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-black/40 border border-white/10">
+                  {currentBranch?.name || 'Sede'} • AbregoTech Support: +507 264-5500
+                </span>
+                {isReadOnly && (
+                  <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 text-[10px] uppercase font-bold tracking-wider">
+                    {language === 'EN' ? '🔒 Read Only' : '🔒 Solo Lectura'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Navbar Row */}
       <div className="w-full px-2 sm:px-3 md:px-4 lg:px-3 xl:px-4 2xl:px-6 h-14 sm:h-15 flex items-center justify-between gap-1.5 xl:gap-2 max-w-[1920px] mx-auto">
 
@@ -646,7 +688,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shadow-sm shrink-0 border border-white/20">
                 {userInitials}
               </div>
-              <div className="hidden md:flex flex-col min-w-0 max-w-[95px] xl:max-w-[130px] 2xl:max-w-[160px]">
+              <div className="hidden sm:flex flex-col min-w-0 max-w-[140px] md:max-w-[170px] xl:max-w-[220px] 2xl:max-w-[280px]">
                 <span className="text-xs font-semibold text-slate-100 truncate leading-tight" title={cleanUserName}>
                   {cleanUserName}
                 </span>
@@ -658,6 +700,17 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Separador vertical sutil */}
             <div className="h-4 w-px bg-white/[0.08] mx-0.5" />
+
+            {/* Intercom Clínico */}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('lis_toggle_intercom'))}
+              title={language === 'EN' ? "Clinical Intercom & Chat" : "Intercom Clínico & Chat Inter-Sedes"}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors cursor-pointer shrink-0 relative"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_#34d399]" />
+            </button>
 
             {/* Lock Session Button */}
             {onLockSession && (
