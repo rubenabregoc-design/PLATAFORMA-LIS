@@ -996,18 +996,27 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
         </div>
       )}
 
-      {/* Hardware Socket Test Modal */}
+      {/* Hardware Socket / Serial Test Modal */}
       {configModalAnalyzer && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-white">{configModalAnalyzer.name}</h3>
-                <p className="text-xs text-slate-400 font-mono">Configuración de Red / Puerto Serial</p>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span>{configModalAnalyzer.name}</span>
+                  <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-md font-bold bg-slate-800 text-cyan-300 border border-slate-700">
+                    {configModalAnalyzer.connectionType === 'TCP_IP' ? 'RED TCP' : 'SERIAL RS-232'}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  {configModalAnalyzer.connectionType === 'TCP_IP'
+                    ? 'Configuración de Comunicación por Red Ethernet'
+                    : 'Configuración de Comunicación Serial RS-232'}
+                </p>
               </div>
               <button
                 onClick={() => setConfigModalAnalyzer(null)}
-                className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1015,40 +1024,43 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
 
             <div className="space-y-4 text-xs">
               {configModalAnalyzer.connectionType === 'TCP_IP' ? (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-slate-300 font-bold">Dirección IP del Equipo:</label>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-slate-300 font-semibold text-xs">Dirección IP del Equipo:</label>
                     <input
                       type="text"
                       value={testIpAddress}
                       onChange={(e) => setTestIpAddress(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold"
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold focus:border-cyan-500 outline-none"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-300 font-bold">Puerto TCP de Escucha:</label>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-300 font-semibold text-xs">Puerto TCP de Escucha:</label>
                     <input
                       type="text"
                       value={testTcpPort}
                       onChange={(e) => setTestTcpPort(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold"
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold focus:border-cyan-500 outline-none"
                     />
                   </div>
-                </>
+                </div>
               ) : (
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold">Puerto Serial COM / TTY:</label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-slate-300 font-semibold text-xs">
+                    <span>Puerto Serial Asignado:</span>
+                    <span className="text-[10.5px] text-slate-400 font-mono">Baud: {configModalAnalyzer.baudRate || 9600} 8-N-1</span>
+                  </div>
                   <input
                     type="text"
                     value={testComPort}
                     onChange={(e) => setTestComPort(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-cyan-300 font-bold focus:border-cyan-500 outline-none"
                   />
                 </div>
               )}
 
               {socketTestResult && (
-                <div className={`p-3.5 rounded-xl text-xs font-mono leading-relaxed border ${
+                <div className={`p-3 rounded-xl text-xs font-mono leading-relaxed border ${
                   socketTestResult.success
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                     : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -1057,26 +1069,31 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <button
                   type="button"
                   onClick={handleTestSocketConnection}
                   disabled={isTestingSocket}
-                  className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2 shadow active:scale-95"
+                  className="py-3 px-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold rounded-2xl text-xs transition cursor-pointer flex flex-col items-center justify-center shadow-md active:scale-95"
                 >
-                  {isTestingSocket ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                  ) : configModalAnalyzer?.connectionType === 'TCP_IP' ? (
-                    <Plug className="w-4 h-4 text-slate-950" />
-                  ) : (
-                    <Cable className="w-4 h-4 text-slate-950" />
-                  )}
-                  <span>
-                    {isTestingSocket
-                      ? 'Comprobando...'
-                      : configModalAnalyzer?.connectionType === 'TCP_IP'
-                      ? 'Probar Socket de Red TCP'
-                      : 'Conectar Puerto Serial RS-232'}
+                  <div className="flex items-center gap-1.5 font-black text-xs">
+                    {isTestingSocket ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    ) : configModalAnalyzer?.connectionType === 'TCP_IP' ? (
+                      <Plug className="w-4 h-4 text-slate-950 shrink-0" />
+                    ) : (
+                      <Cable className="w-4 h-4 text-slate-950 shrink-0" />
+                    )}
+                    <span>
+                      {isTestingSocket
+                        ? 'Comprobando...'
+                        : configModalAnalyzer?.connectionType === 'TCP_IP'
+                        ? 'Probar Socket'
+                        : `Conectar ${testComPort}`}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-900/80 font-mono mt-0.5">
+                    {configModalAnalyzer?.connectionType === 'TCP_IP' ? 'Ping de Red TCP' : 'Web Serial RS-232'}
                   </span>
                 </button>
 
@@ -1084,20 +1101,23 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                   type="button"
                   onClick={handleTransmitRealSample}
                   disabled={isTransmittingSample || (!bridgeConnected && !serialConnected)}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 active:scale-95"
+                  className="py-3 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-slate-950 font-bold rounded-2xl text-xs transition cursor-pointer flex flex-col items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-95"
                   title={
                     configModalAnalyzer?.connectionType === 'TCP_IP'
-                      ? 'Transmitir trama real de analizador vía socket TCP hacia el puerto de escucha'
-                      : 'Transmitir trama real hacia el analizador serial'
+                      ? 'Transmitir trama de muestra vía socket TCP hacia el middleware'
+                      : 'Transmitir trama de muestra hacia el puerto serial'
                   }
                 >
-                  <Radio className="w-4 h-4 text-slate-950" />
-                  <span>
-                    {isTransmittingSample
-                      ? 'Transmitiendo...'
-                      : configModalAnalyzer?.connectionType === 'TCP_IP'
-                      ? 'Transmitir Trama Real TCP'
-                      : 'Transmitir Trama Serial RS-232'}
+                  <div className="flex items-center gap-1.5 font-black text-xs">
+                    {isTransmittingSample ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    ) : (
+                      <Radio className="w-4 h-4 text-slate-950 shrink-0" />
+                    )}
+                    <span>{isTransmittingSample ? 'Enviando...' : 'Enviar Muestra'}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-950/80 font-mono mt-0.5">
+                    Trama {configModalAnalyzer?.protocol || 'ASTM'}
                   </span>
                 </button>
               </div>
