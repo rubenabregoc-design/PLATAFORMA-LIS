@@ -2,7 +2,11 @@
   {
     "id": "an-sysmex-01",
     "name": "Sysmex XN-1000",
+    "connectionType": "RS232_SERIAL",
+    "comPort": "COM1",
+    "baudRate": 9600,
     "port": 5109,
+    "moxaTcpPort": 5109,
     "protocol": "ASTM_E1381",
     "category": "HEMATOLOGIA",
     "ackDelayMs": 0,
@@ -14,6 +18,7 @@
   {
     "id": "an-vitros-01",
     "name": "Ortho Vitros 4600",
+    "connectionType": "TCP_IP",
     "port": 5101,
     "protocol": "ASTM_E1381",
     "category": "QUIMICA",
@@ -26,6 +31,7 @@
   {
     "id": "an-cobas-01",
     "name": "Roche Cobas 6000",
+    "connectionType": "TCP_IP",
     "port": 5102,
     "protocol": "HL7_V2",
     "category": "QUIMICA",
@@ -34,6 +40,7 @@
   {
     "id": "an-alinity-01",
     "name": "Abbott Alinity ci",
+    "connectionType": "TCP_IP",
     "port": 5103,
     "protocol": "HL7_V2",
     "category": "INMUNOLOGIA",
@@ -42,6 +49,7 @@
   {
     "id": "an-mindray-01",
     "name": "Mindray BC-5390",
+    "connectionType": "TCP_IP",
     "port": 5104,
     "protocol": "ASTM_E1381",
     "category": "HEMATOLOGIA",
@@ -53,7 +61,11 @@
   {
     "id": "an-stago-01",
     "name": "Stago STA Compact Max",
+    "connectionType": "RS232_SERIAL",
+    "comPort": "COM3",
+    "baudRate": 19200,
     "port": 5105,
+    "moxaTcpPort": 5105,
     "protocol": "ASTM_E1381",
     "category": "COAGULACION",
     "ackDelayMs": 50,
@@ -69,7 +81,11 @@
   {
     "id": "an-biorad-01",
     "name": "Bio-Rad D-100",
+    "connectionType": "RS232_SERIAL",
+    "comPort": "COM4",
+    "baudRate": 9600,
     "port": 5106,
+    "moxaTcpPort": 5106,
     "protocol": "ASTM_E1381",
     "category": "ESPECIALES",
     "ackDelayMs": 10,

@@ -725,8 +725,101 @@ function removeAnalyzerConfig(analyzerId) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 const tcpServers = new Map();       // analyzerId -> net.Server
-const analyzerSockets = new Map();  // analyzerId -> net.Socket
+const analyzerSockets = new Map();  // analyzerId -> net.Socket or SerialPort
 const astmBuffers = new Map();      // analyzerId -> { state, frameBuffer, messageBuffer }
+const activeSerialPorts = new Map();// analyzerId -> SerialPort (Opción A: 24/7 background serial)
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Native RS-232 / COM Port Listener (Opción A: 24/7 en segundo plano sin Chrome)
+// ──────────────────────────────────────────────────────────────────────────────
+async function createSerialListener(analyzerConfig) {
+  const { id, name, comPort, baudRate = 9600, protocol = 'ASTM_E1381' } = analyzerConfig;
+  if (!comPort) return;
+
+  try {
+    const { SerialPort } = await import('serialport');
+    
+    // Check available physical ports in Windows
+    const available = await SerialPort.list().catch(() => []);
+    const portUpper = comPort.toUpperCase();
+    const portFound = available.some(p => p.path?.toUpperCase() === portUpper);
+
+    if (!portFound) {
+      log(name, `[SERIAL 24/7] Puerto ${comPort} no detectado físicamente en Windows (Standby). Reintentando en 15s...`);
+      setTimeout(() => createSerialListener(analyzerConfig), 15000);
+      return;
+    }
+
+    log(name, `[SERIAL 24/7] Abriendo puerto ${comPort} a ${baudRate} 8-N-1 (Servicio en segundo plano)...`);
+
+    const serialPort = new SerialPort({
+      path: comPort,
+      baudRate: parseInt(baudRate, 10) || 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+      autoOpen: false
+    });
+
+    serialPort.remoteAddr = `SERIAL:${comPort}@${baudRate}`;
+
+    if (protocol === 'ASTM_E1381' && !astmBuffers.has(id)) {
+      astmBuffers.set(id, {
+        state: 'IDLE',
+        frameBuffer: Buffer.alloc(0),
+        messageText: '',
+        currentRecordText: '',
+        frameCount: 0,
+        lastActivity: Date.now(),
+        isTransmittingToAnalyzer: false,
+        onTransmissionData: null
+      });
+    }
+
+    serialPort.open((err) => {
+      if (err) {
+        log(name, `[SERIAL 24/7] ⚠ No se pudo abrir ${comPort}: ${err.message}. Reintentando en 15s...`);
+        setTimeout(() => createSerialListener(analyzerConfig), 15000);
+        return;
+      }
+
+      log(name, `[SERIAL 24/7] ✓ ${name} CONECTADO físicamente en ${comPort} (Escuchando 24/7 sin navegador)`);
+      activeSerialPorts.set(id, serialPort);
+      analyzerSockets.set(id, serialPort);
+
+      broadcast({
+        type: 'analyzer_connected',
+        data: { analyzerId: id, analyzerName: name, remoteAddr: `SERIAL:${comPort}` },
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    serialPort.on('data', (data) => {
+      const hexPreview = generateHexDump(data, 32);
+      log(name, `<-- [SERIAL ${comPort}] ${data.length} bytes: ${hexPreview}`);
+
+      if (protocol === 'ASTM_E1381') {
+        handleAstmData(analyzerConfig, serialPort, data);
+      } else if (protocol === 'HL7_V2') {
+        handleHl7Data(analyzerConfig, serialPort, data);
+      }
+    });
+
+    serialPort.on('error', (err) => {
+      log(name, `[SERIAL 24/7] Error en puerto ${comPort}: ${err.message}`);
+    });
+
+    serialPort.on('close', () => {
+      log(name, `[SERIAL 24/7] Puerto ${comPort} desconectado. Reintentando en 10s...`);
+      activeSerialPorts.delete(id);
+      analyzerSockets.delete(id);
+      setTimeout(() => createSerialListener(analyzerConfig), 10000);
+    });
+
+  } catch (err) {
+    log(name, `[SERIAL 24/7] Módulo serialport: ${err.message}`);
+  }
+}
 
 function createTcpListener(analyzerConfig) {
   const { id, name, port, protocol, ackDelayMs } = analyzerConfig;
@@ -1827,13 +1920,17 @@ function startBridge() {
   log('BRIDGE', `Tenant ID: ${TENANT_ID}`);
   console.log('');
 
-  // Create TCP listeners for each analyzer
+  // Create TCP listeners for each analyzer (Soporta Red TCP directa y Moxa NPort / Lantronix)
   for (const analyzer of ANALYZER_PORTS) {
     createTcpListener(analyzer);
+    // Opción A: Soporta cable serial RS-232 directo en segundo plano 24/7 sin Chrome
+    if (analyzer.comPort) {
+      createSerialListener(analyzer);
+    }
   }
 
   console.log('');
-  log('BRIDGE', '═══ Middleware Bridge listo. Esperando conexiones de analizadores... ═══');
+  log('BRIDGE', '═══ Middleware Bridge listo (TCP + Serial 24/7 activo). Esperando conexiones... ═══');
   console.log('');
 }
 
@@ -1844,8 +1941,11 @@ process.on('SIGINT', () => {
   for (const [id, server] of tcpServers) {
     server.close();
   }
+  for (const [id, port] of activeSerialPorts) {
+    try { port.close(); } catch (_) {}
+  }
   for (const [id, socket] of analyzerSockets) {
-    socket.destroy();
+    try { socket.destroy?.(); } catch (_) {}
   }
   wsServer.close();
   
