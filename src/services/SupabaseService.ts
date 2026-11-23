@@ -8,7 +8,7 @@
  * =====================================================================
  */
 
-import { supabase as baseSupabase } from '../lib/supabaseClient';
+import { supabase as baseSupabase, isCloudConfigured } from '../lib/supabaseClient';
 const supabase: any = baseSupabase;
 import type {
   DbPatient, DbPatientInsert, DbPatientUpdate,
@@ -422,14 +422,34 @@ export const OrderService = {
     return data!;
   },
 
-  /** Genera el próximo número de orden correlativo (ORD-YYYY-NNNNN) */
+  /** Genera el próximo número de orden correlativo (YYYYNNNNN - estrictamente numérico) */
   async generateOrderNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const { count } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true });
     const next = String((count ?? 0) + 1).padStart(5, '0');
-    return `ORD-${year}-${next}`;
+    return `${year}${next}`;
+  },
+
+  /** Alias para obtener todas las órdenes con detalles */
+  async getAllOrders(): Promise<DbOrderWithDetails[]> {
+    return OrderService.getAll();
+  },
+
+  /** Suscripción en tiempo real a cambios de órdenes (0-delay Instantáneo) */
+  subscribeToAll(callback: (payload: any) => void) {
+    if (!isCloudConfigured) {
+      return { unsubscribe: () => {} };
+    }
+    return supabase
+      .channel('realtime:all_orders')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => callback(payload)
+      )
+      .subscribe();
   },
 };
 
@@ -538,6 +558,9 @@ export const ResultService = {
    * Filtrado por order_id para dashboards de resultado en vivo.
    */
   subscribeToOrder(orderId: string, callback: (result: DbTestResult) => void) {
+    if (!isCloudConfigured) {
+      return { unsubscribe: () => {} };
+    }
     return supabase
       .channel(`results:order:${orderId}`)
       .on(
@@ -555,6 +578,9 @@ export const ResultService = {
 
   /** Suscripción global — para el dashboard de monitoreo en vivo */
   subscribeToAll(callback: (result: DbTestResult) => void) {
+    if (!isCloudConfigured) {
+      return { unsubscribe: () => {} };
+    }
     return supabase
       .channel('realtime:all_results')
       .on(

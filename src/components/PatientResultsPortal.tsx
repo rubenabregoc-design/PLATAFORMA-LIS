@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Patient, Order, TestResult, Role, User as UserType } from '../types';
 import {
   User, FileText, Calendar, ChevronRight, Search,
-  Clock, CheckCircle2, Heart, MapPin, Phone, Printer,
-  ClipboardList, TestTube2, ShieldCheck, AlertCircle, Pencil, X, Save
+  Clock, CheckCircle2, MapPin, Phone, Printer,
+  ClipboardList, TestTube2, ShieldCheck, AlertCircle, Pencil, X, Save,
+  Building2, Mars, Venus
 } from 'lucide-react';
 import { useLisStore } from '../store/useLisStore';
+import { formatOrderNumber } from '../utils/orderUtils';
 
 interface PatientResultsPortalProps {
   patients: Patient[];
@@ -222,11 +224,11 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
 
       {/* Patients Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredPatients.map(patient => {
+        {filteredPatients.map((patient, pIdx) => {
           const patientOrders = orders.filter(o => o.patientId === patient.id);
 
           return (
-            <div key={patient.id} className="group bg-slate-950/70 backdrop-blur-xl border border-slate-800 hover:border-cyan-500/40 rounded-3xl p-6 hover:bg-slate-900/70 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-6">
+            <div key={patient.id || `pat-${pIdx}`} className="group bg-slate-950/70 backdrop-blur-xl border border-slate-800 hover:border-cyan-500/40 rounded-3xl p-6 hover:bg-slate-900/70 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-6">
               <div>
                 {/* Patient Header */}
                 <div className="flex items-start justify-between mb-5">
@@ -240,8 +242,16 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                         <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/20 font-mono">
                           {patient.nationalId}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center">
-                          <Heart className="w-3 h-3 mr-1 text-rose-500" />
+                        <span className={`text-[10px] font-bold uppercase flex items-center px-2 py-0.5 rounded-lg border ${
+                          patient.gender === 'F'
+                            ? 'text-pink-300 bg-pink-500/10 border-pink-500/20'
+                            : 'text-sky-300 bg-sky-500/10 border-sky-500/20'
+                        }`}>
+                          {patient.gender === 'F' ? (
+                            <Venus className="w-3 h-3 mr-1 text-pink-400 stroke-[2.5]" />
+                          ) : (
+                            <Mars className="w-3 h-3 mr-1 text-sky-400 stroke-[2.5]" />
+                          )}
                           {patient.gender === 'F' ? (language === 'EN' ? 'Female' : 'Femenino') : (language === 'EN' ? 'Male' : 'Masculino')}
                         </span>
                         <span className="text-[10px] font-bold text-slate-300 uppercase flex items-center bg-white/5 px-2 py-0.5 rounded-lg">
@@ -304,7 +314,7 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    {patientOrders.slice(0, 2).map(order => {
+                    {patientOrders.slice(0, 2).map((order, oIdx) => {
                       const allOrderResults = results.filter(r => r.orderId === order.id);
                       // Para Recepcionista y Paciente: Solo ven resultados liberados (según Matriz de Permisos LIS)
                       const visibleResults = (currentRole === 'receptionist' || currentRole === 'patient')
@@ -314,14 +324,20 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                       const hasLiberated = allOrderResults.some(isLiberated);
 
                       return (
-                        <div key={order.id} className="space-y-2 bg-slate-900/40 rounded-2xl p-3.5 border border-slate-800/80">
+                        <div key={order.id || `ord-${patient.id}-${oIdx}`} className="space-y-2 bg-slate-900/40 rounded-2xl p-3.5 border border-slate-800/80">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/60 flex items-center justify-center text-cyan-400 font-mono text-xs font-black">
                                 <FileText className="w-4 h-4" />
                               </div>
                               <div>
-                                <div className="font-bold text-white text-xs font-mono">{order.orderNumber}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-white text-xs font-mono">{formatOrderNumber(order.orderNumber)}</span>
+                                  <span className="px-1.5 py-0.2 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-mono text-[9px] flex items-center gap-1">
+                                    <Building2 className="w-2.5 h-2.5 text-cyan-400" />
+                                    <span>{order.branchName || (order.branchId === 'branch-david' ? 'Sede Chiriquí' : 'Sede Vía España')} [{order.branchCode || (order.branchId === 'branch-david' ? 'CH-02' : 'VE-01')}] • {order.branchRegion || (order.branchId === 'branch-david' ? 'Chiriquí' : 'Panamá Centro')}</span>
+                                  </span>
+                                </div>
                                 <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-medium mt-0.5">
                                   <Calendar className="w-3 h-3 text-cyan-400" />
                                   <span>{new Date(order.createdAt).toLocaleDateString(language === 'EN' ? 'en-US' : 'es-PA')}</span>
@@ -363,8 +379,8 @@ export const PatientResultsPortal: React.FC<PatientResultsPortalProps> = ({
                                 <span>{language === 'EN' ? 'Results pending medical liberation by Laboratory Chief.' : 'Resultados pendientes de liberación por Jefatura de Laboratorio.'}</span>
                               </div>
                             ) : (
-                              visibleResults.slice(0, 2).map(res => (
-                                <div key={res.id} className="flex flex-col space-y-0.5 p-2 rounded-xl bg-slate-950/40 border border-slate-800/60">
+                              visibleResults.slice(0, 2).map((res, rIdx) => (
+                                <div key={res.id || `res-${order.id}-${res.parameterName || rIdx}`} className="flex flex-col space-y-0.5 p-2 rounded-xl bg-slate-950/40 border border-slate-800/60">
                                   <div className="flex items-center justify-between text-[11px]">
                                     <span className="font-bold text-slate-300">{res.parameterName}</span>
                                     <span className="font-black text-white font-mono">{res.value} {res.unit}</span>

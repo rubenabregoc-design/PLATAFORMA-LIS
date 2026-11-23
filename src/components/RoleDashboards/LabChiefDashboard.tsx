@@ -21,6 +21,12 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
 }) => {
   const language = useLisStore((state) => state.language);
   const isEn = language === 'EN';
+  const currentUser = useLisStore((state) => state.currentUser);
+  const userDisplayName = (() => {
+    if (!currentUser?.name) return 'Dr. Roberto Icaza';
+    const clean = currentUser.name.includes('(') ? currentUser.name.split('(')[0].trim() : currentUser.name;
+    return clean.replace('Ruben Abrego', 'Rubén Ábrego');
+  })();
 
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || '');
   const [signaturePin, setSignaturePin] = useState<string>('');
@@ -83,7 +89,7 @@ export const LabChiefDashboard: React.FC<LabChiefDashboardProps> = ({
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1">
               <span>👋</span>
-              <span>{getTimeBasedGreeting(language)}, Dr. Roberto Icaza!</span>
+              <span>{getTimeBasedGreeting(language)}, {userDisplayName}!</span>
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">

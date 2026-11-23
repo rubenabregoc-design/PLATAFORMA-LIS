@@ -29,6 +29,8 @@ export const EmergencyTriageModule: React.FC = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string>(patients[0]?.id || '');
   const [patientName, setPatientName] = useState<string>(patients[0] ? `${patients[0].firstName} ${patients[0].lastName}` : '');
   const [patientCedula, setPatientCedula] = useState<string>(patients[0]?.nationalId || '');
+  const [queueSearchTerm, setQueueSearchTerm] = useState<string>('');
+  const [queuePriorityFilter, setQueuePriorityFilter] = useState<string>('ALL');
   const [chiefComplaint, setChiefComplaint] = useState<string>('');
   const [allergiesInput, setAllergiesInput] = useState<string>('Ninguna conocida');
   const [priority, setPriority] = useState<TriagePriority>('NIVEL_3_AMARILLO');
@@ -77,7 +79,15 @@ export const EmergencyTriageModule: React.FC = () => {
   const handleCreateTriage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientName || !chiefComplaint) {
-      alert('Por favor ingrese el nombre del paciente y el motivo de consulta.');
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: {
+            title: 'Datos Incompletos',
+            message: 'Por favor ingrese el nombre del paciente y el motivo de consulta.',
+            type: 'warning'
+          }
+        })
+      );
       return;
     }
 
@@ -110,7 +120,15 @@ export const EmergencyTriageModule: React.FC = () => {
 
     addTriageRecord(newRecord);
     setChiefComplaint('');
-    alert(`Paciente ${patientName} clasificado con éxito en Triage.`);
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Triage Registrado',
+          message: `Paciente ${patientName} clasificado con éxito en Triage (${priority.replace('_', ' ')}).`,
+          type: 'success'
+        }
+      })
+    );
   };
 
   const handleAdmitToBed = () => {
@@ -132,7 +150,16 @@ export const EmergencyTriageModule: React.FC = () => {
           : []
     );
 
-    alert(`Paciente ${selectedTriageForAdmission.patientName} ingresado a la cama ${beds.find((b) => b.id === targetBedId)?.bedNumber}.`);
+    const targetBedNumber = beds.find((b) => b.id === targetBedId)?.bedNumber || 'seleccionada';
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Ingreso Hospitalario Exitoso',
+          message: `Paciente ${selectedTriageForAdmission.patientName} asignado e ingresado a la cama ${targetBedNumber}.`,
+          type: 'success'
+        }
+      })
+    );
     setSelectedTriageForAdmission(null);
   };
 
@@ -150,6 +177,20 @@ export const EmergencyTriageModule: React.FC = () => {
         return { label: 'Nivel 5 • No Urgente (240 min)', color: 'bg-blue-500 text-white border-blue-600 shadow-blue-500/20' };
     }
   };
+
+  const filteredTriageRecords = triageRecords.filter((t) => {
+    const q = queueSearchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      t.patientName.toLowerCase().includes(q) ||
+      t.patientNationalId.toLowerCase().includes(q) ||
+      (t.chiefComplaint && t.chiefComplaint.toLowerCase().includes(q));
+
+    const matchesPriority =
+      queuePriorityFilter === 'ALL' || t.priority === queuePriorityFilter;
+
+    return matchesSearch && matchesPriority;
+  });
 
   return (
     <div className="space-y-6">
@@ -453,8 +494,59 @@ export const EmergencyTriageModule: React.FC = () => {
               <span className="text-[10px] text-slate-400 font-bold uppercase">Prioridad Clínica</span>
             </div>
 
-            <div className="mt-4 space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {triageRecords.map((t) => {
+            {/* Búsqueda y Filtros de la Cola de Urgencias */}
+            <div className="mt-3 space-y-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar en cola por paciente, cédula o síntoma..."
+                  value={queueSearchTerm}
+                  onChange={(e) => setQueueSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-rose-500 outline-none font-sans"
+                />
+                {queueSearchTerm && (
+                  <button
+                    onClick={() => setQueueSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5 text-xs cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Filtros rápidos por nivel de prioridad (1 a 5) */}
+              <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-[10px]">
+                {[
+                  { id: 'ALL', label: 'Todos' },
+                  { id: 'NIVEL_1_ROJO', label: 'N1 Resucitación' },
+                  { id: 'NIVEL_2_NARANJA', label: 'N2 Emergencia' },
+                  { id: 'NIVEL_3_AMARILLO', label: 'N3 Urgencia' },
+                  { id: 'NIVEL_4_VERDE', label: 'N4 Menor' },
+                  { id: 'NIVEL_5_AZUL', label: 'N5 No Urgente' }
+                ].map((flt) => (
+                  <button
+                    key={flt.id}
+                    onClick={() => setQueuePriorityFilter(flt.id)}
+                    className={`px-2 py-1 rounded-lg font-bold transition cursor-pointer whitespace-nowrap ${
+                      queuePriorityFilter === flt.id
+                        ? 'bg-rose-500 text-white shadow-sm'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {flt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-1.5">
+              {filteredTriageRecords.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs bg-slate-950/40 rounded-2xl border border-slate-800/80">
+                  No hay pacientes en cola que coincidan con la búsqueda.
+                </div>
+              ) : (
+                filteredTriageRecords.map((t) => {
                 const badge = getPriorityBadge(t.priority);
                 return (
                   <div
@@ -514,7 +606,7 @@ export const EmergencyTriageModule: React.FC = () => {
                     })()}
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         </div>

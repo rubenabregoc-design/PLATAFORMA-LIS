@@ -41,6 +41,8 @@ export interface Tenant {
   plan: 'Basic' | 'Pro' | 'Enterprise';
   branches: Branch[];
   policy?: LaboratoryPolicy;
+  openingHour?: number; // Hora de apertura del cliente (0-23), ej. 6 = 06:00 AM
+  closingHour?: number; // Hora de cierre del cliente (1-23), ej. 18 = 06:00 PM
 }
 
 export interface Branch {
@@ -50,6 +52,7 @@ export interface Branch {
   code: string;
   address: string;
   phone: string;
+  region?: string; // e.g. "Panamá Centro", "Chiriquí"
   license?: BranchLicense;
 }
 
@@ -75,7 +78,9 @@ export interface Patient {
   nationalId: string; // Cédula (ej. 8-123-4567) o Pasaporte
   idType: 'CEDULA' | 'PASAPORTE' | 'CARNET';
   firstName: string;
+  secondName?: string;
   lastName: string;
+  secondLastName?: string;
   dob: string;           // DB: DATE field (ISO 8601 — matches patients.dob)
   dateOfBirth?: string;  // Alias for compatibility
   gender: 'M' | 'F';
@@ -86,6 +91,11 @@ export interface Patient {
   insuranceProvider?: string;
   weight?: string;
   height?: string;
+  district?: string;
+  corregimiento?: string;
+  isPregnant?: boolean;
+  clinicalNotes?: string;
+  chronicConditions?: string[];
   bloodType?: string;
   bloodGroup?: string;
   fullName?: string;
@@ -141,20 +151,37 @@ export interface Order {
   id: string;
   tenantId: string;
   branchId: string;
-  orderNumber: string; // e.g. ORD-2026-00102
+  orderNumber: string; // Formato oficial de orden conservado (e.g. ORD-2026-00102 o 26101200101)
+  
+  // --- Demográficos de Sede & Procedencia ---
+  branchName?: string;         // e.g. "Sede Vía España"
+  branchCode?: string;         // e.g. "VE-01"
+  branchRegion?: string;       // e.g. "Panamá Centro"
+  originBranchId?: string;     // Sede de emisión / toma original
+  originBranchName?: string;   // e.g. "Sede Vía España"
+  processingBranchId?: string; // Sede que procesa los analitos
+  processingBranchName?: string; // e.g. "Sede Vía España (Hub Central)"
+  isInterBranchReferral?: boolean; // True si es remisión inter-sucursales
+  referralManifestNumber?: string; // e.g. "TRF-2026-0081"
+
   patientId: string;
   patientName: string;
   patientNationalId: string;
+  patientPhone?: string;
+  patientEmail?: string;
   patientGender: 'M' | 'F';
   patientAge: number;
   doctorId?: string;
   doctorName?: string;
+  doctorLicense?: string;
   priority: Priority;
   status: OrderStatus;
   createdAt: string;
   totalAmount: number;
   paymentStatus: 'PAGADO' | 'PENDIENTE' | 'ASEGURADORA';
   insuranceName?: string;
+  benefitType?: string;
+  clinicalComments?: string;
   serviceOrigin?: string; // e.g. "URGENCIAS - Cama 01" (desde HIS)
   specimens: Specimen[];
   testIds: string[];

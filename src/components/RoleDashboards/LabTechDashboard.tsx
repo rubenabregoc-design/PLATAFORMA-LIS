@@ -50,6 +50,12 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
 }) => {
   const language = useLisStore((state) => state.language);
   const isEn = language === 'EN';
+  const currentUser = useLisStore((state) => state.currentUser);
+  const userDisplayName = (() => {
+    if (!currentUser?.name) return isEn ? 'Jorge Valdés, LT' : 'Téc. Jorge Valdés';
+    const clean = currentUser.name.includes('(') ? currentUser.name.split('(')[0].trim() : currentUser.name;
+    return clean.replace('Ruben Abrego', 'Rubén Ábrego');
+  })();
 
   // Local Results State for real-time reactivity
   const [localResults, setLocalResults] = useState<TestResult[]>(results);
@@ -197,7 +203,7 @@ export const LabTechDashboard: React.FC<LabTechDashboardProps> = ({
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
               <span>👋</span>
-              <span>{getTimeBasedGreeting(language)}, {isEn ? 'Jorge Valdés, LT!' : 'Téc. Jorge Valdés!'}</span>
+              <span>{getTimeBasedGreeting(language)}, {userDisplayName}!</span>
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">

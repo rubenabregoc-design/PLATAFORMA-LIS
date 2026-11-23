@@ -315,25 +315,25 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Node 1: Primary DB */}
         <div
-          className={`p-6 rounded-3xl border transition shadow-sm space-y-3 ${
-            primaryDbStatus === 'ONLINE' ? 'bg-white border-slate-200' : 'bg-red-50 border-red-300'
+          className={`p-6 rounded-3xl border transition shadow-xl space-y-3 ${
+            primaryDbStatus === 'ONLINE' ? 'bg-slate-900/90 border-slate-800' : 'bg-red-950/60 border-red-500/50'
           }`}
         >
           <div className="flex items-center justify-between">
-            <div className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <Database className="w-5 h-5 text-indigo-600" />
+            <div className="font-bold text-white text-sm flex items-center space-x-2">
+              <Database className="w-5 h-5 text-indigo-400" />
               <span>Nodo Principal Cloud SQL (us-east4)</span>
             </div>
             <span
               className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                primaryDbStatus === 'ONLINE' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-600 text-white animate-pulse'
+                primaryDbStatus === 'ONLINE' ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/30' : 'bg-red-600 text-white animate-pulse'
               }`}
             >
               {primaryDbStatus === 'ONLINE' ? 'ACTIVO (PRIMARY)' : 'FUERA DE LÍNEA'}
             </span>
           </div>
 
-          <div className="text-xs text-slate-600 space-y-1 font-mono">
+          <div className="text-xs text-slate-300 space-y-1 font-mono">
             <div>Latencia: {primaryDbStatus === 'ONLINE' ? '12ms' : 'N/A'}</div>
             <div>Replicación: Streaming WAL Logs</div>
             <div>Ubicación: Data Center Principal</div>
@@ -341,24 +341,24 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
         </div>
 
         {/* Node 2: Secondary Replica */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-slate-900/90 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-3">
           <div className="flex items-center justify-between">
-            <div className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <Server className="w-5 h-5 text-teal-600" />
+            <div className="font-bold text-white text-sm flex items-center space-x-2">
+              <Server className="w-5 h-5 text-teal-400" />
               <span>Réplica Secundaria (southamerica-east1)</span>
             </div>
             <span
               className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                 secondaryReplicaStatus === 'PROMOTED_PRIMARY'
-                  ? 'bg-amber-500 text-white font-black animate-pulse'
-                  : 'bg-emerald-100 text-emerald-800'
+                  ? 'bg-amber-500 text-slate-950 font-black animate-pulse'
+                  : 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/30'
               }`}
             >
               {secondaryReplicaStatus === 'PROMOTED_PRIMARY' ? 'PROMOVIDO A PRINCIPAL' : 'STANDBY HOT-REPLICA'}
             </span>
           </div>
 
-          <div className="text-xs text-slate-600 space-y-1 font-mono">
+          <div className="text-xs text-slate-300 space-y-1 font-mono">
             <div>Lag de Replicación: &lt; 0.05s</div>
             <div>Failover Automático: Configurado</div>
             <div>Copia de Seguridad: Cada 24 horas (Cron)</div>
@@ -366,21 +366,21 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
         </div>
 
         {/* Node 3: Edge Local Offline-First Buffer */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-slate-900/90 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-3">
           <div className="flex items-center justify-between">
-            <div className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <HardDrive className="w-5 h-5 text-cyan-600" />
+            <div className="font-bold text-white text-sm flex items-center space-x-2">
+              <HardDrive className="w-5 h-5 text-cyan-400" />
               <span>Buffer Local Sede ({branch.name})</span>
             </div>
-            <span className="bg-cyan-100 text-cyan-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+            <span className="bg-cyan-950/70 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
               OFFLINE-FIRST ACTIVE
             </span>
           </div>
 
-          <div className="text-xs text-slate-600 space-y-1">
+          <div className="text-xs text-slate-300 space-y-1">
             <div>
               Transacciones PENDIENTES en Cola Local:{' '}
-              <strong className="text-slate-900 font-mono">{offlineBufferCount}</strong>
+              <strong className="text-cyan-300 font-mono">{offlineBufferCount}</strong>
             </div>
             <div>Almacenamiento: IndexedDB Criptográfico Local</div>
           </div>
@@ -399,32 +399,32 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
       </div>
 
       {/* Prominent Section: Simulated Cron Job Service & Last Backup Status */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="bg-slate-900/90 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="p-2 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700">
+              <span className="p-2 bg-indigo-950/60 border border-indigo-500/40 rounded-xl text-indigo-400">
                 <Clock className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-black text-slate-900">
+              <h2 className="text-lg font-black text-white">
                 Servidor de Cron Job & Servicio de Respaldos Automáticos (24h)
               </h2>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Programador de tareas periódicas en segundo plano para respaldos comprimidos y cifrados de registros clínicos
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Cron Status Indicator */}
-            <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-xs font-bold text-slate-600">Estado del Cron:</span>
+            <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl">
+              <span className="text-xs font-bold text-slate-400">Estado del Cron:</span>
               <button
                 onClick={() => setIsCronActive(!isCronActive)}
                 className={`px-3 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center space-x-1.5 ${
                   isCronActive
-                    ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
-                    : 'bg-amber-500 text-white shadow-sm'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20'
+                    : 'bg-amber-500 text-slate-950 shadow-sm'
                 }`}
               >
                 {isCronActive ? (
@@ -565,7 +565,7 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700">Intervalo de Respaldo:</span>
+                <span className="font-bold text-slate-300">Intervalo de Respaldo:</span>
                 <select
                   value={cronIntervalHours}
                   onChange={(e) => {
@@ -574,7 +574,7 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
                     setCronExpression(hours === 24 ? '0 0 * * *' : hours === 12 ? '0 */12 * * *' : '0 */6 * * *');
                     setTimeToNextSeconds(hours * 3600);
                   }}
-                  className="bg-white border border-slate-300 font-bold text-slate-800 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-indigo-500"
+                  className="bg-slate-950 border border-slate-800 font-bold text-white rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-indigo-500"
                 >
                   <option value={24}>Cada 24 Horas (Recomendado MINSA / Ley 81)</option>
                   <option value={12}>Cada 12 Horas (Turnos Dobles)</option>
@@ -583,23 +583,23 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
               </div>
 
               {/* Countdown Card */}
-              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center justify-between">
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
                   <span>Próximo Disparo Automático (Cuenta Regresiva):</span>
                   <span className="text-slate-400 font-mono">{nextScheduledTime}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="font-mono text-xl font-black text-indigo-600">
+                  <div className="font-mono text-xl font-black text-indigo-400">
                     {isCronActive ? formatCountdown(timeToNextSeconds) : 'PAUSADO'}
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md font-bold">
+                  <span className="text-[10px] px-2 py-0.5 bg-indigo-950/70 text-indigo-300 border border-indigo-500/30 rounded-md font-bold">
                     Servicio daemon activo
                   </span>
                 </div>
               </div>
 
-              <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-900 text-[11px] rounded-xl flex items-start space-x-2">
-                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-2.5 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[11px] rounded-xl flex items-start space-x-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>
                   Los respaldos automáticos cada 24h son almacenados en buckets de retención inmutable (WORM) por un período mínimo de 5 años según exigencia del Minsitero de Salud y la Ley 81 de Panamá.
                 </span>
@@ -954,17 +954,17 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
       {/* Disaster Recovery Restore Modal */}
       {showRestoreModal && selectedBackupForRestore && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-200 relative">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-800 relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <div className="w-9 h-9 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-2xl bg-indigo-950/70 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
                   <RotateCcw className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">
+                  <h3 className="font-bold text-sm text-white">
                     Prueba de Restauración Disaster Recovery
                   </h3>
-                  <p className="text-[10px] text-slate-500">Verificación de Integridad de Copia de Seguridad</p>
+                  <p className="text-[10px] text-slate-400">Verificación de Integridad de Copia de Seguridad</p>
                 </div>
               </div>
               <button
@@ -972,51 +972,51 @@ export const HighAvailabilityDisasterRecovery: React.FC<HighAvailabilityDisaster
                   setShowRestoreModal(false);
                   setRestoreSuccessMessage(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+                className="text-slate-400 hover:text-white font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-700">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 font-mono">
+            <div className="space-y-3 text-xs text-slate-300">
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1 font-mono">
                 <div>
-                  <strong className="text-slate-900">ID de Respaldo:</strong> {selectedBackupForRestore.id}
+                  <strong className="text-white">ID de Respaldo:</strong> {selectedBackupForRestore.id}
                 </div>
                 <div>
-                  <strong className="text-slate-900">Fecha:</strong> {selectedBackupForRestore.timestamp}
+                  <strong className="text-white">Fecha:</strong> {selectedBackupForRestore.timestamp}
                 </div>
                 <div>
-                  <strong className="text-slate-900">Registros Incluidos:</strong>{' '}
+                  <strong className="text-white">Registros Incluidos:</strong>{' '}
                   {selectedBackupForRestore.recordsCount.toLocaleString()}
                 </div>
                 <div className="truncate">
-                  <strong className="text-slate-900">Bucket:</strong> {selectedBackupForRestore.destinationBucket}
+                  <strong className="text-white">Bucket:</strong> {selectedBackupForRestore.destinationBucket}
                 </div>
               </div>
 
               {restoreSuccessMessage ? (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl space-y-1 text-xs">
-                  <div className="font-bold flex items-center space-x-1.5 text-emerald-800">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <div className="p-3.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 rounded-xl space-y-1 text-xs">
+                  <div className="font-bold flex items-center space-x-1.5 text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span>Verificación Completada Exitosamente</span>
                   </div>
-                  <p className="text-[11px] text-emerald-700">{restoreSuccessMessage}</p>
+                  <p className="text-[11px] text-emerald-400">{restoreSuccessMessage}</p>
                 </div>
               ) : (
-                <p className="text-slate-600">
+                <p className="text-slate-400">
                   Esta acción simula la descarga y descompresión en un entorno sandbox del archivo de respaldo para garantizar que el plan de continuidad de negocio (DRP) sea 100% funcional.
                 </p>
               )}
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
               <button
                 onClick={() => {
                   setShowRestoreModal(false);
                   setRestoreSuccessMessage(null);
                 }}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
               >
                 Cerrar
               </button>

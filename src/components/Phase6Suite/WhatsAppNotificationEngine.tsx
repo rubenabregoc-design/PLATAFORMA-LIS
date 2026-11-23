@@ -103,7 +103,7 @@ export const WhatsAppNotificationEngine: React.FC = () => {
       recipientName: testPatient,
       recipientPhone: testPhone,
       recipientType: isPanic ? 'MEDICO_TRATANTE' : 'PACIENTE',
-      orderNumber: `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderNumber: `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`,
       type: testType,
       channel: 'WHATSAPP',
       messageSnippet: isPanic

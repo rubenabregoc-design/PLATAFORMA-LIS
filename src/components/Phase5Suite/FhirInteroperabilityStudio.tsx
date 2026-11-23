@@ -233,41 +233,41 @@ export const FhirInteroperabilityStudio: React.FC<FhirInteroperabilityStudioProp
       </div>
 
       {/* API Endpoint Config & Selector */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-slate-900/90 rounded-2xl p-6 border border-slate-800 shadow-xl space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div className="md:col-span-2">
-            <label className="font-bold text-slate-700 block mb-1">Base Endpoint RESTful FHIR Tenant:</label>
+            <label className="font-bold text-slate-300 block mb-1">Base Endpoint RESTful FHIR Tenant:</label>
             <input
               type="text"
               value={endpointUrl}
               onChange={(e) => setEndpointUrl(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs font-bold text-teal-800"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-xs font-bold text-teal-300 focus:outline-none focus:border-teal-500"
             />
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">API Secret Key (X-API-KEY Header):</label>
+            <label className="font-bold text-slate-300 block mb-1">API Secret Key (X-API-KEY Header):</label>
             <input
               type="text"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-xs text-slate-200 focus:outline-none focus:border-teal-500"
             />
           </div>
         </div>
 
         {/* Resource Selector & Order Picker */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4">
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-slate-700">Recurso FHIR R4:</span>
+            <span className="text-xs font-bold text-slate-300">Recurso FHIR R4:</span>
             {(['DiagnosticReport', 'Observation', 'Patient', 'ServiceRequest'] as const).map((rType) => (
               <button
                 key={rType}
                 onClick={() => setSelectedResourceType(rType)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   selectedResourceType === rType
-                    ? 'bg-teal-600 text-white shadow'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-teal-600 text-white shadow-md'
+                    : 'bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 {rType}
@@ -276,11 +276,11 @@ export const FhirInteroperabilityStudio: React.FC<FhirInteroperabilityStudioProp
           </div>
 
           <div className="flex items-center space-x-2 text-xs">
-            <span className="font-bold text-slate-700">Orden Médica:</span>
+            <span className="font-bold text-slate-300">Orden Médica:</span>
             <select
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold text-xs"
+              className="bg-slate-950 border border-slate-800 text-white rounded-lg p-1.5 font-bold text-xs focus:outline-none focus:border-teal-500"
             >
               {orders.map((o) => (
                 <option key={o.id} value={o.id}>

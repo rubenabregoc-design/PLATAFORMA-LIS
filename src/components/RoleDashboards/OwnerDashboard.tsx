@@ -16,6 +16,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
   const language = useLisStore((state) => state.language);
   const isDemoMode = useLisStore((state) => state.isDemoMode);
   const isEn = language === 'EN';
+  const currentUser = useLisStore((state) => state.currentUser);
+  const userDisplayName = (() => {
+    if (!currentUser?.name) return 'Ing. Rubén Ábrego';
+    const clean = currentUser.name.includes('(') ? currentUser.name.split('(')[0].trim() : currentUser.name;
+    return clean.replace('Ruben Abrego', 'Rubén Ábrego');
+  })();
 
   const totalRevenue = isDemoMode
     ? orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) + 1420.00
@@ -38,7 +44,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ tenant, branch, 
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
                 <span>👋</span>
-                <span>{getTimeBasedGreeting(language)}, {isEn ? 'Executive Management!' : 'Dirección General!'}</span>
+                <span>{getTimeBasedGreeting(language)}, {userDisplayName}!</span>
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">

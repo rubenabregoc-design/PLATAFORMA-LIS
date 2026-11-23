@@ -756,7 +756,7 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
           <div className="relative w-full max-w-[340px] aspect-[1/2] select-none my-3 z-10">
             <svg
               viewBox="0 0 200 400"
-              className="w-full h-full filter drop-shadow-[0_0_25px_rgba(6,182,212,0.2)]"
+              className="w-full h-full filter drop-shadow-[0_0_25px_rgba(6,182,212,0.2)] overflow-visible"
             >
               <defs>
                 {/* Body Depth Gradient */}
@@ -1034,42 +1034,7 @@ export const AnatomicalBodyMap: React.FC<AnatomicalBodyMapProps> = ({
                       className="transition-all duration-200"
                     />
 
-                    {/* Active Selected Leader Callout HUD */}
-                    {isSelected && (
-                      <g className="animate-in fade-in duration-150">
-                        <line
-                          x1={region.x}
-                          y1={region.y}
-                          x2={region.x > 100 ? region.x + 22 : region.x - 22}
-                          y2={region.y - 12}
-                          stroke="#38bdf8"
-                          strokeWidth="1"
-                          strokeDasharray="2,2"
-                        />
-                        <rect
-                          x={region.x > 100 ? region.x + 22 : region.x - 74}
-                          y={region.y - 20}
-                          width="52"
-                          height="14"
-                          rx="4"
-                          fill="#0f172a"
-                          stroke="#38bdf8"
-                          strokeWidth="0.8"
-                        />
-                        <text
-                          x={region.x > 100 ? region.x + 48 : region.x - 48}
-                          y={region.y - 10}
-                          textAnchor="middle"
-                          fill="#38bdf8"
-                          fontSize="6"
-                          fontWeight="bold"
-                          fontFamily="sans-serif"
-                        >
-                          {finding ? finding.status.toUpperCase() : 'SELECCIONADO'}
-                        </text>
-                      </g>
-                    )}
-                  </g>
+                    </g>
                 );
               })}
             </svg>

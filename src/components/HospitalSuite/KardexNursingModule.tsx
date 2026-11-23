@@ -52,7 +52,15 @@ export const KardexNursingModule: React.FC = () => {
       'ADMINISTRADA',
       adminNotes || 'Dosis administrada sin complicaciones.'
     );
-    alert('Dosis registrada como administrada en el Kardex.');
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Kardex de Enfermería',
+          message: 'Dosis registrada exitosamente como administrada en el Kardex.',
+          type: 'success'
+        }
+      })
+    );
     setSelectedRecordForAdmin(null);
     setAdminNotes('');
   };
@@ -61,7 +69,15 @@ export const KardexNursingModule: React.FC = () => {
     const reason = prompt('Motivo de omisión o suspensión de la dosis:');
     if (reason) {
       recordMedicationAdministration(recId, nurseSignature, 'OMITIDA', reason);
-      alert('Dosis marcada como omitida.');
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: {
+            title: 'Dosis Omitida',
+            message: `Dosis marcada como omitida. Motivo: ${reason}`,
+            type: 'warning'
+          }
+        })
+      );
     }
   };
 

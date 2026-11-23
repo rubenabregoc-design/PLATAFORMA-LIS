@@ -27,6 +27,11 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({
 }) => {
   const { setActiveTab, setActiveOrder, validateResult, currentUser, language } = useLisStore();
   const isEn = language === 'EN';
+  const userDisplayName = (() => {
+    if (!currentUser?.name) return isEn ? 'Sofia Guardia, MT' : 'Lic. Sofía Guardia';
+    const clean = currentUser.name.includes('(') ? currentUser.name.split('(')[0].trim() : currentUser.name;
+    return clean.replace('Ruben Abrego', 'Rubén Ábrego');
+  })();
   const [patientSearch, setPatientSearch] = useState('');
 
   // Local validated results tracker for real-time UI feedback
@@ -111,7 +116,7 @@ export const TechMedDashboard: React.FC<TechMedDashboardProps> = ({
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center space-x-1 shrink-0">
                 <span>👋</span>
-                <span>{getTimeBasedGreeting(language)}, {currentUser?.name || (isEn ? 'Sofia Guardia, MT' : 'Lic. Sofía Guardia')}!</span>
+                <span>{getTimeBasedGreeting(language)}, {userDisplayName}!</span>
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">

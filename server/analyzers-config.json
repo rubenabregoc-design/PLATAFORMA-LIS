@@ -2,10 +2,14 @@
   {
     "id": "an-sysmex-01",
     "name": "Sysmex XN-1000",
-    "port": 5100,
+    "port": 5109,
     "protocol": "ASTM_E1381",
     "category": "HEMATOLOGIA",
-    "ackDelayMs": 0
+    "ackDelayMs": 0,
+    "orderStrategy": "PROFILE_ONLY",
+    "profileCode": "CBC+DIFF",
+    "testPrefix": "^^^",
+    "barcodePrefix": "^"
   },
   {
     "id": "an-vitros-01",
@@ -13,7 +17,11 @@
     "port": 5101,
     "protocol": "ASTM_E1381",
     "category": "QUIMICA",
-    "ackDelayMs": 20
+    "ackDelayMs": 20,
+    "orderStrategy": "SINGLE_O_REPEAT",
+    "repeatDelimiter": "\\",
+    "testPrefix": "^^^",
+    "barcodePrefix": "^"
   },
   {
     "id": "an-cobas-01",
@@ -37,7 +45,10 @@
     "port": 5104,
     "protocol": "ASTM_E1381",
     "category": "HEMATOLOGIA",
-    "ackDelayMs": 5
+    "ackDelayMs": 5,
+    "orderStrategy": "MULTI_O_RECORDS",
+    "testPrefix": "^^^",
+    "barcodePrefix": ""
   },
   {
     "id": "an-stago-01",
@@ -45,7 +56,15 @@
     "port": 5105,
     "protocol": "ASTM_E1381",
     "category": "COAGULACION",
-    "ackDelayMs": 50
+    "ackDelayMs": 50,
+    "orderStrategy": "MULTI_O_RECORDS",
+    "testPrefix": "",
+    "barcodePrefix": "",
+    "testMapping": {
+      "TP": "PT",
+      "TTPA": "APTT",
+      "FIBRINOGENO": "FIB"
+    }
   },
   {
     "id": "an-biorad-01",
@@ -53,6 +72,9 @@
     "port": 5106,
     "protocol": "ASTM_E1381",
     "category": "ESPECIALES",
-    "ackDelayMs": 10
+    "ackDelayMs": 10,
+    "orderStrategy": "PROFILE_ONLY",
+    "profileCode": "HBA1C",
+    "testPrefix": "^^^"
   }
 ]

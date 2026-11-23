@@ -1,0 +1,40 @@
+{
+  "packageVersion": "1.0.0",
+  "id": "mindray-bc6800-cassette",
+  "name": "Mindray BC-6800 Plus Pro",
+  "modelMatch": "BC-6800",
+  "manufacturer": "Mindray Bio-Medical",
+  "category": "HEMATOLOGIA",
+  "protocol": "ASTM_E1381",
+  "defaultPort": 5104,
+  "ackDelayMs": 15,
+  "orderStrategy": "MULTI_O_RECORDS",
+  "testPrefix": "^^^",
+  "repeatDelimiter": "\\",
+  "barcodePrefix": "",
+  "profileCode": "CBC+DIFF",
+  "testMapping": {
+    "WBC": "WBC",
+    "RBC": "RBC",
+    "HGB": "HGB",
+    "HCT": "HCT",
+    "MCV": "MCV",
+    "MCH": "MCH",
+    "MCHC": "MCHC",
+    "PLT": "PLT",
+    "NEU%": "NEU_PCT",
+    "LYM%": "LYM_PCT",
+    "MON%": "MON_PCT",
+    "EOS%": "EOS_PCT",
+    "BAS%": "BAS_PCT"
+  },
+  "flagMapping": {
+    "N": "NORMAL",
+    "H": "ALTO",
+    "L": "BAJO",
+    "A": "ANORMAL",
+    "P": "PANICO"
+  },
+  "installedAt": "2026-11-15T15:00:00.000Z",
+  "isCassette": true
+}

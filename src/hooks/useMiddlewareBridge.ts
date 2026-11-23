@@ -80,6 +80,7 @@ export function useMiddlewareBridge(enabled: boolean = true) {
   const [recentFrames, setRecentFrames] = useState<BridgeFrameEvent[]>([]);
   const [recentResults, setRecentResults] = useState<BridgeResultEvent[]>([]);
   const [recentLogs, setRecentLogs] = useState<MiddlewareMessageLog[]>([]);
+  const [driverCatalog, setDriverCatalog] = useState<any[]>([]);
   const [lastError, setLastError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -171,6 +172,13 @@ export function useMiddlewareBridge(enabled: boolean = true) {
           break;
         }
 
+        case 'driver_catalog': {
+          if (Array.isArray(msg.data)) {
+            setDriverCatalog(msg.data);
+          }
+          break;
+        }
+
         case 'analyzer_error': {
           setLastError(`${msg.data.analyzerName}: ${msg.data.error}`);
           break;
@@ -201,8 +209,9 @@ export function useMiddlewareBridge(enabled: boolean = true) {
         setConnectionState('CONNECTED');
         reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
         
-        // Request initial status
+        // Request initial status & driver catalog
         ws.send(JSON.stringify({ type: 'get_status' }));
+        ws.send(JSON.stringify({ type: 'get_driver_catalog' }));
       };
 
       ws.onmessage = handleMessage;
@@ -263,6 +272,22 @@ export function useMiddlewareBridge(enabled: boolean = true) {
     sendCommand('get_status');
   }, [sendCommand]);
 
+  const saveAnalyzerConfig = useCallback((analyzer: any) => {
+    sendCommand('save_analyzer_config', { analyzer });
+  }, [sendCommand]);
+
+  const deleteAnalyzerConfig = useCallback((analyzerId: string) => {
+    sendCommand('delete_analyzer_config', { analyzerId });
+  }, [sendCommand]);
+
+  const installDriverCassette = useCallback((cassette: any) => {
+    sendCommand('install_driver_cassette', { cassette });
+  }, [sendCommand]);
+
+  const requestDriverCatalog = useCallback(() => {
+    sendCommand('get_driver_catalog');
+  }, [sendCommand]);
+
   // ── Heartbeat (ping every 30s) ──────────────────────────────────────
 
   useEffect(() => {
@@ -300,6 +325,7 @@ export function useMiddlewareBridge(enabled: boolean = true) {
     // Status
     bridgeStatus,
     analyzerStatuses,
+    driverCatalog,
 
     // Real-time data
     recentFrames,
@@ -311,6 +337,10 @@ export function useMiddlewareBridge(enabled: boolean = true) {
     disconnect,
     injectTestFrame,
     requestStatus,
+    saveAnalyzerConfig,
+    deleteAnalyzerConfig,
+    installDriverCassette,
+    requestDriverCatalog,
 
     // Clear buffers
     clearFrames: () => setRecentFrames([]),

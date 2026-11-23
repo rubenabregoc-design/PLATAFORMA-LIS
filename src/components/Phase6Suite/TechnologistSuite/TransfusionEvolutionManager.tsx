@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  X,
   Droplets,
   Heart,
   ShieldCheck,
@@ -408,7 +409,11 @@ export const INITIAL_TRANSFUSION_CASES: TransfusionCase[] = [
   }
 ];
 
-export const TransfusionEvolutionManager: React.FC = () => {
+export interface TransfusionEvolutionManagerProps {
+  onClose?: () => void;
+}
+
+export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerProps> = ({ onClose }) => {
   const [cases, setCases] = useState<TransfusionCase[]>(INITIAL_TRANSFUSION_CASES);
   const [selectedCaseId, setSelectedCaseId] = useState<string>(INITIAL_TRANSFUSION_CASES[0].id);
   const [activeStageTab, setActiveStageTab] = useState<TransfusionStage>('SOLICITUD');
@@ -529,6 +534,16 @@ export const TransfusionEvolutionManager: React.FC = () => {
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Nueva Solicitud Transfusional</span>
             </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-xs transition border border-slate-700/80 hover:border-slate-500 flex items-center space-x-2 cursor-pointer shadow-lg"
+                title="Cerrar ventana de evolución transfusional"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+                <span>Cerrar Flujo</span>
+              </button>
+            )}
           </div>
         </div>
 

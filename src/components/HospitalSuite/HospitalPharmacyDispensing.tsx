@@ -1,5 +1,7 @@
+import { PharmacyRetailPosWorkspace } from './PharmacyRetailPosWorkspace';
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import {
+  ShoppingCart, createPortal } from 'react-dom';
 import {
   Pill,
   Search,
@@ -64,7 +66,7 @@ const INITIAL_PRESCRIPTIONS: PrescriptionOrder[] = [
   {
     id: 'rx-101',
     prescriptionNumber: 'RX-2026-0812',
-    patientName: 'Ríos, Gonzalo A.',
+    patientName: 'Juan Carlos Samudio González',
     patientNationalId: '8-745-1290',
     bedLocation: 'Piso 4 - Cama 412 (UCI)',
     doctorName: 'Dr. Roberto Eisenmann',
@@ -138,7 +140,7 @@ const INITIAL_NARCOTICS_LOG: NarcoticLogEntry[] = [
     timestamp: '2026-09-24 06:30',
     drugName: 'Morfina Clorhidrato 10mg / 1mL',
     type: 'DISPENSACION_PACIENTE',
-    patientName: 'Ríos, Gonzalo A.',
+    patientName: 'Juan Carlos Samudio González',
     patientNationalId: '8-745-1290',
     bedLocation: 'Piso 4 - Cama 412',
     doctorName: 'Dr. Roberto Eisenmann',
@@ -169,7 +171,7 @@ const INITIAL_NARCOTICS_LOG: NarcoticLogEntry[] = [
 ];
 
 export const HospitalPharmacyDispensing: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'DISPENSING' | 'NARCOTICS'>('DISPENSING');
+  const [activeTab, setActiveTab] = useState<'DISPENSING' | 'NARCOTICS' | 'RETAIL_POS'>('DISPENSING');
   const [prescriptions, setPrescriptions] = useState<PrescriptionOrder[]>(INITIAL_PRESCRIPTIONS);
   const [narcoticsLog, setNarcoticsLog] = useState<NarcoticLogEntry[]>(INITIAL_NARCOTICS_LOG);
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,7 +238,7 @@ export const HospitalPharmacyDispensing: React.FC = () => {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('DISPENSING')}
           className={`px-4 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer flex items-center space-x-2 ${

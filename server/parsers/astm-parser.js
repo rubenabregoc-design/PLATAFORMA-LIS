@@ -9,52 +9,117 @@
 
 // ASTM Control Characters
 const STX = 0x02;  // Start of Text
-const ETX = 0x03;  // End of Text
+const ETX = 0x03;  // End of Text (Final block)
 const EOT = 0x04;  // End of Transmission
 const ENQ = 0x05;  // Enquiry
 const ACK = 0x06;  // Acknowledge
 const NAK = 0x15;  // Negative Acknowledge
+const ETB = 0x17;  // End of Transmission Block (Intermediate block in multi-frame)
 const CR  = 0x0D;  // Carriage Return
 const LF  = 0x0A;  // Line Feed
 
 /**
+ * Computes ASTM checksum for any buffer slice (sum mod 256 as 2 hex digits).
+ */
+function computeAstmChecksum(contentBytes) {
+  let sum = 0;
+  for (let i = 0; i < contentBytes.length; i++) {
+    sum += contentBytes[i];
+  }
+  return (sum % 256).toString(16).toUpperCase().padStart(2, '0');
+}
+
+/**
  * Validates the ASTM checksum of a frame.
- * Checksum = sum of all bytes between STX (exclusive) and ETX (inclusive), mod 256, as 2-char uppercase hex.
+ * Supports both ETX (final frame) and ETB (intermediate frame in multi-frame transmissions).
+ * Checksum = sum of all bytes between STX (exclusive) and ETX/ETB (inclusive), mod 256, as 2-char uppercase hex.
  */
 function validateChecksum(frameBuffer) {
   const stxIdx = frameBuffer.indexOf(STX);
-  const etxIdx = frameBuffer.indexOf(ETX);
-  
-  if (stxIdx === -1 || etxIdx === -1 || etxIdx <= stxIdx) {
-    return { valid: false, expected: '??', computed: '??' };
+  if (stxIdx === -1) {
+    return { valid: false, expected: '??', computed: '??', delimiter: null, endIdx: -1 };
+  }
+
+  // Find either ETX or ETB
+  const etxIdx = frameBuffer.indexOf(ETX, stxIdx + 1);
+  const etbIdx = frameBuffer.indexOf(ETB, stxIdx + 1);
+
+  let endIdx = -1;
+  let delimiter = null;
+
+  if (etxIdx !== -1 && etbIdx !== -1) {
+    endIdx = Math.min(etxIdx, etbIdx);
+    delimiter = endIdx === etxIdx ? 'ETX' : 'ETB';
+  } else if (etxIdx !== -1) {
+    endIdx = etxIdx;
+    delimiter = 'ETX';
+  } else if (etbIdx !== -1) {
+    endIdx = etbIdx;
+    delimiter = 'ETB';
+  } else {
+    return { valid: false, expected: '??', computed: '??', delimiter: null, endIdx: -1 };
   }
 
   let sum = 0;
-  for (let i = stxIdx + 1; i <= etxIdx; i++) {
+  for (let i = stxIdx + 1; i <= endIdx; i++) {
     sum += frameBuffer[i];
   }
   const computed = (sum % 256).toString(16).toUpperCase().padStart(2, '0');
 
-  const c1 = etxIdx + 1 < frameBuffer.length ? String.fromCharCode(frameBuffer[etxIdx + 1]) : '?';
-  const c2 = etxIdx + 2 < frameBuffer.length ? String.fromCharCode(frameBuffer[etxIdx + 2]) : '?';
+  const c1 = endIdx + 1 < frameBuffer.length ? String.fromCharCode(frameBuffer[endIdx + 1]) : '?';
+  const c2 = endIdx + 2 < frameBuffer.length ? String.fromCharCode(frameBuffer[endIdx + 2]) : '?';
   const expected = (c1 + c2).toUpperCase();
 
-  return { valid: computed === expected, expected, computed };
+  return {
+    valid: computed === expected,
+    expected,
+    computed,
+    delimiter,
+    isIntermediate: delimiter === 'ETB',
+    endIdx
+  };
 }
 
 /**
- * Extracts the text content from a raw ASTM frame buffer.
+ * Extracts the text content and frame metadata from a raw ASTM frame buffer.
  */
 function extractFrameText(frameBuffer) {
   const stxIdx = frameBuffer.indexOf(STX);
-  const etxIdx = frameBuffer.indexOf(ETX);
-  
-  if (stxIdx === -1 || etxIdx === -1) {
+  if (stxIdx === -1) {
     return frameBuffer.toString('utf8').trim();
   }
 
-  const content = frameBuffer.slice(stxIdx + 1, etxIdx).toString('utf8');
-  return content.replace(/^[1-7]/, '');
+  const etxIdx = frameBuffer.indexOf(ETX, stxIdx + 1);
+  const etbIdx = frameBuffer.indexOf(ETB, stxIdx + 1);
+
+  let endIdx = -1;
+  let isIntermediate = false;
+
+  if (etxIdx !== -1 && etbIdx !== -1) {
+    endIdx = Math.min(etxIdx, etbIdx);
+    isIntermediate = endIdx === etbIdx;
+  } else if (etxIdx !== -1) {
+    endIdx = etxIdx;
+  } else if (etbIdx !== -1) {
+    endIdx = etbIdx;
+    isIntermediate = true;
+  } else {
+    return frameBuffer.toString('utf8').trim();
+  }
+
+  const rawPayload = frameBuffer.slice(stxIdx + 1, endIdx).toString('utf8');
+  // First character of payload is the ASTM Frame Number (0 to 7)
+  const frameNumberMatch = rawPayload.match(/^[0-7]/);
+  const frameNumber = frameNumberMatch ? parseInt(frameNumberMatch[0], 10) : 1;
+  const content = rawPayload.replace(/^[0-7]/, '');
+
+  return {
+    text: content,
+    rawPayload,
+    frameNumber,
+    isIntermediate,
+    delimiter: isIntermediate ? 'ETB' : 'ETX'
+  };
 }
 
 function parseHeaderRecord(fields) {
@@ -190,6 +255,117 @@ function parseCommentRecord(fields) {
 }
 
 /**
+ * Parses a Request Information / Host Query Record (Q record)
+ * Format: Q|sequenceNumber|startingSpecimenId|endingSpecimenId|universalTestId|...
+ * E.g.: Q|1|^102455||ALL||||||||O
+ */
+function parseQueryRecord(fields) {
+  const specimenField = fields[2] || '';
+  // Specimen ID can be formatted as ^barcode or ^^^barcode or plain barcode
+  const barcodeMatch = specimenField.match(/\^{0,3}([a-zA-Z0-9_\-\.]+)/);
+  const sampleBarcode = barcodeMatch ? barcodeMatch[1] : specimenField;
+
+  return {
+    recordType: 'Q',
+    sequenceNumber: fields[1] || '1',
+    startingSpecimenId: specimenField,
+    sampleBarcode,
+    endingSpecimenId: fields[3] || '',
+    universalTestId: fields[4] || 'ALL',
+    natureOfRequest: fields[5] || '',
+    requestStatus: fields[12] || 'O' // 'O' = Requesting orders, 'A' = Abort, 'N' = No order found
+  };
+}
+
+/**
+ * Formats a single ASTM E1381 frame buffer with STX, frame number, payload, ETX/ETB, checksum, CR, LF.
+ */
+function formatAstmFrame(frameNumber, payload, isLast = true) {
+  const fnChar = (frameNumber % 8).toString();
+  const endByte = isLast ? ETX : ETB;
+  const contentBuf = Buffer.concat([
+    Buffer.from(fnChar + payload, 'utf8'),
+    Buffer.from([endByte])
+  ]);
+  const checksum = computeAstmChecksum(contentBuf);
+
+  return Buffer.concat([
+    Buffer.from([STX]),
+    contentBuf,
+    Buffer.from(`${checksum}\r\n`, 'ascii')
+  ]);
+}
+
+/**
+ * Builds an ASTM E1394 message array of lines (H, P, O, L) for sending orders to an analyzer.
+ * Supports configurable driver profiles for:
+ * - orderStrategy: 'SINGLE_O_REPEAT' (default) | 'MULTI_O_RECORDS' (for Roche/Mindray) | 'PROFILE_ONLY' (hematology)
+ * - repeatDelimiter: '\' (default) | '/' | '~' (for machines that don't accept backslash)
+ * - testPrefix: '^^^' (default) | '' (for coagulometers like Stago)
+ * - barcodePrefix: '' | '^'
+ * - testMapping: dictionary of LIS test codes to analyzer channel codes
+ */
+function buildAstmOrderLines({
+  senderId = 'AbregoTech LIS',
+  patient,
+  order,
+  tests = [],
+  driverProfile = {}
+}) {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+  const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim() || 'Paciente';
+  const patientId = patient?.id || patient?.document_number || '1';
+  const dob = (patient?.dob || '').replace(/-/g, '');
+  const gender = (patient?.gender || 'U').charAt(0).toUpperCase();
+  const rawBarcode = order?.barcode || order?.order_number || '';
+  const priority = order?.priority === 'STAT' || order?.priority === 'URGENTE' ? 'S' : 'R';
+
+  // Driver options
+  const orderStrategy = driverProfile.orderStrategy || 'SINGLE_O_REPEAT';
+  const repeatDelim = driverProfile.repeatDelimiter || '\\';
+  const testPrefix = driverProfile.testPrefix !== undefined ? driverProfile.testPrefix : '^^^';
+  const barcodePrefix = driverProfile.barcodePrefix || '';
+  const profileCode = driverProfile.profileCode || 'ALL';
+  const testMapping = driverProfile.testMapping || {};
+
+  const barcode = `${barcodePrefix}${rawBarcode}`;
+
+  // Map tests to analyzer channel codes if mapping exists
+  const mappedTests = tests.length > 0 
+    ? tests.map(t => {
+        const rawCode = typeof t === 'string' ? t : (t.code || t.name);
+        return testMapping[rawCode] || testMapping[rawCode.toUpperCase()] || rawCode;
+      })
+    : [profileCode];
+
+  const headerDelimiter = `\\^&`;
+  const lines = [
+    `H|${headerDelimiter}|||${senderId}|||||||P|1|${timestamp}`,
+    `P|1|||${patientId}||${patientName}||${dob}|${gender}`
+  ];
+
+  if (orderStrategy === 'MULTI_O_RECORDS') {
+    // One O-record per test: O|1|...|^^^GLU, O|2|...|^^^BUN (Solves the issue where machines can't read repeat slashes)
+    mappedTests.forEach((testCode, idx) => {
+      const seq = idx + 1;
+      const testItem = `${testPrefix}${testCode}`;
+      lines.push(`O|${seq}|${barcode}||${testItem}|${priority}|${timestamp}|||||A||||||||||||||O`);
+    });
+  } else if (orderStrategy === 'PROFILE_ONLY') {
+    // Sends single battery code (e.g. ^^^CBC+DIFF or ^^^1 for Sysmex)
+    lines.push(`O|1|${barcode}||${testPrefix}${profileCode}|${priority}|${timestamp}|||||A||||||||||||||O`);
+  } else {
+    // Single O-record with configurable repetition delimiter (\ or / or ~)
+    const testItems = mappedTests.map(t => `${testPrefix}${t}`).join(repeatDelim);
+    lines.push(`O|1|${barcode}||${testItems}|${priority}|${timestamp}|||||A||||||||||||||O`);
+  }
+
+  lines.push(`L|1|N`);
+  return lines;
+}
+
+/**
  * Parses a complete ASTM message (multiple records concatenated).
  */
 function parseAstmMessage(messageText) {
@@ -201,6 +377,7 @@ function parseAstmMessage(messageText) {
     order: null,
     results: [],
     comments: [],
+    queries: [],
     hasTerminator: false,
     raw: messageText,
     recordCount: lines.length
@@ -217,6 +394,7 @@ function parseAstmMessage(messageText) {
       case 'O': parsed.order = parseOrderRecord(fields); break;
       case 'R': parsed.results.push(parseResultRecord(fields)); break;
       case 'C': parsed.comments.push(parseCommentRecord(fields)); break;
+      case 'Q': parsed.queries.push(parseQueryRecord(fields)); break;
       case 'L': parsed.hasTerminator = true; break;
     }
   }
@@ -230,14 +408,18 @@ function generateHexDump(buffer, maxBytes = 64) {
 }
 
 export {
-  STX, ETX, EOT, ENQ, ACK, NAK, CR, LF,
+  STX, ETX, EOT, ENQ, ACK, NAK, ETB, CR, LF,
+  computeAstmChecksum,
   validateChecksum,
   extractFrameText,
+  formatAstmFrame,
+  buildAstmOrderLines,
   parseAstmMessage,
   parseHeaderRecord,
   parsePatientRecord,
   parseOrderRecord,
   parseResultRecord,
   parseCommentRecord,
+  parseQueryRecord,
   generateHexDump
 };

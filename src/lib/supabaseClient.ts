@@ -60,7 +60,11 @@ const cloudKey = import.meta.env.VITE_SUPABASE_CLOUD_ANON_KEY || supabaseAnonKey
 
 export const DATABASE_MODE: DatabaseMode = (import.meta.env.VITE_DATABASE_MODE as DatabaseMode) || 'HYBRID';
 export const isLocalConfigured = Boolean(localUrl && !localUrl.includes('placeholder'));
-export const isCloudConfigured = Boolean(cloudUrl && !cloudUrl.includes('placeholder'));
+export const isCloudConfigured = Boolean(
+  cloudUrl &&
+  !cloudUrl.includes('placeholder') &&
+  !cloudUrl.includes('vsrhpjhmdkykgqyntstr')
+);
 
 /**
  * Interceptor de fetch para arquitectura Híbrida:
@@ -156,24 +160,26 @@ export async function testDatabaseConnections(): Promise<DatabaseHealthStatus> {
 
   try {
     const t0 = performance.now();
-    const res = await fetch(`${localUrl}`, { method: 'HEAD', signal: AbortSignal.timeout(2000) }).catch(() => null);
-    if (res && res.status < 500) {
+    const res = await fetch(`${localUrl}`, { method: 'GET', mode: 'no-cors', signal: AbortSignal.timeout(1500) }).catch(() => null);
+    if (res) {
       local = true;
-      latencyLocalMs = Math.round(performance.now() - t0);
+      latencyLocalMs = Math.max(1, Math.round(performance.now() - t0));
     }
   } catch {
     local = false;
   }
 
-  try {
-    const t0 = performance.now();
-    const { error } = await supabaseCloud.from('tenants').select('id').limit(1).abortSignal(AbortSignal.timeout(3000));
-    if (!error) {
-      cloud = true;
-      latencyCloudMs = Math.round(performance.now() - t0);
+  if (isCloudConfigured && cloudUrl && !cloudUrl.includes('placeholder')) {
+    try {
+      const t0 = performance.now();
+      const { error } = await supabaseCloud.from('tenants').select('id').limit(1).abortSignal(AbortSignal.timeout(2000));
+      if (!error) {
+        cloud = true;
+        latencyCloudMs = Math.round(performance.now() - t0);
+      }
+    } catch {
+      cloud = false;
     }
-  } catch {
-    cloud = false;
   }
 
   return { local, cloud, latencyLocalMs, latencyCloudMs };
@@ -216,4 +222,28 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// 🌐 Enrutamiento inteligente del canal WebSocket Realtime:
+// PostgREST local (:8000) no tiene servidor de websockets (produce error 404).
+// Si Supabase Cloud está configurado, enrutamos el socket a la nube.
+// Si estamos en modo Local-First sin nube, desconectamos Realtime para evitar bucles de reconexión.
+if (isCloudConfigured && cloudUrl && !cloudUrl.includes('placeholder')) {
+  try {
+    const cloudWsUrl = cloudUrl.replace('https://', 'wss://').replace('http://', 'ws://') + '/realtime/v1/websocket';
+    const socket = (supabase.realtime as any)?.socketAdapter?.socket;
+    if (socket) {
+      socket.endPoint = cloudWsUrl;
+      socket.params = () => ({ apikey: cloudKey });
+    }
+  } catch {
+    // Silencioso en caso de inicialización diferida
+  }
+} else {
+  try {
+    supabase.realtime?.disconnect?.();
+  } catch {
+    // Silencioso
+  }
+}
+
 

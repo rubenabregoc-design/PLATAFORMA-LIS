@@ -10,6 +10,7 @@ import {
 import { useLisStore } from '../store/useLisStore';
 import { Tenant, Branch } from '../types';
 import { MOCK_TENANTS } from '../data/mockData';
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 export interface ChatMessage {
   id: string;
@@ -85,122 +86,78 @@ export const CHANNELS_LIST = [
     name: 'abregotech-clinical-copilot',
     label: '🤖 AbregoTech Copilot IA',
     badgeColor: 'text-violet-400 bg-violet-500/10 border-violet-500/30',
-    description: 'Asistente 24/7 de validación analítica CLSI, reglas Westgard y compatibilidad de tubos'
+    description: 'Consulta en vivo de órdenes, pacientes, muestras, analitos y protocolos CLSI'
   },
 ];
 
-// Helper para inicializar mensajes clínicos aislados por cliente
+// Helper para inicializar mensajes clínicos institucionales aislados por cliente
 const getInitialMessagesForTenant = (tenant: Tenant): ChatMessage[] => {
   const tenantId = tenant.id;
   const tenantName = tenant.name;
   const branch1 = tenant.branches?.[0]?.name || 'Sede Principal';
-  const branch2 = tenant.branches?.[1]?.name || 'Sucursal';
 
-  if (tenantId === 'lab-san-jose') {
-    return [
-      {
-        id: 'msg-sj-101',
-        tenantId: 'lab-san-jose',
-        senderId: 'usr-chief-1',
-        senderName: 'Dr. Roberto Icaza Villalaz',
-        senderRole: 'Jefe de Laboratorio',
-        senderBranch: branch1,
-        timestamp: '09:12 AM',
-        content: `Estimados colegas en ${tenantName}: Recibimos el tubo #BAR-CARD-01 para Troponina I con índice de Hemólisis HIL 3+. La muestra proviene de ${branch2}. ¿Recomiendan solicitar nueva toma o procesamos con nota técnica ISO?`,
-        channelId: 'ch-hemolizadas',
-        sampleContext: {
-          barcode: 'BAR-CARD-01',
-          orderNumber: 'ORD-2026-9001',
-          patientName: 'Ríos, Gonzalo A.',
-          testName: 'Troponina I Ultrasensible Urgencia',
-          value: 'HIL Hemólisis 3+',
-          status: 'HEMOLIZADA'
-        },
-        isEncrypted: true,
-        status: 'READ'
-      },
-      {
-        id: 'msg-sj-102',
-        tenantId: 'lab-san-jose',
-        senderId: 'usr-tech-med-1',
-        senderName: 'Lic. Sofía Guardia Franco',
-        senderRole: 'Tecnóloga Médica',
-        senderBranch: branch2,
-        timestamp: '09:15 AM',
-        content: `Hola Dr. Roberto. Troponina I Ultrasensible en este analizador no sufre interferencia negativa por Hemólisis hasta HIL < 500 mg/dL. Si la muestra no presenta microcoágulos, se puede procesar agregando la nota técnica codificada NT-HIL-02.`,
-        channelId: 'ch-hemolizadas',
-        sampleContext: {
-          barcode: 'BAR-CARD-01',
-          orderNumber: 'ORD-2026-9001',
-          patientName: 'Ríos, Gonzalo A.',
-          testName: 'Troponina I Ultrasensible Urgencia',
-          status: 'HEMOLIZADA'
-        },
-        isEncrypted: true,
-        status: 'READ'
-      },
-      {
-        id: 'msg-sj-103',
-        tenantId: 'lab-san-jose',
-        senderId: 'usr-tech-med-2',
-        senderName: 'Lic. Carlos E. Mendoza',
-        senderRole: 'TM Hematología',
-        senderBranch: branch2,
-        timestamp: '09:22 AM',
-        content: 'Consulta urgente: Muestra #BAR-HEM-04 presenta trombocitopenia severa en conteo automatizado (22,000 /µL) pero el frotis muestra grumos plaquetarios por EDTA. ¿Procedemos con citrato de sodio?',
-        channelId: 'ch-dudosos',
-        sampleContext: {
-          barcode: 'BAR-HEM-04',
-          orderNumber: 'ORD-2026-9004',
-          patientName: 'Vega, Lucía',
-          testName: 'Hemograma + Conteo de Plaquetas',
-          value: '22,000 /µL (Pseudotrombocitopenia)',
-          status: 'DUDOSA'
-        },
-        isEncrypted: true,
-        status: 'READ'
-      },
-      {
-        id: 'msg-sj-104',
-        tenantId: 'lab-san-jose',
-        senderId: 'usr-copilot',
-        senderName: 'AbregoTech Copilot AI',
-        senderRole: 'Sistema Experto ISO 15189',
-        senderBranch: 'Servidor Clínico AbregoTech Cloud',
-        timestamp: '09:23 AM',
-        content: '💡 Sugerencia Automatizada: En sospecha de Pseudotrombocitopenia inducida por EDTA, la guía CLSI H20-A2 recomienda recolectar un tubo con Citrato de Sodio (Tapa Celeste 3.2%), multiplicar el conteo obtenido por factor 1.1 para corregir la dilución, y reportar con la observación correspondiente.',
-        channelId: 'ch-dudosos',
-        isAi: true,
-        isEncrypted: true,
-        status: 'READ'
-      }
-    ];
-  }
-
-  // Mensajes de bienvenida y coordinación interna para cualquier otro cliente
   return [
     {
-      id: `msg-init-${tenantId}-1`,
+      id: `msg-sys-pinned-${tenantId}-1`,
       tenantId,
       senderId: 'usr-system',
-      senderName: 'Dirección Médica & Calidad',
-      senderRole: 'Administración LIS',
+      senderName: 'Dirección Médica & Gestión de Calidad',
+      senderRole: 'SISTEMA ISO 15189',
       senderBranch: branch1,
-      timestamp: '08:00 AM',
-      content: `Canal interno privado y exclusivo activado para ${tenantName}. Red médica inter-sedes cifrada de extremo a extremo bajo Ley 81 de Protección de Datos Médicos y estándar ISO 15189.`,
+      timestamp: '07:00 AM',
+      content: `🔒 Canal Seguro Inter-Sedes para ${tenantName}. Red médica de interconsulta técnica en tiempo real para criterios de rechazo preanalítico, verificación cruzada de valores críticos y trazabilidad según norma ISO 15189 §7.3 y Ley 81.`,
       channelId: 'ch-general',
       isEncrypted: true,
       status: 'READ'
     },
     {
-      id: `msg-init-${tenantId}-2`,
+      id: `msg-sys-pinned-${tenantId}-hemolisis`,
+      tenantId,
+      senderId: 'usr-system',
+      senderName: 'Jefatura de Fase Preanalítica',
+      senderRole: 'PROTOCOLO CLSI GP44-A4',
+      senderBranch: branch1,
+      timestamp: '07:00 AM',
+      content: `🩸 Protocolo de Hemólisis e Índices HIL activo para ${tenantName}: Muestras con HIL 3+ (>300 mg/dL Hb libre) en analitos interferidos (K+, DHL, AST) requieren interconsulta técnica o solicitud de nueva toma sin torniquete prolongado según manual de procedimientos.`,
+      channelId: 'ch-hemolizadas',
+      isEncrypted: true,
+      status: 'READ'
+    },
+    {
+      id: `msg-sys-pinned-${tenantId}-dudosos`,
+      tenantId,
+      senderId: 'usr-system',
+      senderName: 'Comité de Calidad Analítica',
+      senderRole: 'GESTIÓN DE RIESGO ISO 15189',
+      senderBranch: branch1,
+      timestamp: '07:00 AM',
+      content: `⚠️ Verificación Cruzada de Valores Pánico: Todo resultado en rango crítico debe ser repetido por duplicado, correlacionado con delta check del historial del paciente y comunicado en <15 min con registro en bitácora.`,
+      channelId: 'ch-dudosos',
+      isEncrypted: true,
+      status: 'READ'
+    },
+    {
+      id: `msg-sys-pinned-${tenantId}-banco`,
+      tenantId,
+      senderId: 'usr-system',
+      senderName: 'Servicio de Transfusión y Hemoderivados',
+      senderRole: 'URGENCIAS STAT',
+      senderBranch: branch1,
+      timestamp: '07:00 AM',
+      content: `🧪 Coordinación Transfusional STAT: Para solicitud de unidades O-Negativo de emergencia sin pruebas cruzadas completas, verificar firma de médico tratante y registrar código de alícuota en bitácora.`,
+      channelId: 'ch-banco-sangre',
+      isEncrypted: true,
+      status: 'READ'
+    },
+    {
+      id: `msg-sys-pinned-${tenantId}-2`,
       tenantId,
       senderId: 'usr-copilot',
-      senderName: 'AbregoTech Copilot AI',
-      senderRole: 'Asistente Clínico 24/7',
-      senderBranch: 'AbregoTech Medical AI Engine',
-      timestamp: '08:01 AM',
-      content: `Hola equipo de ${tenantName}. Las sedes registradas para este cliente están interconectadas. Pueden compartir consultas de muestras, valores críticos y frotis en tiempo real.`,
+      senderName: 'AbregoTech Copilot IA',
+      senderRole: 'Motor Clínico LIS (Datos en Vivo)',
+      senderBranch: 'AbregoTech Medical Intelligence',
+      timestamp: '07:00 AM',
+      content: `🤖 Asistente de Órdenes y Laboratorio en Vivo para ${tenantName}. Conectado a la base de datos del sistema: puedes consultarme en cualquier momento por el número de cualquier orden (ej: "orden 26101290001"), por paciente ("Rubén Ábrego"), por analito ("troponina de Samudio"), por tubo o por el estado global de órdenes pendientes y críticas.`,
       channelId: 'ch-copilot',
       isAi: true,
       isEncrypted: true,
@@ -248,7 +205,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   activeSampleContext,
   onClose
 }) => {
-  const { currentUser, currentTenant: storeTenant, currentBranch: storeBranch, orders, language, activeTab } = useLisStore();
+  const { currentUser, currentTenant: storeTenant, currentBranch: storeBranch, orders, results, patients, activeOrderId, language, activeTab } = useLisStore();
   const isWorkstationTab = activeTab === 'validation' || activeTab === 'lis_workstation';
   const isEn = language === 'EN';
 
@@ -345,33 +302,50 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   const tenantStorageKey = `lis_inter_branch_chat_${activeTenant.id}`;
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(`lis_inter_branch_chat_${activeTenant.id}`);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
-    return getInitialMessagesForTenant(activeTenant);
-  });
-
-  // Al cambiar de cliente, recargar inmediatamente su bandeja aislada
-  useEffect(() => {
+    const initialPinned = getInitialMessagesForTenant(activeTenant);
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(`lis_inter_branch_chat_${activeTenant.id}`);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed);
+            // Garantizar que cada canal tenga sus protocolos institucionales anclados
+            const merged = [...parsed];
+            for (const pinned of initialPinned) {
+              if (!merged.some(m => m.channelId === pinned.channelId)) {
+                merged.unshift(pinned);
+              }
+            }
+            return merged;
+          }
+        }
+      } catch {}
+    }
+    return initialPinned;
+  });
+
+  // Al cambiar de cliente, recargar inmediatamente su bandeja aislada
+  useEffect(() => {
+    const initialPinned = getInitialMessagesForTenant(activeTenant);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`lis_inter_branch_chat_${activeTenant.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const merged = [...parsed];
+            for (const pinned of initialPinned) {
+              if (!merged.some(m => m.channelId === pinned.channelId)) {
+                merged.unshift(pinned);
+              }
+            }
+            setMessages(merged);
             return;
           }
         }
       } catch {}
     }
-    setMessages(getInitialMessagesForTenant(activeTenant));
+    setMessages(initialPinned);
   }, [activeTenant.id]);
 
   // Persistir en el almacenamiento del cliente activo
@@ -391,16 +365,59 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [showSampleSelector, setShowSampleSelector] = useState<boolean>(false);
   const [attachedSample, setAttachedSample] = useState<SecureInternalMessagingWidgetProps['activeSampleContext'] | null>(activeSampleContext || null);
-  const [attachedFile, setAttachedFile] = useState<{ name: string; url: string } | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; url: string; type?: string; size?: string } | null>(null);
   const [copiedBarcode, setCopiedBarcode] = useState<string | null>(null);
 
-  // WebSocket Connection Simulator
-  const [wsLatency, setWsLatency] = useState<number>(14);
+  // Estado de conexión e interacción en tiempo real
   const [isTypingOther, setIsTypingOther] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState<number>(2);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  // Listener global para recibir notificaciones enviadas desde otros módulos (Productividad, Calidad, Alertas)
+  useEffect(() => {
+    const handleIncomingSystemNotification = (ev: Event) => {
+      const detail = (ev as CustomEvent<{
+        channelId?: string;
+        content: string;
+        senderName?: string;
+        senderRole?: string;
+        senderBranch?: string;
+        openChat?: boolean;
+      }>).detail;
+      if (!detail || !detail.content) return;
+
+      const targetChannel = detail.channelId || 'ch-hemolizadas';
+      const newMsg: ChatMessage = {
+        id: `msg-sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        tenantId: activeTenant.id,
+        senderId: currentUser?.id || 'system-quality',
+        senderName: detail.senderName || currentUser?.name || 'Coordinación de Calidad LIS',
+        senderRole: detail.senderRole || 'Gestión & Calidad ISO 15189',
+        senderBranch: detail.senderBranch || storeBranch?.name || 'Sede Principal',
+        timestamp: new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' }),
+        content: detail.content,
+        channelId: targetChannel,
+        isEncrypted: true,
+        status: 'DELIVERED'
+      };
+
+      setMessages((prev) => [...prev, newMsg]);
+      if (detail.openChat) {
+        setActiveChannelId(targetChannel);
+        setIsOpen(true);
+        setIsMinimized(false);
+        setUnreadCount(0);
+      } else {
+        setUnreadCount((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener('lis_send_intercom_notification', handleIncomingSystemNotification);
+    return () => window.removeEventListener('lis_send_intercom_notification', handleIncomingSystemNotification);
+  }, [activeTenant.id, currentUser, storeBranch]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (activeSampleContext) {
@@ -415,13 +432,357 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
     }
   }, [messages, isOpen, isMinimized, activeChannelId]);
 
-  // Latencia periódica simulada
+  // 📡 SINCRONIZACIÓN REAL ENTRE PESTAÑAS Y VENTANAS (BroadcastChannel)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setWsLatency(Math.floor(11 + Math.random() * 7));
-    }, 4500);
-    return () => clearInterval(interval);
-  }, []);
+    if (typeof window === 'undefined' || !window.BroadcastChannel) return;
+    const channelName = `lis_intercom_${activeTenant.id}`;
+    const bc = new BroadcastChannel(channelName);
+
+    bc.onmessage = (event) => {
+      const data = event.data;
+      if (!data) return;
+
+      if (data.type === 'NEW_MESSAGE') {
+        const incomingMsg: ChatMessage = data.payload;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === incomingMsg.id)) return prev;
+          return [...prev, incomingMsg];
+        });
+        if (isSoundEnabled) playClinicalAudioChime('receive');
+        if (!isOpen || activeChannelId !== incomingMsg.channelId) {
+          setUnreadCount((c) => c + 1);
+        }
+      } else if (data.type === 'DELETE_MESSAGE') {
+        const deletedId: string = data.payload;
+        setMessages((prev) => prev.filter((m) => m.id !== deletedId));
+      }
+    };
+
+    return () => {
+      bc.close();
+    };
+  }, [activeTenant.id, isOpen, activeChannelId, isSoundEnabled]);
+
+  // ☁️ SINCRONIZACIÓN EN LA NUBE (Supabase Realtime si está configurado)
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const room = supabase.channel(`intercom-${activeTenant.id}`);
+    room
+      .on('broadcast', { event: 'new-message' }, ({ payload }) => {
+        if (!payload) return;
+        const incomingMsg = payload as ChatMessage;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === incomingMsg.id)) return prev;
+          return [...prev, incomingMsg];
+        });
+        if (isSoundEnabled) playClinicalAudioChime('receive');
+        if (!isOpen || activeChannelId !== incomingMsg.channelId) {
+          setUnreadCount((c) => c + 1);
+        }
+      })
+      .on('broadcast', { event: 'delete-message' }, ({ payload }) => {
+        if (!payload?.id) return;
+        setMessages((prev) => prev.filter((m) => m.id !== payload.id));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(room);
+    };
+  }, [activeTenant.id, isOpen, activeChannelId, isSoundEnabled]);
+
+  // Carga real de archivos e imágenes desde disco
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert('El archivo no debe exceder 8 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const url = loadEvent.target?.result as string;
+      setAttachedFile({
+        name: file.name,
+        url,
+        type: file.type,
+        size: `${(file.size / 1024).toFixed(0)} KB`
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleDeleteMessage = (msgId: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    // Propagar borrado a otras pestañas
+    try {
+      if (typeof window !== 'undefined' && window.BroadcastChannel) {
+        const bc = new BroadcastChannel(`lis_intercom_${activeTenant.id}`);
+        bc.postMessage({ type: 'DELETE_MESSAGE', payload: msgId });
+        bc.close();
+      }
+    } catch {}
+    if (isSupabaseConfigured && supabase) {
+      try {
+        supabase.channel(`intercom-${activeTenant.id}`).send({
+          type: 'broadcast',
+          event: 'delete-message',
+          payload: { id: msgId }
+        });
+      } catch {}
+    }
+  };
+
+  // Órdenes del cliente activo para el selector de muestras y vinculación real
+  const tenantOrders = useMemo(() => {
+    return (orders || []).filter(o => !o.tenantId || o.tenantId === activeTenant.id);
+  }, [orders, activeTenant.id]);
+
+  // Orden activa del sistema para vincular datos reales automáticamente
+  const activeSystemOrder = useMemo(() => {
+    if (!orders || !activeOrderId) return null;
+    return orders.find(o => o.id === activeOrderId && (!o.tenantId || o.tenantId === activeTenant.id)) || null;
+  }, [orders, activeOrderId, activeTenant.id]);
+
+  // Motor Determinístico de Consulta Clínica LIS (100% Sin IA / Datos Exactos en Vivo)
+  const generateClinicalOrderResponse = (query: string, sample?: SecureInternalMessagingWidgetProps['activeSampleContext'] | null): string => {
+    const rawQ = query.trim();
+    const q = rawQ.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // 1. Extraer o identificar orden objetivo
+    let targetOrder: (typeof tenantOrders)[0] | null = null;
+
+    // A) Búsqueda directa por número exacto de orden o ID
+    const exactNumMatch = tenantOrders.find(o => 
+      q.includes(o.orderNumber.toLowerCase()) || 
+      (o.id && q.includes(o.id.toLowerCase()))
+    );
+    if (exactNumMatch) targetOrder = exactNumMatch;
+
+    // B) Búsqueda por ordinales o número corto (ej. "orden 1", "orden #3", "orden 2")
+    if (!targetOrder) {
+      const ordinalMatch = q.match(/(?:orden|order)\s*(?:#|n[o°]?)?\s*(\d+)/i);
+      if (ordinalMatch) {
+        const val = ordinalMatch[1];
+        targetOrder = tenantOrders.find(o => o.orderNumber.endsWith(val) || o.orderNumber === val) || null;
+        if (!targetOrder) {
+          const idx = parseInt(val, 10);
+          if (idx > 0 && idx <= tenantOrders.length) {
+            targetOrder = tenantOrders[idx - 1];
+          }
+        }
+      }
+    }
+
+    // C) Búsqueda por código de barras de muestra o tubo (ej: BC-90001, LILA, etc.)
+    if (!targetOrder) {
+      for (const ord of tenantOrders) {
+        if (ord.specimens && ord.specimens.some(s => q.includes(s.barcode.toLowerCase()) || (s.type && q.includes(s.type.toLowerCase())))) {
+          targetOrder = ord;
+          break;
+        }
+      }
+    }
+
+    // D) Búsqueda por Paciente (Nombre, Apellido o Cédula)
+    if (!targetOrder) {
+      targetOrder = tenantOrders.find(o => {
+        const pName = (o.patientName || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const pNatId = (o.patientNationalId || '').toLowerCase().replace(/[-]/g, '');
+        const cleanQ = q.replace(/[-]/g, '');
+        
+        const nameParts = pName.split(/\s+/).filter(part => part.length >= 3);
+        const matchesNamePart = nameParts.some(part => q.includes(part));
+
+        return (pNatId && cleanQ.includes(pNatId)) || matchesNamePart || (pName && q.includes(pName));
+      }) || null;
+    }
+
+    // E) Búsqueda por orden activa / actual o contexto adjunto
+    if (!targetOrder && (q.includes('orden activa') || q.includes('esta orden') || q.includes('orden actual') || q.includes('muestra activa'))) {
+      targetOrder = activeSystemOrder || (sample ? tenantOrders.find(o => o.orderNumber === sample.orderNumber) : null);
+    }
+
+    // Analitos comunes para búsqueda específica
+    const commonAnalytes = [
+      { key: 'troponina', label: 'Troponina I Ultrasensible' },
+      { key: 'leucocito', label: 'Leucocitos Totales (WBC)' },
+      { key: 'wbc', label: 'Leucocitos Totales (WBC)' },
+      { key: 'hemoglobina', label: 'Hemoglobina (HGB)' },
+      { key: 'hgb', label: 'Hemoglobina (HGB)' },
+      { key: 'colesterol', label: 'Colesterol Total' },
+      { key: 'triglicerido', label: 'Triglicéridos' },
+      { key: 'glucosa', label: 'Glucosa Basal' },
+      { key: 'creatinina', label: 'Creatinina Sérica' },
+      { key: 'bun', label: 'Nitrógeno de Urea (BUN)' },
+      { key: 'urea', label: 'Nitrógeno de Urea (BUN)' },
+      { key: 'sodio', label: 'Sodio (Na+)' },
+      { key: 'potasio', label: 'Potasio (K+)' },
+      { key: 'cloro', label: 'Cloro (Cl-)' },
+      { key: 'alt', label: 'TGP / Alanina Aminotransferasa (ALT)' },
+      { key: 'tgp', label: 'TGP / Alanina Aminotransferasa (ALT)' },
+      { key: 'tsh', label: 'Hormona Estimulante de Tiroides (TSH)' },
+      { key: 'plaqueta', label: 'Plaquetas (PLT)' },
+      { key: 'plt', label: 'Plaquetas (PLT)' },
+      { key: 'hematocrito', label: 'Hematocrito (HCT)' },
+      { key: 'hct', label: 'Hematocrito (HCT)' }
+    ];
+    const queriedAnalyte = commonAnalytes.find(a => q.includes(a.key));
+
+    // CASO 1: Si se encontró una orden específica
+    if (targetOrder) {
+      const ordResults = (results || []).filter(r => r.orderId === targetOrder.id || r.orderId === targetOrder.orderNumber);
+
+      // Si preguntó por un analito específico dentro de la orden
+      if (queriedAnalyte) {
+        const specificRes = ordResults.find(r => 
+          r.parameterName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(queriedAnalyte.key) ||
+          (r.parameterCode && r.parameterCode.toLowerCase().includes(queriedAnalyte.key))
+        );
+
+        if (specificRes) {
+          const isCrit = specificRes.flag === 'CRITICO_ALTO' || specificRes.flag === 'CRITICO_BAJO';
+          const isHigh = specificRes.flag === 'ALTO';
+          const isLow = specificRes.flag === 'BAJO';
+          const flagLabel = isCrit ? '🚨 CRÍTICO (Valor Pánico)' : isHigh ? '▲ ALTO' : isLow ? '▼ BAJO' : '✅ NORMAL';
+
+          return `🔬 DETALLE ANALÍTICO — ORDEN N° ${targetOrder.orderNumber}\n` +
+                 `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                 `• Parámetro: ${specificRes.parameterName}\n` +
+                 `• Paciente: ${targetOrder.patientName || 'Paciente'} (Cédula: ${targetOrder.patientNationalId || 'N/A'})\n` +
+                 `• Resultado Medido: ${specificRes.value} ${specificRes.unit}\n` +
+                 `• Rango de Referencia: ${specificRes.refRangeText} ${specificRes.unit}\n` +
+                 `• Estado Clínico: ${flagLabel}\n` +
+                 `• Analizador / Equipo: ${specificRes.analyzerName || specificRes.source || 'Automatizado Central'}\n` +
+                 `• Estado de Validación: ${specificRes.status || 'VALIDADO'}` +
+                 (specificRes.technicalValidatedBy ? ` por ${specificRes.technicalValidatedBy}` : '') + `\n` +
+                 `• Prioridad de la Orden: ${targetOrder.priority === 'URGENCIA' || targetOrder.priority === 'STAT' ? '🚨 URGENCIA' : '🔵 RUTINA'}\n` +
+                 `• Sede: ${targetOrder.branchName || activeTenant.name}`;
+        }
+      }
+
+      // Si preguntó sobre los tubos o muestras de la orden
+      if (q.includes('tubo') || q.includes('muestra') || q.includes('specimen') || q.includes('codigo de barra')) {
+        let tubeInfo = `🧪 TUBOS Y MUESTRAS — ORDEN N° ${targetOrder.orderNumber}\n` +
+                       `• Paciente: ${targetOrder.patientName || 'Paciente'}\n` +
+                       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        if (targetOrder.specimens && targetOrder.specimens.length > 0) {
+          targetOrder.specimens.forEach((s, idx) => {
+            tubeInfo += `${idx + 1}. [${s.barcode}] Tubo ${s.tubeType || 'Estándar'}\n` +
+                        `   • Tipo: ${s.type || 'Muestra Clínica'}\n` +
+                        `   • Estado: ${s.status || 'RECIBIDA'}\n` +
+                        `   • Toma: ${s.collectedAt ? new Date(s.collectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Registrada'}\n`;
+          });
+        } else {
+          tubeInfo += `• No hay muestras desglosadas registradas para esta orden.\n`;
+        }
+        return tubeInfo;
+      }
+
+      // Desglose completo de la orden
+      const criticalCount = ordResults.filter(r => r.flag === 'CRITICO_ALTO' || r.flag === 'CRITICO_BAJO').length;
+      const highCount = ordResults.filter(r => r.flag === 'ALTO').length;
+      const lowCount = ordResults.filter(r => r.flag === 'BAJO').length;
+      const normalCount = ordResults.length - criticalCount - highCount - lowCount;
+
+      let sheet = `📋 FICHA TÉCNICA DE LA ORDEN N° ${targetOrder.orderNumber}\n` +
+                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                  `• Paciente: ${targetOrder.patientName || 'Paciente LIS'}\n` +
+                  `• Cédula: ${targetOrder.patientNationalId || 'N/A'} | Edad: ${targetOrder.patientAge || '—'} años | Sexo: ${targetOrder.patientGender === 'F' ? 'Femenino' : 'Masculino'}\n` +
+                  `• Prioridad: ${targetOrder.priority === 'URGENCIA' || targetOrder.priority === 'STAT' ? '🚨 URGENCIA' : '🔵 RUTINA'}\n` +
+                  `• Procedencia / Origen: ${targetOrder.origin || 'Consulta Externa'}\n` +
+                  `• Médico Tratante: ${targetOrder.doctorName || 'Dr(a). Tratante'}\n` +
+                  `• Fecha de Ingreso: ${targetOrder.createdAt ? new Date(targetOrder.createdAt).toLocaleString('es-PA') : 'Registrada'}\n` +
+                  `• Estado Oficial: ${targetOrder.status === 'VALIDADA_MED' ? '✅ VALIDADO OFICIAL' : targetOrder.status === 'VALIDADA_TEC' ? '🔬 VALIDADO TÉCNICO' : '⏳ EN PROCESO'}\n` +
+                  `• Sede: ${targetOrder.branchName || activeTenant.name}\n\n`;
+
+      if (targetOrder.specimens && targetOrder.specimens.length > 0) {
+        sheet += `🧪 Muestras (${targetOrder.specimens.length}): ` +
+                 targetOrder.specimens.map(s => `${s.barcode} (${s.tubeType || s.type})`).join(', ') + `\n\n`;
+      }
+
+      if (ordResults.length > 0) {
+        sheet += `🔬 RESULTADOS DE LABORATORIO (${ordResults.length} parámetros):\n`;
+        ordResults.forEach((r, idx) => {
+          const flag = r.flag === 'CRITICO_ALTO' || r.flag === 'CRITICO_BAJO'
+            ? '🚨 CRÍTICO'
+            : r.flag === 'ALTO' ? '▲ ALTO'
+            : r.flag === 'BAJO' ? '▼ BAJO'
+            : '✅ Normal';
+          sheet += `  ${idx + 1}. ${r.parameterName}: ${r.value} ${r.unit} (Ref: ${r.refRangeText}) [${flag}]\n`;
+        });
+        sheet += `\n📊 Balance: ${criticalCount > 0 ? `🚨 ${criticalCount} Críticos | ` : ''}${highCount > 0 ? `▲ ${highCount} Altos | ` : ''}✅ ${normalCount} Normales`;
+      } else {
+        sheet += `ℹ️ Pruebas en curso: ${targetOrder.testIds?.join(', ') || 'Pendientes de procesamiento analítico'}`;
+      }
+
+      return sheet;
+    }
+
+    // CASO 2: Consulta General de Órdenes (censo, cuántas hay, listas, urgencias, críticas, pendientes)
+    if (q.includes('cuantas orden') || q.includes('lista de orden') || q.includes('censo') || q.includes('resumen de orden') || q.includes('ordenes criticas') || q.includes('ordenes urgentes') || q.includes('ordenes pendientes') || q.includes('que ordenes')) {
+      const total = tenantOrders.length;
+      const urgentes = tenantOrders.filter(o => o.priority === 'URGENCIA' || o.priority === 'STAT');
+      const validadas = tenantOrders.filter(o => o.status === 'VALIDADA_MED' || o.status === 'VALIDADA_TEC');
+      const pendientes = tenantOrders.filter(o => o.status !== 'VALIDADA_MED' && o.status !== 'VALIDADA_TEC');
+
+      let summary = `📊 CENSO Y ESTADO DE ÓRDENES EN EL SISTEMA (${total} órdenes registradas):\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `• 🚨 Prioridad URGENCIA: ${urgentes.length} ${urgentes.length === 1 ? 'orden' : 'órdenes'}\n` +
+                    `• ✅ Validadas Oficiales: ${validadas.length} órdenes\n` +
+                    `• ⏳ En Proceso / Pendientes: ${pendientes.length} órdenes\n\n` +
+                    `📋 DETALLE DE ÓRDENES ACTIVAS:\n`;
+      tenantOrders.forEach((o, i) => {
+        const ordRes = (results || []).filter(r => r.orderId === o.id || r.orderId === o.orderNumber);
+        const hasCrit = ordRes.some(r => r.flag === 'CRITICO_ALTO' || r.flag === 'CRITICO_BAJO');
+        const prioTag = o.priority === 'URGENCIA' || o.priority === 'STAT' ? '🚨 URGENCIA' : '🔵 RUTINA';
+        const critTag = hasCrit ? ' | 🚨 CONTIENE VALOR CRÍTICO' : '';
+        summary += `${i + 1}. N° ${o.orderNumber}: ${o.patientName || 'Paciente'} (${prioTag} | ${ordRes.length} analitos | ${o.status || 'REGISTRADA'}${critTag})\n`;
+      });
+      summary += `\n💡 Escribe el número de cualquier orden (ej: "26101290001" o "orden 3") o el nombre del paciente para ver sus analitos.`;
+      return summary;
+    }
+
+    // CASO 3: Rangos de referencia generales (si preguntan por un analito sin orden)
+    if (queriedAnalyte && (q.includes('rango') || q.includes('referencia') || q.includes('valor normal') || q.includes('limite'))) {
+      const matchParam = (results || []).find(r => 
+        r.parameterName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(queriedAnalyte.key) ||
+        (r.parameterCode && r.parameterCode.toLowerCase().includes(queriedAnalyte.key))
+      );
+      if (matchParam) {
+        return `📖 RANGO DE REFERENCIA CLÍNICO (CLSI EP28-A3):\n` +
+               `• Parámetro: ${matchParam.parameterName}\n` +
+               `• Rango Deseable: ${matchParam.refRangeText} ${matchParam.unit}\n` +
+               `• Analizador Habitual: ${matchParam.analyzerName || 'Línea Automatizada'}\n` +
+               `• Metodología: ${matchParam.source || 'Automatizada'}`;
+      }
+    }
+
+    // CASO 4: Protocolos preanalíticos CLSI
+    if (q.includes('hemolisis') || q.includes('hemolizada') || q.includes('hil')) {
+      return '🩸 Guía Preanalítica HIL (CLSI GP44-A4): La hemólisis (HIL 3+ o >300 mg/dL de hemoglobina libre) genera interferencia biológica directa elevando falsamente Potasio (K+), DHL, AST y Fosfatasa Ácida por liberación eritrocitaria. En Troponina I Ultrasensible no suele haber interferencia negativa severa salvo lisis extrema. Recomendación: Solicitar tubo nuevo sin torniquete prolongado o reportar con nota técnica NT-HIL.';
+    }
+    if (q.includes('plaqueta') || q.includes('edta') || q.includes('grumo')) {
+      return '🔬 Pseudotrombocitopenia por EDTA: Ocurre en ~0.1% de pacientes por aglutininas dependientes de EDTA. Procedimiento obligatorio: Tomar muestra simultánea en Tubo de Citrato de Sodio (3.2%), procesar en <1 hora, multiplicar el recuento por 1.1 y verificar frotis periférico en 100x.';
+    }
+    if (q.includes('dilucion') || q.includes('linealidad') || q.includes('fuera de escala')) {
+      return '⚠️ Dilución de Muestras: Para analizadores de Química e Inmuno, utilice diluyente de la plataforma (Salina estéril 0.9% o Diluyente de Matriz). En Troponina o HCG, una dilución 1:5 o 1:10 es estándar. Ingrese el factor en la consola del analizador para que el LIS reciba el resultado corregido automáticamente.';
+    }
+
+    // CASO 5: Menú de ayuda / Fallback inteligente determinístico
+    return `🤖 AbregoTech Copilot LIS (Conexión Directa a Base de Datos LIS):\n` +
+           `Tengo indexadas en tiempo real las ${tenantOrders.length} órdenes del laboratorio. Puedes pedirme cualquier dato clínico sin usar IA:\n\n` +
+           `📌 Consultas soportadas al instante:\n` +
+           `• Por N° de Orden: "orden 26101290001", "orden 26101290003" o "orden 2"\n` +
+           `• Por Paciente o Cédula: "paciente Rubén Ábrego" o "cédula 8-415-2281"\n` +
+           `• Por Analito: "troponina de Samudio", "glucosa de la orden 1" o "leucocitos"\n` +
+           `• Por Muestra / Tubo: "tubos de la orden 1" o "muestra BC-90001-LILA"\n` +
+           `• Estado Global: "¿cuántas órdenes hay?", "órdenes críticas" o "órdenes pendientes"\n` +
+           `• Normativas: "protocolo de hemólisis", "dilución de muestras"`;
+  };
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -443,7 +804,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
     const senderBranch = storeBranch?.name || activeBranches[0]?.name || 'Sede Central';
 
     const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       tenantId: activeTenant.id,
       senderId: currentUser?.id || 'usr-current',
       senderName,
@@ -459,7 +820,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       status: 'DELIVERED'
     };
 
-    setMessages(prev => [...prev, newMsg]);
+    setMessages((prev) => [...prev, newMsg]);
     setMessageInput('');
     setAttachedFile(null);
     setAttachedSample(null);
@@ -469,79 +830,73 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       playClinicalAudioChime('send');
     }
 
-    // Respuesta inteligente contextual
+    // 📡 Notificar en tiempo real a otras pestañas/estaciones de trabajo
+    try {
+      if (typeof window !== 'undefined' && window.BroadcastChannel) {
+        const bc = new BroadcastChannel(`lis_intercom_${activeTenant.id}`);
+        bc.postMessage({ type: 'NEW_MESSAGE', payload: newMsg });
+        bc.close();
+      }
+    } catch {}
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        supabase.channel(`intercom-${activeTenant.id}`).send({
+          type: 'broadcast',
+          event: 'new-message',
+          payload: newMsg
+        });
+      } catch {}
+    }
+
+    // Asistente Clínico Inteligente: ÚNICAMENTE en el canal de Copilot IA
     if (activeChannelId === 'ch-copilot') {
-      setIsTypingOther('AbregoTech Copilot AI');
+      setIsTypingOther('AbregoTech Copilot IA');
       setTimeout(() => {
         setIsTypingOther(null);
         const aiReply: ChatMessage = {
           id: `msg-ai-${Date.now()}`,
           tenantId: activeTenant.id,
           senderId: 'usr-copilot',
-          senderName: 'AbregoTech Copilot AI',
-          senderRole: 'Asistente Clínico ISO 15189',
-          senderBranch: `${activeTenant.name} • AI Node`,
+          senderName: 'AbregoTech Copilot IA',
+          senderRole: 'Motor Clínico LIS (Datos en Vivo)',
+          senderBranch: `${activeTenant.name} • Base de Datos Central`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: generateAiResponse(finalContent, attachedSample),
+          content: generateClinicalOrderResponse(finalContent, attachedSample),
           channelId: 'ch-copilot',
           isAi: true,
           isEncrypted: true,
           status: 'READ'
         };
-        setMessages(prev => [...prev, aiReply]);
+        setMessages((prev) => [...prev, aiReply]);
         if (isSoundEnabled) playClinicalAudioChime('receive');
-      }, 1500);
-    } else {
-      const otherBranch = activeBranches[1]?.name || activeBranches[0]?.name || 'Sede Central';
-      setIsTypingOther(`Tecnólogo de ${otherBranch}`);
-      setTimeout(() => {
-        setIsTypingOther(null);
-        const autoResp: ChatMessage = {
-          id: `msg-resp-${Date.now()}`,
-          tenantId: activeTenant.id,
-          senderId: 'usr-peer-tm',
-          senderName: 'Lic. Colega de Guardia',
-          senderRole: 'TM Validación',
-          senderBranch: otherBranch,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: `Recibida consulta inter-sede en ${activeTenant.name} sobre #${newMsg.sampleContext?.barcode || 'Muestra'}. Verificado en sistema: recomendación técnica autorizada bajo norma ISO 15189.`,
-          channelId: activeChannelId,
-          isEncrypted: true,
-          status: 'READ'
-        };
-        setMessages(prev => [...prev, autoResp]);
-        if (isSoundEnabled) playClinicalAudioChime('receive');
-      }, 2500);
+      }, 400);
     }
-  };
-
-  const generateAiResponse = (query: string, sample?: SecureInternalMessagingWidgetProps['activeSampleContext'] | null): string => {
-    const q = query.toLowerCase();
-    if (q.includes('hemolisis') || q.includes('hemolizada') || q.includes('hil')) {
-      return '🩸 Guía HIL: La hemólisis (HIL 3+ o >300 mg/dL de hemoglobina libre) genera interferencia biológica directa elevando falsamente Potasio (K+), DHL, AST y Fosfatasa Ácida por liberación eritrocitaria. En Troponina I Ultrasensible no suele haber interferencia negativa severa salvo lisis extrema. Recomendación: Solicitar tubo nuevo sin torniquete prolongado o reportar con nota técnica NT-HIL.';
-    }
-    if (q.includes('plaqueta') || q.includes('edta') || q.includes('grumo')) {
-      return '🔬 Pseudotrombocitopenia por EDTA: Ocurre en ~0.1% de pacientes por aglutininas dependientes de EDTA. Procedimiento obligatorio: Tomar muestra simultánea en Tubo de Citrato de Sodio (3.2%), procesar en <1 hora, multiplicar el recuento por 1.1 y verificar frotis periférico en 100x.';
-    }
-    if (q.includes('dilucion') || q.includes('rango') || q.includes('fuera')) {
-      return '⚠️ Dilución de Muestras: Para analizadores de Química e Inmuno, utilice diluyente de la plataforma (Salina estéril 0.9% o Diluyente de Matriz). En Troponina o HCG, una dilución 1:5 o 1:10 es estándar. Ingrese el factor en la consola del analizador para que el LIS reciba el resultado corregido automáticamente.';
-    }
-    return `🤖 Consulta Analizada para ${activeTenant.name}: Para el ensayo ${sample ? `"${sample.testName}" en muestra #${sample.barcode}` : 'solicitado'}, los controles de calidad interno y calibración están vigentes. Si el valor supera los límites críticos de alerta, comunique al médico solicitante y registre la llamada en la pestaña de Notificaciones ISO 15189.`;
   };
 
   const handleAttachPreset = (text: string, sampleStatus?: 'HEMOLIZADA' | 'DUDOSA' | 'CRITICA' | 'VALIDADA') => {
     setMessageInput(text);
     if (activeSampleContext) {
       setAttachedSample({ ...activeSampleContext, status: sampleStatus || activeSampleContext.status });
-    } else {
+    } else if (attachedSample) {
+      setAttachedSample({ ...attachedSample, status: sampleStatus || attachedSample.status });
+    } else if (activeSystemOrder) {
+      const realBarcode = activeSystemOrder.specimens?.[0]?.barcode || activeSystemOrder.orderNumber;
       setAttachedSample({
-        barcode: 'BAR-CARD-01',
-        orderNumber: 'ORD-2026-9001',
-        patientName: 'Ríos, Gonzalo A.',
-        testName: 'Troponina I Ultrasensible Urgencia',
-        value: 'Resultado Atípico / HIL 3+',
+        barcode: realBarcode,
+        orderNumber: activeSystemOrder.orderNumber,
+        patientName: activeSystemOrder.patientName || 'Paciente LIS',
+        testName: activeSystemOrder.testIds?.[0] || 'Prueba Clínica de Laboratorio',
+        value: sampleStatus === 'HEMOLIZADA' ? 'Índice HIL 3+ detectado' : sampleStatus === 'CRITICA' ? 'Resultado Fuera de Rango / Valor Pánico' : 'Resultado Atípico',
         status: sampleStatus || 'HEMOLIZADA'
       });
+    } else {
+      // Cero simulación: Nunca usar mock hardcodeado ("Ríos, Gonzalo A.").
+      // Dejamos en null y abrimos el selector si hay órdenes reales para que elija al paciente real.
+      setAttachedSample(null);
+      if (tenantOrders && tenantOrders.length > 0) {
+        setShowSampleSelector(true);
+      }
     }
     inputRef.current?.focus();
   };
@@ -601,10 +956,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
     );
   }, [channelMessages, searchQuery]);
 
-  // Órdenes del cliente activo para el selector de muestras
-  const tenantOrders = useMemo(() => {
-    return (orders || []).filter(o => !o.tenantId || o.tenantId === activeTenant.id);
-  }, [orders, activeTenant.id]);
+  // (tenantOrders and activeSystemOrder defined above)
 
   // =========================================================================
   // 🔘 TRIGGER FLOTANTE (Oculto en módulo de validación para evitar sobreposiciones)
@@ -694,12 +1046,12 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
 
   const containerClasses = embeddedMode
     ? 'w-full bg-slate-950/95 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[700px] backdrop-blur-2xl'
-    : `fixed ${isWorkstationTab ? 'top-16 sm:top-20' : 'bottom-3 sm:bottom-5'} right-3 sm:right-5 z-50 w-[calc(100vw-1.5rem)] sm:w-[580px] md:w-[720px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-6rem)] bg-slate-950/95 border border-slate-750 rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col transition-all backdrop-blur-2xl ring-1 ring-cyan-500/30 h-[min(640px,80vh)]`;
+    : `fixed ${isWorkstationTab ? 'top-16 sm:top-20' : 'bottom-3 sm:bottom-5'} right-3 sm:right-5 z-50 w-[calc(100vw-1.5rem)] sm:w-[640px] md:w-[800px] lg:w-[880px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-5rem)] bg-slate-950/95 border border-slate-800 rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col transition-all backdrop-blur-3xl ring-1 ring-cyan-500/25 h-[min(660px,85vh)]`;
 
   return (
     <div className={containerClasses}>
       {/* 🌟 ENCABEZADO CON IDENTIDAD CLÍNICA DEL CLIENTE */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-5 py-3.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-5 py-3 border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="p-2.5 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/40 text-cyan-400 rounded-2xl relative shadow-inner shrink-0">
             <MessageSquare className="w-5 h-5" />
@@ -712,9 +1064,9 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                 Intercom Clínico Inter-Sedes
               </h3>
               {/* Badge de Cliente / Laboratorio */}
-              <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 shrink-0">
+              <span className="bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 shrink-0">
                 <Building2 className="w-3 h-3 text-cyan-400" />
-                <span className="max-w-[150px] truncate">{activeTenant.name}</span>
+                <span className="max-w-[160px] truncate">{activeTenant.name}</span>
               </span>
               <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center space-x-1 shrink-0">
                 <Wifi className="w-3 h-3 text-emerald-400 animate-pulse" />
@@ -728,7 +1080,10 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               <span>•</span>
               <span className="text-emerald-400 font-bold">{activeBranchesCount} {activeBranchesCount === 1 ? 'Sede' : 'Sedes'}</span>
               <span>•</span>
-              <span className="text-slate-500">{wsLatency}ms</span>
+              <span className="text-emerald-400 font-semibold flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                <span>En Línea</span>
+              </span>
             </div>
           </div>
         </div>
@@ -789,14 +1144,14 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       {!isMinimized && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0">
           {/* ========================================================================= */}
-          {/* 📂 BARRA LATERAL: CANALES & SEDES ESPECÍFICAS DE ESTE CLIENTE              */}
+          {/* 📂 BARRA LATERAL MODERNA: CANALES Y ESTADO DE RED                          */}
           {/* ========================================================================= */}
-          <div className="w-full md:w-60 bg-slate-950/90 border-b md:border-b-0 md:border-r border-slate-850 p-3 flex flex-col shrink-0 space-y-3 overflow-y-auto">
+          <div className="w-full md:w-64 bg-slate-950/95 border-b md:border-b-0 md:border-r border-slate-800/80 p-3 flex flex-col shrink-0 space-y-4 overflow-y-auto">
             {/* CANALES CLÍNICOS */}
             <div className="space-y-1">
               <div className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider px-2 pb-1 flex items-center justify-between">
                 <span>Salas Especializadas:</span>
-                <span className="text-cyan-400">{CHANNELS_LIST.length}</span>
+                <span className="text-cyan-400 font-mono font-bold">{CHANNELS_LIST.length}</span>
               </div>
               {CHANNELS_LIST.map((channel) => {
                 const count = messages.filter(m => m.channelId === channel.id).length;
@@ -808,16 +1163,16 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                       setActiveChannelId(channel.id);
                       setSearchQuery('');
                     }}
-                    className={`w-full text-left px-3 py-2.5 rounded-2xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-between cursor-pointer group ${
                       isActive
-                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200 border border-cyan-500/40 shadow-sm'
-                        : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-gradient-to-r from-cyan-500/20 via-blue-500/10 to-transparent border-l-2 border-cyan-400 text-cyan-200 font-bold shadow-sm'
+                        : 'text-slate-400 hover:bg-slate-900/80 hover:text-white border-l-2 border-transparent'
                     }`}
                   >
-                    <span className="truncate">{channel.label}</span>
+                    <span className="truncate pr-1">{channel.label}</span>
                     {count > 0 && (
-                      <span className={`text-[10px] font-mono px-2 py-0.2 rounded-full font-bold ${
-                        isActive ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                        isActive ? 'bg-cyan-500 text-slate-950' : 'bg-slate-850 text-slate-400 group-hover:text-slate-200'
                       }`}>
                         {count}
                       </span>
@@ -827,13 +1182,13 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               })}
             </div>
 
-            {/* RED DE SEDES PERTENECIENTES A ESTE CLIENTE */}
+            {/* RED DE SEDES */}
             <div className="space-y-2 pt-2 border-t border-slate-800/80">
               <div className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider px-2 flex items-center justify-between">
                 <span>Sedes en Red:</span>
                 <span className="text-emerald-400 font-bold">{activeBranchesCount} Online</span>
               </div>
-              <div className="space-y-1.5 px-1">
+              <div className="space-y-1 px-1">
                 {activeBranches.map((b, idx) => (
                   <div key={b.id} className="text-[11px] flex items-center justify-between text-slate-300 font-mono p-1 rounded-lg hover:bg-slate-900/50">
                     <div className="flex items-center space-x-1.5 truncate max-w-[140px]">
@@ -848,41 +1203,47 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               </div>
             </div>
 
-            {/* PRESETS DE CONSULTA RÁPIDA 1-CLIC */}
+            {/* ACCIONES RÁPIDAS DE PROTOCOLO */}
             <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
               <div className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Macros Clínicos:</span>
+                <span>Protocolos Rápidos:</span>
               </div>
               <button
+                type="button"
                 onClick={() => handleAttachPreset('🩸 Muestra Hemolizada (HIL 3+). ¿Solicitamos nueva toma sin torniquete o procesamos con nota técnica NT-HIL-02?', 'HEMOLIZADA')}
-                className="w-full text-left p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 text-[10px] text-amber-300 font-mono transition cursor-pointer"
+                className="w-full text-left p-2 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-rose-500/50 text-[11px] text-rose-300 font-mono transition cursor-pointer flex items-center justify-between group"
               >
-                + Muestra Hemolizada (HIL 3+)
+                <span className="truncate">+ Hemólisis (HIL 3+)</span>
+                <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-rose-400 shrink-0" />
               </button>
               <button
+                type="button"
                 onClick={() => handleAttachPreset('⚠️ Troponina I fuera de rango (>14,000 pg/mL). ¿Confirmas dilución 1:5 con salina estéril?', 'DUDOSA')}
-                className="w-full text-left p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 text-[10px] text-amber-300 font-mono transition cursor-pointer"
+                className="w-full text-left p-2 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/50 text-[11px] text-amber-300 font-mono transition cursor-pointer flex items-center justify-between group"
               >
-                + Dilución Troponina 1:5
+                <span className="truncate">+ Dilución Troponina</span>
+                <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-amber-400 shrink-0" />
               </button>
               <button
-                onClick={() => handleAttachPreset('🚨 Valor Pánico de Glucosa (420 mg/dL). Confirmado por duplicado. Notificado a médico tratante.', 'CRITICA')}
-                className="w-full text-left p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-rose-500/50 text-[10px] text-rose-300 font-mono transition cursor-pointer"
+                type="button"
+                onClick={() => handleAttachPreset('🚨 Valor Pánico detectado y confirmado por duplicado. Notificado a médico tratante.', 'CRITICA')}
+                className="w-full text-left p-2 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-rose-500/50 text-[11px] text-rose-300 font-mono transition cursor-pointer flex items-center justify-between group"
               >
-                + Alerta Valor Pánico
+                <span className="truncate">+ Alerta Valor Pánico</span>
+                <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-rose-400 shrink-0" />
               </button>
             </div>
           </div>
 
           {/* ========================================================================= */}
-          {/* 💬 ÁREA PRINCIPAL: BANDEJA DE MENSAJES DEL CLIENTE ACTIVO                  */}
+          {/* 💬 ÁREA PRINCIPAL: BANDEJA DE MENSAJES MODERNA                             */}
           {/* ========================================================================= */}
           <div className="flex-1 flex flex-col min-w-0 bg-slate-900/60">
             {/* CABECERA DEL CANAL ACTIVO */}
-            <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-850 flex items-center justify-between text-xs shrink-0">
+            <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between text-xs shrink-0">
               <div className="space-y-0.5 min-w-0">
-                <div className="font-black text-white flex items-center space-x-2 truncate">
+                <div className="font-bold text-white flex items-center space-x-2 truncate">
                   <span>{currentChannel.label}</span>
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${currentChannel.badgeColor}`}>
                     #{currentChannel.name}
@@ -893,6 +1254,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
 
               {channelMessages.length > 0 && (
                 <button
+                  type="button"
                   onClick={() => {
                     const remaining = messages.filter(m => m.channelId !== activeChannelId);
                     setMessages(remaining);
@@ -913,36 +1275,80 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={`Buscar mensajes en ${activeTenant.name} (#BAR, paciente, texto)...`}
+                  placeholder={`Buscar mensajes en #${currentChannel.name}...`}
                   className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                   autoFocus
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white">
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             )}
 
-            {/* LISTA DE MENSAJES */}
+            {/* LISTA DE MENSAJES CON BANNER DE BIENVENIDA NO RECORTADO */}
             <div className="flex-1 p-4 overflow-y-auto space-y-4">
-              {filteredMessages.length === 0 ? (
-                <div className="text-center py-16 space-y-3">
-                  <div className="w-12 h-12 rounded-3xl bg-slate-800/60 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
-                    <MessageSquare className="w-6 h-6" />
+              {/* TARJETA DE INICIO DEL CANAL (Estilo Slack/Discord - Nunca se recorta) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-slate-800/80 shadow-md space-y-2.5">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-lg shrink-0 shadow-inner">
+                    <MessageSquare className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-slate-300 font-bold">
-                    {searchQuery ? 'No hay mensajes que coincidan con la búsqueda.' : `No hay mensajes en este canal para ${activeTenant.name}.`}
-                  </p>
-                  <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                    Inicia una consulta inter-sede para {activeTenant.name} o usa uno de los macros rápidos.
-                  </p>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center space-x-2 flex-wrap">
+                      <h4 className="text-xs font-black text-white">
+                        #{currentChannel.name}
+                      </h4>
+                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full border ${currentChannel.badgeColor}`}>
+                        Canal Oficial
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {currentChannel.description}. Sala segura con trazabilidad legal bajo norma ISO 15189 §7.3 y Ley 81.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Accesos rápidos de protocolo alineados horizontalmente */}
+                <div className="pt-1.5 flex flex-wrap gap-1.5 border-t border-slate-800/60">
+                  <button
+                    type="button"
+                    onClick={() => handleAttachPreset('🩸 Muestra Hemolizada (HIL 3+). ¿Solicitamos nueva toma sin torniquete o procesamos con nota técnica NT-HIL-02?', 'HEMOLIZADA')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 border border-rose-500/30 hover:border-rose-400 text-[10px] text-rose-300 font-mono transition flex items-center space-x-1 cursor-pointer hover:bg-rose-950/20"
+                  >
+                    <span>🩸 Hemólisis HIL 3+</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAttachPreset('🚨 Alerta STAT: Valor Pánico detectado y confirmado por duplicado. Notificando a sede receptora.', 'CRITICA')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 border border-amber-500/30 hover:border-amber-400 text-[10px] text-amber-300 font-mono transition flex items-center space-x-1 cursor-pointer hover:bg-amber-950/20"
+                  >
+                    <span>⚠️ Valor Pánico STAT</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSampleSelector(true)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-[10px] text-cyan-300 font-mono transition flex items-center space-x-1 cursor-pointer hover:bg-cyan-950/20"
+                  >
+                    <Tag className="w-3 h-3 text-cyan-400" />
+                    <span>Adjuntar Muestra Activa</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* LISTA DE MENSAJES */}
+              {filteredMessages.length === 0 ? (
+                <div className="text-center py-6 text-slate-500 text-xs">
+                  {searchQuery ? 'No hay mensajes que coincidan con la búsqueda.' : 'No hay interconsultas adicionales en este canal. Escribe un mensaje para comenzar.'}
                 </div>
               ) : (
                 filteredMessages.map((msg) => {
                   const isMe = msg.senderId === (currentUser?.id || 'usr-current');
                   const isAi = msg.isAi;
+                  const isSystem = msg.senderId === 'usr-system';
 
                   return (
                     <div
@@ -956,37 +1362,55 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                             <Bot className="w-3 h-3 text-violet-400" />
                             <span>{msg.senderName}</span>
                           </span>
+                        ) : isSystem ? (
+                          <span className="font-bold text-amber-300 flex items-center space-x-1">
+                            <ShieldCheck className="w-3 h-3 text-amber-400" />
+                            <span>{msg.senderName}</span>
+                          </span>
                         ) : (
                           <span className="font-bold text-white">{isMe ? 'Tú' : msg.senderName}</span>
                         )}
                         <span className="text-cyan-400">({msg.senderRole})</span>
                         <span className="truncate max-w-[150px]">• {msg.senderBranch}</span>
                         <span className="shrink-0">• {msg.timestamp}</span>
+
+                        {/* Botón de eliminación */}
+                        {isMe && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="text-slate-600 hover:text-rose-400 p-0.5 ml-1 transition cursor-pointer"
+                            title="Eliminar mensaje"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
                       {/* BURBUJA DEL MENSAJE */}
                       <div
-                        className={`max-w-[88%] rounded-2xl p-3.5 text-xs space-y-2 shadow-xl border ${
+                        className={`max-w-[85%] rounded-2xl p-3 text-xs space-y-2 shadow-xl border ${
                           isMe
-                            ? 'bg-gradient-to-br from-cyan-600 to-blue-700 text-white border-cyan-400/50 rounded-tr-none'
+                            ? 'bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 text-white border-cyan-400/50 rounded-tr-none'
                             : isAi
-                            ? 'bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-900 text-indigo-100 border-indigo-500/40 rounded-tl-none ring-1 ring-indigo-500/20'
+                            ? 'bg-gradient-to-br from-slate-950 via-indigo-950/70 to-slate-900 text-indigo-100 border-indigo-500/40 rounded-tl-none ring-1 ring-indigo-500/20'
+                            : isSystem
+                            ? 'bg-slate-950/90 text-slate-200 border-amber-500/30 rounded-tl-none'
                             : 'bg-slate-950 text-slate-200 border-slate-800 rounded-tl-none'
                         }`}
                       >
                         {/* TARJETA DE MUESTRA CLÍNICA ADJUNTA */}
                         {msg.sampleContext && (
-                          <div className={`p-3 rounded-xl border text-[11px] font-mono space-y-1.5 ${
+                          <div className={`p-2.5 rounded-xl border text-[11px] font-mono space-y-1 ${
                             isMe
-                              ? 'bg-cyan-950/70 border-cyan-400/40 text-cyan-100'
-                              : isAi
-                              ? 'bg-indigo-950/80 border-indigo-500/40 text-indigo-200'
+                              ? 'bg-cyan-950/80 border-cyan-400/40 text-cyan-100'
                               : 'bg-slate-900 border-slate-750 text-slate-200'
                           }`}>
                             <div className="flex items-center justify-between font-bold">
                               <div className="flex items-center space-x-1.5 text-amber-300">
                                 <span>🩸 Muestra: #{msg.sampleContext.barcode}</span>
                                 <button
+                                  type="button"
                                   onClick={() => handleCopyBarcode(msg.sampleContext!.barcode)}
                                   className="p-1 hover:text-white text-amber-400 transition"
                                   title="Copiar código de muestra"
@@ -1022,11 +1446,32 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                         {/* CONTENIDO DEL MENSAJE */}
                         <p className="leading-relaxed font-sans text-xs whitespace-pre-wrap">{msg.content}</p>
 
-                        {/* ARCHIVO ADJUNTO */}
-                        {msg.attachmentName && (
-                          <div className="flex items-center space-x-2 text-[11px] font-mono bg-black/30 p-2 rounded-xl border border-white/10">
-                            <Paperclip className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="underline">{msg.attachmentName}</span>
+                        {/* ARCHIVO O IMAGEN ADJUNTA REAL */}
+                        {msg.attachmentUrl && (
+                          <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                            {msg.attachmentUrl.startsWith('data:image/') || msg.attachmentName?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                              <div className="space-y-1.5 p-2">
+                                <img
+                                  src={msg.attachmentUrl}
+                                  alt={msg.attachmentName || 'Imagen adjunta'}
+                                  className="max-h-56 max-w-full rounded-lg object-contain cursor-pointer hover:opacity-95 transition bg-slate-900/50 mx-auto"
+                                  onClick={() => window.open(msg.attachmentUrl, '_blank')}
+                                />
+                                <div className="flex items-center justify-between px-1 text-[10px] text-slate-400 font-mono">
+                                  <span className="truncate max-w-[200px]">{msg.attachmentName}</span>
+                                  <span className="text-cyan-400">Clic para ampliar</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <a
+                                href={msg.attachmentUrl}
+                                download={msg.attachmentName}
+                                className="flex items-center space-x-2 text-[11px] font-mono p-2.5 hover:bg-white/5 transition"
+                              >
+                                <Paperclip className="w-4 h-4 text-amber-400 shrink-0" />
+                                <span className="underline truncate">{msg.attachmentName}</span>
+                              </a>
+                            )}
                           </div>
                         )}
 
@@ -1051,7 +1496,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               {isTypingOther && (
                 <div className="flex items-center space-x-2 text-[11px] font-mono text-cyan-400 bg-cyan-950/40 p-2.5 rounded-2xl border border-cyan-500/30 animate-pulse w-fit">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-                  <span>{isTypingOther} está escribiendo...</span>
+                  <span>{isTypingOther} está analizando...</span>
                 </div>
               )}
 
@@ -1068,6 +1513,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setAttachedSample(null)}
                   className="p-1 hover:text-white text-slate-400 cursor-pointer"
                   title="Quitar muestra"
@@ -1085,21 +1531,22 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                     <Stethoscope className="w-4 h-4 text-cyan-400" />
                     <span>Muestras de {activeTenant.name}:</span>
                   </span>
-                  <button onClick={() => setShowSampleSelector(false)} className="text-slate-400 hover:text-white">
+                  <button type="button" onClick={() => setShowSampleSelector(false)} className="text-slate-400 hover:text-white">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-                  {tenantOrders.slice(0, 6).map((ord) => (
+                  {tenantOrders.slice(0, 8).map((ord) => (
                     <button
                       key={ord.id}
                       type="button"
                       onClick={() => {
+                        const realBarcode = ord.specimens?.[0]?.barcode || ord.orderNumber;
                         setAttachedSample({
-                          barcode: `BAR-${ord.orderNumber.slice(-4)}`,
+                          barcode: realBarcode,
                           orderNumber: ord.orderNumber,
-                          patientName: ord.patient?.firstName ? `${ord.patient.firstName} ${ord.patient.lastName}` : 'Paciente LIS',
-                          testName: ord.testIds[0] || 'Prueba Clínica Urgencia',
+                          patientName: ord.patientName || (ord.patient?.firstName ? `${ord.patient.firstName} ${ord.patient.lastName}` : 'Paciente LIS'),
+                          testName: ord.testIds?.[0] || 'Prueba Clínica Urgencia',
                           status: 'DUDOSA'
                         });
                         setShowSampleSelector(false);
@@ -1107,7 +1554,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                       className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400 text-left text-[11px] font-mono transition cursor-pointer"
                     >
                       <div className="text-cyan-300 font-bold truncate">#{ord.orderNumber}</div>
-                      <div className="text-slate-300 truncate">{ord.patient?.firstName} {ord.patient?.lastName}</div>
+                      <div className="text-slate-300 truncate">{ord.patientName || 'Paciente LIS'}</div>
                     </button>
                   ))}
                   {tenantOrders.length === 0 && (
@@ -1119,8 +1566,38 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               </div>
             )}
 
-            {/* COMPOSITOR DE MENSAJE */}
-            <form onSubmit={handleSendMessage} className="p-3.5 bg-slate-950 border-t border-slate-850 space-y-2">
+            {/* COMPOSITOR DE MENSAJE MODERNO */}
+            <form onSubmit={handleSendMessage} className="p-3 bg-slate-950 border-t border-slate-800 space-y-2">
+              {/* INPUT DE ARCHIVO OCULTO */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {/* CHIP DE ARCHIVO ADJUNTO */}
+              {attachedFile && (
+                <div className="flex items-center justify-between px-3 py-1.5 bg-cyan-950/70 border border-cyan-500/40 rounded-xl text-xs font-mono text-cyan-200 animate-in fade-in">
+                  <div className="flex items-center space-x-2 truncate">
+                    <Paperclip className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span className="truncate">{attachedFile.name}</span>
+                    {attachedFile.size && (
+                      <span className="text-[10px] text-cyan-400/70 font-sans">({attachedFile.size})</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedFile(null)}
+                    className="p-1 hover:text-white text-cyan-400 transition cursor-pointer"
+                    title="Quitar archivo"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
@@ -1128,18 +1605,18 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                   className={`p-2.5 rounded-xl border transition cursor-pointer ${
                     attachedSample ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-400 hover:text-cyan-300 border-slate-800'
                   }`}
-                  title="Adjuntar Muestra de este Cliente"
+                  title="Adjuntar Muestra Activa"
                 >
                   <Tag className="w-4 h-4" />
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setAttachedFile({ name: 'Frotis_Plaquetario_Grumos_100x.jpg', url: '#' })}
+                  onClick={() => fileInputRef.current?.click()}
                   className={`p-2.5 rounded-xl border transition cursor-pointer ${
                     attachedFile ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-900 text-slate-400 hover:text-cyan-300 border-slate-800'
                   }`}
-                  title="Adjuntar Foto de Tubo / Frotis Sanguíneo"
+                  title="Subir Frotis / Imagen / PDF"
                 >
                   <ImageIcon className="w-4 h-4" />
                 </button>
@@ -1151,16 +1628,16 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                   onChange={(e) => setMessageInput(e.target.value)}
                   placeholder={
                     activeChannelId === 'ch-copilot'
-                      ? `Pregunta a Copilot AI para ${activeTenant.name}...`
-                      : `Escribe a las sedes de ${activeTenant.name}...`
+                      ? 'Escribe una consulta técnica a Copilot IA...'
+                      : `Escribe un mensaje en #${currentChannel.name}...`
                   }
-                  className="flex-1 bg-slate-900 border border-slate-800 focus:border-cyan-400 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-sans"
+                  className="flex-1 bg-slate-900 border border-slate-800 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-sans"
                 />
 
                 <button
                   type="submit"
                   disabled={!messageInput.trim() && !attachedSample && !attachedFile}
-                  className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-slate-950 font-black rounded-2xl text-xs transition flex items-center space-x-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer shrink-0"
+                  className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-slate-950 font-black rounded-xl text-xs transition flex items-center space-x-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer shrink-0"
                 >
                   <Send className="w-4 h-4" />
                   <span className="hidden sm:inline">Enviar</span>
@@ -1168,7 +1645,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
               </div>
 
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 px-1">
-                <span>Canal: #{currentChannel.name} • Cliente: {activeTenant.name}</span>
+                <span>Canal: #{currentChannel.name} • Sede: {storeBranch?.name || activeBranches[0]?.name || 'Central'}</span>
                 <span>Enter para enviar • Encriptado E2E</span>
               </div>
             </form>

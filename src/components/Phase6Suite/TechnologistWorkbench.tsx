@@ -833,7 +833,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'tat-1',
       orderNumber: 'ORD-2026-9001',
       sampleBarcode: 'BAR-CARD-01',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       patientLocation: 'Urgencias / Box Reanimación 1',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       department: 'Marcadores Cardíacos',
@@ -1022,7 +1022,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'aud-101',
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:32:15',
       eventType: 'INGRESO',
@@ -1038,7 +1038,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'aud-102',
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:35:00',
       eventType: 'HIL_CHECK',
@@ -1054,7 +1054,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'aud-103',
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:38:22',
       eventType: 'REENVASE',
@@ -1071,7 +1071,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'aud-104',
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:44:10',
       eventType: 'MODIFICACION',
@@ -1089,7 +1089,7 @@ export const TechnologistWorkbench: React.FC = () => {
       id: 'aud-105',
       sampleBarcode: 'BAR-CARD-01',
       orderNumber: 'ORD-2026-9001',
-      patientName: 'Ríos, Gonzalo A.',
+      patientName: 'Juan Carlos Samudio González',
       testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
       timestamp: '2026-08-12 08:50:00',
       eventType: 'VALIDACION',
@@ -1147,7 +1147,7 @@ export const TechnologistWorkbench: React.FC = () => {
     const newLog: AuditLogEvent = {
       id: `aud-live-${Date.now()}`,
       sampleBarcode: selectedAuditBarcode,
-      orderNumber: sampleMatch?.orderNumber || 'ORD-2026-CUSTOM',
+      orderNumber: sampleMatch?.orderNumber ? sampleMatch.orderNumber.replace(/\D/g, '') : `${new Date().getFullYear()}90001`,
       patientName: sampleMatch?.patientName || 'Paciente Auditado',
       testName: sampleMatch?.testName || 'Ensayo LIS',
       timestamp: timeStr,
@@ -1249,7 +1249,7 @@ export const TechnologistWorkbench: React.FC = () => {
     let targetTab: typeof activeSubTab = 'sample_integrity';
     let matchedData = {
       barcode: scannedCode,
-      orderNumber: `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderNumber: `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`,
       patientName: 'Paciente Identificado',
       testName: 'Panel General de Laboratorio',
       department: 'Mesón Técnico',
@@ -1291,7 +1291,7 @@ export const TechnologistWorkbench: React.FC = () => {
       setSelectedScenarioId(scenMatch.id);
       matchedData = {
         barcode: scenMatch.sampleId,
-        orderNumber: `ORD-${scenMatch.sampleId}`,
+        orderNumber: scenMatch.sampleId.replace(/\D/g, '') || `${new Date().getFullYear()}90001`,
         patientName: scenMatch.patientName,
         testName: scenMatch.primaryPanel,
         department: 'Soporte a la Decisión (CDS)',
@@ -3312,7 +3312,7 @@ export const TechnologistWorkbench: React.FC = () => {
                   onChange={(e) => setSelectedAuditBarcode(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 text-white text-xs font-mono font-bold p-3 rounded-xl focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="BAR-CARD-01">BAR-CARD-01 | Troponina I Ultrasensible (Ríos, Gonzalo)</option>
+                  <option value="BAR-CARD-01">BAR-CARD-01 | Troponina I Ultrasensible (Juan Carlos Samudio González)</option>
                   <option value="BAR-GAS-02">BAR-GAS-02 | Gasometría Arterial (Morales, Valeria)</option>
                   <option value="BAR-COAG-03">BAR-COAG-03 | TTPa + TP Quirúrgico (Castillo, Esteban)</option>
                   <option value="BAR-HEM-04">BAR-HEM-04 | Hemograma URGENCIA (Vega, Lucía)</option>
@@ -3323,7 +3323,7 @@ export const TechnologistWorkbench: React.FC = () => {
               {/* AUDITED SAMPLE ACTIVE SUMMARY */}
               {(() => {
                 const sample = tatSamples.find(s => s.sampleBarcode === selectedAuditBarcode) || {
-                  patientName: 'Ríos, Gonzalo A.',
+                  patientName: 'Juan Carlos Samudio González',
                   patientLocation: 'Urgencias / Box Reanimación 1',
                   testName: 'Troponina I Ultrasensible + CK-MB Masa URGENCIA',
                   orderNumber: 'ORD-2026-9001',
@@ -3945,7 +3945,7 @@ export const TechnologistWorkbench: React.FC = () => {
         onClose={() => setIsQuickScanModalOpen(false)}
         onScanSuccess={handleQuickScanSuccess}
         sampleCatalogHints={[
-          { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Ríos, Gonzalo A.', test: 'Troponina I + CK-MB URGENCIA' },
+          { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Juan Carlos Samudio González', test: 'Troponina I + CK-MB URGENCIA' },
           { barcode: 'BAR-GAS-02', label: 'Jeringa Heparinizada 2mL', patientName: 'Morales, Valeria M.', test: 'Gasometría Arterial URGENCIA' },
           { barcode: 'BAR-COAG-03', label: 'Tubo Citrato 3.2% 2.7mL', patientName: 'Castillo, Manuel E.', test: 'TTPa + TP / INR Quirúrgico' },
           { barcode: 'BAR-HEM-04', label: 'Tubo EDTA K2 3mL', patientName: 'Vega, Lucía S.', test: 'Hemograma Completo URGENCIA' },

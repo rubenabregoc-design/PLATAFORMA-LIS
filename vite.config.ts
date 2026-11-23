@@ -59,8 +59,20 @@ function multiPortPortalPlugin(): Plugin {
                 <div style="font-family: system-ui, sans-serif; background: #020617; color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
                   <div style="max-width: 500px; background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; padding: 30px; text-align: center;">
                     <h2 style="color: #22d3ee; margin-top: 0;">${name} (Puerto ${port})</h2>
-                    <p style="color: #94a3b8; font-size: 14px;">Conectando con el servidor LIS...</p>
-                    <script>setTimeout(() => window.location.reload(), 1500);</script>
+                    <p style="color: #94a3b8; font-size: 14px;">El servidor central LIS está iniciando o procesando solicitudes.</p>
+                    <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #06b6d4; color: #020617; font-weight: bold; border: none; border-radius: 10px; cursor: pointer;">
+                      Reintentar Conexión
+                    </button>
+                    <script>
+                      // Reintento controlado máximo 3 veces para evitar bucles infinitos de recarga
+                      const attempts = parseInt(sessionStorage.getItem('portal_retry_count') || '0', 10);
+                      if (attempts < 3) {
+                        sessionStorage.setItem('portal_retry_count', String(attempts + 1));
+                        setTimeout(() => window.location.reload(), 3000);
+                      } else {
+                        sessionStorage.removeItem('portal_retry_count');
+                      }
+                    </script>
                   </div>
                 </div>
               `);
@@ -169,7 +181,21 @@ export default defineConfig(() => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: process.env.DISABLE_HMR === 'true' ? null : {
+        ignored: [
+          '**/server/**',
+          '**/dist/**',
+          '**/.git/**',
+          '**/.idea/**',
+          '**/.vscode/**',
+          '**/supabase/**',
+          '**/*.log',
+          '**/*.bat',
+          '**/*.ps1',
+          '**/*.conf',
+          '**/*.sql'
+        ]
+      },
     },
   };
 });

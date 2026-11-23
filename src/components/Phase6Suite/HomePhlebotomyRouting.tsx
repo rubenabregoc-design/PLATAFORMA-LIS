@@ -236,6 +236,39 @@ export const HomePhlebotomyRouting: React.FC = () => {
   const [formTime, setFormTime] = useState<string>('09:30 AM');
   const [formNotes, setFormNotes] = useState<string>('Toma de muestra pediátrica en ayunas.');
 
+  // Telemetría & Acciones GPS en tiempo real
+  const [isGpsCentering, setIsGpsCentering] = useState<boolean>(false);
+  const [gpsToast, setGpsToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+
+  const showFeedback = (message: string, type: 'success' | 'info' = 'success') => {
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: { message, type }
+      })
+    );
+    setGpsToast({ message, type });
+    setTimeout(() => setGpsToast(null), 4000);
+  };
+
+  const handleCenterGps = () => {
+    setIsGpsCentering(true);
+    showFeedback(`📍 GPS fijado en pantalla: Unidad ${selectedDriver.name} (${selectedDriver.currentLat.toFixed(4)}, ${selectedDriver.currentLng.toFixed(4)}) - Precisión ±1.2m`);
+    setTimeout(() => setIsGpsCentering(false), 2200);
+  };
+
+  const handleCallDriver = () => {
+    showFeedback(`📞 Enlace de radio VoIP encriptado activo con ${selectedDriver.name} (${selectedDriver.phone}).`, 'info');
+  };
+
+  const handleOptimizeRoute = () => {
+    setSelectedDriver(prev => ({
+      ...prev,
+      nextEtaMinutes: Math.max(3, prev.nextEtaMinutes - 4),
+      speedKmH: 42
+    }));
+    showFeedback(`🗺️ Ruta recalculada en vivo por algoritmo A*. Desvío activado evitando tráfico. ETA: 6 min.`);
+  };
+
   const filteredAppointments = appointments.filter(a => {
     if (selectedZone !== 'TODAS' && a.zone !== selectedZone) return false;
     return true;
@@ -276,7 +309,7 @@ export const HomePhlebotomyRouting: React.FC = () => {
 
     setAppointments(prev => [newApp, ...prev]);
     setIsNewModalOpen(false);
-    alert('¡Cita de Flebotomía Domiciliaria programada y asignada al mapa de ruteo GPS!');
+    showFeedback('✅ ¡Cita de Flebotomía Domiciliaria programada y asignada al mapa de ruteo GPS!');
   };
 
   return (
@@ -470,14 +503,16 @@ export const HomePhlebotomyRouting: React.FC = () => {
 
               <div className="pt-2 flex gap-2">
                 <button
-                  onClick={() => alert(`📞 Conectando llamada encriptada con el motorizado ${selectedDriver.name}...`)}
-                  className="flex-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black py-2 rounded-xl text-center text-[11px] cursor-pointer"
+                  type="button"
+                  onClick={handleCallDriver}
+                  className="flex-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black py-2.5 rounded-xl text-center text-[11px] transition shadow-md active:scale-95 cursor-pointer"
                 >
                   Llamar Motorizado
                 </button>
                 <button
-                  onClick={() => alert(`🗺️ Recalculando ruta óptima para ${selectedDriver.name} por tráfico en Vía España...`)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl text-center text-[11px] cursor-pointer"
+                  type="button"
+                  onClick={handleOptimizeRoute}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-center text-[11px] border border-slate-700 transition shadow-md active:scale-95 cursor-pointer"
                 >
                   Optimizar Ruta
                 </button>
@@ -519,6 +554,14 @@ export const HomePhlebotomyRouting: React.FC = () => {
                 <path d="M 100 200 Q 300 100 600 300 T 800 400" fill="none" stroke="#2dd4bf" strokeWidth="3" opacity="0.4" />
               </svg>
 
+              {/* Telemetry HUD feedback */}
+              {gpsToast && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border border-teal-500/50 text-teal-200 px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                  <span className="truncate max-w-sm sm:max-w-md">{gpsToast.message}</span>
+                </div>
+              )}
+
               {/* Patient Pins on Map */}
               {appointments.map((app, index) => {
                 const posX = 20 + (index * 22) + (index % 2 === 0 ? 5 : -5);
@@ -542,15 +585,18 @@ export const HomePhlebotomyRouting: React.FC = () => {
 
               {/* Active Phlebotomist GPS Moving Marker */}
               <div
-                style={{ left: '52%', top: '58%' }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-20 transition-all duration-1000"
+                style={{ left: isGpsCentering ? '50%' : '52%', top: isGpsCentering ? '50%' : '58%' }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 transition-all duration-700 ${isGpsCentering ? 'scale-110' : ''}`}
               >
                 <div className="relative flex flex-col items-center">
-                  <div className="bg-teal-500 text-slate-950 font-black font-mono text-xs px-3 py-1 rounded-full shadow-2xl flex items-center space-x-1.5 ring-4 ring-teal-500/30 animate-bounce">
+                  <div className={`bg-teal-500 text-slate-950 font-black font-mono text-xs px-3.5 py-1.5 rounded-full shadow-2xl flex items-center space-x-1.5 ring-4 ${isGpsCentering ? 'ring-teal-400 ring-offset-4 ring-offset-slate-950 animate-pulse' : 'ring-teal-500/30 animate-bounce'}`}>
                     <Truck className="w-4 h-4" />
                     <span>{selectedDriver.name} ({selectedDriver.speedKmH} km/h)</span>
                   </div>
                   <div className="w-6 h-6 bg-teal-400/30 rounded-full animate-ping absolute -bottom-2"></div>
+                  {isGpsCentering && (
+                    <div className="absolute -inset-10 border-2 border-teal-400/80 rounded-full animate-ping pointer-events-none"></div>
+                  )}
                 </div>
               </div>
 
@@ -572,10 +618,12 @@ export const HomePhlebotomyRouting: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => alert('🔍 Centrando mapa en la posición exacta del motorizado...')}
-                  className="bg-slate-800 hover:bg-slate-700 text-teal-300 font-mono font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center space-x-1 cursor-pointer"
+                  type="button"
+                  onClick={handleCenterGps}
+                  className="bg-slate-800 hover:bg-slate-700 text-teal-300 font-mono font-bold text-[11px] px-3.5 py-2 rounded-lg flex items-center space-x-1.5 border border-slate-700 transition cursor-pointer active:scale-95 shadow-md"
+                  title="Fijar y centrar posición GPS en tiempo real"
                 >
-                  <Crosshair className="w-3.5 h-3.5 text-teal-400" />
+                  <Crosshair className={`w-3.5 h-3.5 text-teal-400 ${isGpsCentering ? 'animate-spin' : ''}`} />
                   <span>Centrar GPS</span>
                 </button>
               </div>

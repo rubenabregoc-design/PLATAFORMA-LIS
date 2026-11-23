@@ -28,9 +28,25 @@ export function getTimeBasedGreeting(language: 'ES' | 'EN' = 'ES'): string {
   }
 }
 
+export function formatGreetingUserName(userName?: string, fallback: string = 'Usuario'): string {
+  if (!userName || !userName.trim()) return fallback;
+  const withoutParens = userName.includes('(') ? userName.split('(')[0].trim() : userName.trim();
+  const normalized = withoutParens.replace(/Ruben Abrego/gi, 'Rubén Ábrego');
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return fallback;
+
+  const isHonorific = /^(Ing\.|Licda\.|Lic\.|Dr\.|Dra\.|Sr\.|Sra\.|Prof\.|Mgtr\.)$/i.test(parts[0]);
+  if (isHonorific) {
+    // Título + Nombre (+ Apellido si existe), nunca dejar solo "Ing."
+    return parts.slice(0, 3).join(' ');
+  }
+  return parts.slice(0, 2).join(' ');
+}
+
 export function getFullGreeting(userName?: string, language: 'ES' | 'EN' = 'ES'): string {
   const greeting = getTimeBasedGreeting(language);
-  const name = userName ? userName.trim() : (language === 'EN' ? 'User' : 'Usuario');
-  
+  const fallback = language === 'EN' ? 'User' : 'Usuario';
+  const name = formatGreetingUserName(userName, fallback);
+
   return `${greeting}, ${name}!`;
 }

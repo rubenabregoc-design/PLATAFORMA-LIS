@@ -59,6 +59,8 @@ interface EhrProps {
 }
 
 export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => {
+  const { canAccessSystem } = useLicencias();
+
   const {
     admissions,
     selectedAdmissionId,
@@ -135,13 +137,11 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     return 'Hospitalización';
   };
 
-  // --- 2. Signos Vitales & Telemetría (Monitor vs Manual con Auto-Sincronización) ---
-  const [vitalSource, setVitalSource] = useState<'TELEMETRY' | 'MANUAL'>('TELEMETRY');
-  const [isAutoSyncActive, setIsAutoSyncActive] = useState<boolean>(true);
-  const [lastAutoSyncSeconds, setLastAutoSyncSeconds] = useState<number>(0);
+  // --- 2. Signos Vitales & Telemetría (Modo Híbrido: Registro Manual Real vs Gateway HL7 en Espera) ---
+  const [vitalSource, setVitalSource] = useState<'TELEMETRY' | 'MANUAL'>('MANUAL');
   const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
   const [vitalsData, setVitalsData] = useState({
-    bp: '125 / 80',
+    bp: '120 / 80',
     hr: '78',
     hrRhythm: 'Sinusal',
     rr: '16',
@@ -154,41 +154,9 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     monitorModel: 'Mindray BeneVision N12',
     monitorBed: 'Cama 104 (Sala General / Urgencias)',
     protocol: 'HL7 PCD-01 / IEEE 11073',
-    lastSyncTime: 'En vivo • Auto-sincronizado vía HL7 PCD-01',
+    lastSyncTime: 'Registro clínico manual validado',
     nurseInCharge: 'Licda. Katherine Vergara (Enf. Triage)'
   });
-
-  // Auto-sincronización continua de telemetría cada 4 segundos
-  useEffect(() => {
-    if (vitalSource !== 'TELEMETRY' || !isAutoSyncActive) return;
-
-    const interval = setInterval(() => {
-      setVitalsData((prev) => {
-        const baseHr = 78;
-        const hrOffset = Math.floor(Math.random() * 5) - 2;
-        const hr = String(baseHr + hrOffset);
-        const spo2 = Math.random() > 0.25 ? '98%' : '99%';
-        const rr = Math.random() > 0.4 ? '16' : '17';
-        return {
-          ...prev,
-          hr,
-          spo2,
-          rr,
-          lastSyncTime: 'En vivo (Auto-sync continuo HL7 PCD-01)'
-        };
-      });
-      setLastAutoSyncSeconds(0);
-    }, 4000);
-
-    const secondsTicker = setInterval(() => {
-      setLastAutoSyncSeconds((s) => s + 1);
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      clearInterval(secondsTicker);
-    };
-  }, [vitalSource, isAutoSyncActive]);
 
   // --- 3. Antecedentes Dinámicos e Interactivos ---
   const [antecedenteFilter, setAntecedenteFilter] = useState<'TODOS' | 'ALERGIAS' | 'PATOLOGICOS' | 'QUIRURGICOS' | 'FAMILIARES' | 'HABITOS'>('TODOS');
@@ -477,7 +445,15 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
   const handleCreateSoap = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeAdmission || !subjective || !assessment) {
-      alert('Por favor complete los campos obligatorios de la nota SOAP.');
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: {
+            title: 'Campos Obligatorios',
+            message: 'Por favor complete los campos obligatorios de la evolución médica SOAP.',
+            type: 'warning'
+          }
+        })
+      );
       return;
     }
 
@@ -500,7 +476,15 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     setObjective('');
     setAssessment('');
     setPlan('');
-    alert('Nota médica SOAP registrada en el expediente clínico.');
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Evolución Médica Guardada',
+          message: 'Nota médica SOAP registrada exitosamente en el expediente clínico.',
+          type: 'success'
+        }
+      })
+    );
   };
 
   const handleDispatchLabOrder = () => {
@@ -535,7 +519,15 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     };
 
     addOrder(newOrder);
-    alert(`¡Orden ${newOrder.orderNumber} enviada al LIS con éxito desde Cama ${activeBed?.bedNumber}!`);
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Orden LIS Transmitida',
+          message: `¡Orden ${newOrder.orderNumber} enviada al Laboratorio Clínico desde Cama ${activeBed?.bedNumber}!`,
+          type: 'success'
+        }
+      })
+    );
   };
 
   const handleCreateMedOrder = (e: React.FormEvent) => {
@@ -558,7 +550,15 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
     addMedicationOrder(newMed);
     setDrugName('');
     setDose('');
-    alert(`Medicamento ${newMed.drugName} prescrito e ingresado al Kardex.`);
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Prescripción Guardada',
+          message: `Medicamento ${newMed.drugName} prescrito e ingresado al Kardex de Enfermería.`,
+          type: 'success'
+        }
+      })
+    );
   };
 
   if (!activeAdmission) {
@@ -709,7 +709,14 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
             </div>
 
             {/* Patient List */}
-            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 max-h-[420px]">
+            <div className="overflow-y-auto custom-scrollbar space-y-2.5 flex-1 pr-1 max-h-[420px]">
+              {filteredAdmissions.length === 0 && (
+                <div className="text-center py-10 space-y-2 text-slate-500">
+                  <User className="w-8 h-8 mx-auto text-slate-600" />
+                  <p className="text-xs font-bold text-slate-400">No se encontraron pacientes que coincidan con la búsqueda</p>
+                  <p className="text-[11px]">Intenta con otro término (nombre, cédula, diagnóstico o cama) o cambia de servicio.</p>
+                </div>
+              )}
               {filteredAdmissions.map((adm) => {
                 const isSelected = adm.id === activeAdmission.id;
                 const wardLabel = getWardLocationLabel(adm);
@@ -785,6 +792,12 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   </div>
                 );
               })}
+            </div>
+
+            {/* Footer con conteo y aviso de scroll */}
+            <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400 shrink-0">
+              <span className="font-bold text-slate-300">Total: {filteredAdmissions.length} paciente(s) en listado</span>
+              <span className="text-slate-500 text-[10px]">Scroll activo automático para 4 o más pacientes</span>
             </div>
           </div>
         </div>
@@ -1031,8 +1044,21 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                   <h3 className="font-bold text-white text-sm">Signos Vitales & Monitorización de Cabecera</h3>
                 </div>
 
-                {/* Selector de Fuente: Telemetría vs Manual */}
+                {/* Selector de Fuente: Modo Híbrido (Manual Real vs Gateway Telemetría) */}
                 <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setVitalSource('MANUAL')}
+                    className={`px-2.5 py-1 rounded-lg transition flex items-center space-x-1 cursor-pointer ${
+                      vitalSource === 'MANUAL'
+                        ? 'bg-indigo-600 text-white font-black shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>✍️ Registro Manual (Activo)</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setVitalSource('TELEMETRY')}
@@ -1042,111 +1068,67 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block mr-0.5"></span>
-                    <span>📡 Monitor Multiparamétrico</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setVitalSource('MANUAL')}
-                    className={`px-2.5 py-1 rounded-lg transition flex items-center space-x-1 cursor-pointer ${
-                      vitalSource === 'MANUAL'
-                        ? 'bg-indigo-500 text-white font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>✍️ Toma Manual</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-0.5"></span>
+                    <span>📡 Monitor / Gateway HL7</span>
                   </button>
                 </div>
               </div>
 
-              {/* Banner de Origen y Conectividad con Auto-Sincronización Continua */}
+              {/* Banner de Origen y Conectividad Híbrida Real */}
               <div className="p-2.5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300">
                 <div className="flex items-center space-x-2">
-                  {vitalSource === 'TELEMETRY' ? (
+                  {vitalSource === 'MANUAL' ? (
                     <>
-                      <span className="relative flex h-2.5 w-2.5 shrink-0">
-                        {isAutoSyncActive && (
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        )}
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                      </span>
+                      <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                       <span>
-                        <strong className="text-emerald-300">Conectado a {vitalsData.monitorModel}</strong> • {vitalsData.monitorBed} ({vitalsData.protocol})
+                        <strong className="text-indigo-300">Modo Registro Clínico:</strong> {vitalsData.nurseInCharge} • <span className="text-slate-400">{vitalsData.lastSyncTime}</span>
                       </span>
                     </>
                   ) : (
                     <>
-                      <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+                      </span>
                       <span>
-                        <strong className="text-indigo-300">Registro Clínico Manual:</strong> {vitalsData.nurseInCharge}
+                        <strong className="text-amber-300">Enlace HL7 PCD-01 / IEEE 11073:</strong> En espera de señal física desde Gateway hospitalario (Cama 104) • Sin monitor enlazado
                       </span>
                     </>
                   )}
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  {vitalSource === 'TELEMETRY' ? (
-                    <>
-                      <span className="text-[10px] font-mono text-emerald-400/90 hidden sm:inline">
-                        {isAutoSyncActive ? `Sincronizando automáticamente (hace ${lastAutoSyncSeconds}s)` : 'En pausa'}
+                  {vitalSource === 'MANUAL' ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsVitalsModalOpen(true)}
+                      className="px-2.5 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-[10px] font-bold transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Registrar / Actualizar Constantes</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        En Espera de Trama
                       </span>
                       <button
                         type="button"
                         onClick={() => {
-                          const nextState = !isAutoSyncActive;
-                          setIsAutoSyncActive(nextState);
                           window.dispatchEvent(
                             new CustomEvent('lis-global-toast', {
                               detail: {
-                                message: nextState
-                                  ? '🟢 Auto-sincronización continua de signos vitales activada.'
-                                  : '⏸️ Auto-sincronización pausada.',
+                                message: '📡 Sondeo de red HL7 PCD-01 (puerto 2575): Sin tramas entrantes en Cama 104.',
                                 type: 'info'
                               }
                             })
                           );
                         }}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center space-x-1 cursor-pointer ${
-                          isAutoSyncActive
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                            : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                        }`}
-                        title="Auto-sincronización en tiempo real desde el monitor de cabecera"
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isAutoSyncActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-                        <span>{isAutoSyncActive ? 'Auto-Sincronización en Vivo' : 'Auto-Sync Pausado'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setVitalsData((prev) => ({
-                            ...prev,
-                            lastSyncTime: 'En vivo (Auto-sync continuo HL7 PCD-01)',
-                            hr: String(Math.floor(74 + Math.random() * 8))
-                          }));
-                          setLastAutoSyncSeconds(0);
-                          window.dispatchEvent(new CustomEvent('lis-global-toast', {
-                            detail: { message: '📡 Telemetría HL7 actualizada forzosamente.', type: 'info' }
-                          }));
-                        }}
                         className="p-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-bold transition cursor-pointer"
-                        title="Forzar actualización manual ahora"
+                        title="Verificar enlace con Gateway de telemetría"
                       >
                         <RefreshCw className="w-3 h-3" />
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsVitalsModalOpen(true)}
-                      className="px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-[10px] font-bold transition flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                      <span>Modificar Datos</span>
-                    </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1282,11 +1264,21 @@ export const ElectronicHealthRecordEHR: React.FC<EhrProps> = ({ onOpenPdf }) => 
                       <button
                         type="button"
                         onClick={() => {
+                          const now = new Date();
+                          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           setVitalsData({
                             ...vitalsData,
-                            lastSyncTime: 'Registrado manualmente hace instantes'
+                            lastSyncTime: `Actualizado hoy a las ${timeStr} por ${vitalsData.nurseInCharge}`
                           });
                           setIsVitalsModalOpen(false);
+                          window.dispatchEvent(
+                            new CustomEvent('lis-global-toast', {
+                              detail: {
+                                message: '✅ Signos vitales actualizados y registrados en la historia clínica del paciente.',
+                                type: 'success'
+                              }
+                            })
+                          );
                         }}
                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer"
                       >

@@ -445,6 +445,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
   onOpenPdf,
   onCreateOrder
 }) => {
+  const { canAccessSystem } = useLicencias();
   const addOrder = useLisStore((state) => state.addOrder);
 
   // Queue state persisted in localStorage (v2 con sanitización cronológica estricta FIFO)
@@ -657,13 +658,68 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
       if (stored) {
         const startEpoch = parseInt(stored, 10);
         if (!isNaN(startEpoch) && startEpoch > 0) {
-          return Math.max(0, Math.floor((Date.now() - startEpoch) / 1000));
+          const diff = Math.max(0, Math.floor((Date.now() - startEpoch) / 1000));
+          // Si han pasado más de 4 horas (sesión previa desfasada), reiniciar para evitar números gigantescos
+          if (diff > 4 * 3600) {
+            localStorage.setItem(startKey, Date.now().toString());
+            return 0;
+          }
+          return diff;
         }
       }
     } catch (e) {
       console.error(e);
     }
     return 0;
+  };
+
+  // Helper para parsear hallazgos de examen físico / mapa anatómico y mostrarlos visuales
+  const parseObjectiveText = (text: string) => {
+    const pathological: Array<{ region: string; status: string; notes: string }> = [];
+    const observation: Array<{ region: string; status: string; notes: string }> = [];
+    const normal: Array<{ region: string; status: string; notes: string }> = [];
+    const generalNotes: string[] = [];
+
+    if (!text) return { pathological, observation, normal, generalNotes };
+
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('[HALLAZGOS DEL MAPA CORPORAL ANATÓMICO]')) continue;
+
+      const isPatho = trimmed.includes('[PATOLÓGICO]') || trimmed.includes('🚨');
+      const isObs = trimmed.includes('[EN OBSERVACIÓN]') || trimmed.includes('⚠️');
+      const isNorm = trimmed.includes('[NORMAL]') || trimmed.includes('✅');
+
+      if (isPatho || isObs || isNorm) {
+        const colonIdx = trimmed.indexOf(':');
+        let region = '';
+        let notes = '';
+        if (colonIdx > -1) {
+          region = trimmed.slice(0, colonIdx)
+            .replace(/^[•\-\*]\s*/, '')
+            .replace(/🚨\s*\[PATOLÓGICO\]/gi, '')
+            .replace(/⚠️\s*\[EN OBSERVACIÓN\]/gi, '')
+            .replace(/✅\s*\[NORMAL\]/gi, '')
+            .trim();
+          notes = trimmed.slice(colonIdx + 1).trim();
+        } else {
+          region = trimmed.replace(/^[•\-\*]\s*/, '').trim();
+        }
+
+        if (isPatho) {
+          pathological.push({ region, status: 'pathological', notes });
+        } else if (isObs) {
+          observation.push({ region, status: 'observation', notes });
+        } else {
+          normal.push({ region, status: 'normal', notes });
+        }
+      } else {
+        generalNotes.push(trimmed);
+      }
+    }
+
+    return { pathological, observation, normal, generalNotes };
   };
 
   // Consultation UI filter & search
@@ -1691,33 +1747,33 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                   </div>
                 </div>
 
-                <div className="space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-mono font-black">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="px-3 py-1 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-mono font-black">
                       TURNO: {activePatient.turnNumber}
                     </span>
-                    <h2 className="text-lg sm:text-xl font-black text-white">{activePatient.name}</h2>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-bold">
+                    <h2 className="text-xl sm:text-2xl font-black text-white">{activePatient.name}</h2>
+                    <span className="text-xs sm:text-sm px-3 py-1 rounded-full bg-slate-800 text-slate-300 font-mono font-bold">
                       Cédula: {activePatient.nationalId}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                    <span>Edad: <strong className="text-white">{activePatient.age} años</strong></span>
+                  <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-200">
+                    <span>Edad: <strong className="text-white font-bold">{activePatient.age} años</strong></span>
                     <span>•</span>
-                    <span>Sexo: <strong className="text-white">{activePatient.gender === 'M' ? 'Masculino' : 'Femenino'}</strong></span>
+                    <span>Sexo: <strong className="text-white font-bold">{activePatient.gender === 'M' ? 'Masculino' : 'Femenino'}</strong></span>
                     <span>•</span>
-                    <span>Tipo Sangre: <strong className="text-rose-400 font-bold">{activePatient.bloodType}</strong></span>
+                    <span>Tipo Sangre: <strong className="text-rose-400 font-black">{activePatient.bloodType}</strong></span>
                     <span>•</span>
-                    <span>Tipo Consulta: <strong className="text-indigo-300 uppercase font-bold">{activePatient.consultationType.replace(/_/g, ' ')}</strong></span>
+                    <span>Tipo Consulta: <strong className="text-indigo-300 uppercase font-black">{activePatient.consultationType.replace(/_/g, ' ')}</strong></span>
                   </div>
                 </div>
               </div>
 
               {/* Botones de Acción del Médico */}
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="bg-slate-950/80 border border-emerald-500/40 px-3.5 py-2 rounded-2xl flex items-center space-x-2 text-xs">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <div className="bg-slate-950/80 border border-emerald-500/40 px-4 py-2.5 rounded-2xl flex items-center space-x-2 text-xs sm:text-sm">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span className="text-slate-400 font-medium">Tiempo en Consulta:</span>
                   <strong className="text-emerald-400 font-mono font-black">{formatTimer(consultElapsedSeconds)}</strong>
                 </div>
@@ -1725,7 +1781,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 <button
                   type="button"
                   onClick={handlePauseConsultation}
-                  className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-2xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 cursor-pointer"
                   title="Pausar y volver a la cola de pacientes (guarda borrador)"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1735,7 +1791,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 <button
                   type="button"
                   onClick={handleFinishConsultation}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-500/30 flex items-center space-x-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl text-xs sm:text-sm uppercase tracking-wider transition shadow-lg shadow-emerald-500/30 flex items-center space-x-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                   <span>Finalizar Atención Médica</span>
@@ -1744,18 +1800,18 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
             </div>
 
             {/* Alertas Críticas de Alergias & Motivo de Consulta */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-3 border-t border-indigo-500/20 text-xs">
-              <div className="md:col-span-8 flex items-center space-x-2 bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-3 border-t border-indigo-500/20 text-xs sm:text-sm">
+              <div className="md:col-span-8 flex items-center space-x-2.5 bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
                 <span className="text-slate-400 font-bold shrink-0">Motivo de Consulta:</span>
-                <span className="text-slate-200 truncate">{activePatient.consultationReason}</span>
+                <span className="text-slate-100 font-medium truncate">{activePatient.consultationReason}</span>
               </div>
 
-              <div className="md:col-span-4 flex items-center space-x-2 bg-rose-950/40 p-2.5 rounded-2xl border border-rose-500/40">
+              <div className="md:col-span-4 flex items-center space-x-2.5 bg-rose-950/40 p-3 rounded-2xl border border-rose-500/40">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span className="text-rose-300 font-bold shrink-0">ALERGIAS:</span>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {activePatient.allergies.map((a, i) => (
-                    <span key={i} className="px-1.5 py-0.5 rounded bg-rose-600/30 text-rose-200 font-black text-[10px]">
+                    <span key={i} className="px-2 py-0.5 rounded-lg bg-rose-600/40 text-rose-200 font-black text-xs">
                       {a}
                     </span>
                   ))}
@@ -1765,7 +1821,7 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
           </div>
 
           {/* Barra de Pestañas de la Estación de Consulta — 11 Dimensiones EHR + Portal Doctor */}
-          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3.5">
             {[
               { id: 'resumen',     label: 'Resumen Clínico 360°',         icon: User,          color: 'indigo', badge: null },
               { id: 'soap',        label: 'Evolución SOAP',                icon: FileText,      color: 'indigo', badge: null },
@@ -1788,16 +1844,16 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                   key={tab.id}
                   type="button"
                   onClick={() => updateConsultTab(tab.id as any)}
-                  className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
                     isActive
                       ? `${activeColor} text-white shadow-lg`
                       : 'bg-slate-900/90 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <Icon className="w-4 h-4 shrink-0" />
                   <span className="whitespace-nowrap">{tab.label}</span>
                   {tab.badge !== null && tab.badge !== undefined && Number(tab.badge) > 0 && (
-                    <span className="px-1.5 rounded-full text-[10px] bg-slate-950 font-mono text-indigo-300 border border-indigo-500/30">
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-slate-950 font-mono text-indigo-300 border border-indigo-500/30">
                       {tab.badge}
                     </span>
                   )}
@@ -1939,363 +1995,593 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
                 </div>
               </div>
 
-              {/* SOAP previo si existe */}
-              {activePatient.soapNote && (
-                <div className="bg-slate-900 border border-indigo-500/20 rounded-3xl p-5 shadow-xl space-y-3">
-                  <h4 className="font-bold text-white text-sm flex items-center space-x-2 border-b border-slate-800 pb-2.5">
-                    <FileText className="w-4 h-4 text-indigo-400" />
-                    <span>Nota SOAP — Evolución Actual</span>
-                    <button type="button" onClick={() => updateConsultTab('soap')} className="ml-auto text-[10px] px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-lg font-bold cursor-pointer">Editar SOAP →</button>
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    {[
-                      { label: '[S] Subjetivo', text: draftSubjective },
-                      { label: '[O] Objetivo', text: draftObjective },
-                      { label: '[A] Evaluación', text: draftAssessment },
-                      { label: '[P] Plan', text: draftPlan },
-                    ].map((s) => (
-                      <div key={s.label} className="bg-slate-950 rounded-xl p-3 border border-slate-800">
-                        <span className="text-indigo-400 font-bold text-[10px] block mb-1">{s.label}</span>
-                        <p className="text-slate-300 leading-relaxed whitespace-pre-line">{s.text || <span className="text-slate-600 italic">Sin datos</span>}</p>
+              {/* SOAP previo si existe - Renderizado Dinámico y Visual */}
+              {activePatient.soapNote && (() => {
+                const parsedObj = parseObjectiveText(draftObjective);
+                const hasAnatFindings = parsedObj.pathological.length > 0 || parsedObj.observation.length > 0 || parsedObj.normal.length > 0;
+
+                return (
+                  <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+                    <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-white text-base tracking-tight flex items-center gap-2">
+                            <span>Nota SOAP — Evolución Actual</span>
+                            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-black">
+                              Oficial
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-400 font-medium">Registro estructurado de evolución médica (EHR / HIS)</p>
+                        </div>
                       </div>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => updateConsultTab('soap')}
+                        className="text-xs sm:text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/30"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <span>Editar SOAP →</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* [S] Subjetivo */}
+                      <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-sky-500/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm font-black text-sky-400 uppercase tracking-wider flex items-center gap-2">
+                            <User className="w-4 h-4 text-sky-400" />
+                            <span>[S] Subjetivo</span>
+                          </span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-sky-950/60 px-2.5 py-0.5 rounded-md border border-sky-500/30 font-mono">
+                            Anamnesis
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base text-slate-100 font-medium leading-relaxed whitespace-pre-line">
+                          {draftSubjective || <span className="text-slate-600 italic">Sin datos registrados</span>}
+                        </p>
+                      </div>
+
+                      {/* [A] Evaluación / CIE-10 */}
+                      <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-indigo-500/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                            <Stethoscope className="w-4 h-4 text-indigo-400" />
+                            <span>[A] Evaluación & CIE-10</span>
+                          </span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-500/30 font-mono">
+                            Diagnóstico
+                          </span>
+                        </div>
+                        {draftPrimaryIcd && (
+                          <div className="p-2.5 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-indigo-200 text-xs sm:text-sm font-bold font-mono flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></span>
+                            <span>{draftPrimaryIcd}</span>
+                          </div>
+                        )}
+                        <p className="text-sm sm:text-base text-slate-100 font-medium leading-relaxed whitespace-pre-line">
+                          {draftAssessment || <span className="text-slate-600 italic">Sin diagnóstico emitido aún</span>}
+                        </p>
+                      </div>
+
+                      {/* [O] Objetivo — Dinámico y Visual */}
+                      <div className="md:col-span-2 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-emerald-400" />
+                            <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-wider">
+                              [O] Objetivo — Exploración Física Topográfica & Hallazgos
+                            </span>
+                          </div>
+                          {hasAnatFindings && (
+                            <div className="flex items-center gap-2 text-xs font-mono font-bold">
+                              {parsedObj.pathological.length > 0 && (
+                                <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 animate-pulse font-bold">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>{parsedObj.pathological.length} Patológico</span>
+                                </span>
+                              )}
+                              {parsedObj.observation.length > 0 && (
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 font-bold">
+                                  <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>{parsedObj.observation.length} En Observación</span>
+                                </span>
+                              )}
+                              {parsedObj.normal.length > 0 && (
+                                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 font-bold">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>{parsedObj.normal.length} Normales</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {hasAnatFindings ? (
+                          <div className="space-y-3">
+                            {/* Hallazgos Patológicos Destacados */}
+                            {parsedObj.pathological.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-xs font-black text-rose-400 uppercase tracking-wider block">
+                                  🚨 Hallazgos Patológicos / Críticos:
+                                </span>
+                                <div className="grid grid-cols-1 gap-2.5">
+                                  {parsedObj.pathological.map((f, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="bg-rose-950/40 border border-rose-500/50 p-3.5 rounded-xl space-y-1.5 shadow-sm"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-black text-sm sm:text-base text-rose-100 flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                                          <span>{f.region}</span>
+                                        </span>
+                                        <span className="px-2.5 py-0.5 rounded-md bg-rose-600 text-white font-black text-[10px] tracking-wider uppercase">
+                                          Patológico
+                                        </span>
+                                      </div>
+                                      <p className="text-xs sm:text-sm text-rose-200 leading-relaxed font-medium pl-4">
+                                        {f.notes || 'Signo patológico positivo confirmado.'}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Hallazgos en Observación */}
+                            {parsedObj.observation.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block">
+                                  ⚠️ Zonas en Observación:
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  {parsedObj.observation.map((f, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="bg-amber-950/30 border border-amber-500/40 p-3 rounded-xl space-y-1"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-xs sm:text-sm text-amber-100">{f.region}</span>
+                                        <span className="px-2 py-0.5 rounded bg-amber-600/30 text-amber-300 font-bold text-[10px]">
+                                          Observación
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-amber-200 leading-relaxed">{f.notes}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Zonas Normales en Chips Visuales */}
+                            {parsedObj.normal.length > 0 && (
+                              <div className="space-y-1.5 pt-1">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                                  ✅ Zonas Evaluadas Dentro de Límites Normales:
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {parsedObj.normal.map((f, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="px-3 py-1.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-xs text-slate-200 flex items-center gap-2"
+                                      title={f.notes}
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                      <span className="font-bold text-white">{f.region}</span>
+                                      <span className="text-[10px] text-emerald-400 font-mono font-bold">Normal</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Notas generales si quedan */}
+                            {parsedObj.generalNotes.length > 0 && (
+                              <div className="pt-2 border-t border-slate-800 text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                                {parsedObj.generalNotes.join('\n')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm sm:text-base text-slate-100 font-medium leading-relaxed whitespace-pre-line">
+                            {draftObjective || <span className="text-slate-600 italic">Sin datos de exploración física registrados</span>}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* [P] Plan Terapéutico */}
+                      <div className="md:col-span-2 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-teal-500/30 space-y-2 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm font-black text-teal-400 uppercase tracking-wider flex items-center gap-2">
+                            <ClipboardList className="w-4 h-4 text-teal-400" />
+                            <span>[P] Plan Terapéutico, Medicación & Cuidados</span>
+                          </span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-teal-950/60 px-2.5 py-0.5 rounded-md border border-teal-500/30 font-mono">
+                            Pauta Médica
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base text-slate-100 font-medium leading-relaxed whitespace-pre-line">
+                          {draftPlan || <span className="text-slate-600 italic">Sin plan terapéutico prescrito aún</span>}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
           {/* 1. EVOLUCIÓN CLÍNICA (SOAP) */}
-          {consultTab === 'soap' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Formulario SOAP */}
-              <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
-                <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-4 h-4 text-indigo-400" />
-                    <h3 className="font-bold text-white text-sm">Registro de Evolución Médica (Formato SOAP)</h3>
-                  </div>
-                  <span className="text-[10px] text-teal-400 font-mono font-bold">
-                    Sesión Médica Oficial • Dr. Roberto Icaza
-                  </span>
-                </div>
+          {consultTab === 'soap' && (() => {
+            const parsedObj = parseObjectiveText(draftObjective);
+            const hasAnatFindings = parsedObj.pathological.length > 0 || parsedObj.observation.length > 0 || parsedObj.normal.length > 0;
 
-                <div className="space-y-4 text-xs">
-                  {/* [S] Subjetivo */}
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-300 block">
-                      [S] Subjetivo (Anamnesis, síntomas referidos y evolución del motivo de consulta):
-                    </label>
-                    <textarea
-                      value={draftSubjective}
-                      onChange={(e) => setDraftSubjective(e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 font-normal leading-relaxed"
-                      placeholder="Paciente refiere que los síntomas iniciaron hace 48 horas..."
-                    />
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Formulario SOAP */}
+                <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-5">
+                  <div className="border-b border-slate-800 pb-3.5 flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <FileText className="w-5 h-5 text-indigo-400" />
+                      <h3 className="font-black text-white text-base sm:text-lg">Registro de Evolución Médica (Formato SOAP)</h3>
+                    </div>
+                    <span className="text-xs text-teal-400 font-mono font-bold bg-teal-950/60 px-3 py-1 rounded-xl border border-teal-500/30">
+                      Sesión Médica Oficial • Dr. Roberto Icaza
+                    </span>
                   </div>
 
-                  {/* [O] Objetivo */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="font-bold text-slate-300">
-                        [O] Objetivo (Constantes vitales y exploración física):
+                  <div className="space-y-5 text-sm sm:text-base">
+                    {/* [S] Subjetivo */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-100 text-sm sm:text-base block flex items-center justify-between">
+                        <span>[S] Subjetivo (Anamnesis y síntomas referidos por el paciente):</span>
+                        <span className="text-xs text-slate-400 font-normal">Motivo de consulta</span>
                       </label>
-                      <div className="flex items-center space-x-2 bg-slate-900 border border-slate-700/80 px-2.5 py-1 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-bold">IMC:</span>
-                        <strong className="text-xs text-white font-mono">{computedBmi} kg/m²</strong>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${bmiCategory.color} bg-slate-950 border border-slate-800`}>
-                          {bmiCategory.label}
-                        </span>
-                        <span className="text-[9px] text-slate-400 hidden sm:inline" title="Cálculo estándar: Peso (kg) / (Estatura en m)². Se actualiza en tiempo real al editar Peso o Talla en los campos de abajo.">
-                          (Calculado: Peso / Talla² • Modifique Peso o Talla abajo)
-                        </span>
-                      </div>
+                      <textarea
+                        value={draftSubjective}
+                        onChange={(e) => setDraftSubjective(e.target.value)}
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal leading-relaxed shadow-inner"
+                        placeholder="Paciente refiere que los síntomas iniciaron hace 48 horas..."
+                      />
                     </div>
 
-                    {/* Mini panel de signos vitales interactivo */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[11px]">
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">P.A. (mmHg)</span>
-                        <input
-                          type="text"
-                          value={vitalsBp}
-                          onChange={(e) => setVitalsBp(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
+                    {/* [O] Objetivo */}
+                    <div className="space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="font-bold text-slate-100 text-sm sm:text-base">
+                          [O] Objetivo (Constantes vitales y exploración física):
+                        </label>
+                        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-xl">
+                          <span className="text-xs text-slate-400 font-bold">IMC:</span>
+                          <strong className="text-sm sm:text-base text-white font-mono font-black">{computedBmi} kg/m²</strong>
+                          <span className={`px-2.5 py-0.5 rounded-md text-xs font-black ${bmiCategory.color} bg-slate-950 border border-slate-800`}>
+                            {bmiCategory.label}
+                          </span>
+                          <span className="text-xs text-slate-400 hidden xl:inline" title="Cálculo estándar: Peso / Talla²">
+                            (Calculado en vivo)
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">F.C. (lpm)</span>
-                        <input
-                          type="number"
-                          value={vitalsHr}
-                          onChange={(e) => setVitalsHr(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">F.R. (rpm)</span>
-                        <input
-                          type="number"
-                          value={vitalsRr}
-                          onChange={(e) => setVitalsRr(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">Temp (°C)</span>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={vitalsTemp}
-                          onChange={(e) => setVitalsTemp(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">SpO2 (%)</span>
-                        <input
-                          type="number"
-                          value={vitalsSpo2}
-                          onChange={(e) => setVitalsSpo2(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">Peso (kg)</span>
-                        <input
-                          type="number"
-                          value={vitalsWeight}
-                          onChange={(e) => setVitalsWeight(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[9px]">Talla (cm)</span>
-                        <input
-                          type="number"
-                          value={vitalsHeight}
-                          onChange={(e) => setVitalsHeight(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1 text-white font-mono font-bold"
-                        />
-                      </div>
-                    </div>
 
-                    {/* Chips de Inserción de Examen Físico Rápido */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {[
-                        'Alerta, orientado y colaborador en tiempo y espacio',
-                        'Cardíaco: Ruidos rítmicos sin soplos ni galopes',
-                        'Pulmonar: Murmullo vesicular conservado sin agregados',
-                        'Abdomen: Blando, depresible, no doloroso, sin visceromegalias',
-                        'Extremidades: Eutróficas, pulsos palpables, sin edemas periféricos',
-                        'Orofaringe: No hiperémica, sin exudados amigdalinos'
-                      ].map((phrase, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setDraftObjective((prev) => (prev ? `${prev}. ${phrase}` : phrase))}
-                          className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-600 text-slate-300 text-[10px] font-medium transition cursor-pointer"
-                        >
-                          + {phrase.split(':')[0]}
-                        </button>
-                      ))}
-                    </div>
+                      {/* Panel de signos vitales interactivo con letras agrandadas */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs sm:text-sm shadow-inner">
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">P.A. (mmHg)</span>
+                          <input
+                            type="text"
+                            value={vitalsBp}
+                            onChange={(e) => setVitalsBp(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">F.C. (lpm)</span>
+                          <input
+                            type="number"
+                            value={vitalsHr}
+                            onChange={(e) => setVitalsHr(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">F.R. (rpm)</span>
+                          <input
+                            type="number"
+                            value={vitalsRr}
+                            onChange={(e) => setVitalsRr(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">Temp (°C)</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={vitalsTemp}
+                            onChange={(e) => setVitalsTemp(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">SpO2 (%)</span>
+                          <input
+                            type="number"
+                            value={vitalsSpo2}
+                            onChange={(e) => setVitalsSpo2(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">Peso (kg)</span>
+                          <input
+                            type="number"
+                            value={vitalsWeight}
+                            onChange={(e) => setVitalsWeight(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-slate-400 block text-xs font-bold mb-1">Talla (cm)</span>
+                          <input
+                            type="number"
+                            value={vitalsHeight}
+                            onChange={(e) => setVitalsHeight(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white font-mono font-black text-center text-sm sm:text-base focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
 
-                    <textarea
-                      value={draftObjective}
-                      onChange={(e) => setDraftObjective(e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 font-normal leading-relaxed"
-                      placeholder="Detalle de examen físico por sistemas..."
-                    />
-                  </div>
+                      {/* Si hay hallazgos anatómicos, mostrarlos visualmente en tarjetas sobre el textarea */}
+                      {hasAnatFindings && (
+                        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-indigo-500/20 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-indigo-300 flex items-center gap-1.5">
+                              <Activity className="w-3.5 h-3.5" />
+                              <span>Hallazgos Registrados en Mapa Anatómico:</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">Sincronizado</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            {parsedObj.pathological.map((f, i) => (
+                              <div key={i} className="p-2.5 rounded-xl bg-rose-950/30 border border-rose-500/40 text-rose-200">
+                                <div className="font-black text-rose-100 flex items-center gap-1.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>{f.region}</span>
+                                </div>
+                                <p className="text-[11px] text-rose-300 mt-0.5 truncate">{f.notes}</p>
+                              </div>
+                            ))}
+                            {parsedObj.normal.slice(0, 4).map((f, i) => (
+                              <div key={i} className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <span className="font-bold text-white truncate">{f.region}:</span>
+                                <span className="text-[10px] text-emerald-400">Normal</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* [A] Evaluación / Impresión Diagnóstica */}
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center justify-between gap-1">
-                      <label className="font-bold text-slate-300">
-                        [A] Análisis & Diagnóstico (CIE-10):
-                      </label>
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="text-[9px] text-slate-500 font-bold">Rápidos:</span>
-                        {COMMON_ICD10.slice(0, 4).map((icd) => (
+                      {/* Chips de Inserción de Examen Físico Rápido */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {[
+                          'Alerta, orientado y colaborador en tiempo y espacio',
+                          'Cardíaco: Ruidos rítmicos sin soplos ni galopes',
+                          'Pulmonar: Murmullo vesicular conservado sin agregados',
+                          'Abdomen: Blando, depresible, no doloroso, sin visceromegalias',
+                          'Extremidades: Eutróficas, pulsos palpables, sin edemas periféricos',
+                          'Orofaringe: No hiperémica, sin exudados amigdalinos'
+                        ].map((phrase, i) => (
                           <button
-                            key={icd.code}
+                            key={i}
                             type="button"
-                            onClick={() => {
-                              const str = `[${icd.code}] ${icd.name}`;
-                              setDraftPrimaryIcd(str);
-                              setDraftAssessment((prev) => (prev ? `${prev}. Impresión: ${str}` : `Impresión: ${str}`));
-                            }}
-                            className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 rounded text-[9px] font-bold hover:bg-indigo-500/20"
+                            onClick={() => setDraftObjective((prev) => (prev ? `${prev}. ${phrase}` : phrase))}
+                            className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-600 text-slate-300 text-xs font-bold transition cursor-pointer"
                           >
-                            {icd.code}
+                            + {phrase.split(':')[0]}
                           </button>
                         ))}
                       </div>
+
+                      <textarea
+                        value={draftObjective}
+                        onChange={(e) => setDraftObjective(e.target.value)}
+                        rows={4}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal leading-relaxed shadow-inner"
+                        placeholder="Detalle de examen físico por sistemas..."
+                      />
                     </div>
 
-                    <input
-                      type="text"
-                      value={draftPrimaryIcd}
-                      onChange={(e) => setDraftPrimaryIcd(e.target.value)}
-                      className="w-full bg-slate-950 border border-indigo-500/40 rounded-xl p-2.5 text-white font-mono text-xs focus:outline-none focus:border-indigo-400"
-                      placeholder="Código y Nombre CIE-10 (Ej: E11.9 — Diabetes Mellitus Tipo 2)"
-                    />
-
-                    <textarea
-                      value={draftAssessment}
-                      onChange={(e) => setDraftAssessment(e.target.value)}
-                      rows={2}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 font-normal leading-relaxed"
-                      placeholder="Juicio clínico y evolución del cuadro patológico..."
-                    />
-                  </div>
-
-                  {/* [P] Plan Terapéutico */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="font-bold text-slate-300">
-                        [P] Plan Terapéutico, Cuidados y Recomendaciones:
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (activePatient.medicalHistory.currentMeds.length > 0) {
-                            const list = activePatient.medicalHistory.currentMeds
-                              .map((m, i) => `${i + 1}. Continuar ${m}`)
-                              .join('\n');
-                            setDraftPlan((prev) => (prev ? `${prev}\n${list}` : list));
-                          } else {
-                            const baseline = '1. Dieta blanda balanceada y abundante hidratación oral.\n2. Reposo relativo por 48 horas.\n3. Acudir a urgencias si signos de alarma.';
-                            setDraftPlan((prev) => (prev ? `${prev}\n${baseline}` : baseline));
-                          }
-                        }}
-                        className="px-2 py-0.5 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-bold hover:bg-amber-500/25 transition cursor-pointer"
-                      >
-                        + Insertar Pauta / Fármacos Activos
-                      </button>
-                    </div>
-
-                    <textarea
-                      value={draftPlan}
-                      onChange={(e) => setDraftPlan(e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 font-normal leading-relaxed"
-                      placeholder="1. Prescripción de fármacos. 2. Solicitud de laboratorio control. 3. Signos de alarma..."
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800">
-                  <span className="text-[11px] text-slate-400">
-                    Cambios guardados en memoria de sesión clínica.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logAuditEvent('ACTUALIZACIÓN_SOAP', 'Evolución SOAP guardada por el médico facultativo.', activePatient.name);
-                      window.dispatchEvent(
-                        new CustomEvent('lis-global-toast', {
-                          detail: {
-                            title: 'Nota SOAP Actualizada',
-                            message: 'Datos clínicos guardados exitosamente.',
-                            type: 'info'
-                          }
-                        })
-                      );
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 transition cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Guardar Nota SOAP</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Panel Lateral: Resumen del Paciente & Acciones Rápidas */}
-              <div className="lg:col-span-4 space-y-4">
-                {/* Tarjeta de Alergias & Fármacos Actuales */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-                  <div className="flex items-center space-x-2 border-b border-slate-800 pb-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-400" />
-                    <h4 className="font-bold text-white text-xs uppercase tracking-wider">Alergias Conocidas</h4>
-                  </div>
-                  <div className="space-y-1.5 text-xs">
-                    {activePatient.allergies.map((al, idx) => (
-                      <div key={idx} className="p-2 bg-rose-950/30 border border-rose-500/30 rounded-xl text-rose-200 font-bold flex items-center space-x-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        <span>{al}</span>
+                    {/* [A] Evaluación / Impresión Diagnóstica */}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                        <label className="font-bold text-slate-100 text-sm sm:text-base">
+                          [A] Análisis & Diagnóstico (CIE-10):
+                        </label>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-xs text-slate-400 font-bold">Rápidos:</span>
+                          {COMMON_ICD10.slice(0, 4).map((icd) => (
+                            <button
+                              key={icd.code}
+                              type="button"
+                              onClick={() => {
+                                const str = `[${icd.code}] ${icd.name}`;
+                                setDraftPrimaryIcd(str);
+                                setDraftAssessment((prev) => (prev ? `${prev}. Impresión: ${str}` : `Impresión: ${str}`));
+                              }}
+                              className="px-2.5 py-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold hover:bg-indigo-500/25 transition cursor-pointer"
+                            >
+                              {icd.code}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+
+                      <input
+                        type="text"
+                        value={draftPrimaryIcd}
+                        onChange={(e) => setDraftPrimaryIcd(e.target.value)}
+                        className="w-full bg-slate-950 border border-indigo-500/40 rounded-xl p-3 text-white font-mono text-sm sm:text-base font-bold focus:outline-none focus:border-indigo-400 shadow-inner"
+                        placeholder="Código y Nombre CIE-10 (Ej: E11.9 — Diabetes Mellitus Tipo 2)"
+                      />
+
+                      <textarea
+                        value={draftAssessment}
+                        onChange={(e) => setDraftAssessment(e.target.value)}
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal leading-relaxed shadow-inner"
+                        placeholder="Juicio clínico y evolución del cuadro patológico..."
+                      />
+                    </div>
+
+                    {/* [P] Plan Terapéutico */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-slate-100 text-sm sm:text-base">
+                          [P] Plan Terapéutico, Cuidados y Recomendaciones:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (activePatient.medicalHistory.currentMeds.length > 0) {
+                              const list = activePatient.medicalHistory.currentMeds
+                                .map((m, i) => `${i + 1}. Continuar ${m}`)
+                                .join('\n');
+                              setDraftPlan((prev) => (prev ? `${prev}\n${list}` : list));
+                            } else {
+                              const baseline = '1. Dieta blanda balanceada y abundante hidratación oral.\n2. Reposo relativo por 48 horas.\n3. Acudir a urgencias si signos de alarma.';
+                              setDraftPlan((prev) => (prev ? `${prev}\n${baseline}` : baseline));
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold hover:bg-amber-500/25 transition cursor-pointer"
+                        >
+                          + Insertar Pauta / Fármacos Activos
+                        </button>
+                      </div>
+
+                      <textarea
+                        value={draftPlan}
+                        onChange={(e) => setDraftPlan(e.target.value)}
+                        rows={4}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-white focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal leading-relaxed shadow-inner"
+                        placeholder="1. Prescripción de fármacos. 2. Solicitud de laboratorio control. 3. Signos de alarma..."
+                      />
+                    </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase">Medicamentos Actuales:</span>
-                      <span className="text-[10px] text-indigo-300 font-mono">{activePatient.medicalHistory.currentMeds.length}</span>
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      {activePatient.medicalHistory.currentMeds.length > 0 ? (
-                        activePatient.medicalHistory.currentMeds.map((med, i) => (
-                          <div key={i} className="p-2 bg-slate-950 rounded-xl border border-slate-800 text-slate-300 flex items-center space-x-1.5">
-                            <Pill className="w-3 h-3 text-amber-400 shrink-0" />
-                            <span className="truncate">{med}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-slate-500 italic text-[11px]">Sin prescripciones crónicas activas.</div>
-                      )}
-                    </div>
+                  <div className="pt-3 flex items-center justify-between border-t border-slate-800">
+                    <span className="text-xs text-slate-400">
+                      Cambios guardados en memoria de sesión clínica.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logAuditEvent('ACTUALIZACIÓN_SOAP', 'Evolución SOAP guardada por el médico facultativo.', activePatient.name);
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Nota SOAP Actualizada',
+                              message: 'Datos clínicos guardados exitosamente.',
+                              type: 'info'
+                            }
+                          })
+                        );
+                      }}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm flex items-center space-x-2 transition cursor-pointer shadow-lg shadow-indigo-600/30"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Guardar Nota SOAP</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Acciones Rápidas de la Consulta */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-2.5">
-                  <h4 className="font-bold text-white text-xs uppercase tracking-wider border-b border-slate-800 pb-2">
-                    Accesos Directos Clínicos
-                  </h4>
-
-                  <button
-                    type="button"
-                    onClick={() => updateConsultTab('recetas')}
-                    className="w-full p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Pill className="w-4 h-4 text-emerald-400" />
-                      <span>Emitir Receta Médica Oficial</span>
+                {/* Panel Lateral: Resumen del Paciente & Acciones Rápidas */}
+                <div className="lg:col-span-4 space-y-4">
+                  {/* Tarjeta de Alergias & Fármacos Actuales */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-3.5">
+                    <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                      <h4 className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Alergias Conocidas</h4>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => updateConsultTab('laboratorio')}
-                    className="w-full p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Activity className="w-4 h-4 text-teal-400" />
-                      <span>Solicitar Exámenes LIS</span>
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      {activePatient.allergies.map((al, idx) => (
+                        <div key={idx} className="p-2.5 bg-rose-950/30 border border-rose-500/30 rounded-xl text-rose-200 font-bold flex items-center space-x-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span>{al}</span>
+                        </div>
+                      ))}
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => updateConsultTab('incapacidad')}
-                    className="w-full p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <FileCheck className="w-4 h-4 text-amber-400" />
-                      <span>Generar Certificado Incapacidad</span>
+                    <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs sm:text-sm font-bold text-slate-300 uppercase">Medicamentos Actuales:</span>
+                        <span className="text-xs text-indigo-300 font-mono font-bold">{activePatient.medicalHistory.currentMeds.length}</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs sm:text-sm">
+                        {activePatient.medicalHistory.currentMeds.length > 0 ? (
+                          activePatient.medicalHistory.currentMeds.map((med, i) => (
+                            <div key={i} className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-slate-200 flex items-center space-x-2">
+                              <Pill className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <span className="truncate">{med}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-slate-500 italic text-xs">Sin prescripciones crónicas activas.</div>
+                        )}
+                      </div>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
+                  </div>
+
+                  {/* Acciones Rápidas de la Consulta */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-3">
+                    <h4 className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider border-b border-slate-800 pb-2.5">
+                      Accesos Directos Clínicos
+                    </h4>
+
+                    <button
+                      type="button"
+                      onClick={() => updateConsultTab('recetas')}
+                      className="w-full p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs sm:text-sm font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Pill className="w-4 h-4 text-emerald-400" />
+                        <span>Emitir Receta Médica Oficial</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => updateConsultTab('laboratorio')}
+                      className="w-full p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs sm:text-sm font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Activity className="w-4 h-4 text-teal-400" />
+                        <span>Solicitar Exámenes LIS</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => updateConsultTab('incapacidad')}
+                      className="w-full p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-left text-xs sm:text-sm font-bold text-slate-200 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <FileCheck className="w-4 h-4 text-amber-400" />
+                        <span>Generar Certificado Incapacidad</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* 2. EXPEDIENTE & ANTECEDENTES */}
           {consultTab === 'antecedentes' && (
@@ -3181,11 +3467,15 @@ export const MedicalConsultationWorkspace: React.FC<MedicalConsultationWorkspace
 
                             <button
                               type="button"
-                              onClick={() => onOpenPdf(ord.id)}
-                              className="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-lg font-bold text-[11px] transition flex items-center space-x-1 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenPdf(ord.id);
+                              }}
+                              className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/30 border border-indigo-400/40 flex items-center space-x-1.5 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+                              title="Abrir e imprimir el informe de laboratorio oficial certificado con código QR y firma digital"
                             >
-                              <FileText className="w-3.5 h-3.5" />
-                              <span>Ver Informe Oficial</span>
+                              <FileText className="w-4 h-4 text-indigo-200" />
+                              <span>Ver Informe Oficial (PDF)</span>
                             </button>
                           </div>
 

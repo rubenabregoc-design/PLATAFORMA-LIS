@@ -50,8 +50,9 @@ export interface ReceptionCounter {
   status: 'ACTIVA' | 'EN_PAUSA' | 'CERRADA';
 }
 
-const STORAGE_TURNS_KEY = 'LISCORE_RECEPTION_TURNS_V2';
-const STORAGE_COUNTERS_KEY = 'LISCORE_RECEPTION_COUNTERS_V2';
+const STORAGE_TURNS_KEY = 'LISCORE_RECEPTION_TURNS_V3';
+const STORAGE_COUNTERS_KEY = 'LISCORE_RECEPTION_COUNTERS_V3';
+const STORAGE_LAST_CALLED_KEY = 'LISCORE_LAST_CALLED_TURN_V3';
 
 export const CATEGORY_DETAILS: Record<TurnCategory, {
   name: string;
@@ -139,102 +140,7 @@ export const CATEGORY_DETAILS: Record<TurnCategory, {
   }
 };
 
-const DEFAULT_INITIAL_TICKETS: QueueTicket[] = [
-  {
-    id: 'tkt-001',
-    ticketNumber: 'URG-003',
-    category: 'URGENCIA_STAT',
-    priority: 'STAT_URGENTE',
-    patientName: 'Montero, Fernando',
-    patientNationalId: '8-812-4412',
-    patientGender: 'M',
-    patientAge: 54,
-    notes: 'Pre-quirúrgico inmediato de apendicectomía. Urgencia.',
-    status: 'ESPERANDO',
-    createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 2,
-    isFasting: true
-  },
-  {
-    id: 'tkt-002',
-    ticketNumber: 'PREF-008',
-    category: 'PREFERENCIAL',
-    priority: 'PREFERENCIAL',
-    patientName: 'De León, Carmen Rosa',
-    patientNationalId: '4-120-994',
-    patientGender: 'F',
-    patientAge: 73,
-    notes: 'Ley 42: Adulto Mayor. Control de diabetes y lípidos.',
-    status: 'ESPERANDO',
-    createdAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 5,
-    isFasting: true
-  },
-  {
-    id: 'tkt-003',
-    ticketNumber: 'PED-004',
-    category: 'PEDIATRIA',
-    priority: 'PREFERENCIAL',
-    patientName: 'Morales Abrego, Mateo (Bebé)',
-    patientNationalId: '8-1092-231',
-    patientGender: 'M',
-    patientAge: 3,
-    notes: 'Bebé de 3 años. Frotis y hemograma pediátrico.',
-    status: 'ESPERANDO',
-    createdAt: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 8,
-    isFasting: false
-  },
-  {
-    id: 'tkt-004',
-    ticketNumber: 'LAB-021',
-    category: 'GENERAL',
-    priority: 'NORMAL',
-    patientName: 'Castillo, Ricardo',
-    patientNationalId: '8-765-4321',
-    patientGender: 'M',
-    patientAge: 38,
-    notes: 'Chequeo general anual de laboratorio.',
-    status: 'ESPERANDO',
-    createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 12,
-    isFasting: true
-  },
-  {
-    id: 'tkt-005',
-    ticketNumber: 'ESP-002',
-    category: 'ESPECIALES',
-    priority: 'NORMAL',
-    patientName: 'Vega, Katherine',
-    patientNationalId: '8-890-1234',
-    patientGender: 'F',
-    patientAge: 29,
-    notes: 'Curva de Tolerancia a la Glucosa (75g) - 1ra toma.',
-    status: 'ESPERANDO',
-    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 15,
-    isFasting: true
-  },
-  {
-    id: 'tkt-006',
-    ticketNumber: 'LAB-020',
-    category: 'GENERAL',
-    priority: 'NORMAL',
-    patientName: 'Navarro, Javier',
-    patientNationalId: '8-912-3456',
-    patientGender: 'M',
-    patientAge: 42,
-    notes: 'Perfil lipídico y enzimas hepáticas.',
-    status: 'EN_ATENCION',
-    counterName: 'Módulo Flebotomía Box 1',
-    assignedStaff: 'Lic. Valentina Soto',
-    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    calledAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    attendedAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-    estimatedWaitMinutes: 0,
-    isFasting: true
-  }
-];
+const DEFAULT_INITIAL_TICKETS: QueueTicket[] = [];
 
 export const DEFAULT_RECEPTION_COUNTERS: ReceptionCounter[] = [
   {
@@ -274,11 +180,103 @@ export class TurnManagementService {
   private counters: ReceptionCounter[] = [];
   private listeners: Array<() => void> = [];
   private lastCalledTicket: QueueTicket | null = null;
+  private availableVoices: SpeechSynthesisVoice[] = [];
+  private broadcastChannel: BroadcastChannel | null = null;
 
   private constructor() {
     if (typeof window !== 'undefined') {
       this.loadState();
+      this.initVoices();
+      this.initBroadcastSync();
     }
+  }
+
+  private initBroadcastSync() {
+    if (typeof window === 'undefined') return;
+
+    try {
+      if ('BroadcastChannel' in window) {
+        this.broadcastChannel = new BroadcastChannel('lis_turns_channel');
+        this.broadcastChannel.onmessage = (event) => {
+          if (event.data?.type === 'SYNC') {
+            this.loadState();
+            this.listeners.forEach(l => l());
+          }
+        };
+      }
+    } catch {
+      // BroadcastChannel optional
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_TURNS_KEY || e.key === STORAGE_COUNTERS_KEY || e.key === STORAGE_LAST_CALLED_KEY) {
+        this.loadState();
+        this.listeners.forEach(l => l());
+      }
+    });
+  }
+
+  private initVoices() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const load = () => {
+        try {
+          this.availableVoices = window.speechSynthesis.getVoices();
+        } catch {
+          // ignore
+        }
+      };
+      load();
+      window.speechSynthesis.onvoiceschanged = load;
+    }
+  }
+
+  private getBestNaturalSpanishVoice(): SpeechSynthesisVoice | null {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = this.availableVoices.length > 0 ? this.availableVoices : window.speechSynthesis.getVoices();
+    const spanishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('es'));
+    if (spanishVoices.length === 0) return null;
+
+    // Filter out European Spain (es-ES / Spain / España) and marked accents (es-AR, es-CL) to maintain neutral Latin American / Panamanian Spanish
+    const isPeninsularOrMarked = (v: SpeechSynthesisVoice) => {
+      const l = v.lang.toLowerCase();
+      const n = v.name.toLowerCase();
+      return l === 'es-es' || n.includes('spain') || n.includes('españa') || l.includes('es-ar') || l.includes('es-cl') || n.includes('argentina') || n.includes('chile');
+    };
+
+    // 1. Explicit Panama voice (e.g. "Microsoft Salome Online (Natural) - Spanish (Panama)" in Windows/Edge)
+    const panamaVoice = spanishVoices.find(v => {
+      const l = v.lang.toLowerCase();
+      const n = v.name.toLowerCase();
+      return (l === 'es-pa' || l.includes('-pa') || n.includes('panama') || n.includes('panamá')) &&
+        (n.includes('natural') || n.includes('neural') || n.includes('online'));
+    }) || spanishVoices.find(v => v.lang.toLowerCase() === 'es-pa' || v.name.toLowerCase().includes('panama') || v.name.toLowerCase().includes('panamá'));
+
+    if (panamaVoice) return panamaVoice;
+
+    // 2. Neutral Latin American Natural/Neural voices (es-419, es-US, es-MX, es-CO e.g. Dalia/Jorge Natural, Google español de Estados Unidos)
+    const latamNatural = spanishVoices.find(v => {
+      if (isPeninsularOrMarked(v)) return false;
+      const n = v.name.toLowerCase();
+      return n.includes('natural') || n.includes('neural') || n.includes('online');
+    });
+    if (latamNatural) return latamNatural;
+
+    // 3. Google Latin American Cloud Voice (Chrome: "Google español de Estados Unidos" / es-419)
+    const googleLatam = spanishVoices.find(v => {
+      if (isPeninsularOrMarked(v)) return false;
+      const n = v.name.toLowerCase();
+      const l = v.lang.toLowerCase();
+      return n.includes('google') && (n.includes('estados unidos') || l === 'es-us' || l.includes('419') || n.includes('mexico') || n.includes('méxico'));
+    });
+    if (googleLatam) return googleLatam;
+
+    // 4. Any neutral Latin American non-desktop voice
+    const anyNeutralLatam = spanishVoices.find(v => !isPeninsularOrMarked(v) && !v.name.toLowerCase().includes('desktop'));
+    if (anyNeutralLatam) return anyNeutralLatam;
+
+    // 5. Fallback to any non-Spain voice
+    const fallbackNonSpain = spanishVoices.find(v => !isPeninsularOrMarked(v));
+    return fallbackNonSpain || spanishVoices[0];
   }
 
   public static getInstance(): TurnManagementService {
@@ -305,10 +303,18 @@ export class TurnManagementService {
         this.counters = DEFAULT_RECEPTION_COUNTERS;
         this.saveCounters();
       }
+
+      const storedLastCalled = localStorage.getItem(STORAGE_LAST_CALLED_KEY);
+      if (storedLastCalled) {
+        this.lastCalledTicket = JSON.parse(storedLastCalled);
+      } else {
+        this.lastCalledTicket = this.computeFallbackLastCalled();
+      }
     } catch (e) {
       console.warn('Error loading turn data, fallback to initial', e);
       this.tickets = DEFAULT_INITIAL_TICKETS;
       this.counters = DEFAULT_RECEPTION_COUNTERS;
+      this.lastCalledTicket = null;
     }
   }
 
@@ -332,6 +338,32 @@ export class TurnManagementService {
     }
   }
 
+  private saveLastCalled(ticket: QueueTicket | null) {
+    if (typeof window !== 'undefined') {
+      try {
+        if (ticket) {
+          localStorage.setItem(STORAGE_LAST_CALLED_KEY, JSON.stringify(ticket));
+        } else {
+          localStorage.removeItem(STORAGE_LAST_CALLED_KEY);
+        }
+      } catch (e) {
+        console.error('Failed to save last called ticket', e);
+      }
+    }
+  }
+
+  public computeFallbackLastCalled(): QueueTicket | null {
+    const calling = this.tickets.filter(t => t.status === 'LLAMANDO');
+    if (calling.length > 0) {
+      return [...calling].sort((a, b) => new Date(b.calledAt || b.createdAt).getTime() - new Date(a.calledAt || a.createdAt).getTime())[0];
+    }
+    const attending = this.tickets.filter(t => t.status === 'EN_ATENCION');
+    if (attending.length > 0) {
+      return [...attending].sort((a, b) => new Date(b.attendedAt || b.calledAt || b.createdAt).getTime() - new Date(a.attendedAt || a.calledAt || a.createdAt).getTime())[0];
+    }
+    return null;
+  }
+
   public subscribe(listener: () => void): () => void {
     this.listeners.push(listener);
     return () => {
@@ -343,6 +375,13 @@ export class TurnManagementService {
     this.listeners.forEach(l => l());
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('lis:turn-service-updated'));
+      try {
+        if (this.broadcastChannel) {
+          this.broadcastChannel.postMessage({ type: 'SYNC' });
+        }
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -354,8 +393,80 @@ export class TurnManagementService {
     return [...this.counters];
   }
 
+  public setCounterStatus(counterId: string, status: 'ACTIVA' | 'EN_PAUSA' | 'CERRADA'): ReceptionCounter | null {
+    const counter = this.counters.find(c => c.id === counterId);
+    if (!counter) return null;
+
+    counter.status = status;
+    this.saveCounters();
+    this.notify();
+    return counter;
+  }
+
+  public addCounter(name: string, type: ReceptionCounter['type'], assignedStaff?: string): ReceptionCounter {
+    const newCounter: ReceptionCounter = {
+      id: `cnt-${Date.now()}`,
+      name,
+      type,
+      assignedStaff: assignedStaff || 'Personal de Turno',
+      status: 'ACTIVA'
+    };
+    this.counters.push(newCounter);
+    this.saveCounters();
+    this.notify();
+    return newCounter;
+  }
+
+  public updateCounter(counterId: string, updates: Partial<ReceptionCounter>): ReceptionCounter | null {
+    const idx = this.counters.findIndex(c => c.id === counterId);
+    if (idx === -1) return null;
+
+    const oldName = this.counters[idx].name;
+    this.counters[idx] = { ...this.counters[idx], ...updates };
+
+    // If counter name changed, cascade update to active tickets and lastCalledTicket
+    if (updates.name && updates.name !== oldName) {
+      let ticketsUpdated = false;
+      this.tickets = this.tickets.map(t => {
+        if (t.counterName === oldName) {
+          ticketsUpdated = true;
+          return { ...t, counterName: updates.name };
+        }
+        return t;
+      });
+      if (ticketsUpdated) {
+        this.saveTickets();
+      }
+
+      if (this.lastCalledTicket && this.lastCalledTicket.counterName === oldName) {
+        this.lastCalledTicket = { ...this.lastCalledTicket, counterName: updates.name };
+        this.saveLastCalled(this.lastCalledTicket);
+      }
+    }
+
+    this.saveCounters();
+    this.notify();
+    return this.counters[idx];
+  }
+
+  public deleteCounter(counterId: string): boolean {
+    const idx = this.counters.findIndex(c => c.id === counterId);
+    if (idx === -1) return false;
+
+    this.counters = this.counters.filter(c => c.id !== counterId);
+    this.saveCounters();
+    this.notify();
+    return true;
+  }
+
   public getLastCalledTicket(): QueueTicket | null {
-    return this.lastCalledTicket;
+    if (this.lastCalledTicket) {
+      const existing = this.tickets.find(t => t.id === this.lastCalledTicket?.id);
+      if (existing) {
+        return existing;
+      }
+    }
+    return this.computeFallbackLastCalled();
   }
 
   /**
@@ -484,6 +595,7 @@ export class TurnManagementService {
 
     this.saveTickets();
     this.saveCounters();
+    this.saveLastCalled(this.lastCalledTicket);
     this.notify();
 
     // Trigger acoustic and voice announcement
@@ -500,16 +612,32 @@ export class TurnManagementService {
     if (!ticket) return null;
 
     const nowIso = new Date().toISOString();
+    const finalCounter = counterName || ticket.counterName || 'Ventanilla 1';
     const updatedTicket: QueueTicket = {
       ...ticket,
       status: 'LLAMANDO',
       calledAt: nowIso,
-      counterName: counterName || ticket.counterName || 'Ventanilla 1'
+      counterName: finalCounter
     };
 
     this.tickets = this.tickets.map(t => t.id === ticketId ? updatedTicket : t);
     this.lastCalledTicket = updatedTicket;
+
+    // Update counter current ticket
+    this.counters = this.counters.map(c => {
+      if (c.name === finalCounter) {
+        return {
+          ...c,
+          currentTicketId: updatedTicket.id,
+          currentTicketNumber: updatedTicket.ticketNumber
+        };
+      }
+      return c;
+    });
+
     this.saveTickets();
+    this.saveCounters();
+    this.saveLastCalled(updatedTicket);
     this.notify();
 
     this.playTurnAlert(updatedTicket);
@@ -524,16 +652,34 @@ export class TurnManagementService {
     if (!ticket) return null;
 
     const nowIso = new Date().toISOString();
+    const finalCounter = counterName || ticket.counterName || 'Ventanilla 1';
     const updatedTicket: QueueTicket = {
       ...ticket,
       status: 'EN_ATENCION',
       attendedAt: nowIso,
-      counterName: counterName || ticket.counterName || 'Ventanilla 1',
+      counterName: finalCounter,
       assignedStaff: staffName || ticket.assignedStaff || 'Recepción LIS'
     };
 
     this.tickets = this.tickets.map(t => t.id === ticketId ? updatedTicket : t);
+    this.lastCalledTicket = updatedTicket;
+
+    // Update counter current ticket
+    this.counters = this.counters.map(c => {
+      if (c.name === finalCounter) {
+        return {
+          ...c,
+          currentTicketId: updatedTicket.id,
+          currentTicketNumber: updatedTicket.ticketNumber,
+          assignedStaff: staffName || c.assignedStaff
+        };
+      }
+      return c;
+    });
+
     this.saveTickets();
+    this.saveCounters();
+    this.saveLastCalled(updatedTicket);
     this.notify();
     return updatedTicket;
   }
@@ -561,7 +707,7 @@ export class TurnManagementService {
   }
 
   /**
-   * Marks a ticket as No Show (Paciente ausente)
+   * Marks a ticket as No Show (Paciente ausente / se fue)
    */
   public markNoShow(ticketId: string): QueueTicket | null {
     const ticket = this.tickets.find(t => t.id === ticketId);
@@ -576,6 +722,84 @@ export class TurnManagementService {
     this.saveTickets();
     this.notify();
     return updatedTicket;
+  }
+
+  /**
+   * Re-queues a ticket back to waiting line (if patient returned from restroom/cafeteria)
+   */
+  public requeueTicket(ticketId: string): QueueTicket | null {
+    const ticket = this.tickets.find(t => t.id === ticketId);
+    if (!ticket) return null;
+
+    const updatedTicket: QueueTicket = {
+      ...ticket,
+      status: 'ESPERANDO',
+      calledAt: undefined,
+      attendedAt: undefined,
+      counterName: undefined
+    };
+
+    this.tickets = this.tickets.map(t => t.id === ticketId ? updatedTicket : t);
+    this.saveTickets();
+    this.notify();
+    return updatedTicket;
+  }
+
+  /**
+   * Translates ticket prefixes (URG, PREF, LAB, PED, ESP, ENT) to natural spoken Spanish words
+   * so the speech synthesizer says e.g. "Urgencia 3" instead of spelling "U - R - G"
+   */
+  private formatTicketForSpeech(ticketNumber: string): string {
+    const parts = ticketNumber.split('-');
+    const prefix = (parts[0] || '').toUpperCase();
+    const rawNum = parts[1] ? parseInt(parts[1], 10) : '';
+
+    let categorySpoken = '';
+    switch (prefix) {
+      case 'URG':
+        categorySpoken = 'Urgencia';
+        break;
+      case 'PREF':
+        categorySpoken = 'Preferencial';
+        break;
+      case 'PED':
+        categorySpoken = 'Pediatría';
+        break;
+      case 'LAB':
+        categorySpoken = 'Laboratorio';
+        break;
+      case 'ESP':
+        categorySpoken = 'Especiales';
+        break;
+      case 'ENT':
+        categorySpoken = 'Entrega de Resultados';
+        break;
+      default:
+        categorySpoken = prefix.toLowerCase();
+    }
+
+    const numSpoken = rawNum ? `${rawNum}` : '';
+    return `${categorySpoken} ${numSpoken}`.trim();
+  }
+
+  /**
+   * Formats counter/box names cleanly for speech without parentheses or confusing jargon
+   * e.g. "Ventanilla 1 (Admisión)" -> "Ventanilla 1"
+   * e.g. "Módulo Flebotomía Box 1" -> "Módulo 1 de Flebotomía"
+   */
+  private formatCounterForSpeech(counterName?: string): string {
+    if (!counterName) return 'Ventanilla de Atención';
+    let clean = counterName.trim();
+    // Remove parentheses e.g. (Admisión) -> Ventanilla 1
+    clean = clean.replace(/\s*\([^)]*\)/g, '').trim();
+    // Transform "Módulo Flebotomía Box 1" -> "Box 1 de Flebotomía"
+    if (clean.toLowerCase().includes('flebotom') && clean.toLowerCase().includes('box')) {
+      const matchBox = clean.match(/box\s*(\d+)/i);
+      if (matchBox) {
+        return `Box ${matchBox[1]} de Flebotomía`;
+      }
+    }
+    return clean || 'Ventanilla de Atención';
   }
 
   /**
@@ -617,15 +841,27 @@ export class TurnManagementService {
       // Audio might be constrained
     }
 
-    // 2. Synthesize voice announcement in Spanish
+    // 2. Synthesize voice announcement in natural Spanish
     try {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); // Cancel previous announcements
-        const text = `Turno ${ticket.ticketNumber.replace('-', ' ')}. Paciente ${ticket.patientName}, favor acudir a ${ticket.counterName || 'Ventanilla de Atención'}.`;
+        const spokenTicket = this.formatTicketForSpeech(ticket.ticketNumber);
+        const spokenCounter = this.formatCounterForSpeech(ticket.counterName);
+        const cleanPatient = (ticket.patientName || '').replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ' ').trim();
+        const text = `Atención por favor. Turno ${spokenTicket}. Paciente ${cleanPatient}, favor pasar a ${spokenCounter}.`;
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-PA';
-        utterance.rate = 0.95;
-        utterance.pitch = 1.05;
+        const bestNaturalVoice = this.getBestNaturalSpanishVoice();
+        if (bestNaturalVoice) {
+          utterance.voice = bestNaturalVoice;
+          utterance.lang = bestNaturalVoice.lang || 'es-PA';
+        } else {
+          utterance.lang = 'es-PA';
+        }
+
+        utterance.rate = 0.92; // Natural cadence, calm and clear
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
         window.speechSynthesis.speak(utterance);
       }
     } catch (e) {
@@ -633,9 +869,19 @@ export class TurnManagementService {
     }
   }
 
-  public resetDailyQueue() {
-    this.tickets = DEFAULT_INITIAL_TICKETS;
+  public clearAllTickets() {
+    this.tickets = [];
+    this.lastCalledTicket = null;
     this.saveTickets();
+    this.saveLastCalled(null);
+    this.notify();
+  }
+
+  public resetDailyQueue() {
+    this.tickets = [];
+    this.lastCalledTicket = null;
+    this.saveTickets();
+    this.saveLastCalled(null);
     this.notify();
   }
 }

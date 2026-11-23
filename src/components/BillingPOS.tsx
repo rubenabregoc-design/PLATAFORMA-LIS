@@ -261,32 +261,50 @@ export const BillingPOS: React.FC<BillingPOSProps> = ({
 
   const handleSendWhatsApp = async () => {
     if (!selectedOrder) return;
-    const patientPhone = selectedPatient?.phone || '+507 6366-8296';
-    const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
-    const finalPhone = cleanPhone.startsWith('507') ? cleanPhone : `507${cleanPhone}`;
+    let rawPhone = (selectedPatient?.phone || (selectedOrder as any).patientPhone || '').trim();
+    let digits = rawPhone.replace(/\D/g, '');
+    if (digits.length === 8) {
+      digits = `507${digits}`;
+    } else if (digits.length === 7) {
+      digits = `507${digits}`;
+    } else if (!digits.startsWith('507') && digits.length >= 8) {
+      digits = `507${digits}`;
+    }
+    if (!digits || digits === '507' || digits.length < 10) {
+      const entered = window.prompt(
+        'Por favor ingrese el número de WhatsApp del paciente (ej: 6900-1122):',
+        rawPhone || '6'
+      );
+      if (!entered) return;
+      digits = entered.replace(/\D/g, '');
+      if (digits.length === 8) digits = `507${digits}`;
+    }
+    const finalPhone = digits;
 
     const invNum = issuedInvoice?.invoiceNumber || `FAC-001-${selectedOrder.orderNumber.slice(-4)}`;
-    const portalUrl = `https://${window.location.host}/portal/resultados?order=${encodeURIComponent(selectedOrder.orderNumber)}`;
+    const portalHost = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'https://www.plataforma-lis.com'
+      : window.location.origin;
+    const portalUrl = `${portalHost}/portal/resultados?order=${encodeURIComponent(selectedOrder.orderNumber)}`;
 
     const message = 
-`🏥 *${tenant.name.toUpperCase()}*
-📋 *Comprobante de Facturación Electrónica DGI*
+`*${tenant.name.toUpperCase()}*
+*Comprobante de Facturación Electrónica DGI*
 
 Estimado(a) *${selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : selectedOrder.patientName}*,
 Le confirmamos el registro de su orden médica y emisión fiscal:
 
-🔖 *Orden LIS:* ${selectedOrder.orderNumber}
-🧾 *Factura DGI:* ${invNum}
-${issuedInvoice ? `🔐 *CUFE:* ${issuedInvoice.cufe}\n` : ''}
-💰 *Total Pagado:* $${patientPayAmount.toFixed(2)} USD
-${paymentMethod === 'ASEGURADORA' ? `🛡️ *Aseguradora:* ${insuranceName} (Copago ${copayPercent}%)\n` : ''}${isJubiladoLey6 ? `👵 *Beneficio:* Descuento Ley 6 (20% Jubilados) aplicado\n` : ''}
-🧪 *Procedimientos Solicitados:*
+*Orden LIS:* ${selectedOrder.orderNumber}
+*Factura DGI:* ${invNum}
+${issuedInvoice ? `*CUFE:* ${issuedInvoice.cufe}\n` : ''}*Total Pagado:* $${patientPayAmount.toFixed(2)} USD
+${paymentMethod === 'ASEGURADORA' ? `*Aseguradora:* ${insuranceName} (Copago ${copayPercent}%)\n` : ''}${isJubiladoLey6 ? `*Beneficio:* Descuento Ley 6 (20% Jubilados) aplicado\n` : ''}
+*Procedimientos Solicitados:*
 ${orderTests.map(t => `• ${t.name}`).join('\n') || (activeCombo ? `• ${activeCombo.name}` : '• Análisis Clínicos de Laboratorio')}
 
-📲 *Consulte sus Resultados en Línea:*
+*Consulte sus Resultados en Línea:*
 ${portalUrl}
 
-_Recibirá una notificación automática cuando sus resultados hayan sido validados por el Tecnólogo Médico._ 🩺`;
+_Recibirá una notificación automática cuando sus resultados hayan sido validados por el Tecnólogo Médico._`;
 
     try {
       await NotificationService.sendWhatsApp(finalPhone, message, 'FACTURA_Y_ORDEN_LIS');
@@ -294,7 +312,7 @@ _Recibirá una notificación automática cuando sus resultados hayan sido valida
       console.warn('Registro local de WhatsApp guardado.');
     }
 
-    const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
 
     setWhatsAppSent(true);

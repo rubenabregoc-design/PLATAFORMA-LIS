@@ -2,10 +2,11 @@
 ' AbregoTech LISCORE — Lanzador Silencioso en Segundo Plano (Zero Black Screens)
 ' ==============================================================================
 ' Este script arranca todos los motores del sistema en segundo plano seguro:
-' 1. Motor de Base de Datos PostgREST (Puerto 8000)
-' 2. Middleware de Analizadores ACE Daemon (Puerto 5100)
-' 3. Enrutador de Portales Dedicados (Puertos 3001, 3002, 3003)
-' 4. Servidor Clínico LISCORE (Puerto 3000)
+' 1. Motor de Base de Datos PostgreSQL 16 (Puerto 5432)
+' 2. API REST PostgREST Local (Puerto 8000) con ejecutable local bin\postgrest.exe
+' 3. Middleware Bridge ASTM E1381 / HL7 v2.x TCP (Puertos 5101-5109 y WebSocket :8765)
+' 4. Enrutador de Portales Dedicados (Puertos 3001, 3002, 3003)
+' 5. Servidor Clínico LISCORE (Puerto 3000)
 ' Todos los procesos corren con WindowStyle = 0 (vbHide / 100% Invisible).
 ' ==============================================================================
 
@@ -19,9 +20,25 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 projectDir = fso.GetParentFolderName(scriptDir)
 
-' 1. Iniciar Base de Datos PostgreSQL / PostgREST (Modo 0 = Invisible)
+' Configurar PATH para que postgrest y los servicios siempre encuentren LIBPQ.dll y utilidades de PostgreSQL
+Dim envProcess
+Set envProcess = WshShell.Environment("PROCESS")
+envProcess("PATH") = projectDir & "\bin;C:\Users\Usuario\pgsql\bin;" & envProcess("PATH")
+
+' 1. Iniciar Base de Datos PostgreSQL 16 (Puerto 5432)
+Dim pgCtlExe, pgDataDir
+pgCtlExe = "C:\Users\Usuario\pgsql\bin\pg_ctl.exe"
+pgDataDir = "C:\Users\Usuario\pgsql\data"
+If fso.FileExists(pgCtlExe) And fso.FolderExists(pgDataDir) Then
+    WshShell.Run """" & pgCtlExe & """ start -D """ & pgDataDir & """ -w", 0, True
+End If
+
+' 2. Iniciar API REST PostgREST (Puerto 8000) usando bin local
 Dim postgrestExe
-postgrestExe = "C:\Users\Usuario\pgsql\bin\postgrest.exe"
+postgrestExe = projectDir & "\bin\postgrest.exe"
+If Not fso.FileExists(postgrestExe) Then
+    postgrestExe = "C:\Users\Usuario\pgsql\bin\postgrest.exe"
+End If
 If fso.FileExists(postgrestExe) Then
     WshShell.CurrentDirectory = projectDir
     WshShell.Run """" & postgrestExe & """ postgrest.conf", 0, False
@@ -29,19 +46,15 @@ End If
 
 WScript.Sleep 1000
 
-' 2. Iniciar Middleware ACE Daemon para Analizadores Clínicos (Puerto 5100)
-Dim aceDir
-aceDir = projectDir & "\ace-daemon"
-If fso.FolderExists(aceDir) Then
-    WshShell.CurrentDirectory = aceDir
-    WshShell.Run "cmd /c npm start", 0, False
-End If
+' 3. Iniciar Middleware Bridge de Analizadores Clínicos (ASTM / HL7 / TCP / WebSocket :8765)
+WshShell.CurrentDirectory = projectDir
+WshShell.Run "node server\middleware-bridge.js", 0, False
 
-' 3. Iniciar Enrutador de Portales Dedicados (Puertos 3001, 3002, 3003)
+' 4. Iniciar Enrutador de Portales Dedicados (Puertos 3001, 3002, 3003)
 WshShell.CurrentDirectory = projectDir
 WshShell.Run "node server\portal-proxy.js", 0, False
 
-' 4. Iniciar Servidor Web LISCORE Principal (Puerto 3000)
+' 5. Iniciar Servidor Web LISCORE Principal (Puerto 3000)
 WshShell.CurrentDirectory = projectDir
 WshShell.Run "cmd /c npm run dev -- --host", 0, False
 

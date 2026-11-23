@@ -192,6 +192,24 @@ const MOCK_STAFF: StaffMember[] = [
   }
 ];
 
+export const formatTo12Hour = (timeStr?: string): string => {
+  if (!timeStr || timeStr === '-') return timeStr || '';
+  const clean = timeStr.trim();
+  if (clean === '24:00' || clean === '00:00') return '12:00 AM';
+  if (clean.toUpperCase().includes('AM') || clean.toUpperCase().includes('PM')) {
+    return clean;
+  }
+  const parts = clean.split(':');
+  if (parts.length < 2) return clean;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return clean;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
 // Generate Initial Mock Shifts for August 2026
 const generateInitialShifts = (): WorkShift[] => {
   const shifts: WorkShift[] = [];
@@ -204,7 +222,7 @@ const generateInitialShifts = (): WorkShift[] => {
     const dateFormatted = `${year}-08-${dayStr}`;
     const dayOfWeek = new Date(year, month - 1, day).getDay(); // 0 = Sunday, 6 = Saturday
 
-    // Sede Vía España Morning Shift (07:00 - 15:00)
+    // Sede Vía España Morning Shift (7:00 AM - 3:00 PM)
     shifts.push({
       id: `sh-${day}-1`,
       staffId: day % 2 === 0 ? 'st-02' : 'st-03',
@@ -215,16 +233,16 @@ const generateInitialShifts = (): WorkShift[] => {
       branchName: 'Sede Vía España',
       date: dateFormatted,
       shiftType: 'MANANA',
-      shiftTypeName: 'Mañana (07:00 - 15:00)',
-      startTime: '07:00',
-      endTime: '15:00',
+      shiftTypeName: 'Mañana (7:00 AM - 3:00 PM)',
+      startTime: '7:00 AM',
+      endTime: '3:00 PM',
       section: 'Hematología & Química',
       status: 'CONFIRMADO',
       assignedBy: 'Dra. María Elena Abrego',
       assignedAt: '2026-07-28 09:00'
     });
 
-    // Sede Vía España Evening Shift (15:00 - 23:00)
+    // Sede Vía España Evening Shift (3:00 PM - 11:00 PM)
     if (dayOfWeek !== 0) { // Not Sunday
       shifts.push({
         id: `sh-${day}-2`,
@@ -236,9 +254,9 @@ const generateInitialShifts = (): WorkShift[] => {
         branchName: 'Sede Vía España',
         date: dateFormatted,
         shiftType: 'TARDE',
-        shiftTypeName: 'Tarde (15:00 - 23:00)',
-        startTime: '15:00',
-        endTime: '23:00',
+        shiftTypeName: 'Tarde (3:00 PM - 11:00 PM)',
+        startTime: '3:00 PM',
+        endTime: '11:00 PM',
         section: 'Procesamiento General',
         status: 'CONFIRMADO',
         assignedBy: 'Dra. María Elena Abrego',
@@ -246,7 +264,7 @@ const generateInitialShifts = (): WorkShift[] => {
       });
     }
 
-    // Sede Chiriquí Morning Shift (07:00 - 15:00)
+    // Sede Chiriquí Morning Shift (7:00 AM - 3:00 PM)
     shifts.push({
       id: `sh-${day}-3`,
       staffId: day % 2 === 0 ? 'st-04' : 'st-05',
@@ -257,9 +275,9 @@ const generateInitialShifts = (): WorkShift[] => {
       branchName: 'Sede Chiriquí (David)',
       date: dateFormatted,
       shiftType: 'MANANA',
-      shiftTypeName: 'Mañana (07:00 - 15:00)',
-      startTime: '07:00',
-      endTime: '15:00',
+      shiftTypeName: 'Mañana (7:00 AM - 3:00 PM)',
+      startTime: '7:00 AM',
+      endTime: '3:00 PM',
       section: 'Laboratorio Integral Chiriquí',
       status: 'CONFIRMADO',
       assignedBy: 'Dra. María Elena Abrego',
@@ -278,9 +296,9 @@ const generateInitialShifts = (): WorkShift[] => {
         branchName: 'Sede Vía España',
         date: dateFormatted,
         shiftType: 'NOCHE',
-        shiftTypeName: 'Noche / Guardia (23:00 - 07:00)',
-        startTime: '23:00',
-        endTime: '07:00',
+        shiftTypeName: 'Noche / Guardia (11:00 PM - 7:00 AM)',
+        startTime: '11:00 PM',
+        endTime: '7:00 AM',
         section: 'Guardia de Urgencias 24h',
         status: 'CONFIRMADO',
         notes: 'Disponibilidad prioritaria para Banco de Sangre y Troponinas Urgencia',
@@ -300,9 +318,9 @@ const generateInitialShifts = (): WorkShift[] => {
         branchName: 'Sede Vía España',
         date: dateFormatted,
         shiftType: 'MANANA',
-        shiftTypeName: 'Mañana (07:00 - 15:00)',
-        startTime: '07:00',
-        endTime: '15:00',
+        shiftTypeName: 'Mañana (7:00 AM - 3:00 PM)',
+        startTime: '7:00 AM',
+        endTime: '3:00 PM',
         section: 'Recepción & Caja',
         status: 'CONFIRMADO',
         assignedBy: 'Dra. María Elena Abrego',
@@ -318,9 +336,9 @@ const generateInitialShifts = (): WorkShift[] => {
         branchName: 'Sede Vía España',
         date: dateFormatted,
         shiftType: 'MANANA',
-        shiftTypeName: 'Mañana (07:00 - 15:00)',
-        startTime: '07:00',
-        endTime: '15:00',
+        shiftTypeName: 'Mañana (7:00 AM - 3:00 PM)',
+        startTime: '7:00 AM',
+        endTime: '3:00 PM',
         section: 'Toma de Muestras & Centrifugación',
         status: 'CONFIRMADO',
         assignedBy: 'Dra. María Elena Abrego',
@@ -487,6 +505,14 @@ export const ShiftManagementModule: React.FC = () => {
     setIsShiftModalOpen(true);
   };
 
+  const showNotification = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: { message, type }
+      })
+    );
+  };
+
   // Save Shift (Create or Update)
   const handleSaveShift = (e: React.FormEvent) => {
     e.preventDefault();
@@ -499,10 +525,10 @@ export const ShiftManagementModule: React.FC = () => {
     };
 
     const shiftTypeDetails = {
-      'MANANA': { name: 'Mañana (07:00 - 15:00)', start: '07:00', end: '15:00' },
-      'TARDE': { name: 'Tarde (15:00 - 23:00)', start: '15:00', end: '23:00' },
-      'NOCHE': { name: 'Noche / Guardia (23:00 - 07:00)', start: '23:00', end: '07:00' },
-      'ON_CALL': { name: 'Guardia Pasiva / Sobre-Llamado', start: '00:00', end: '24:00' },
+      'MANANA': { name: 'Mañana (7:00 AM - 3:00 PM)', start: '7:00 AM', end: '3:00 PM' },
+      'TARDE': { name: 'Tarde (3:00 PM - 11:00 PM)', start: '3:00 PM', end: '11:00 PM' },
+      'NOCHE': { name: 'Noche / Guardia (11:00 PM - 7:00 AM)', start: '11:00 PM', end: '7:00 AM' },
+      'ON_CALL': { name: 'Guardia Pasiva / Sobre-Llamado (24h)', start: '12:00 AM', end: '11:59 PM' },
       'DESCANSO': { name: 'Descanso / Vacaciones', start: '-', end: '-' }
     };
 
@@ -531,7 +557,7 @@ export const ShiftManagementModule: React.FC = () => {
         }
         return s;
       }));
-      alert('¡Turno de trabajo actualizado con éxito!');
+      showNotification('✅ ¡Turno de trabajo actualizado con éxito!');
     } else {
       // Create new
       const newShift: WorkShift = {
@@ -555,7 +581,7 @@ export const ShiftManagementModule: React.FC = () => {
       };
 
       setShifts(prev => [newShift, ...prev]);
-      alert('¡Nuevo turno de trabajo asignado en el Roster!');
+      showNotification('✅ ¡Nuevo turno de trabajo asignado en el Roster!');
     }
 
     setIsShiftModalOpen(false);
@@ -566,6 +592,7 @@ export const ShiftManagementModule: React.FC = () => {
     if (confirm('¿Está seguro de eliminar esta asignación de turno?')) {
       setShifts(prev => prev.filter(s => s.id !== shiftId));
       setIsShiftModalOpen(false);
+      showNotification('🗑️ Turno eliminado del calendario', 'info');
     }
   };
 
@@ -591,7 +618,7 @@ export const ShiftManagementModule: React.FC = () => {
       return s;
     }));
 
-    alert(`¡Intercambio de turno registrado exitosamente con ${staff2.name}! Auditoría actualizada.`);
+    showNotification(`🔄 ¡Intercambio de guardia registrado exitosamente con ${staff2.name}! Auditoría actualizada.`);
     setIsSwapModalOpen(false);
   };
 
@@ -691,7 +718,7 @@ export const ShiftManagementModule: React.FC = () => {
             </button>
 
             <button
-              onClick={() => alert('Generando reporte Roster Mensual en formato PDF/Excel para inspección de calidad e idoneidad MINSA...')}
+              onClick={() => showNotification('📄 Generando reporte Roster Mensual en formato PDF/Excel para MINSA...', 'info')}
               className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold p-3 rounded-2xl text-xs transition shadow cursor-pointer"
               title="Exportar Roster Auditable"
             >
@@ -925,7 +952,7 @@ export const ShiftManagementModule: React.FC = () => {
               return (
                 <div
                   key={fullDateStr}
-                  className={`border rounded-2xl p-2.5 min-h-[150px] flex flex-col justify-between transition group hover:border-teal-500/50 ${
+                  className={`border rounded-2xl p-2.5 min-h-[180px] flex flex-col justify-between transition group hover:border-teal-500/50 ${
                     isToday
                       ? 'bg-slate-900 border-teal-500/80 ring-2 ring-teal-500/20'
                       : 'bg-slate-950/80 border-slate-800'
@@ -956,7 +983,13 @@ export const ShiftManagementModule: React.FC = () => {
                   </div>
 
                   {/* Cell Content: Shift Badges */}
-                  <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[110px] scrollbar-none">
+                  <div
+                    className="space-y-1.5 flex-1 overflow-y-auto max-h-[140px] pr-1"
+                    style={{
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#0d9488 #1e293b'
+                    }}
+                  >
                     {dayShifts.length === 0 ? (
                       <div className="text-[10px] text-slate-600 italic text-center py-4">
                         Sin turnos
@@ -966,15 +999,15 @@ export const ShiftManagementModule: React.FC = () => {
                         <div
                           key={shift.id}
                           onClick={() => handleOpenEditShiftModal(shift)}
-                          className={`p-1.5 rounded-xl border text-[10px] font-bold transition cursor-pointer flex flex-col space-y-0.5 ${getShiftBadgeStyle(shift.shiftType)}`}
+                          className={`p-1.5 rounded-xl border text-[10px] font-bold transition cursor-pointer flex flex-col space-y-0.5 hover:brightness-110 ${getShiftBadgeStyle(shift.shiftType)}`}
                         >
                           <div className="flex items-center justify-between gap-1">
                             <span className="truncate text-slate-100 font-extrabold flex items-center space-x-1">
                               {getShiftIcon(shift.shiftType)}
                               <span className="truncate">{shift.staffName.split(' ')[1] || shift.staffName}</span>
                             </span>
-                            <span className="text-[8px] font-mono opacity-80 shrink-0">
-                              {shift.startTime}
+                            <span className="text-[9px] font-mono font-bold text-teal-300 shrink-0">
+                              {formatTo12Hour(shift.startTime)}
                             </span>
                           </div>
 
@@ -1117,7 +1150,7 @@ export const ShiftManagementModule: React.FC = () => {
                 staffRole: backupStaff.roleTitle,
                 notes: `Reemplazo On-Call por ausencia de marcaje del titular.`
               } : s));
-              alert(`¡Reemplazo On-Call asignado a ${backupStaff.name}!`);
+              showNotification(`⚡ ¡Reemplazo On-Call asignado a ${backupStaff.name}!`);
             }
           }}
         />
@@ -1192,10 +1225,10 @@ export const ShiftManagementModule: React.FC = () => {
                     onChange={(e) => setFormShiftType(e.target.value as any)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 font-bold focus:ring-2 focus:ring-teal-500 cursor-pointer"
                   >
-                    <option value="MANANA">☀️ Mañana (07:00 - 15:00)</option>
-                    <option value="TARDE">🌆 Tarde (15:00 - 23:00)</option>
-                    <option value="NOCHE">🌙 Noche / Guardia (23:00 - 07:00)</option>
-                    <option value="ON_CALL">⚡ Guardia Pasiva (On-Call)</option>
+                    <option value="MANANA">☀️ Mañana (7:00 AM - 3:00 PM)</option>
+                    <option value="TARDE">🌆 Tarde (3:00 PM - 11:00 PM)</option>
+                    <option value="NOCHE">🌙 Noche / Guardia (11:00 PM - 7:00 AM)</option>
+                    <option value="ON_CALL">⚡ Guardia Pasiva / Sobre-Llamado (24h)</option>
                     <option value="DESCANSO">🏖️ Descanso / Vacaciones</option>
                   </select>
                 </div>

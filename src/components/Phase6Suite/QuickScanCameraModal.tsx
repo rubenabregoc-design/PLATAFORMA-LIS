@@ -42,7 +42,7 @@ export const QuickScanCameraModal: React.FC<QuickScanCameraModalProps> = ({
   onClose,
   onScanSuccess,
   sampleCatalogHints = [
-    { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Ríos, Gonzalo A.', test: 'Troponina I + CK-MB STAT' },
+    { barcode: 'BAR-CARD-01', label: 'Tubo Li-Heparina 4mL', patientName: 'Juan Carlos Samudio González', test: 'Troponina I + CK-MB STAT' },
     { barcode: 'BAR-GAS-02', label: 'Jeringa Heparinizada 2mL', patientName: 'Morales, Valeria M.', test: 'Gasometría Arterial STAT' },
     { barcode: 'BAR-COAG-03', label: 'Tubo Citrato 3.2% 2.7mL', patientName: 'Castillo, Manuel E.', test: 'TTPa + TP / INR Quirúrgico' },
     { barcode: 'BAR-HEM-04', label: 'Tubo EDTA K2 3mL', patientName: 'Vega, Lucía S.', test: 'Hemograma Completo STAT' },

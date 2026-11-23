@@ -695,43 +695,66 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* Formulario de Inicio de Sesión */}
         <form onSubmit={handleAuthenticate} className="space-y-2.5" noValidate>
 
-          {/* 1. Sede Hospitalaria / Laboratorio */}
-          <div className="space-y-0.5">
-            <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
-              <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>{language === 'EN' ? 'Clinical Facility / Site' : 'Sede / Centro Clínico'}</span>
-            </label>
+          {/* 1. Sede Hospitalaria / Laboratorio (Aislado por Organización) */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
+                <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>{language === 'EN' ? 'Branch / Clinical Site' : 'Sede / Centro Clínico'}</span>
+              </label>
+              <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30 truncate max-w-[200px]" title={currentTenant.name}>
+                {currentTenant.name}
+              </span>
+            </div>
+
             <select
-              value={`${selectedTenantId}:::${selectedBranchId}`}
-              onChange={(e) => {
-                const [tId, bId] = e.target.value.split(':::');
-                setSelectedTenantId(tId);
-                setSelectedBranchId(bId);
-              }}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
               className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 cursor-pointer shadow-inner"
             >
-              {allTenants.map((t) => (
-                <optgroup key={t.id} label={`${t.name} (${t.plan || 'Pro'})`} className="bg-slate-900 text-cyan-300 font-black">
-                  {t.branches.map((b) => {
-                    const translatedBranch = language === 'EN'
-                      ? b.name
-                          .replace('Sede Vía España', 'Via España Branch')
-                          .replace('Sede Chiriquí (David)', 'Chiriquí Branch (David)')
-                          .replace('Sede Principal', 'Main Branch')
-                      : b.name;
-                    return (
-                      <option
-                        key={b.id}
-                        value={`${t.id}:::${b.id}`}
-                        className="bg-slate-900 text-white py-1 font-medium"
-                      >
-                        {translatedBranch} — {b.code ? `[${b.code}]` : ''} {b.address ? `• ${b.address}` : ''}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-              ))}
+              {availableBranches.map((b) => {
+                const translatedBranch = language === 'EN'
+                  ? b.name
+                      .replace('Sede Vía España', 'Via España Branch')
+                      .replace('Sede Chiriquí (David)', 'Chiriquí Branch (David)')
+                      .replace('Sede Principal', 'Main Branch')
+                  : b.name;
+                return (
+                  <option
+                    key={b.id}
+                    value={b.id}
+                    className="bg-slate-900 text-white py-1 font-medium"
+                  >
+                    {translatedBranch} — {b.code ? `[${b.code}]` : ''} {b.address ? `• ${b.address}` : ''}
+                  </option>
+                );
+              })}
             </select>
+
+            {/* Selector de Organización / Laboratorio Clínico (Solo si existen múltiples clientes en el servidor) */}
+            {allTenants.length > 1 && (
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                <span>{language === 'EN' ? 'Organization:' : 'Laboratorio Activo:'}</span>
+                <select
+                  value={selectedTenantId}
+                  onChange={(e) => {
+                    const newTenantId = e.target.value;
+                    setSelectedTenantId(newTenantId);
+                    const newTenant = allTenants.find(t => t.id === newTenantId);
+                    if (newTenant && newTenant.branches.length > 0) {
+                      setSelectedBranchId(newTenant.branches[0].id);
+                    }
+                  }}
+                  className="bg-transparent text-cyan-400 font-bold border-b border-cyan-500/40 focus:outline-none cursor-pointer py-0.5"
+                >
+                  {allTenants.map(t => (
+                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* 2. Usuario / Identificador */}

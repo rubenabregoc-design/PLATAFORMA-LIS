@@ -371,15 +371,9 @@ const BloodBankCenter: React.FC = () => {
       )}
 
       {showTransfusionEvolution && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-slate-950 rounded-3xl w-full max-w-7xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 border border-slate-800 shadow-2xl relative">
-            <button
-              onClick={() => setShowTransfusionEvolution(false)}
-              className="absolute top-6 right-6 z-10 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 cursor-pointer font-bold text-xs"
-            >
-              ✕ Cerrar Flujo
-            </button>
-            <TransfusionEvolutionManager />
+            <TransfusionEvolutionManager onClose={() => setShowTransfusionEvolution(false)} />
           </div>
         </div>
       )}

@@ -171,7 +171,7 @@ async function run() {
         makeAstmFrame(6, 'R|3|^^^PLT|245|10^3/uL|150-450|N||F'),
         makeAstmFrame(7, 'L|1|N')
       ];
-      await simulateAstmAnalyzer('Sysmex XN-1000', 5100, frames);
+      await simulateAstmAnalyzer('Sysmex XN-1000', 5109, frames);
     }
 
     if (arg === 'cobas' || arg === 'all') {

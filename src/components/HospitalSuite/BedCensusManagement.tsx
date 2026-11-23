@@ -10,7 +10,8 @@ import {
   FileText,
   UserPlus,
   Search,
-  Sparkles,
+  SprayCan,
+  Wrench,
   ShieldCheck,
   Clock,
   Layers,
@@ -69,15 +70,41 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
 
   const handleConfirmTransfer = () => {
     if (!transferModalBed || !targetTransferBedId || !transferModalBed.admissionId) return;
+    const targetBed = beds.find((b) => b.id === targetTransferBedId);
+    const patientName = transferModalBed.currentPatientName || 'Paciente';
+    const oldBedNum = transferModalBed.bedNumber;
+    const newBedNum = targetBed?.bedNumber || 'nueva cama';
+
     transferPatientBed(transferModalBed.admissionId, transferModalBed.id, targetTransferBedId);
-    alert(`Paciente trasladado exitosamente a la cama seleccionada.`);
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Traslado Hospitalario Exitoso',
+          message: `${patientName} trasladado con éxito de Cama ${oldBedNum} a Cama ${newBedNum}.`,
+          type: 'success'
+        }
+      })
+    );
     setTransferModalBed(null);
   };
 
   const handleConfirmDischarge = () => {
     if (!dischargeModalBed || !dischargeModalBed.admissionId) return;
+    const patientName = dischargeModalBed.currentPatientName || 'Paciente';
+    const bedNum = dischargeModalBed.bedNumber;
+
     dischargePatient(dischargeModalBed.admissionId, dischargeModalBed.id);
-    alert(`Alta hospitalaria registrada para ${dischargeModalBed.currentPatientName}. Cama pasa a desinfección.`);
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Alta Hospitalaria Registrada',
+          message: `Alta médica completada para ${patientName}. Cama ${bedNum} pasa a protocolo de desinfección.`,
+          type: 'success'
+        }
+      })
+    );
     setDischargeModalBed(null);
   };
 
@@ -99,7 +126,7 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
       case 'DESINFECCION':
         return { label: 'En Desinfección', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30' };
       case 'MANTENIMIENTO':
-        return { label: 'Mantenimiento', color: 'bg-slate-700/60 text-slate-300 border-slate-600' };
+        return { label: 'En Mantenimiento', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30' };
     }
   };
 
@@ -247,9 +274,19 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
                   </div>
                 ) : bed.status === 'DESINFECCION' ? (
                   <div className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-3 text-center mb-3">
-                    <Sparkles className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+                    <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-1.5 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                      <SprayCan className="w-4 h-4 text-amber-400" />
+                    </div>
                     <span className="text-[11px] font-bold text-amber-300 block">Protocolo de Limpieza</span>
                     <span className="text-[9px] text-slate-400">Desinfección terminal en curso</span>
+                  </div>
+                ) : bed.status === 'MANTENIMIENTO' ? (
+                  <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-3 text-center mb-3">
+                    <div className="w-8 h-8 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center mx-auto mb-1.5 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+                      <Wrench className="w-4 h-4 text-rose-400" />
+                    </div>
+                    <span className="text-[11px] font-bold text-rose-300 block">En Mantenimiento Técnico</span>
+                    <span className="text-[9px] text-slate-400">Reparación / Calibración de electromedicina</span>
                   </div>
                 ) : (
                   <div className="bg-slate-950/40 border border-slate-800/50 rounded-2xl p-4 text-center mb-3">
@@ -289,20 +326,121 @@ export const BedCensusManagement: React.FC<BedCensusProps> = ({ onNavigateToEhr 
                     </button>
                   </div>
                 ) : bed.status === 'DESINFECCION' ? (
-                  <button
-                    onClick={() => setBedStatus(bed.id, 'DISPONIBLE')}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/20"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Liberar / Cama Desinfectada</span>
-                  </button>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        setBedStatus(bed.id, 'DISPONIBLE');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Desinfección Completada',
+                              message: `Cama ${bed.bedNumber} desinfectada y lista para nuevo ingreso.`,
+                              type: 'success'
+                            }
+                          })
+                        );
+                      }}
+                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/20"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Liberar / Cama Desinfectada</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBedStatus(bed.id, 'MANTENIMIENTO');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Cama a Mantenimiento',
+                              message: `Cama ${bed.bedNumber} enviada a revisión técnica.`,
+                              type: 'warning'
+                            }
+                          })
+                        );
+                      }}
+                      className="py-2 px-3 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center"
+                      title="Enviar a Mantenimiento Técnico"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : bed.status === 'MANTENIMIENTO' ? (
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        setBedStatus(bed.id, 'DISPONIBLE');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Mantenimiento Finalizado',
+                              message: `Cama ${bed.bedNumber} reparada y habilitada como DISPONIBLE.`,
+                              type: 'success'
+                            }
+                          })
+                        );
+                      }}
+                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-1 shadow-md shadow-emerald-600/20"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Finalizar Mantenimiento</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBedStatus(bed.id, 'DESINFECCION');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Pase a Desinfección',
+                              message: `Cama ${bed.bedNumber} enviada a protocolo de desinfección.`,
+                              type: 'info'
+                            }
+                          })
+                        );
+                      }}
+                      className="py-2 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center"
+                      title="Enviar a Desinfección Terminal"
+                    >
+                      <SprayCan className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex gap-1.5">
                     <button
-                      onClick={() => setBedStatus(bed.id, 'MANTENIMIENTO')}
-                      className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-[10px] font-bold transition cursor-pointer"
+                      onClick={() => {
+                        setBedStatus(bed.id, 'MANTENIMIENTO');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Cama en Mantenimiento',
+                              message: `Cama ${bed.bedNumber} puesta fuera de servicio por mantenimiento técnico.`,
+                              type: 'warning'
+                            }
+                          })
+                        );
+                      }}
+                      className="flex-1 py-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/50 hover:border-rose-500/30 rounded-xl text-[10px] font-bold transition cursor-pointer flex items-center justify-center space-x-1"
                     >
-                      Mantenimiento
+                      <Wrench className="w-3 h-3" />
+                      <span>Mantenimiento</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setBedStatus(bed.id, 'DESINFECCION');
+                        window.dispatchEvent(
+                          new CustomEvent('lis-global-toast', {
+                            detail: {
+                              title: 'Cama en Desinfección',
+                              message: `Cama ${bed.bedNumber} enviada a desinfección preventiva.`,
+                              type: 'info'
+                            }
+                          })
+                        );
+                      }}
+                      className="py-1.5 px-3 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 border border-slate-700/50 hover:border-amber-500/30 rounded-xl text-[10px] font-bold transition cursor-pointer flex items-center justify-center space-x-1"
+                      title="Enviar a desinfección preventiva"
+                    >
+                      <SprayCan className="w-3 h-3" />
+                      <span>Limpieza</span>
                     </button>
                   </div>
                 )}

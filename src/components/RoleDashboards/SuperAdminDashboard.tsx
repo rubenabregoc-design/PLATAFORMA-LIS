@@ -17,8 +17,9 @@ import {
 import React, { useState, useEffect, useMemo } from 'react';
 import { Tenant, Analyzer, MiddlewareMessageLog, User, Role, Branch } from '../../types';
 import { useLisStore } from '../../store/useLisStore';
-import { MOCK_USERS, MOCK_TEST_CATALOG } from '../../data/mockData';
+import { MOCK_USERS, MOCK_TEST_CATALOG, MOCK_TENANTS } from '../../data/mockData';
 import { validateEthicalPin, generateSecurePin } from '../../utils/securityHarden';
+import { uploadUserSignature } from '../../utils/signatureStorage';
 import {
   Shield, Building2, Cpu, Activity, Plus, Server, CheckCircle2,
   AlertTriangle, Layers, Award, Globe, ExternalLink, Copy, Check, QrCode,
@@ -1028,12 +1029,17 @@ const DEFAULT_BLOOD_FREEZERS: BloodIotFreezer[] = [
 ];
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
-  tenants,
+  tenants: propTenants,
   analyzers,
   logs,
   onProvisionTenant,
   onUpdateTenants
 }) => {
+  const tenants = useMemo(() => {
+    if (Array.isArray(propTenants) && propTenants.length > 0) return propTenants;
+    return MOCK_TENANTS;
+  }, [propTenants]);
+
   const { setActiveTab, language } = useLisStore();
   const isEn = language === 'EN';
 
@@ -1509,6 +1515,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [newUserTenant, setNewUserTenant] = useState<string>(tenants[0]?.id || 'lab-san-jose');
   const [newUserBranch, setNewUserBranch] = useState<string>(tenants[0]?.branches[0]?.id || '');
   const [newUserPin, setNewUserPin] = useState<string>('');
+  const [newUserSignatureUrl, setNewUserSignatureUrl] = useState<string>('');
+  const [newUserSigMode, setNewUserSigMode] = useState<'SUPABASE_STORAGE' | 'LOCAL_POSTGRES_DATAURL' | null>(null);
+  const [isUploadingNewSig, setIsUploadingNewSig] = useState<boolean>(false);
+  const [removeWhiteBgSig, setRemoveWhiteBgSig] = useState<boolean>(true);
+  const [newTenantOpenHour, setNewTenantOpenHour] = useState<number>(6);
+  const [newTenantCloseHour, setNewTenantCloseHour] = useState<number>(18);
   const [userCreatedSuccess, setUserCreatedSuccess] = useState<string | null>(null);
 
   // Búsqueda y Filtros de Usuarios en Tiempo Real
@@ -1556,11 +1568,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     });
   }, [realUsers, userSearchTerm, userRoleFilter, userTenantFilter, tenants]);
 
-  // Modal para editar Rol, Cliente y Sede de un usuario existente
+  // Modal para editar Rol, Cliente, Sede, Idoneidad y Firma Digital de un usuario existente
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [editUserRole, setEditUserRole] = useState<Role>('tech_med');
   const [editUserTenant, setEditUserTenant] = useState<string>('');
   const [editUserBranch, setEditUserBranch] = useState<string>('');
+  const [editUserLicense, setEditUserLicense] = useState<string>('');
+  const [editUserSignatureUrl, setEditUserSignatureUrl] = useState<string>('');
+  const [editUserSigMode, setEditUserSigMode] = useState<'SUPABASE_STORAGE' | 'LOCAL_POSTGRES_DATAURL' | null>(null);
+  const [isUploadingEditSig, setIsUploadingEditSig] = useState<boolean>(false);
 
   // Estados para Restablecimiento Administrativo de Credenciales (Contraseña y PIN si olvidó ambos)
   const [userToReset, setUserToReset] = useState<User | null>(null);
@@ -1613,6 +1629,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       ruc: newRuc.trim(),
       dv: newDv.trim() || '00',
       plan: newPlan,
+      openingHour: newTenantOpenHour,
+      closingHour: Math.max(newTenantOpenHour + 1, newTenantCloseHour),
       branches: [initialBranch]
     };
 
@@ -1738,6 +1756,36 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
         detail: { message: 'Sede eliminada del sistema.', type: 'info' }
+      })
+    );
+  };
+
+  // 4B. Eliminar Cliente (Tenant) Completo
+  const handleDeleteTenant = (tenantId: string) => {
+    if (tenants.length <= 1) {
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: { message: 'No puede eliminar el único cliente de la plataforma. Debe existir al menos un laboratorio activo.', type: 'error' }
+        })
+      );
+      return;
+    }
+
+    const target = tenants.find((t) => t.id === tenantId);
+    if (!target) return;
+
+    const confirmed = window.confirm(
+      `⚠️ ¿Está completamente seguro de que desea eliminar el cliente "${target.name}" (RUC: ${target.ruc}-${target.dv})?\n\nEsta acción eliminará el cliente y sus ${target.branches.length} sedes registradas.`
+    );
+    if (!confirmed) return;
+
+    const updated = tenants.filter((t) => t.id !== tenantId);
+    setSelectedTenantId(updated[0].id);
+    saveTenants(updated);
+
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: { message: `Cliente "${target.name}" eliminado del sistema exitosamente.`, type: 'info' }
       })
     );
   };
@@ -1950,6 +1998,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       passwordHash: btoa(`abregotech_salt_${newUserPassword.trim()}`),
       pinCode: cleanPin || undefined,
       licenseNumber: newUserLicense.trim() || undefined,
+      signatureUrl: newUserSignatureUrl || undefined,
       twoFactorEnabled: Boolean(cleanPin)
     };
 
@@ -1977,6 +2026,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     setNewUserPassword('');
     setNewUserLicense('');
     setNewUserPin('');
+    setNewUserSignatureUrl('');
+    setNewUserSigMode(null);
 
     window.dispatchEvent(
       new CustomEvent('lis-global-toast', {
@@ -2153,7 +2204,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // 13. Guardar Edición de Rol, Cliente y Sede
+  // 13. Guardar Edición de Rol, Cliente, Sede, Idoneidad y Firma Digital
   const handleSaveEditUser = () => {
     if (!userToEdit) return;
     const updated = realUsers.map(u => {
@@ -2162,7 +2213,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           ...u,
           role: editUserRole,
           tenantId: editUserTenant,
-          branchId: editUserBranch
+          branchId: editUserBranch,
+          licenseNumber: editUserLicense.trim() || undefined,
+          signatureUrl: editUserSignatureUrl || undefined
         };
       }
       return u;
@@ -2500,6 +2553,48 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* Horario de Atención del Cliente */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-teal-400" />
+                      <span>Hora Apertura:</span>
+                    </label>
+                    <select
+                      value={newTenantOpenHour}
+                      onChange={(e) => {
+                        const open = Number(e.target.value);
+                        setNewTenantOpenHour(open);
+                        if (newTenantCloseHour <= open) setNewTenantCloseHour(Math.min(23, open + 1));
+                      }}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-teal-300 font-mono font-bold cursor-pointer"
+                    >
+                      {Array.from({ length: 18 }, (_, i) => i).map((h) => (
+                        <option key={h} value={h}>
+                          {h === 0 ? '12:00 AM' : h < 12 ? `${String(h).padStart(2, '0')}:00 AM` : h === 12 ? '12:00 PM' : `${String(h - 12).padStart(2, '0')}:00 PM`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      <span>Hora Cierre:</span>
+                    </label>
+                    <select
+                      value={newTenantCloseHour}
+                      onChange={(e) => setNewTenantCloseHour(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold cursor-pointer"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => i).filter((h) => h > newTenantOpenHour).map((h) => (
+                        <option key={h} value={h}>
+                          {h < 12 ? `${String(h).padStart(2, '0')}:00 AM` : h === 12 ? '12:00 PM' : `${String(h - 12).padStart(2, '0')}:00 PM`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -2534,8 +2629,62 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </select>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 font-bold">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Horario de Atención del Cliente Seleccionado */}
+                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-[11px] font-mono">
+                    <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                    <span className="text-slate-400 font-sans font-bold">Horario:</span>
+                    <select
+                      value={activeTenant?.openingHour ?? 6}
+                      onChange={(e) => {
+                        const open = Number(e.target.value);
+                        const close = Math.max(open + 1, activeTenant?.closingHour ?? 18);
+                        const updated = tenants.map((t) =>
+                          t.id === activeTenant.id ? { ...t, openingHour: open, closingHour: close } : t
+                        );
+                        saveTenants(updated);
+                        window.dispatchEvent(new CustomEvent('lis-global-toast', { detail: { message: `Horario de "${activeTenant.name}" actualizado.`, type: 'success' } }));
+                      }}
+                      className="bg-transparent text-teal-300 font-bold focus:outline-none cursor-pointer"
+                    >
+                      {Array.from({ length: 18 }, (_, i) => i).map((h) => (
+                        <option key={h} value={h} className="bg-slate-900 text-white">
+                          {h === 0 ? '12:00 AM' : h < 12 ? `${String(h).padStart(2, '0')}:00 AM` : h === 12 ? '12:00 PM' : `${String(h - 12).padStart(2, '0')}:00 PM`}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-slate-600">–</span>
+                    <select
+                      value={activeTenant?.closingHour ?? 18}
+                      onChange={(e) => {
+                        const close = Number(e.target.value);
+                        const open = Math.min(close - 1, activeTenant?.openingHour ?? 6);
+                        const updated = tenants.map((t) =>
+                          t.id === activeTenant.id ? { ...t, openingHour: open, closingHour: close } : t
+                        );
+                        saveTenants(updated);
+                        window.dispatchEvent(new CustomEvent('lis-global-toast', { detail: { message: `Horario de "${activeTenant.name}" actualizado.`, type: 'success' } }));
+                      }}
+                      className="bg-transparent text-amber-300 font-bold focus:outline-none cursor-pointer"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => i).filter((h) => h > (activeTenant?.openingHour ?? 6)).map((h) => (
+                        <option key={h} value={h} className="bg-slate-900 text-white">
+                          {h < 12 ? `${String(h).padStart(2, '0')}:00 AM` : h === 12 ? '12:00 PM' : `${String(h - 12).padStart(2, '0')}:00 PM`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTenant(activeTenant.id)}
+                    className="px-3.5 py-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm hover:border-rose-400"
+                    title={`Eliminar el cliente "${activeTenant.name}" y todas sus sedes`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Eliminar Cliente</span>
+                  </button>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/30 font-bold hidden sm:inline">
                     ✓ Multisede Activa en Login
                   </span>
                 </div>
@@ -4235,6 +4384,81 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     </select>
                   </div>
                 </div>
+
+                {/* Cargador de Firma Digital (PNG/JPG con fondo transparente automático + Supabase Storage / Respaldo Local) */}
+                <div className="p-3 bg-slate-950/90 border border-teal-500/30 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="font-bold text-teal-300 flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Firma Digital para Reportes PDF (Dr. / Lic.):</span>
+                    </label>
+                    <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={removeWhiteBgSig}
+                        onChange={(e) => setRemoveWhiteBgSig(e.target.checked)}
+                        className="rounded border-slate-700 bg-slate-900 text-teal-500"
+                      />
+                      <span>Quitar fondo blanco</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={isUploadingNewSig}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingNewSig(true);
+                        try {
+                          const res = await uploadUserSignature(
+                            file,
+                            newUserTenant || 'default',
+                            newUserUsername || newUserEmail || `usr_${Date.now()}`,
+                            removeWhiteBgSig
+                          );
+                          setNewUserSignatureUrl(res.url);
+                          setNewUserSigMode(res.storageMode);
+                          window.dispatchEvent(new CustomEvent('lis-global-toast', {
+                            detail: {
+                              message: res.storageMode === 'SUPABASE_STORAGE'
+                                ? `✓ Firma subida a Supabase Storage (${res.sizeKb} KB). Visible en todas las PCs.`
+                                : `✓ Firma optimizada y guardada localmente (${res.sizeKb} KB, modo offline/local).`,
+                              type: 'success'
+                            }
+                          }));
+                        } catch (err: any) {
+                          window.dispatchEvent(new CustomEvent('lis-global-toast', {
+                            detail: { message: err?.message || 'Error al procesar la imagen de firma.', type: 'error' }
+                          }));
+                        } finally {
+                          setIsUploadingNewSig(false);
+                        }
+                      }}
+                      className="text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-teal-500/20 file:text-teal-300 hover:file:bg-teal-500/30 cursor-pointer w-full"
+                    />
+                    {newUserSignatureUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setNewUserSignatureUrl(''); setNewUserSigMode(null); }}
+                        className="px-2 py-1 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-bold cursor-pointer shrink-0"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+
+                  {newUserSignatureUrl && (
+                    <div className="bg-white rounded-xl p-2 border border-slate-700 flex items-center justify-between gap-2">
+                      <img src={newUserSignatureUrl} alt="Vista previa firma" className="h-12 max-w-[200px] object-contain" />
+                      <span className="text-[9.5px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                        {newUserSigMode === 'SUPABASE_STORAGE' ? '☁️ Supabase Storage' : '💾 Local / Offline'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {(() => {
@@ -4458,6 +4682,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                               setEditUserRole(u.role);
                               setEditUserTenant(u.tenantId || tenants[0]?.id || 'lab-san-jose');
                               setEditUserBranch(u.branchId || '');
+                              setEditUserLicense(u.licenseNumber || '');
+                              setEditUserSignatureUrl(u.signatureUrl || '');
+                              setEditUserSigMode(u.signatureUrl?.startsWith('http') ? 'SUPABASE_STORAGE' : u.signatureUrl ? 'LOCAL_POSTGRES_DATAURL' : null);
                             }}
                             className="p-2 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition cursor-pointer"
                             title="Reasignar Rol, Cliente o Sede"
@@ -4674,6 +4901,86 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300 block">Idoneidad MINSA / Registro Técnico:</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: TM-7214-PA / M-8421"
+                      value={editUserLicense}
+                      onChange={(e) => setEditUserLicense(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-slate-950/90 border border-teal-500/30 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="font-bold text-teal-300 flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Firma Digital (PNG/JPG):</span>
+                      </label>
+                      <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={removeWhiteBgSig}
+                          onChange={(e) => setRemoveWhiteBgSig(e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-teal-500"
+                        />
+                        <span>Quitar fondo blanco</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={isUploadingEditSig}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !userToEdit) return;
+                          setIsUploadingEditSig(true);
+                          try {
+                            const res = await uploadUserSignature(file, editUserTenant || userToEdit.tenantId, userToEdit.id, removeWhiteBgSig);
+                            setEditUserSignatureUrl(res.url);
+                            setEditUserSigMode(res.storageMode);
+                            window.dispatchEvent(new CustomEvent('lis-global-toast', {
+                              detail: {
+                                message: res.storageMode === 'SUPABASE_STORAGE'
+                                  ? `✓ Firma subida a Supabase Storage (${res.sizeKb} KB).`
+                                  : `✓ Firma guardada en formato PNG local (${res.sizeKb} KB).`,
+                                type: 'success'
+                              }
+                            }));
+                          } catch (err: any) {
+                            window.dispatchEvent(new CustomEvent('lis-global-toast', {
+                              detail: { message: err?.message || 'Error al subir la firma.', type: 'error' }
+                            }));
+                          } finally {
+                            setIsUploadingEditSig(false);
+                          }
+                        }}
+                        className="text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-teal-500/20 file:text-teal-300 hover:file:bg-teal-500/30 cursor-pointer w-full"
+                      />
+                      {editUserSignatureUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setEditUserSignatureUrl(''); setEditUserSigMode(null); }}
+                          className="px-2 py-1 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-bold cursor-pointer shrink-0"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+
+                    {editUserSignatureUrl && (
+                      <div className="bg-white rounded-xl p-2 border border-slate-700 flex items-center justify-between gap-2">
+                        <img src={editUserSignatureUrl} alt="Firma del usuario" className="h-12 max-w-[200px] object-contain" />
+                        <span className="text-[9.5px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                          {editUserSigMode === 'SUPABASE_STORAGE' ? '☁️ Supabase Storage' : '💾 Local / Offline'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

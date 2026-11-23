@@ -119,6 +119,14 @@ export const REAL_PATIENTS: Patient[] = [
   }
 ];
 
+export const REAL_PATIENTS_DIR: Record<string, Patient> = {
+  samudio: REAL_PATIENTS[0],
+  batista: REAL_PATIENTS[1],
+  icaza: REAL_PATIENTS[2],
+  castillo: REAL_PATIENTS[3],
+  vega: REAL_PATIENTS[4]
+};
+
 // ============================================================================
 // 🔬 ÓRDENES CLÍNICAS REALES DE LABORATORIO (LIS)
 // ============================================================================

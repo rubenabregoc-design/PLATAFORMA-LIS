@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -236,11 +236,143 @@ const INITIAL_BATCH_RESULTS: BatchTestItem[] = [
 
 export const AnalyticalValidationWorkstation: React.FC = () => {
   const [items, setItems] = useState<BatchTestItem[]>(INITIAL_BATCH_RESULTS);
+  const [isDemoData, setIsDemoData] = useState<boolean>(true);
+  const [isLoadingReal, setIsLoadingReal] = useState<boolean>(false);
   const [filterType, setFilterType] = useState<'ALL' | 'NORMAL' | 'OUT_OF_RANGE' | 'CRITICAL'>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedItemForDelta, setSelectedItemForDelta] = useState<BatchTestItem | null>(INITIAL_BATCH_RESULTS[1]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState<{ active: boolean, action: string, callback: () => void }>({ active: false, action: '', callback: () => {} });
+
+  useEffect(() => {
+    // 1. Carga automática silenciosa al montar la pantalla
+    loadRealOrdersIfAvailable(true);
+
+    // 2. Suscripción instantánea en tiempo real vía WebSocket (0 segundos de espera)
+    const channelResults = SupabaseService.results.subscribeToAll(() => {
+      loadRealOrdersIfAvailable(true);
+    });
+
+    const channelOrders = SupabaseService.orders.subscribeToAll(() => {
+      loadRealOrdersIfAvailable(true);
+    });
+
+    // 3. Receptores de eventos locales inmediatos dentro del navegador
+    const handleInstantSync = () => loadRealOrdersIfAvailable(true);
+    window.addEventListener('lis-order-created', handleInstantSync);
+    window.addEventListener('lis-result-ingested', handleInstantSync);
+    window.addEventListener('lis-order-updated', handleInstantSync);
+    window.addEventListener('focus', handleInstantSync);
+
+    return () => {
+      channelResults.unsubscribe();
+      channelOrders.unsubscribe();
+      window.removeEventListener('lis-order-created', handleInstantSync);
+      window.removeEventListener('lis-result-ingested', handleInstantSync);
+      window.removeEventListener('lis-order-updated', handleInstantSync);
+      window.removeEventListener('focus', handleInstantSync);
+    };
+  }, []);
+
+  const loadRealOrdersIfAvailable = async (silent: boolean = false) => {
+    if (!silent) setIsLoadingReal(true);
+    try {
+      const realItems: BatchTestItem[] = [];
+
+      // A) Consultar Supabase remoto en tiempo real
+      try {
+        const dbOrders = await SupabaseService.orders.getAllOrders();
+        if (dbOrders && dbOrders.length > 0) {
+          dbOrders.forEach((ord: any) => {
+            const patientName = ord.patients
+              ? `${ord.patients.first_name || ''} ${ord.patients.last_name || ''}`.trim()
+              : (ord.patientName || 'Paciente');
+            const nationalId = ord.patients?.national_id || ord.patientNationalId || 'N/A';
+            const results = ord.test_results || ord.testResults || [];
+            results.forEach((tr: any) => {
+              realItems.push({
+                id: tr.id || `tr-${Math.random()}`,
+                sampleBarcode: ord.order_number || ord.orderNumber || 'ORD-001',
+                patientName,
+                patientAge: ord.patients?.dob ? Math.max(0, new Date().getFullYear() - new Date(ord.patients.dob).getFullYear()) : (ord.patientAge || 35),
+                patientGender: ord.patients?.gender || ord.patientGender || 'M',
+                patientNationalId: nationalId,
+                testName: tr.test_name || tr.testName || 'Prueba Clínica',
+                analyteCode: tr.test_code || tr.analyteCode || tr.testCode || 'ANALITO',
+                resultValue: tr.value !== undefined ? String(tr.value) : (tr.resultValue || 'Pendiente'),
+                unit: tr.unit || '',
+                referenceRange: tr.ref_range || tr.referenceRange || 'Normal',
+                status: (tr.status === 'VALIDATED' || tr.status === 'VALIDADO') ? 'VALIDADO' : 'PENDIENTE',
+                analyzerName: tr.analyzer_name || tr.analyzerName || 'Analizador de Red',
+                transmissionTime: new Date(tr.created_at || tr.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                hilStatus: 'NORMAL'
+              });
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('[AnalyticalValidationWorkstation] Supabase fetch fallback to local store:', err);
+      }
+
+      // B) Si no hay datos en Supabase, consultar store reactivo local de órdenes reales
+      if (realItems.length === 0) {
+        const storeOrders = useLisStore.getState().orders;
+        const storeResults = useLisStore.getState().results;
+        if (storeOrders && storeOrders.length > 0) {
+          storeOrders.forEach(ord => {
+            const ordResults = storeResults.filter(r => r.orderId === ord.id);
+            ordResults.forEach(tr => {
+              realItems.push({
+                id: tr.id,
+                sampleBarcode: ord.orderNumber,
+                patientName: ord.patientName,
+                patientAge: ord.patientAge || 35,
+                patientGender: ord.patientGender || 'M',
+                patientNationalId: ord.patientNationalId || 'N/A',
+                testName: tr.testName || 'Prueba Clínica',
+                analyteCode: tr.testCode || 'ANALITO',
+                resultValue: tr.value !== undefined ? String(tr.value) : 'Pendiente',
+                unit: tr.unit || '',
+                referenceRange: tr.referenceRange || 'Normal',
+                status: tr.status === 'VALIDATED' ? 'VALIDADO' : 'PENDIENTE',
+                analyzerName: tr.analyzerName || 'Analizador de Red',
+                transmissionTime: new Date(tr.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                hilStatus: 'NORMAL'
+              });
+            });
+          });
+        }
+      }
+
+      if (realItems.length > 0) {
+        setItems(realItems);
+        setSelectedItemForDelta(prev => prev && realItems.some(r => r.id === prev.id) ? prev : realItems[0]);
+        setIsDemoData(false);
+        if (!silent) setToastMessage(`✓ Sincronizado en tiempo real (${realItems.length} resultados disponibles).`);
+        return;
+      }
+
+      if (!silent) setToastMessage('Base de datos sin resultados pendientes. Puedes ingresar pacientes reales desde Admisión.');
+    } catch (_) {
+      if (!silent) setToastMessage('No se pudo conectar al canal en tiempo real.');
+    } finally {
+      if (!silent) setIsLoadingReal(false);
+    }
+  };
+
+  const handleClearDemoData = () => {
+    setItems([]);
+    setSelectedItemForDelta(null);
+    setIsDemoData(false);
+    setToastMessage('Bandeja analítica limpiada. Esperando muestras físicas reales de analizadores.');
+  };
+
+  const handleRestoreDemoData = () => {
+    setItems(INITIAL_BATCH_RESULTS);
+    setSelectedItemForDelta(INITIAL_BATCH_RESULTS[1]);
+    setIsDemoData(true);
+    setToastMessage('Dataset clínico de demostración restaurado.');
+  };
 
   // --- CALCULATOR STATES ---
   const [activeCalculator, setActiveCalculator] = useState<'egfr' | 'ldl' | 'homa' | 'deritis' | 'calcium' | 'osmolarity'>('egfr');
@@ -451,6 +583,53 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
 
         {/* Action Batch Validation Button */}
         <div className="flex flex-wrap items-center gap-3 relative z-10">
+          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+            {isDemoData ? (
+              <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-[10px] font-black uppercase">
+                Modo Demo
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Bandeja Real</span>
+              </span>
+            )}
+
+            {isDemoData ? (
+              <button
+                type="button"
+                onClick={handleClearDemoData}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold border border-slate-700 transition cursor-pointer"
+                title="Limpiar pacientes simulados y esperar muestras reales"
+              >
+                Limpiar Simulados
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRestoreDemoData}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white rounded-lg text-[10px] font-bold border border-slate-700 transition cursor-pointer"
+                title="Restaurar datos de prueba"
+              >
+                Restaurar Demo
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => loadRealOrdersIfAvailable(false)}
+              disabled={isLoadingReal}
+              className="px-2.5 py-1 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 rounded-lg text-[10px] font-bold border border-emerald-500/30 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+              title="Suscripción WebSocket en tiempo real conectada - Actualización inmediata"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>{isLoadingReal ? 'Actualizando...' : 'En Vivo (Realtime Instantáneo)'}</span>
+            </button>
+          </div>
+
           <button
             onClick={handleBatchValidateNormals}
             className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-emerald-500/25 flex items-center space-x-2 cursor-pointer"
@@ -546,7 +725,22 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {filteredItems.map(item => {
+                  {filteredItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <CheckCircle2 className="w-8 h-8 text-teal-400/60" />
+                          <p className="font-bold text-sm text-slate-300">Bandeja analítica sin muestras pendientes</p>
+                          <p className="text-xs text-slate-500">
+                            {isDemoData
+                              ? 'No hay registros que coincidan con la búsqueda.'
+                              : 'Esperando resultados automáticos de analizadores en red o nuevas órdenes desde Admisión.'}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredItems.map(item => {
                     const normal = isItemNormal(item);
                     const critical = isItemCritical(item);
                     const isSelected = selectedItemForDelta?.id === item.id;
@@ -646,7 +840,7 @@ export const AnalyticalValidationWorkstation: React.FC = () => {
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>

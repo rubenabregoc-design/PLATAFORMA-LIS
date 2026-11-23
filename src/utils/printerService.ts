@@ -6,6 +6,113 @@
  */
 
 import { Order, Patient, TestCatalogItem } from '../types';
+import { generateSampleBarcode } from './orderUtils';
+import { MOCK_TEST_CATALOG } from '../data/mockData';
+
+const TUBE_SPECIMEN_MAPPING: Record<string, { type: SpecimenTubeLabel['tubeType']; colorName: string; colorHex: string; defaultName: string }> = {
+  'EDTA_MORADO': {
+    type: 'EDTA_LAVENDER',
+    colorName: 'EDTA K2 (Tapa Morada)',
+    colorHex: '#8b5cf6',
+    defaultName: 'Hematología / EDTA'
+  },
+  'EDTA_LAVENDER': {
+    type: 'EDTA_LAVENDER',
+    colorName: 'EDTA K2 (Tapa Morada)',
+    colorHex: '#8b5cf6',
+    defaultName: 'Hematología / EDTA'
+  },
+  'EDTA': {
+    type: 'EDTA_LAVENDER',
+    colorName: 'EDTA K2 (Tapa Morada)',
+    colorHex: '#8b5cf6',
+    defaultName: 'Hematología / EDTA'
+  },
+  'SUERO_ROJO': {
+    type: 'SST_GOLD',
+    colorName: 'Suero Gel / SST (Tapa Amarilla/Roja)',
+    colorHex: '#eab308',
+    defaultName: 'Química / Suero'
+  },
+  'SST_GOLD': {
+    type: 'SST_GOLD',
+    colorName: 'Suero Gel / SST (Tapa Amarilla/Roja)',
+    colorHex: '#eab308',
+    defaultName: 'Química / Suero'
+  },
+  'SUERO': {
+    type: 'SST_GOLD',
+    colorName: 'Suero Gel / SST (Tapa Amarilla/Roja)',
+    colorHex: '#eab308',
+    defaultName: 'Química / Suero'
+  },
+  'CITRATO_AZUL': {
+    type: 'CITRATE_BLUE',
+    colorName: 'Citrato Sodio 3.2% (Tapa Azul)',
+    colorHex: '#38bdf8',
+    defaultName: 'Coagulación / Citrato'
+  },
+  'CITRATE_BLUE': {
+    type: 'CITRATE_BLUE',
+    colorName: 'Citrato Sodio 3.2% (Tapa Azul)',
+    colorHex: '#38bdf8',
+    defaultName: 'Coagulación / Citrato'
+  },
+  'CITRATO': {
+    type: 'CITRATE_BLUE',
+    colorName: 'Citrato Sodio 3.2% (Tapa Azul)',
+    colorHex: '#38bdf8',
+    defaultName: 'Coagulación / Citrato'
+  },
+  'HEPARINA_VERDE': {
+    type: 'HEPARIN_GREEN',
+    colorName: 'Heparina de Litio (Tapa Verde)',
+    colorHex: '#10b981',
+    defaultName: 'Plasma Heparina'
+  },
+  'HEPARIN_GREEN': {
+    type: 'HEPARIN_GREEN',
+    colorName: 'Heparina de Litio (Tapa Verde)',
+    colorHex: '#10b981',
+    defaultName: 'Plasma Heparina'
+  },
+  'FLUORURO_GRIS': {
+    type: 'FLUORIDE_GRAY',
+    colorName: 'Fluoruro/Oxalato (Tapa Gris)',
+    colorHex: '#94a3b8',
+    defaultName: 'Glicemia / Fluoruro'
+  },
+  'FLUORIDE_GRAY': {
+    type: 'FLUORIDE_GRAY',
+    colorName: 'Fluoruro/Oxalato (Tapa Gris)',
+    colorHex: '#94a3b8',
+    defaultName: 'Glicemia / Fluoruro'
+  },
+  'ORINA': {
+    type: 'URINE_CUP',
+    colorName: 'Frasco Estéril Orina',
+    colorHex: '#f59e0b',
+    defaultName: 'Urianálisis / Orina'
+  },
+  'URINE_CUP': {
+    type: 'URINE_CUP',
+    colorName: 'Frasco Estéril Orina',
+    colorHex: '#f59e0b',
+    defaultName: 'Urianálisis / Orina'
+  },
+  'HECES': {
+    type: 'STOOL_CONTAINER',
+    colorName: 'Envase Coprológico',
+    colorHex: '#84cc16',
+    defaultName: 'Coproanálisis / Heces'
+  },
+  'STOOL_CONTAINER': {
+    type: 'STOOL_CONTAINER',
+    colorName: 'Envase Coprológico',
+    colorHex: '#84cc16',
+    defaultName: 'Coproanálisis / Heces'
+  }
+};
 
 export interface SpecimenTubeLabel {
   id: string;
@@ -61,82 +168,29 @@ export interface PrintJobRecord {
   labels: SpecimenTubeLabel[];
 }
 
-const STORAGE_PRINTERS_KEY = 'LISCORE_PRINTER_FLEET_CONFIG_V2';
+const STORAGE_PRINTERS_KEY = 'LISCORE_PRINTER_FLEET_CONFIG_V3';
 const STORAGE_AUTO_PRINT_KEY = 'LISCORE_AUTO_PRINT_ON_ORDER_ENABLED';
 const STORAGE_PRINT_HISTORY_KEY = 'LISCORE_PRINT_JOB_HISTORY_V2';
 
-export const DEFAULT_PRINTER_FLEET: ThermalPrinterDevice[] = [
-  {
-    id: 'prn-zebra-zd421-box1',
-    name: 'Zebra ZD421 (Flebotomía Box 1)',
-    model: 'Zebra ZD421 Direct Thermal (203 dpi)',
-    connectionType: 'NETWORK_TCP_9100',
-    ipAddress: '192.168.1.105',
-    port: 9100,
-    location: 'Módulo de Toma de Muestras - Box 1',
-    branch: 'Sede Vía España',
-    dpi: 203,
-    emulation: 'ZPL',
-    status: 'ONLINE',
-    isDefault: true,
-    labelWidthMm: 50,
-    labelHeightMm: 25,
-    remainingLabels: 480,
-    ribbonLevelPct: 88
-  },
-  {
-    id: 'prn-zebra-zd421-box2',
-    name: 'Zebra ZD421 (Flebotomía Box 2 Pediátrico)',
-    model: 'Zebra ZD421 Direct Thermal (203 dpi)',
-    connectionType: 'NETWORK_TCP_9100',
-    ipAddress: '192.168.1.106',
-    port: 9100,
-    location: 'Módulo de Toma de Muestras - Box 2',
-    branch: 'Sede Vía España',
-    dpi: 203,
-    emulation: 'ZPL',
-    status: 'ONLINE',
-    isDefault: false,
-    labelWidthMm: 50,
-    labelHeightMm: 25,
-    remainingLabels: 320,
-    ribbonLevelPct: 75
-  },
-  {
-    id: 'prn-tsc-ttp244-lab',
-    name: 'TSC TTP-244 Pro (Recepción Central)',
-    model: 'TSC TTP-244 Pro Thermal (203 dpi)',
-    connectionType: 'USB_BRIDGE',
-    location: 'Ventanilla de Admisión y Recepción #1',
-    branch: 'Sede Vía España',
-    dpi: 203,
-    emulation: 'TSPL',
-    status: 'ONLINE',
-    isDefault: false,
-    labelWidthMm: 50,
-    labelHeightMm: 30,
-    remainingLabels: 210,
-    ribbonLevelPct: 62
-  },
-  {
-    id: 'prn-citizen-stat',
-    name: 'Citizen CL-S621 (Urgencias)',
-    model: 'Citizen CL-S621 (300 dpi)',
-    connectionType: 'NETWORK_TCP_9100',
-    ipAddress: '192.168.2.55',
-    port: 9100,
-    location: 'Área de Procesamiento Urgente STAT',
-    branch: 'Sede Calle 50',
-    dpi: 300,
-    emulation: 'ZPL',
-    status: 'ONLINE',
-    isDefault: true,
-    labelWidthMm: 50,
-    labelHeightMm: 25,
-    remainingLabels: 590,
-    ribbonLevelPct: 95
-  }
-];
+// Flota real vacía por defecto (sin impresoras simuladas)
+export const DEFAULT_PRINTER_FLEET: ThermalPrinterDevice[] = [];
+
+const SYSTEM_FALLBACK_PRINTER: ThermalPrinterDevice = {
+  id: 'system-print-default',
+  name: 'Sin impresora configurada',
+  model: 'Impresión del Sistema (Navegador)',
+  connectionType: 'SYSTEM_PRINT',
+  location: 'Terminal Local',
+  branch: 'Sede Activa',
+  dpi: 203,
+  emulation: 'ZPL',
+  status: 'ONLINE',
+  isDefault: true,
+  labelWidthMm: 50,
+  labelHeightMm: 25,
+  remainingLabels: 0,
+  ribbonLevelPct: 100
+};
 
 export class PrinterManagementService {
   private static instance: PrinterManagementService;
@@ -235,7 +289,43 @@ export class PrinterManagementService {
       if (anyBranchPrinter) return anyBranchPrinter;
     }
     const generalDefault = this.printers.find(p => p.isDefault && p.status === 'ONLINE');
-    return generalDefault || this.printers[0] || DEFAULT_PRINTER_FLEET[0];
+    return generalDefault || this.printers[0] || SYSTEM_FALLBACK_PRINTER;
+  }
+
+  public addPrinter(printerData: Omit<ThermalPrinterDevice, 'id'>): ThermalPrinterDevice {
+    const newPrinter: ThermalPrinterDevice = {
+      ...printerData,
+      id: `prn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    };
+    const shouldBeDefault = newPrinter.isDefault || this.printers.length === 0;
+    if (shouldBeDefault) {
+      this.printers = this.printers.map(p => ({ ...p, isDefault: false }));
+      newPrinter.isDefault = true;
+    }
+    this.printers = [...this.printers, newPrinter];
+    this.savePrinters();
+    this.notify();
+    return newPrinter;
+  }
+
+  public updatePrinter(printerId: string, updates: Partial<Omit<ThermalPrinterDevice, 'id'>>) {
+    let nextPrinters = this.printers.map(p => (p.id === printerId ? { ...p, ...updates } : p));
+    if (updates.isDefault) {
+      nextPrinters = nextPrinters.map(p => ({ ...p, isDefault: p.id === printerId }));
+    }
+    this.printers = nextPrinters;
+    this.savePrinters();
+    this.notify();
+  }
+
+  public removePrinter(printerId: string) {
+    const wasDefault = this.printers.find(p => p.id === printerId)?.isDefault;
+    this.printers = this.printers.filter(p => p.id !== printerId);
+    if (wasDefault && this.printers.length > 0) {
+      this.printers[0] = { ...this.printers[0], isDefault: true };
+    }
+    this.savePrinters();
+    this.notify();
   }
 
   public setDefaultPrinter(printerId: string) {
@@ -278,10 +368,57 @@ export class PrinterManagementService {
     patient?: Patient,
     testCatalog?: TestCatalogItem[]
   ): SpecimenTubeLabel[] {
+    const isStat = order.priority === 'STAT' || order.priority === 'URGENCIA';
+    const nowIso = new Date().toISOString();
+    const catalog = testCatalog && testCatalog.length > 0 ? testCatalog : MOCK_TEST_CATALOG;
+
+    // DIRECT CLINICAL PATH: If order already has physical specimens defined, generate a label for EVERY specimen!
+    if (order.specimens && order.specimens.length > 0) {
+      const orderTests = catalog.filter(t => (order.testIds || []).includes(t.id));
+
+      return order.specimens.map((sp, idx) => {
+        const rawTube = (sp.tubeType || 'EDTA_MORADO').toUpperCase();
+        const conf = TUBE_SPECIMEN_MAPPING[rawTube] || {
+          type: 'EDTA_LAVENDER' as const,
+          colorName: sp.tubeType || 'Tubo Flebotomía',
+          colorHex: '#06b6d4',
+          defaultName: sp.tubeType || 'Muestra Primaria'
+        };
+
+        // Find tests that match this tubeType
+        const matchingTests = orderTests
+          .filter(t => (t.tubeType || '').toUpperCase() === rawTube)
+          .map(t => (t.name || t.code).toUpperCase().slice(0, 16));
+
+        const finalTests = matchingTests.length > 0
+          ? matchingTests
+          : (order.testIds && order.testIds[idx] ? [order.testIds[idx].toUpperCase().replace('TEST-', '')] : [conf.defaultName]);
+
+        const sampleBarcode = sp.barcode || generateSampleBarcode(order.orderNumber, idx + 1);
+
+        return {
+          id: `lbl-${order.id}-${idx}-${Date.now()}`,
+          orderNumber: order.orderNumber,
+          sampleBarcode,
+          patientName: order.patientName,
+          patientNationalId: order.patientNationalId,
+          patientAge: order.patientAge || 30,
+          patientGender: order.patientGender || 'M',
+          tubeType: conf.type,
+          tubeColorName: conf.colorName,
+          tubeColorHex: conf.colorHex,
+          testsList: finalTests,
+          isStat,
+          collectionTimestamp: sp.collectedAt || nowIso,
+          branchName: 'Sede Vía España',
+          operatorName: 'Recepción Flebotomía',
+          barcodeFormat: 'CODE128'
+        };
+      });
+    }
+
     const labels: SpecimenTubeLabel[] = [];
     const testIds = order.testIds || [];
-    const isStat = order.priority === 'STAT';
-    const nowIso = new Date().toISOString();
 
     // Map test categories / IDs to tube requirements
     const neededTubes: {
@@ -385,9 +522,9 @@ export class PrinterManagementService {
       });
     }
 
-    // Build each tube label
+    // Build each tube label with standard clinical barcode: YYYYMMDDXXXXX.S (e.g. 2026111645678.9)
     neededTubes.forEach((tube, idx) => {
-      const sampleBarcode = `${order.orderNumber}-${idx + 1}`;
+      const sampleBarcode = generateSampleBarcode(order.orderNumber, idx + 1);
       labels.push({
         id: `lbl-${order.id}-${idx}-${Date.now()}`,
         orderNumber: order.orderNumber,
@@ -494,6 +631,24 @@ ${tubeBadge}
 
     // Play subtle audio chime for laboratory feedback
     this.playPrintChime();
+
+    // Despacho ultrarrápido directo vía Middleware Bridge TCP Socket :9100
+    try {
+      const fullZpl = labels.map(l => this.generateZplPayload(l, targetPrinter.dpi)).join('\n');
+      if (typeof window !== 'undefined' && targetPrinter.ipAddress) {
+        const wsUrl = (import.meta as any).env?.VITE_MIDDLEWARE_WS_URL || 'ws://localhost:8765';
+        const ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            type: 'print_zpl',
+            ip: targetPrinter.ipAddress,
+            port: targetPrinter.port || 9100,
+            zpl: fullZpl
+          }));
+          setTimeout(() => ws.close(), 600);
+        };
+      }
+    } catch (_) {}
 
     // Emulate transmission latency with thermal printer
     await new Promise(resolve => setTimeout(resolve, 600));

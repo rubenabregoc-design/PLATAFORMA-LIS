@@ -18,18 +18,25 @@ import net from 'net';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import {
-  STX, ETX, EOT, ENQ, ACK, NAK, CR, LF,
+  STX, ETX, EOT, ENQ, ACK, NAK, ETB, CR, LF,
+  computeAstmChecksum,
   validateChecksum,
   extractFrameText,
+  formatAstmFrame,
+  buildAstmOrderLines,
   parseAstmMessage,
   generateHexDump
 } from './parsers/astm-parser.js';
 import {
   VT, FS,
   extractFromMllp,
+  wrapInMllp,
   parseHl7Message,
-  generateMllpAck
+  generateMllpAck,
+  generateHl7OrderResponse,
+  generateMllpOrderResponse
 } from './parsers/hl7-parser.js';
+import { getAnalyzerDriver, listAvailableDrivers, saveDriverCassette } from './drivers/index.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Configuration & Hybrid Sync (Local On-Prem + Cloud Supabase)
@@ -53,19 +60,129 @@ const __dirname = path.dirname(__filename);
 const configPath = path.join(__dirname, 'analyzers-config.json');
 
 // Local On-Premise Spool (Zero Data Loss on Internet / Cloud Outages)
+// Non-blocking FIFO Queue with fs.promises
 const SPOOL_DIR = path.join(__dirname, 'spool');
 if (!fs.existsSync(SPOOL_DIR)) {
   fs.mkdirSync(SPOOL_DIR, { recursive: true });
 }
 
-function appendToLocalSpool(filename, record) {
-  try {
-    const filePath = path.join(SPOOL_DIR, filename);
-    const line = JSON.stringify(record) + '\n';
-    fs.appendFileSync(filePath, line, 'utf8');
-  } catch (err) {
-    console.error(`[SPOOL] Error escribiendo a disco local: ${err.message}`);
+const spoolQueue = [];
+let isSpoolWorkerActive = false;
+
+async function processSpoolQueue() {
+  if (isSpoolWorkerActive || spoolQueue.length === 0) return;
+  isSpoolWorkerActive = true;
+  while (spoolQueue.length > 0) {
+    const item = spoolQueue.shift();
+    try {
+      const targetPath = path.join(SPOOL_DIR, item.filename);
+      await fs.promises.appendFile(targetPath, item.content, 'utf8');
+    } catch (err) {
+      console.error(`[SPOOL] Error asíncrono en disco: ${err.message}`);
+    }
   }
+  isSpoolWorkerActive = false;
+}
+
+function appendToLocalSpool(filename, record) {
+  const line = JSON.stringify(record) + '\n';
+  spoolQueue.push({ filename, content: line });
+  processSpoolQueue().catch(() => {});
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Commercial Test Homologation Dictionary & Normalization Engine
+// ──────────────────────────────────────────────────────────────────────────────
+const CLINICAL_TEST_HOMOLOGATION = {
+  // Hematology (Sysmex, Mindray, Pentra, Cell-Dyn, Coulter)
+  'WBC': { name: 'Leucocitos', unit: '10^3/uL', refMin: 4.5, refMax: 11.0 },
+  'RBC': { name: 'Eritrocitos', unit: '10^6/uL', refMin: 4.2, refMax: 5.9 },
+  'HGB': { name: 'Hemoglobina', unit: 'g/dL', refMin: 12.0, refMax: 17.5 },
+  'HCT': { name: 'Hematocrito', unit: '%', refMin: 37.0, refMax: 50.0 },
+  'PLT': { name: 'Plaquetas', unit: '10^3/uL', refMin: 150, refMax: 450 },
+  'MCV': { name: 'VCM', unit: 'fL', refMin: 80, refMax: 100 },
+  'MCH': { name: 'HCM', unit: 'pg', refMin: 27, refMax: 33 },
+  'MCHC': { name: 'CHCM', unit: 'g/dL', refMin: 32, refMax: 36 },
+  'RDW-CV': { name: 'RDW-CV', unit: '%', refMin: 11.5, refMax: 14.5 },
+  'LYMPH%': { name: 'Linfocitos %', unit: '%', refMin: 20, refMax: 45 },
+  'NEUT%': { name: 'Neutrófilos %', unit: '%', refMin: 40, refMax: 75 },
+  'MONO%': { name: 'Monocitos %', unit: '%', refMin: 2, refMax: 10 },
+  'EO%': { name: 'Eosinófilos %', unit: '%', refMin: 1, refMax: 4 },
+  'BASO%': { name: 'Basófilos %', unit: '%', refMin: 0, refMax: 2 },
+  
+  // Chemistry (Cobas, Vitros, Alinity, Dimension, Architect)
+  'GLU': { name: 'Glucosa Basal', unit: 'mg/dL', refMin: 70, refMax: 100 },
+  'GLUC': { name: 'Glucosa Basal', unit: 'mg/dL', refMin: 70, refMax: 100 },
+  'GLUC3': { name: 'Glucosa Basal', unit: 'mg/dL', refMin: 70, refMax: 100 },
+  '001': { name: 'Glucosa Basal', unit: 'mg/dL', refMin: 70, refMax: 100 },
+  'BUN': { name: 'Nitrógeno Ureico (BUN)', unit: 'mg/dL', refMin: 7, refMax: 20 },
+  'UREA': { name: 'Urea', unit: 'mg/dL', refMin: 15, refMax: 45 },
+  'CREA': { name: 'Creatinina Sérica', unit: 'mg/dL', refMin: 0.6, refMax: 1.3 },
+  'CREAT': { name: 'Creatinina Sérica', unit: 'mg/dL', refMin: 0.6, refMax: 1.3 },
+  'CHOL': { name: 'Colesterol Total', unit: 'mg/dL', refMin: 0, refMax: 200 },
+  'TRIG': { name: 'Triglicéridos', unit: 'mg/dL', refMin: 0, refMax: 150 },
+  'HDL': { name: 'Colesterol HDL', unit: 'mg/dL', refMin: 40, refMax: 60 },
+  'LDL': { name: 'Colesterol LDL', unit: 'mg/dL', refMin: 0, refMax: 100 },
+  'AST': { name: 'Aspartato Aminotransferasa (AST/GOT)', unit: 'U/L', refMin: 10, refMax: 40 },
+  'ALT': { name: 'Alanina Aminotransferasa (ALT/GPT)', unit: 'U/L', refMin: 7, refMax: 56 },
+  'ALP': { name: 'Fosfatasa Alcalina', unit: 'U/L', refMin: 44, refMax: 147 },
+  'GGT': { name: 'Gamma Glutamil Transferasa', unit: 'U/L', refMin: 9, refMax: 48 },
+  'TBIL': { name: 'Bilirrubina Total', unit: 'mg/dL', refMin: 0.2, refMax: 1.2 },
+  'DBIL': { name: 'Bilirrubina Directa', unit: 'mg/dL', refMin: 0.0, refMax: 0.3 },
+  'NA': { name: 'Sodio (Na)', unit: 'mEq/L', refMin: 135, refMax: 145 },
+  'K': { name: 'Potasio (K)', unit: 'mEq/L', refMin: 3.5, refMax: 5.1 },
+  'CL': { name: 'Cloro (Cl)', unit: 'mEq/L', refMin: 98, refMax: 107 },
+  'CA': { name: 'Calcio Total', unit: 'mg/dL', refMin: 8.5, refMax: 10.5 },
+  'TP': { name: 'Proteínas Totales', unit: 'g/dL', refMin: 6.0, refMax: 8.3 },
+  'ALB': { name: 'Albúmina', unit: 'g/dL', refMin: 3.5, refMax: 5.0 },
+  'UA': { name: 'Ácido Úrico', unit: 'mg/dL', refMin: 3.5, refMax: 7.2 },
+  
+  // Coagulation (Stago STA, Sysmex CS, ACL TOP)
+  'PT': { name: 'Tiempo de Protrombina (TP)', unit: 'seg', refMin: 11.0, refMax: 13.5 },
+  'INR': { name: 'INR (Protrombina)', unit: '', refMin: 0.8, refMax: 1.2 },
+  'APTT': { name: 'Tiempo de Tromboplastina (TTPa)', unit: 'seg', refMin: 25.0, refMax: 35.0 },
+  'FIB': { name: 'Fibrinógeno', unit: 'mg/dL', refMin: 200, refMax: 400 },
+  
+  // Immunology & Hormones (Alinity, Cobas e411, Vitros ECi)
+  'HBA1C': { name: 'Hemoglobina Glicosilada A1c', unit: '%', refMin: 4.0, refMax: 5.6 },
+  'TSH': { name: 'Hormona Estimulante de Tiroides (TSH)', unit: 'uIU/mL', refMin: 0.4, refMax: 4.0 },
+  'FT4': { name: 'T4 Libre', unit: 'ng/dL', refMin: 0.8, refMax: 1.8 }
+};
+
+function homologateTest(testCode, rawUnit, rawRefRange) {
+  const cleanCode = (testCode || '').trim().toUpperCase();
+  const match = CLINICAL_TEST_HOMOLOGATION[cleanCode];
+  if (match) {
+    return {
+      parameterName: match.name,
+      unit: rawUnit || match.unit,
+      refRange: rawRefRange || `${match.refMin} - ${match.refMax}`,
+      refMin: match.refMin,
+      refMax: match.refMax
+    };
+  }
+  return {
+    parameterName: testCode,
+    unit: rawUnit || '',
+    refRange: rawRefRange || '',
+    refMin: null,
+    refMax: null
+  };
+}
+
+function evaluateClinicalFlag(numericVal, refMin, refMax, rawFlag) {
+  if (rawFlag && ['HH', 'LL', 'PH', 'PL', 'CRITICO_ALTO', 'CRITICO_BAJO'].includes(rawFlag)) {
+    return rawFlag.includes('H') ? 'CRITICO_ALTO' : 'CRITICO_BAJO';
+  }
+  if (numericVal !== null && refMin !== null && refMax !== null) {
+    const rangeSpan = Math.abs(refMax - refMin);
+    if (numericVal < refMin - (rangeSpan * 0.4)) return 'CRITICO_BAJO';
+    if (numericVal > refMax + (rangeSpan * 0.4)) return 'CRITICO_ALTO';
+    if (numericVal < refMin) return 'BAJO';
+    if (numericVal > refMax) return 'ALTO';
+    return 'NORMAL';
+  }
+  return rawFlag || 'NORMAL';
 }
 
 // Default Analyzers
@@ -129,28 +246,88 @@ const DEFAULT_ANALYZERS = [
 ];
 
 function loadAnalyzerConfig() {
+  let list = DEFAULT_ANALYZERS;
   if (fs.existsSync(configPath)) {
     try {
       const data = fs.readFileSync(configPath, 'utf8');
-      const list = JSON.parse(data);
-      if (Array.isArray(list) && list.length > 0) {
-        return list;
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        list = parsed;
       }
     } catch (e) {
       console.error(`[CONFIG] Error leyendo ${configPath}:`, e.message);
     }
   }
-  return DEFAULT_ANALYZERS;
+  // Automatically bind and enrich with modular driver profile
+  return list.map(item => getAnalyzerDriver(item));
 }
 
 const ANALYZER_PORTS = loadAnalyzerConfig();
 
 // ──────────────────────────────────────────────────────────────────────────────
-// WebSocket Server — broadcasts to all connected frontends
+// WebSocket & HTTP Server — Serves status HTML to browsers & WebSocket to LIS
 // ──────────────────────────────────────────────────────────────────────────────
 
-const wsServer = new WebSocketServer({ port: WS_PORT });
+const httpServer = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  const analyzersListHtml = ANALYZER_PORTS.map(a => `
+    <div style="background:#0b1329; border:1px solid #1e293b; border-radius:12px; padding:12px 16px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong style="color:#f8fafc; font-size:14px;">${a.name}</strong>
+        <div style="color:#64748b; font-size:11px; font-family:monospace; margin-top:2px;">Protocolo: ${a.protocol} &bull; Puerto TCP: :${a.port} &bull; Driver: ${a.driverId || a.id || 'estándar'}</div>
+      </div>
+      <span style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:11px; font-weight:800; padding:4px 10px; border-radius:9999px;">
+        ESCUCHANDO TCP :${a.port}
+      </span>
+    </div>
+  `).join('');
+
+  res.end(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AbregoTech LIS — Middleware Bridge :8765</title>
+  <style>
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:#020617; color:#f8fafc; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; box-sizing:border-box; }
+    .card { max-width:640px; width:100%; background:#0f172a; border:1px solid #1e293b; border-radius:24px; padding:32px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); }
+    .badge { background:rgba(34,211,238,0.15); color:#22d3ee; border:1px solid rgba(34,211,238,0.3); font-size:11px; font-weight:800; padding:4px 12px; border-radius:9999px; text-transform:uppercase; font-family:monospace; }
+    .btn { display:inline-block; margin-top:16px; padding:12px 24px; background:linear-gradient(135deg, #06b6d4, #10b981); color:#020617; text-decoration:none; font-weight:900; font-size:13px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px; transition:transform 0.1s; }
+    .btn:hover { transform:scale(1.02); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <span class="badge">WebSocket Bridge Activo :8765</span>
+      <span style="color:#10b981; font-size:12px; font-weight:bold;">● EN LÍNEA</span>
+    </div>
+    <h1 style="margin:0 0 8px 0; font-size:22px; font-weight:900; color:#fff;">Motor de Integración & Ingestión ASTM/HL7</h1>
+    <p style="color:#94a3b8; font-size:13px; line-height:1.5; margin:0 0 20px 0;">
+      Este puerto (<strong>:8765</strong>) es el canal WebSocket de baja latencia para los analizadores clínicos. Para acceder a la aplicación clínica LIS, ingresa en el puerto principal <strong>:3000</strong>.
+    </p>
+
+    <div style="background:#020617; border:1px solid #1e293b; border-radius:16px; padding:16px; margin-bottom:20px;">
+      <div style="font-size:11px; font-weight:bold; color:#64748b; text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">
+        Puertos TCP de Analizadores Conectados (${ANALYZER_PORTS.length})
+      </div>
+      ${analyzersListHtml}
+    </div>
+
+    <div style="text-align:center;">
+      <a href="http://localhost:3000" class="btn">Abrir Plataforma LIS (http://localhost:3000) &rarr;</a>
+    </div>
+  </div>
+</body>
+</html>`);
+});
+
+const wsServer = new WebSocketServer({ server: httpServer });
 const wsClients = new Set();
+
+httpServer.listen(WS_PORT, '0.0.0.0', () => {
+  log('WS', `Servidor HTTP y WebSocket Bridge escuchando en http://0.0.0.0:${WS_PORT}`);
+});
 
 wsServer.on('connection', (ws, req) => {
   wsClients.add(ws);
@@ -203,6 +380,42 @@ function handleWsCommand(cmd, ws) {
     case 'ping':
       ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
       break;
+    case 'print_zpl':
+      // Direct raw TCP socket printing to Zebra / thermal printers on port 9100
+      if (cmd.ip && cmd.zpl) {
+        const port = cmd.port || 9100;
+        log('PRINT', `Enviando comando ZPL directo vía TCP a ${cmd.ip}:${port}`);
+        const printSocket = new net.Socket();
+        printSocket.setTimeout(3500);
+        printSocket.connect(port, cmd.ip, () => {
+          printSocket.write(cmd.zpl, 'utf8', () => {
+            printSocket.end();
+            log('PRINT', `✓ Trama ZPL enviada con éxito al cabezal térmico ${cmd.ip}:${port}`);
+            try {
+              ws.send(JSON.stringify({
+                type: 'print_result',
+                success: true,
+                message: `Impresión ZPL despachada a ${cmd.ip}:${port}`
+              }));
+            } catch (_) {}
+          });
+        });
+        printSocket.on('error', (err) => {
+          log('PRINT', `Error al comunicar con impresora ${cmd.ip}:${port}: ${err.message}`);
+          try {
+            ws.send(JSON.stringify({
+              type: 'print_result',
+              success: false,
+              message: `No se pudo conectar a la impresora ${cmd.ip}:${port} (${err.message})`
+            }));
+          } catch (_) {}
+        });
+        printSocket.on('timeout', () => {
+          printSocket.destroy();
+          log('PRINT', `Timeout al conectar con impresora ${cmd.ip}:${port}`);
+        });
+      }
+      break;
     case 'get_status':
       ws.send(JSON.stringify({
         type: 'bridge_status',
@@ -229,14 +442,282 @@ function handleWsCommand(cmd, ws) {
           log('INJECT', `Frame de prueba inyectado para ${analyzerConfig.name}`);
           const buffer = Buffer.from(cmd.rawFrame, 'utf8');
           if (analyzerConfig.protocol === 'ASTM_E1381') {
-            processAstmData(analyzerConfig, buffer);
+            processAstmData(analyzerConfig, null, buffer);
           } else {
-            processHl7Data(analyzerConfig, buffer);
+            processHl7Data(analyzerConfig, null, buffer);
           }
         }
       }
       break;
+    case 'save_analyzer_config':
+      if (cmd.analyzer) {
+        addOrUpdateAnalyzerConfig(cmd.analyzer);
+        ws.send(JSON.stringify({
+          type: 'analyzer_config_saved',
+          data: { analyzerId: cmd.analyzer.id, status: 'SUCCESS' },
+          timestamp: new Date().toISOString()
+        }));
+      }
+      break;
+    case 'delete_analyzer_config':
+      if (cmd.analyzerId) {
+        removeAnalyzerConfig(cmd.analyzerId);
+        ws.send(JSON.stringify({
+          type: 'analyzer_config_deleted',
+          data: { analyzerId: cmd.analyzerId, status: 'SUCCESS' },
+          timestamp: new Date().toISOString()
+        }));
+      }
+      break;
+    case 'get_driver_catalog':
+      ws.send(JSON.stringify({
+        type: 'driver_catalog',
+        data: listAvailableDrivers(),
+        timestamp: new Date().toISOString()
+      }));
+      break;
+    case 'sync_mappings':
+      if (Array.isArray(cmd.mappings)) {
+        try {
+          const cachePath = path.resolve(__dirname, 'mappings-cache.json');
+          fs.writeFileSync(cachePath, JSON.stringify(cmd.mappings, null, 2), 'utf8');
+          log('HOMOLOGATION', `✓ Sync Engine: ${cmd.mappings.length} mapeos de analitos sincronizados en caliente en el Middleware`);
+          ws.send(JSON.stringify({
+            type: 'mappings_synced',
+            count: cmd.mappings.length,
+            timestamp: new Date().toISOString()
+          }));
+        } catch (e) {
+          log('HOMOLOGATION', `Error guardando mappings-cache.json: ${e.message}`);
+        }
+      }
+      break;
+    case 'install_driver_cassette':
+      if (cmd.cassette) {
+        try {
+          const installed = saveDriverCassette(cmd.cassette);
+          log('CASSETTE', `✓ Cassette instalado exitosamente: ${installed.name}`);
+          ws.send(JSON.stringify({
+            type: 'cassette_installed',
+            data: installed,
+            timestamp: new Date().toISOString()
+          }));
+          broadcast({
+            type: 'driver_catalog',
+            data: listAvailableDrivers(),
+            timestamp: new Date().toISOString()
+          });
+        } catch (err) {
+          log('CASSETTE', `Error instalando cassette: ${err.message}`);
+          ws.send(JSON.stringify({
+            type: 'cassette_error',
+            error: err.message,
+            timestamp: new Date().toISOString()
+          }));
+        }
+      }
+      break;
+    case 'test_tcp_connection': {
+      const host = cmd.host || '127.0.0.1';
+      const port = parseInt(cmd.port, 10);
+      const startTime = Date.now();
+      const testSocket = new net.Socket();
+      let finished = false;
+
+      testSocket.setTimeout(2500);
+
+      testSocket.connect(port, host, () => {
+        if (finished) return;
+        finished = true;
+        const latency = Date.now() - startTime;
+        testSocket.destroy();
+        ws.send(JSON.stringify({
+          type: 'test_tcp_connection_result',
+          data: {
+            success: true,
+            host,
+            port,
+            latency,
+            message: `✓ SOCKET TCP CONECTADO REAL (IP ${host}:${port}) — Latencia verificada: ${latency} ms. Host activo y respondiendo.`
+          },
+          timestamp: new Date().toISOString()
+        }));
+      });
+
+      testSocket.on('timeout', () => {
+        if (finished) return;
+        finished = true;
+        testSocket.destroy();
+        ws.send(JSON.stringify({
+          type: 'test_tcp_connection_result',
+          data: {
+            success: false,
+            host,
+            port,
+            message: `❌ Host inalcanzable (Timeout 2.5s en ${host}:${port}). No se detectó analizador respondiendo en esa IP física en la red.`
+          },
+          timestamp: new Date().toISOString()
+        }));
+      });
+
+      testSocket.on('error', (err) => {
+        if (finished) return;
+        finished = true;
+        testSocket.destroy();
+        ws.send(JSON.stringify({
+          type: 'test_tcp_connection_result',
+          data: {
+            success: false,
+            host,
+            port,
+            message: `❌ Conexión rechazada (${err.code || err.message}) en ${host}:${port}. Verifique la configuración de red del analizador.`
+          },
+          timestamp: new Date().toISOString()
+        }));
+      });
+      break;
+    }
+    case 'run_sample_transmission': {
+      const targetAnalyzer = cmd.analyzerId 
+        ? ANALYZER_PORTS.find(a => a.id === cmd.analyzerId) 
+        : ANALYZER_PORTS[0];
+
+      if (targetAnalyzer && tcpServers.has(targetAnalyzer.id)) {
+        log('SAMPLE_TEST', `Disparando transmisión TCP real hacia ${targetAnalyzer.name} (puerto ${targetAnalyzer.port})...`);
+        const senderSocket = new net.Socket();
+        senderSocket.connect(targetAnalyzer.port, '127.0.0.1', () => {
+          if (targetAnalyzer.protocol === 'HL7_V2') {
+            const hl7Msg = 
+              `MSH|^~\\&|${targetAnalyzer.name.replace(/\\s+/g, '_')}|LAB|LIS|ABREGOTECH|${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14)}||ORU^R01|MSG-${Date.now().toString().slice(-5)}|P|2.5\r` +
+              `PID|1||8-812-4432||Navarro^Javier||19850412|M\r` +
+              `OBR|1||BC-${Math.floor(100000 + Math.random() * 900000)}|^^^HEMOGRAMA_COMPLETO\r` +
+              `OBX|1|NM|WBC^Leucocitos|1|7.85|10^3/uL|4.5-11.0|N|||F\r` +
+              `OBX|2|NM|HGB^Hemoglobina|1|15.2|g/dL|13.5-17.5|N|||F\r` +
+              `OBX|3|NM|PLT^Plaquetas|1|260|10^3/uL|150-450|N|||F\r`;
+            const mllpPacket = Buffer.concat([Buffer.from([0x0B]), Buffer.from(hl7Msg, 'utf8'), Buffer.from([0x1C, 0x0D])]);
+            senderSocket.write(mllpPacket);
+            senderSocket.on('data', () => {
+              senderSocket.end();
+            });
+          } else {
+            senderSocket.write(Buffer.from([0x05]));
+            let step = 0;
+            const barcode = `BC-${Math.floor(100000 + Math.random() * 900000)}`;
+            const makeFrame = (num, txt) => {
+              const body = `${num}${txt}`;
+              const inner = Buffer.concat([Buffer.from(body, 'utf8'), Buffer.from([0x03])]);
+              let sum = 0;
+              for (const b of inner) sum += b;
+              const cs = (sum % 256).toString(16).toUpperCase().padStart(2, '0');
+              return Buffer.concat([Buffer.from([0x02]), inner, Buffer.from(`${cs}\r\n`, 'ascii')]);
+            };
+            const frames = [
+              makeFrame(1, `H|\\^&|||${targetAnalyzer.name}|||||||P|1`),
+              makeFrame(2, 'P|1||8-897-180||Navarro^Javier||19880720|M'),
+              makeFrame(3, `O|1|${barcode}||^^^PERFIL_GENERAL|R`),
+              makeFrame(4, 'R|1|^^^GLU|94.0|mg/dL|70-99|N||F'),
+              makeFrame(5, 'R|2|^^^CREA|0.92|mg/dL|0.6-1.3|N||F'),
+              makeFrame(6, 'L|1|N')
+            ];
+            senderSocket.on('data', (d) => {
+              if (d[0] === 0x06) {
+                if (step < frames.length) {
+                  senderSocket.write(frames[step]);
+                  step++;
+                } else {
+                  senderSocket.write(Buffer.from([0x04]));
+                  setTimeout(() => senderSocket.end(), 200);
+                }
+              }
+            });
+          }
+        });
+        senderSocket.on('error', (err) => {
+          log('SAMPLE_TEST', `Error en prueba TCP: ${err.message}`);
+        });
+      }
+      break;
+    }
   }
+}
+
+function addOrUpdateAnalyzerConfig(config) {
+  const enriched = getAnalyzerDriver(config);
+  
+  if (tcpServers.has(enriched.id)) {
+    try {
+      tcpServers.get(enriched.id).close();
+      tcpServers.delete(enriched.id);
+    } catch (_) {}
+  }
+
+  const idx = ANALYZER_PORTS.findIndex(a => a.id === enriched.id);
+  if (idx !== -1) {
+    ANALYZER_PORTS[idx] = enriched;
+  } else {
+    ANALYZER_PORTS.push(enriched);
+  }
+
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(ANALYZER_PORTS, null, 2), 'utf8');
+    log('CONFIG', `✓ Configuración actualizada en analyzers-config.json: ${enriched.name} (Puerto ${enriched.port})`);
+  } catch (err) {
+    log('CONFIG', `Error escribiendo ${configPath}: ${err.message}`);
+  }
+
+  createTcpListener(enriched);
+
+  broadcast({
+    type: 'bridge_status',
+    data: {
+      analyzers: ANALYZER_PORTS.map(a => ({
+        id: a.id,
+        name: a.name,
+        port: a.port,
+        protocol: a.protocol,
+        status: tcpServers.get(a.id) ? 'LISTENING' : 'OFFLINE',
+        connectedSocket: analyzerSockets.has(a.id)
+      })),
+      connectedClients: wsClients.size,
+      uptime: process.uptime()
+    },
+    timestamp: new Date().toISOString()
+  });
+}
+
+function removeAnalyzerConfig(analyzerId) {
+  if (tcpServers.has(analyzerId)) {
+    try {
+      tcpServers.get(analyzerId).close();
+      tcpServers.delete(analyzerId);
+    } catch (_) {}
+  }
+  const idx = ANALYZER_PORTS.findIndex(a => a.id === analyzerId);
+  if (idx !== -1) {
+    const removed = ANALYZER_PORTS.splice(idx, 1)[0];
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(ANALYZER_PORTS, null, 2), 'utf8');
+      log('CONFIG', `✓ Analizador eliminado de configuración: ${removed.name}`);
+    } catch (err) {
+      log('CONFIG', `Error escribiendo ${configPath}: ${err.message}`);
+    }
+  }
+  broadcast({
+    type: 'bridge_status',
+    data: {
+      analyzers: ANALYZER_PORTS.map(a => ({
+        id: a.id,
+        name: a.name,
+        port: a.port,
+        protocol: a.protocol,
+        status: tcpServers.get(a.id) ? 'LISTENING' : 'OFFLINE',
+        connectedSocket: analyzerSockets.has(a.id)
+      })),
+      connectedClients: wsClients.size,
+      uptime: process.uptime()
+    },
+    timestamp: new Date().toISOString()
+  });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -255,14 +736,21 @@ function createTcpListener(analyzerConfig) {
     log(name, `Analizador conectado desde ${remoteAddr}`);
     analyzerSockets.set(id, socket);
 
-    // Initialize ASTM state machine
+    // Socket low-level performance & heartbeat optimizations
+    socket.setKeepAlive(true, 10000); // 10s TCP keep-alive to catch dead/disconnected cables
+    socket.setNoDelay(true);          // Disable Nagle algorithm for immediate frame transmission
+
+    // Initialize ASTM state machine with multi-frame ETB & bidirectional transmission support
     if (protocol === 'ASTM_E1381') {
       astmBuffers.set(id, {
         state: 'IDLE',        // IDLE -> WAIT_STX -> ACCUMULATE -> WAIT_EOT
         frameBuffer: Buffer.alloc(0),
         messageText: '',
+        currentRecordText: '', // for ETB continuation frames
         frameCount: 0,
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
+        isTransmittingToAnalyzer: false,
+        onTransmissionData: null
       });
     }
 
@@ -340,6 +828,12 @@ function handleAstmData(analyzerConfig, socket, data) {
   let state = astmBuffers.get(id);
   if (!state) return;
 
+  // If host is currently sending Host Query response, route incoming bytes (ACK/NAK) to transmission handler
+  if (state.isTransmittingToAnalyzer && typeof state.onTransmissionData === 'function') {
+    state.onTransmissionData(data);
+    return;
+  }
+
   for (let i = 0; i < data.length; i++) {
     const byte = data[i];
     state.lastActivity = Date.now();
@@ -369,6 +863,7 @@ function handleAstmData(analyzerConfig, socket, data) {
           }
           state.state = 'WAIT_STX';
           state.messageText = '';
+          state.currentRecordText = '';
           state.frameCount = 0;
         }
         break;
@@ -381,10 +876,11 @@ function handleAstmData(analyzerConfig, socket, data) {
           // Transmission complete
           log(name, `<EOT> recibido — fin de transmisión (${state.frameCount} frames)`);
           if (state.messageText) {
-            processAstmData(analyzerConfig, Buffer.from(state.messageText, 'utf8'));
+            processAstmData(analyzerConfig, socket, Buffer.from(state.messageText, 'utf8'));
           }
           state.state = 'IDLE';
           state.messageText = '';
+          state.currentRecordText = '';
           state.frameCount = 0;
 
           broadcast({
@@ -406,20 +902,23 @@ function handleAstmData(analyzerConfig, socket, data) {
         state.frameBuffer = Buffer.concat([state.frameBuffer, Buffer.from([byte])]);
 
         if (byte === LF) {
-          // Frame complete: <STX>...<ETX><C1><C2><CR><LF>
+          // Frame complete: <STX>...<ETX or ETB><C1><C2><CR><LF>
           const checkResult = validateChecksum(state.frameBuffer);
-          const frameText = extractFrameText(state.frameBuffer);
+          const frameInfo = extractFrameText(state.frameBuffer);
+          const frameText = typeof frameInfo === 'object' ? frameInfo.text : frameInfo;
+          const isIntermediate = typeof frameInfo === 'object' ? frameInfo.isIntermediate : false;
+          const delimiter = typeof frameInfo === 'object' ? frameInfo.delimiter : (checkResult.delimiter || 'ETX');
           const hexDump = generateHexDump(state.frameBuffer);
           state.frameCount++;
 
-          log(name, `Frame #${state.frameCount}: checksum=${checkResult.valid ? 'OK' : 'FAIL'} "${frameText.substring(0, 60)}..."`);
+          log(name, `Frame #${state.frameCount} (${delimiter}): checksum=${checkResult.valid ? 'OK' : 'FAIL'} "${frameText.substring(0, 60)}..."`);
 
           broadcast({
             type: 'frame_received',
             data: {
               analyzerId: id,
               analyzerName: name,
-              frameType: 'STX_RECORD',
+              frameType: isIntermediate ? 'STX_RECORD_ETB' : 'STX_RECORD_ETX',
               direction: 'INBOUND',
               rawPayload: frameText,
               rawHex: hexDump,
@@ -427,6 +926,8 @@ function handleAstmData(analyzerConfig, socket, data) {
               checksumExpected: checkResult.expected,
               checksumComputed: checkResult.computed,
               frameNumber: state.frameCount,
+              isIntermediate,
+              delimiter,
               protocol: 'ASTM E1381'
             },
             timestamp: new Date().toISOString()
@@ -444,7 +945,15 @@ function handleAstmData(analyzerConfig, socket, data) {
           });
 
           if (checkResult.valid) {
-            state.messageText += frameText + '\n';
+            if (isIntermediate) {
+              // ETB: intermediate frame in multi-frame message — concatenate without extra newline
+              state.currentRecordText = (state.currentRecordText || '') + frameText;
+            } else {
+              // ETX: final frame of logical record — commit line
+              state.messageText += (state.currentRecordText || '') + frameText + '\n';
+              state.currentRecordText = '';
+            }
+
             if (ackDelayMs > 0) {
               setTimeout(() => sendAck(socket, name), ackDelayMs);
             } else {
@@ -474,6 +983,135 @@ function sendAck(socket, analyzerName) {
   }
 }
 
+/**
+ * ASTM Host Query Response (Bidirectional Workflow)
+ * Sends patient and order tests to the analyzer in response to a Q record.
+ */
+async function sendAstmHostQueryResponse(analyzerConfig, socket, order, barcode) {
+  const { id, name } = analyzerConfig;
+  const state = astmBuffers.get(id);
+  if (!state || !socket || socket.destroyed) return;
+
+  log(name, `Iniciando sesión Host Query para descargar orden de muestra ${barcode}...`);
+  state.isTransmittingToAnalyzer = true;
+
+  let lines;
+  if (order) {
+    const tests = order.tests || order.order_items || ['ALL'];
+    lines = buildAstmOrderLines({
+      senderId: 'AbregoTech LIS',
+      patient: order.patient || { name: order.patient_name || 'Paciente' },
+      order: { barcode, priority: order.priority || 'R', order_number: order.order_number },
+      tests,
+      driverProfile: analyzerConfig.driverProfile || analyzerConfig
+    });
+    log(name, `Orden ${order.order_number} preparada con ${lines.length} líneas ASTM (estrategia: ${analyzerConfig.orderStrategy || 'SINGLE_O_REPEAT'})`);
+  } else {
+    // CLSI standard: if specimen not found, respond with termination or Q cancellation
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+    lines = [
+      `H|\\^&|||AbregoTech LIS|||||||P|1|${timestamp}`,
+      `Q|1|^${barcode}||ALL||||||||X`,
+      `L|1|N`
+    ];
+    log(name, `Muestra ${barcode} no encontrada — enviando trama ASTM de no-solicitud (Q|...|X)`);
+  }
+
+  return new Promise((resolve) => {
+    let frameIdx = 0;
+    let timer = null;
+
+    const cleanup = (success) => {
+      if (timer) clearTimeout(timer);
+      state.isTransmittingToAnalyzer = false;
+      state.onTransmissionData = null;
+      state.state = 'IDLE';
+      resolve(success);
+    };
+
+    const sendNextFrame = () => {
+      if (frameIdx >= lines.length) {
+        log(name, `--> <EOT> enviado (Descarga de orden completada)`);
+        try { socket.write(Buffer.from([EOT])); } catch (_) {}
+        broadcast({
+          type: 'host_query_processed',
+          data: {
+            analyzerId: id,
+            analyzerName: name,
+            barcode,
+            orderMatched: order ? order.order_number : null,
+            status: order ? 'ORDEN_ENVIADA' : 'ORDEN_NO_EXISTE',
+            linesCount: lines.length
+          },
+          timestamp: new Date().toISOString()
+        });
+        cleanup(true);
+        return;
+      }
+
+      const fn = (frameIdx + 1) % 8;
+      const line = lines[frameIdx];
+      frameIdx++;
+
+      const frameBuf = formatAstmFrame(fn, line, true);
+      log(name, `--> Enviando Frame #${fn}: "${line.substring(0, 50)}..."`);
+      try { socket.write(frameBuf); } catch (err) {
+        log(name, `Error enviando frame a socket: ${err.message}`);
+        cleanup(false);
+        return;
+      }
+
+      broadcast({
+        type: 'frame_received',
+        data: {
+          analyzerId: id,
+          analyzerName: name,
+          frameType: 'HOST_QUERY_OUT',
+          direction: 'OUTBOUND',
+          rawPayload: line,
+          frameNumber: fn,
+          protocol: 'ASTM E1381'
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        log(name, `⚠ Timeout esperando ACK para frame #${fn} — cerrando sesión`);
+        try { socket.write(Buffer.from([EOT])); } catch (_) {}
+        cleanup(false);
+      }, 5000);
+    };
+
+    state.onTransmissionData = (chunk) => {
+      for (let i = 0; i < chunk.length; i++) {
+        const byte = chunk[i];
+        if (byte === ACK) {
+          log(name, `<-- <ACK> recibido del analizador`);
+          if (timer) clearTimeout(timer);
+          setTimeout(sendNextFrame, 20);
+          return;
+        } else if (byte === NAK) {
+          log(name, `✗ <NAK> recibido del analizador — abortando transmisión`);
+          try { socket.write(Buffer.from([EOT])); } catch (_) {}
+          cleanup(false);
+          return;
+        }
+      }
+    };
+
+    // Step 1: Send ENQ to acquire line
+    log(name, `--> <ENQ> enviado para iniciar sesión de descarga`);
+    try { socket.write(Buffer.from([ENQ])); } catch (_) {}
+
+    timer = setTimeout(() => {
+      log(name, `⚠ Timeout esperando ACK a <ENQ>`);
+      cleanup(false);
+    }, 5000);
+  });
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // HL7 MLLP Handler
 // ──────────────────────────────────────────────────────────────────────────────
@@ -488,7 +1126,7 @@ function handleHl7Data(analyzerConfig, socket, data) {
   if (!hasVt && !hasFs) {
     // Possibly a partial message or raw text — try to parse anyway
     log(name, `Datos sin encapsulación MLLP — intentando parsear como texto plano`);
-    processHl7Data(analyzerConfig, data);
+    processHl7Data(analyzerConfig, socket, data);
     return;
   }
 
@@ -511,11 +1149,44 @@ function handleHl7Data(analyzerConfig, socket, data) {
     timestamp: new Date().toISOString()
   });
 
-  // Parse and process
-  processHl7Data(analyzerConfig, Buffer.from(messageText, 'utf8'));
+  const parsed = parseHl7Message(messageText);
+
+  // Check if it's an HL7 Query (QBP^Q11 or QRY^Q02)
+  if (parsed.messageCode === 'QBP' || parsed.messageCode === 'QRY' || parsed.qpd || parsed.qrd) {
+    const queryBarcode = parsed.qpd?.sampleBarcode || parsed.qrd?.sampleBarcode || '';
+    log(name, `⚠️ HL7 Host Query detectado para código de barras: "${queryBarcode}"`);
+    (async () => {
+      let matchedOrder = null;
+      if (queryBarcode) {
+        matchedOrder = await queryOrderByBarcode(queryBarcode);
+      }
+      const tests = matchedOrder?.tests || matchedOrder?.order_items || ['ALL'];
+      const responsePacket = generateMllpOrderResponse(parsed, matchedOrder?.patient, matchedOrder, tests);
+      try {
+        socket.write(responsePacket);
+        log(name, `--> Respuesta HL7 enviada (RSP^K11) para muestra ${queryBarcode}`);
+        broadcast({
+          type: 'host_query_processed',
+          data: {
+            analyzerId: id,
+            analyzerName: name,
+            barcode: queryBarcode,
+            orderMatched: matchedOrder ? matchedOrder.order_number : null,
+            status: matchedOrder ? 'ORDEN_ENVIADA_HL7' : 'ORDEN_NO_EXISTE_HL7'
+          },
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) {
+        log(name, `Error enviando respuesta HL7: ${err.message}`);
+      }
+    })();
+    return;
+  }
+
+  // Parse and process clinical results
+  processHl7Data(analyzerConfig, socket, Buffer.from(messageText, 'utf8'));
 
   // Send MLLP ACK
-  const parsed = parseHl7Message(messageText);
   const ackBuffer = generateMllpAck(parsed, 'AA', 'Mensaje procesado por AbregoTech LIS');
   
   if (ackDelayMs > 0) {
@@ -541,46 +1212,88 @@ function handleHl7Data(analyzerConfig, socket, data) {
 // Result Processing Pipeline
 // ──────────────────────────────────────────────────────────────────────────────
 
-async function processAstmData(analyzerConfig, dataBuffer) {
+async function processAstmData(analyzerConfig, socket, dataBuffer) {
   const { id, name } = analyzerConfig;
   const messageText = dataBuffer.toString('utf8');
   
   try {
     const parsed = parseAstmMessage(messageText);
-    const barcode = parsed.order?.specimenId || '';
+    const barcode = parsed.order?.specimenId || parsed.queries?.[0]?.sampleBarcode || '';
     const patientName = parsed.patient?.patientName || 'Desconocido';
 
-    log(name, `Mensaje ASTM parseado: barcode=${barcode}, paciente=${patientName}, ${parsed.results.length} resultado(s)`);
+    log(name, `Mensaje ASTM parseado: barcode=${barcode}, paciente=${patientName}, ${parsed.results.length} resultado(s), ${parsed.queries?.length || 0} query(s)`);
 
-    // Query PostgREST for matching order
+    // 1. Process Host Queries (if analyzer requested orders for a tube)
+    if (parsed.queries && parsed.queries.length > 0 && socket) {
+      for (const query of parsed.queries) {
+        const queryBarcode = query.sampleBarcode;
+        log(name, `⚠️ Procesando Host Query para tubo: ${queryBarcode}`);
+        let matchedOrder = null;
+        if (queryBarcode) {
+          matchedOrder = await queryOrderByBarcode(queryBarcode);
+        }
+        await sendAstmHostQueryResponse(analyzerConfig, socket, matchedOrder, queryBarcode);
+      }
+    }
+
+    // 2. Query PostgREST for matching order if results are present (unless it's a Quality Control run)
+    const isQcSample = /^(QC|CTRL|CONTROL|CAL|STD|NIVEL|PATRON|LEVEL)/i.test(barcode) || parsed.order?.actionCode === 'Q';
     let matchedOrder = null;
-    if (barcode) {
+    if (barcode && parsed.results.length > 0 && !isQcSample) {
       matchedOrder = await queryOrderByBarcode(barcode);
     }
 
-    // Process each result
+    // 3. Process each clinical result with homologation & critical checks
     for (const result of parsed.results) {
+      const homologated = homologateTest(result.testCode, result.unit, result.referenceRange);
+      const evaluatedFlag = evaluateClinicalFlag(
+        result.numericValue,
+        homologated.refMin,
+        homologated.refMax,
+        result.flag
+      );
+
       const resultRecord = {
         id: `res-bridge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         tenantId: TENANT_ID,
         orderId: matchedOrder?.id || '',
         testId: '',
         parameterId: '',
-        parameterName: result.testCode,
-        unit: result.unit,
+        parameterName: homologated.parameterName,
+        unit: homologated.unit,
         value: result.value,
         numericValue: result.numericValue,
-        flag: result.flag,
-        refRangeText: result.referenceRange,
+        flag: evaluatedFlag,
+        refRangeText: homologated.refRange,
         source: 'MIDDLEWARE_ASTM',
         analyzerName: name,
-        status: 'PENDIENTE',
-        specimenType: '',
+        status: isQcSample ? 'CONTROL_CALIDAD' : (evaluatedFlag.startsWith('CRITICO') ? 'PANICO_DETECTADO' : 'PENDIENTE'),
+        specimenType: isQcSample ? 'CONTROL_CALIDAD' : (result.specimenType || 'SUERO'),
         version: 1
       };
 
       // Persist to database
       await persistResult(resultRecord, barcode, patientName);
+
+      // Emit critical panic value alert to frontend if abnormal
+      if (evaluatedFlag === 'CRITICO_ALTO' || evaluatedFlag === 'CRITICO_BAJO') {
+        broadcast({
+          type: 'clinical_alert',
+          data: {
+            severity: 'CRITICAL',
+            title: `VALOR DE PÁNICO DETECTADO (${name})`,
+            analyte: homologated.parameterName,
+            value: result.value,
+            unit: homologated.unit,
+            flag: evaluatedFlag,
+            barcode,
+            patientName,
+            orderNumber: matchedOrder?.order_number || null,
+            timestamp: new Date().toISOString()
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
 
       // Broadcast to frontend
       broadcast({
@@ -678,32 +1391,61 @@ async function processHl7Data(analyzerConfig, dataBuffer) {
       timestamp: new Date().toISOString()
     });
 
+    const isQcSample = /^(QC|CTRL|CONTROL|CAL|STD|NIVEL|PATRON|LEVEL)/i.test(barcode);
     let matchedOrder = null;
-    if (barcode) {
+    if (barcode && !isQcSample) {
       matchedOrder = await queryOrderByBarcode(barcode);
     }
 
     for (const obx of parsed.obx) {
+      const homologated = homologateTest(obx.testCode || obx.testName, obx.unit, obx.referenceRange);
+      const evaluatedFlag = evaluateClinicalFlag(
+        obx.numericValue,
+        homologated.refMin,
+        homologated.refMax,
+        obx.flag
+      );
+
       const resultRecord = {
         id: `res-bridge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         tenantId: TENANT_ID,
         orderId: matchedOrder?.id || '',
         testId: '',
         parameterId: '',
-        parameterName: obx.testName || obx.testCode,
-        unit: obx.unit,
+        parameterName: homologated.parameterName,
+        unit: homologated.unit,
         value: obx.value,
         numericValue: obx.numericValue,
-        flag: obx.flag,
-        refRangeText: obx.referenceRange,
+        flag: evaluatedFlag,
+        refRangeText: homologated.refRange,
         source: 'MIDDLEWARE_HL7',
         analyzerName: name,
-        status: 'PENDIENTE',
-        specimenType: '',
+        status: isQcSample ? 'CONTROL_CALIDAD' : (evaluatedFlag.startsWith('CRITICO') ? 'PANICO_DETECTADO' : 'PENDIENTE'),
+        specimenType: isQcSample ? 'CONTROL_CALIDAD' : 'SUERO',
         version: 1
       };
 
       await persistResult(resultRecord, barcode, patientName);
+
+      // Emit critical panic value alert to frontend if abnormal
+      if (evaluatedFlag === 'CRITICO_ALTO' || evaluatedFlag === 'CRITICO_BAJO') {
+        broadcast({
+          type: 'clinical_alert',
+          data: {
+            severity: 'CRITICAL',
+            title: `VALOR DE PÁNICO DETECTADO (${name})`,
+            analyte: homologated.parameterName,
+            value: obx.value,
+            unit: homologated.unit,
+            flag: evaluatedFlag,
+            barcode,
+            patientName,
+            orderNumber: matchedOrder?.order_number || null,
+            timestamp: new Date().toISOString()
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
 
       broadcast({
         type: 'result_parsed',

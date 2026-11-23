@@ -1,3 +1,4 @@
+import { DicomPacsStudioPro } from './DicomPacsStudioPro';
 import React, { useState } from 'react';
 import {
   FileText,
@@ -42,7 +43,7 @@ const INITIAL_WORKLIST: RadiologyWorklistItem[] = [
   {
     id: 'rad-101',
     accessionNumber: 'RAD-2026-0812',
-    patientName: 'Ríos, Gonzalo A.',
+    patientName: 'Juan Carlos Samudio González',
     nationalId: '8-745-1290',
     modality: 'RX_TORAX',
     modalityName: 'Radiografía de Tórax PA y Lateral',
@@ -117,7 +118,15 @@ export const RisPacsRadiologyStudio: React.FC = () => {
     );
     setSelectedProcedure(null);
     setReportText('');
-    alert('¡Informe Radiológico guardado y firmado digitalmente en el Expediente EHR!');
+    window.dispatchEvent(
+      new CustomEvent('lis-global-toast', {
+        detail: {
+          title: 'Informe Radiológico Firmado',
+          message: '¡Informe Radiológico guardado y firmado digitalmente en el Expediente EHR!',
+          type: 'success'
+        }
+      })
+    );
   };
 
   return (
@@ -210,12 +219,12 @@ export const RisPacsRadiologyStudio: React.FC = () => {
                   </span>
                 </td>
                 <td className="p-4 text-center">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                  <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap tracking-wider border ${
                     item.status === 'INFORMADO'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs'
                   }`}>
-                    {item.status.replace('_', ' ')}
+                    {item.status === 'EN_PROCESO_DICOM' ? 'EN PROCESO DICOM' : item.status.replaceAll('_', ' ')}
                   </span>
                 </td>
                 <td className="p-4 text-right space-x-2">
@@ -235,111 +244,43 @@ export const RisPacsRadiologyStudio: React.FC = () => {
         </table>
       </div>
 
-      {/* MODAL: DICOM VIEWER & RADIOLOGY REPORT */}
+      {/* ESTACIÓN PACS PRO MODAL / FULLSCREEN VIEWER */}
       {isDicomViewerOpen && selectedStudy && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
-            {/* Header Bar */}
-            <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center text-white">
-              <div>
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <Layers className="text-indigo-400" size={18} />
-                  Visor Radiológico DICOM 3.0 — {selectedStudy.modalityName}
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Accession N°: <span className="font-mono text-indigo-300">{selectedStudy.accessionNumber}</span> • Paciente: <strong className="text-white">{selectedStudy.patientName}</strong> ({selectedStudy.nationalId})
-                </p>
-              </div>
-              <button
-                onClick={() => setIsDicomViewerOpen(false)}
-                className="text-slate-400 hover:text-white transition cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Viewer Body: DICOM Canvas Mockup (Left) + Report Editor (Right) */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-y-auto bg-slate-950">
-              {/* Simulated DICOM Image Viewport */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden min-h-[350px]">
-                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                  <span>Serie 1 / 2 • Corte #12</span>
-                  <div className="flex items-center gap-2">
-                    <button className="p-1 hover:bg-slate-800 rounded text-indigo-300"><Sun size={14} /></button>
-                    <button className="p-1 hover:bg-slate-800 rounded text-indigo-300"><Contrast size={14} /></button>
-                    <button className="p-1 hover:bg-slate-800 rounded text-indigo-300"><ZoomIn size={14} /></button>
-                  </div>
-                </div>
-
-                {/* DICOM Graphic Representation */}
-                <div className="my-auto text-center space-y-3 py-8">
-                  <div className="w-48 h-48 mx-auto bg-slate-950 rounded-2xl border border-indigo-500/30 flex items-center justify-center relative overflow-hidden shadow-2xl">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-teal-500/10"></div>
-                    <Layers className="w-20 h-20 text-indigo-500/40 animate-pulse" />
-                    <span className="absolute bottom-2 text-[10px] font-mono text-indigo-300 bg-slate-950/80 px-2 py-0.5 rounded border border-indigo-500/30">
-                      Corte Axial DICOM 512x512
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    Visor compatible con estándares DICOM WADO / Web PACS
-                  </p>
-                </div>
-
-                <div className="text-[10px] font-mono text-slate-500 flex justify-between border-t border-slate-800 pt-2">
-                  <span>Matriz: 512x512</span>
-                  <span>Grosor Corte: 2.5 mm</span>
-                </div>
-              </div>
-
-              {/* Radiologist Report Form */}
-              <div className="space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="text-emerald-400" size={16} />
-                    Informe Radiológico Diagnóstico
-                  </h4>
-
-                  {selectedStudy.findingsReport ? (
-                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2 text-xs">
-                      <p className="font-bold text-emerald-400">Informe Registrado y Firmado:</p>
-                      <p className="text-slate-300 leading-relaxed font-sans">{selectedStudy.findingsReport}</p>
-                      <p className="text-[10px] text-slate-500 pt-2 border-t border-slate-800">
-                        Radiólogo: <strong className="text-slate-300">{selectedStudy.radiologistName}</strong>
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 text-xs">
-                      <label className="block text-slate-300 font-medium">Redactar Hallazgos & Conclusión Radiológica</label>
-                      <textarea
-                        rows={8}
-                        value={reportText}
-                        onChange={e => setReportText(e.target.value)}
-                        placeholder="Describir estructura ósea, parénquima, silueta mediastínica/cardíaca o hallazgos tomográficos..."
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:border-indigo-500 outline-none font-sans"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                  <button
-                    onClick={() => setIsDicomViewerOpen(false)}
-                    className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    Cerrar
-                  </button>
-                  {!selectedStudy.findingsReport && (
-                    <button
-                      onClick={handleSaveReport}
-                      disabled={!reportText.trim()}
-                      className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-lg shadow-emerald-900/30"
-                    >
-                      Guardar & Firmar Informe
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-7xl max-h-[96vh] flex flex-col">
+            <DicomPacsStudioPro
+              accessionNumber={selectedStudy.accessionNumber}
+              patientName={selectedStudy.patientName}
+              patientNationalId={selectedStudy.nationalId}
+              modalityName={selectedStudy.modalityName}
+              totalSlices={selectedStudy.dicomSeriesCount}
+              initialReport={selectedStudy.findingsReport}
+              radiologistName={selectedStudy.radiologistName}
+              onClose={() => setIsDicomViewerOpen(false)}
+              onSaveReport={(reportText) => {
+                setWorklist(prev =>
+                  prev.map(item =>
+                    item.id === selectedStudy.id
+                      ? {
+                          ...item,
+                          status: 'INFORMADO',
+                          radiologistName: 'Dr. Fernando Arango (Radiólogo Especialista • Reg. R-4410)',
+                          findingsReport: reportText
+                        }
+                      : item
+                  )
+                );
+                window.dispatchEvent(
+                  new CustomEvent('lis-global-toast', {
+                    detail: {
+                      title: 'Informe Radiológico Certificado',
+                      message: 'Informe del estudio ' + selectedStudy.accessionNumber + ' guardado y firmado en el Expediente EHR.',
+                      type: 'success'
+                    }
+                  })
+                );
+              }}
+            />
           </div>
         </div>
       )}

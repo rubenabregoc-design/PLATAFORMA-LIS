@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Role, Tenant, Branch, Order, TestResult, Patient, MiddlewareMessageLog, Specimen, User, AnalyzerTestMapping } from './types';
 import {
@@ -16,11 +16,12 @@ import {
 
 import { useLisStore } from './store/useLisStore';
 import { SupabaseService } from './services/SupabaseService';
-import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS } from './components/Header';
+import { Header, ROLE_LABELS, ALLOWED_TABS_PER_ROLE, NAVIGATION_TABS, TOP_6_MODULES_BY_ROLE, getQuickAccessTabShortLabel } from './components/Header';
 import { useLicencias } from './hooks/useLicencias';
 import { ensureBranchesHaveLicenses } from './services/licensingCatalog';
 import { GlobalErrorBoundary, ModuleErrorBoundary } from './components/ErrorBoundary';
-import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck, Settings, MessageSquare, Receipt, FlaskConical, HeartPulse, Bed, FileText, BarChart3, Grid } from 'lucide-react';
+import { Lock, ShieldAlert, KeyRound, ShieldCheck, RefreshCw, Microscope, Building2, Droplets, Calendar, Users, Truck, Settings, MessageSquare, Receipt, FlaskConical, HeartPulse, Bed, FileText, BarChart3, Grid, Cloud, Wifi, WifiOff } from 'lucide-react';
+import { useIntelligentNetwork } from './utils/intelligentNetworkDetector';
 import { getTimeBasedGreeting } from './utils/greeting';
 import { getTabLabel, getBranchName, getRoleLabel } from './utils/i18n';
 import { LoginScreen } from './components/LoginScreen';
@@ -163,15 +164,25 @@ export default function App() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             return parsed;
           }
+          if (parsed && typeof parsed === 'object') {
+            if (Array.isArray((parsed as any).tenants)) {
+              return (parsed as any).tenants;
+            }
+            if ((parsed as any).id) {
+              return [parsed as any];
+            }
+          }
         }
       } catch (e) {
         console.error('Error cargando tenants:', e);
       }
     }
-    return ensureBranchesHaveLicenses(MOCK_TENANTS);
+    const fallback = ensureBranchesHaveLicenses(MOCK_TENANTS)?.tenants;
+    return Array.isArray(fallback) && fallback.length > 0 ? fallback : MOCK_TENANTS;
   };
 
   // Tenant, Branch and User State (Instant zero-flicker restoration)
+  const networkState = useIntelligentNetwork();
   const [tenants, setTenants] = useState<Tenant[]>(() => loadSanitizedTenants());
   const [currentTenantId, setCurrentTenantId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -340,27 +351,137 @@ export default function App() {
 
   // Domain data state
   const [middlewareLogs, setMiddlewareLogs] = useState<MiddlewareMessageLog[]>(MOCK_MIDDLEWARE_LOGS);
-  const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(MOCK_ANALYZER_MAPPINGS);
+  const [analyzerMappings, setAnalyzerMappings] = useState<AnalyzerTestMapping[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lis_analyzer_mappings');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Error reading saved mappings:', e);
+      }
+    }
+    return MOCK_ANALYZER_MAPPINGS;
+  });
+
+  // Cargar matriz de homologación directamente desde la base de datos PostgreSQL local
+  useEffect(() => {
+    fetch('http://localhost:8000/analyzer_mappings')
+      .then(res => res.ok ? res.json() : [])
+      .then((data: any[]) => {
+        if (data && data.length > 0) {
+          const mapped: AnalyzerTestMapping[] = data.map(d => ({
+            id: d.id,
+            tenantId: d.tenant_id,
+            analyzerId: d.analyzer_id,
+            analyzerName: d.analyzer_name,
+            lisTestCode: d.lis_test_code,
+            lisTestName: d.lis_test_name,
+            astmAnalyzerCode: d.astm_analyzer_code,
+            sampleType: d.sample_type,
+            multiplierFactor: parseFloat(d.multiplier_factor) || 1.0,
+            unit: d.unit,
+            isActive: !!d.is_active,
+            notes: d.notes,
+            updatedAt: d.updated_at,
+            updatedBy: d.updated_by
+          }));
+          setAnalyzerMappings(mapped);
+          localStorage.setItem('lis_analyzer_mappings', JSON.stringify(mapped));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Auto-sync mappings to local storage & Middleware bridge en background
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('lis_analyzer_mappings', JSON.stringify(analyzerMappings));
+        const ws = new WebSocket('ws://localhost:8765');
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            type: 'sync_mappings',
+            mappings: analyzerMappings
+          }));
+          setTimeout(() => ws.close(), 600);
+        };
+      } catch (e) {
+        // silent fallback if bridge not yet listening
+      }
+    }
+  }, [analyzerMappings]);
 
   const handleAddAnalyzerMapping = (newMapping: AnalyzerTestMapping) => {
     setAnalyzerMappings((prev) => [newMapping, ...prev]);
+    fetch('http://localhost:8000/analyzer_mappings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        id: newMapping.id,
+        tenant_id: newMapping.tenantId || 'lab-san-jose',
+        analyzer_id: newMapping.analyzerId,
+        analyzer_name: newMapping.analyzerName,
+        lis_test_code: newMapping.lisTestCode,
+        lis_test_name: newMapping.lisTestName,
+        astm_analyzer_code: newMapping.astmAnalyzerCode,
+        sample_type: newMapping.sampleType,
+        multiplier_factor: newMapping.multiplierFactor,
+        unit: newMapping.unit,
+        is_active: newMapping.isActive,
+        notes: newMapping.notes,
+        updated_at: new Date().toISOString(),
+        updated_by: newMapping.updatedBy
+      })
+    }).catch(err => console.warn('Error guardando mapeo en DB:', err));
   };
 
   const handleUpdateAnalyzerMapping = (updatedMapping: AnalyzerTestMapping) => {
     setAnalyzerMappings((prev) =>
       prev.map((m) => (m.id === updatedMapping.id ? updatedMapping : m))
     );
+    fetch(`http://localhost:8000/analyzer_mappings?id=eq.${encodeURIComponent(updatedMapping.id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        analyzer_id: updatedMapping.analyzerId,
+        analyzer_name: updatedMapping.analyzerName,
+        lis_test_code: updatedMapping.lisTestCode,
+        lis_test_name: updatedMapping.lisTestName,
+        astm_analyzer_code: updatedMapping.astmAnalyzerCode,
+        sample_type: updatedMapping.sampleType,
+        multiplier_factor: updatedMapping.multiplierFactor,
+        unit: updatedMapping.unit,
+        is_active: updatedMapping.isActive,
+        notes: updatedMapping.notes,
+        updated_at: new Date().toISOString(),
+        updated_by: updatedMapping.updatedBy
+      })
+    }).catch(err => console.warn('Error actualizando mapeo en DB:', err));
   };
 
   const handleDeleteAnalyzerMapping = (mappingId: string) => {
     setAnalyzerMappings((prev) => prev.filter((m) => m.id !== mappingId));
+    fetch(`http://localhost:8000/analyzer_mappings?id=eq.${encodeURIComponent(mappingId)}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('Error eliminando mapeo en DB:', err));
   };
 
   // PDF Preview Modal State
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
-  const currentTenant = tenants.find((t) => t.id === currentTenantId) || tenants[0];
-  const currentBranch = currentTenant.branches.find((b) => b.id === (selectedBranchId || currentBranchId)) || currentTenant.branches[0];
+  const safeTenants: Tenant[] = useMemo(() => {
+    if (Array.isArray(tenants) && tenants.length > 0) {
+      return tenants;
+    }
+    const fallback = ensureBranchesHaveLicenses(MOCK_TENANTS)?.tenants;
+    return Array.isArray(fallback) && fallback.length > 0 ? fallback : MOCK_TENANTS;
+  }, [tenants]);
+
+  const currentTenant = safeTenants.find((t) => t?.id === currentTenantId) || safeTenants[0];
+  const safeBranches = Array.isArray(currentTenant?.branches) && currentTenant.branches.length > 0
+    ? currentTenant.branches
+    : (safeTenants[0]?.branches || []);
+  const currentBranch = safeBranches.find((b) => b?.id === (selectedBranchId || currentBranchId)) || safeBranches[0];
 
   // Actions
   const handleLogin = (user: User, tenant: Tenant, branch: Branch) => {
@@ -417,7 +538,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('lis_current_tenant_id', tenantId);
     }
-    const tenant = tenants.find((t) => t.id === tenantId);
+    const tenant = safeTenants.find((t) => t.id === tenantId);
     if (tenant) {
       setCurrentTenant(tenant);
       if (tenant.branches.length > 0) {
@@ -563,45 +684,29 @@ export default function App() {
     if (newPatient) {
       addPatient(newPatient);
     }
-
-    // Instantiate parameter results for all tests included in the new order
-    const generatedResults: TestResult[] = [];
-    (newOrder.testIds || []).forEach((testId) => {
-      const catalogTest = MOCK_TEST_CATALOG.find((t) => t.id === testId);
-      if (catalogTest && catalogTest.parameters) {
-        catalogTest.parameters.forEach((param) => {
-          generatedResults.push({
-            id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-            orderId: newOrder.id,
-            testId: testId,
-            parameterId: param.id,
-            parameterCode: param.astmParamCode || param.id,
-            parameterName: param.name,
-            unit: param.unit,
-            value: '', // Ready for entry
-            numericValue: undefined,
-            flag: 'PENDIENTE',
-            status: 'PENDIENTE',
-            refRangeText: param.referenceRanges?.[0] ? `${param.referenceRanges[0].minValue} - ${param.referenceRanges[0].maxValue}` : 'Normal',
-            source: 'RECEPCION_POS',
-            analyzerName: 'Ingreso Manual / ACE'
-          });
-        });
-      }
-    });
-
+    // useLisStore.addOrder handles order registration and instantiates unique parameter results in store
     addOrder(newOrder);
-
-    if (generatedResults.length > 0) {
-      setResults((prev) => [...prev, ...generatedResults]);
-    }
   };
 
-  const handleUpdateTenants = (updatedTenants: Tenant[]) => {
-    setTenants(updatedTenants);
+  const handleUpdateTenants = (updatedTenants: any) => {
+    let sanitized: Tenant[] = [];
+    if (Array.isArray(updatedTenants) && updatedTenants.length > 0) {
+      sanitized = updatedTenants;
+    } else if (updatedTenants && typeof updatedTenants === 'object') {
+      if (Array.isArray(updatedTenants.tenants)) {
+        sanitized = updatedTenants.tenants;
+      } else if (updatedTenants.id && updatedTenants.name) {
+        sanitized = safeTenants.map((t) => (t.id === updatedTenants.id ? updatedTenants : t));
+      }
+    }
+    if (sanitized.length === 0) {
+      const fallback = ensureBranchesHaveLicenses(MOCK_TENANTS)?.tenants;
+      sanitized = Array.isArray(fallback) && fallback.length > 0 ? fallback : MOCK_TENANTS;
+    }
+    setTenants(sanitized);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('lis_tenants', JSON.stringify(updatedTenants));
+        localStorage.setItem('lis_tenants', JSON.stringify(sanitized));
         window.dispatchEvent(new CustomEvent('lis_tenants_updated'));
       } catch (e) {
         console.error('Error guardando tenants:', e);
@@ -628,7 +733,7 @@ export default function App() {
         }
       ]
     };
-    handleUpdateTenants([...tenants, newTenant]);
+    handleUpdateTenants([...safeTenants, newTenant]);
   };
 
   const handleOrderPaid = async (orderId: string) => {
@@ -871,10 +976,10 @@ export default function App() {
 
         return (
           <div className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-3 sm:px-4 py-2 transition-all relative z-20 text-slate-300">
-            <div className="max-w-[1920px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs min-w-0">
+            <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 text-xs min-w-0">
 
               {/* Left: Platform Badge & Module Name */}
-              <div className="flex items-center space-x-2 shrink-0 min-w-0 max-w-full md:max-w-md lg:max-w-lg">
+              <div className="flex items-center gap-2.5 shrink-0 min-w-0">
                 <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 shrink-0 shadow-sm ${
                   activePlatformCategory === 'lis'
                     ? 'bg-sky-500/15 text-sky-300 border-sky-500/40 shadow-sky-500/10'
@@ -884,11 +989,11 @@ export default function App() {
                     ? 'bg-rose-500/15 text-rose-300 border-rose-500/40 shadow-rose-500/10'
                     : 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-amber-500/10'
                 }`}>
-                  {activePlatformCategory === 'lis' && <Microscope className="w-4 h-4 text-cyan-400" />}
-                  {activePlatformCategory === 'his' && <Building2 className="w-4 h-4 text-indigo-400" />}
-                  {activePlatformCategory === 'bloodbank' && <Droplets className="w-4 h-4 text-rose-400" />}
-                  {activePlatformCategory === 'bi' && <BarChart3 className="w-4 h-4 text-amber-400" />}
-                  <span className="font-black">
+                  {activePlatformCategory === 'lis' && <Microscope className="w-4 h-4 text-cyan-400 shrink-0" />}
+                  {activePlatformCategory === 'his' && <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />}
+                  {activePlatformCategory === 'bloodbank' && <Droplets className="w-4 h-4 text-rose-400 shrink-0" />}
+                  {activePlatformCategory === 'bi' && <BarChart3 className="w-4 h-4 text-amber-400 shrink-0" />}
+                  <span className="font-black whitespace-nowrap">
                     {activePlatformCategory === 'lis' && 'LIS'}
                     {activePlatformCategory === 'his' && 'HIS'}
                     {activePlatformCategory === 'bloodbank' && 'BANCO SANGRE'}
@@ -898,127 +1003,76 @@ export default function App() {
 
                 <span className="text-slate-600 font-bold">•</span>
 
-                <span className="font-bold text-slate-100 text-sm tracking-tight truncate flex items-center gap-1.5">
+                <div className="font-bold text-slate-100 text-sm tracking-tight flex items-center gap-1.5 shrink-0">
                   <span className="text-slate-400 font-semibold hidden sm:inline text-xs uppercase tracking-wider">
                     {language === 'EN' ? 'Module:' : 'Módulo:'}
                   </span>
-                  <span className="text-white font-black text-sm tracking-tight">
+                  <span
+                    className="text-white font-black text-sm tracking-tight truncate max-w-[220px] sm:max-w-[340px] xl:max-w-none"
+                    title={getTabLabel(currentTabObj.id, currentTabObj.label, language)}
+                  >
                     {getTabLabel(currentTabObj.id, currentTabObj.label, language)}
                   </span>
-                </span>
+                </div>
               </div>
 
-              {/* Right: Quick Access Shortcuts Bar */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 max-w-full flex-1 justify-start md:justify-end">
-                <span className="text-[10px] font-medium text-slate-400 tracking-wider hidden 2xl:inline mr-1">
-                  {language === 'EN' ? 'QUICK ACCESS:' : 'ACCESOS RÁPIDOS:'}
-                </span>
+              {/* Subtle Divider */}
+              <div className="h-5 w-px bg-slate-800 shrink-0 hidden sm:block" />
 
-                {can('LIS', 'admision_pos') && (
-                <button
-                  onClick={() => setActiveTab('billing')}
-                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                    activeTab === 'billing'
-                      ? 'bg-sky-500/20 border-sky-400 text-sky-200 shadow-sm shadow-sky-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "POS Admission & Invoicing" : "Admisión & Facturación POS"}
-                >
-                  <Receipt className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>{language === 'EN' ? 'POS Admission' : 'Admisión POS'}</span>
-                </button>
-                )}
+              {/* Right: Quick Access Shortcuts Bar & Operating Branch */}
+              <div className="flex items-center gap-1.5 xl:gap-2 min-w-0 flex-1 justify-between py-0.5">
+                <div className="flex items-center gap-1 xl:gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 py-0.5">
+                  <span className="text-[10px] font-medium text-slate-400 tracking-wider hidden 2xl:inline mr-1 shrink-0">
+                    {language === 'EN' ? 'QUICK ACCESS:' : 'ACCESOS RÁPIDOS:'}
+                  </span>
 
-                {can('LIS', 'validacion_medica') && (
-                <button
-                  onClick={() => setActiveTab('validation')}
-                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                    activeTab === 'validation'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-sm shadow-emerald-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Results & Medical Validation" : "Resultados & Validación Médica"}
-                >
-                  <FlaskConical className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{language === 'EN' ? 'Validation' : 'Validación'}</span>
-                </button>
-                )}
+                {/* 🎯 Top 6 Módulos Estratégicos Más Importantes por Rol */}
+                {(() => {
+                  const roleKey = (currentRole as Role) || 'abregotech_admin';
+                  const top6TabIds = TOP_6_MODULES_BY_ROLE[roleKey] || TOP_6_MODULES_BY_ROLE.abregotech_admin;
 
-                {can('HIS', 'command_center') && (
-                <button
-                  onClick={() => setActiveTab('his_command')}
-                  className={`px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                    activeTab === 'his_command'
-                      ? 'bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-sm shadow-indigo-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Hospital Command Center HIS" : "Command Center Hospitalario HIS"}
-                >
-                  <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <span>{language === 'EN' ? 'HIS Command' : 'Command HIS'}</span>
-                </button>
-                )}
+                  return top6TabIds.map((tabId) => {
+                    const tabObj = NAVIGATION_TABS.find(t => t.id === tabId);
+                    if (!tabObj) return null;
+                    const TabIcon = tabObj.icon;
+                    const isTabActive = activeTab === tabId;
+                    const category = tabObj.category || 'lis';
 
-                {can('HIS', 'urgencias_triage') && (
-                <button
-                  onClick={() => setActiveTab('his_triage')}
-                  className={`hidden md:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
-                    activeTab === 'his_triage'
-                      ? 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Manchester Emergency Triage" : "Triage Urgencias Manchester"}
-                >
-                  <HeartPulse className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{language === 'EN' ? 'ER / Triage' : 'Urgencias'}</span>
-                </button>
-                )}
+                    // Color theme per platform
+                    let activeStyles = 'bg-sky-500/20 border-sky-400 text-sky-200 shadow-sm shadow-sky-500/20';
+                    let iconColor = 'text-cyan-400';
+                    if (category === 'his') {
+                      activeStyles = 'bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-sm shadow-indigo-500/20';
+                      iconColor = 'text-indigo-400';
+                    } else if (category === 'bloodbank') {
+                      activeStyles = 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/20';
+                      iconColor = 'text-rose-400';
+                    } else if (category === 'bi') {
+                      activeStyles = 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm shadow-amber-500/20';
+                      iconColor = 'text-amber-400';
+                    }
 
-                {canAccessSystem('BANCO_SANGRE') && (
-                <button
-                  onClick={() => setActiveTab('bloodbank')}
-                  className={`hidden lg:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
-                    activeTab === 'bloodbank'
-                      ? 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Blood Bank Center" : "Centro Banco de Sangre"}
-                >
-                  <Droplets className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{language === 'EN' ? 'Blood Bank' : 'Banco Sangre'}</span>
-                </button>
-                )}
+                    return (
+                      <button
+                        key={tabId}
+                        onClick={() => setActiveTab(tabId)}
+                        className={`px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded-xl border text-xs xl:text-[12.5px] 2xl:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
+                          isTabActive
+                            ? activeStyles
+                            : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
+                        }`}
+                        title={`${getTabLabel(tabObj.id, tabObj.label, language)} - ${tabObj.desc || ''}`}
+                      >
+                        <TabIcon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0 ${iconColor}`} />
+                        <span>{getQuickAccessTabShortLabel(tabId, tabObj.label, language)}</span>
+                      </button>
+                    );
+                  });
+                })()}
+                </div>
 
-                {can('HIS', 'gestion_camas') && (
-                <button
-                  onClick={() => setActiveTab('his_beds')}
-                  className={`hidden xl:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
-                    activeTab === 'his_beds'
-                      ? 'bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-sm shadow-indigo-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Bed Census & Map" : "Censo & Mapa de Camas"}
-                >
-                  <Bed className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>{language === 'EN' ? 'Beds' : 'Camas'}</span>
-                </button>
-                )}
-
-                {can('HIS', 'historia_clinica_ehr') && (
-                <button
-                  onClick={() => setActiveTab('his_ehr')}
-                  className={`hidden 2xl:flex px-3 py-1.5 rounded-xl border text-xs sm:text-[13px] font-bold transition-all cursor-pointer items-center gap-1.5 shrink-0 ${
-                    activeTab === 'his_ehr'
-                      ? 'bg-teal-500/20 border-teal-400 text-teal-200 shadow-sm shadow-teal-500/20'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
-                  }`}
-                  title={language === 'EN' ? "Electronic Health Record EHR" : "Historia Clínica EHR"}
-                >
-                  <FileText className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>EHR</span>
-                </button>
-                )}
-
+                {/* Controles Fijos: "Más ▾" + Sede Operativa Activa (siempre visibles sin recorte) */}
+                <div className="flex items-center gap-1.5 shrink-0">
                 {/* Menú Interactivo "Más ▾" para Acceso Directo a Todos los Módulos */}
                 <div className="relative shrink-0">
                   <button
@@ -1036,7 +1090,7 @@ export default function App() {
                         setIsMoreModulesOpen(false);
                       }
                     }}
-                    className={`px-3 py-1.5 rounded-xl border font-bold text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2.5 xl:px-3 py-1.5 rounded-xl border font-bold text-xs xl:text-[12.5px] 2xl:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                       isMoreModulesOpen
                         ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400'
                         : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/70'
@@ -1055,14 +1109,43 @@ export default function App() {
                         onClick={() => setIsMoreModulesOpen(false)}
                       />
                       <div
-                        style={{ top: `${moreMenuCoords.top}px`, right: `${moreMenuCoords.right}px` }}
-                        className="fixed w-80 bg-[#02081d] border border-cyan-500/40 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-2.5 z-[99999] space-y-1.5 backdrop-blur-2xl ring-1 ring-cyan-500/30 animate-in fade-in zoom-in-95 duration-150"
+                        style={{
+                          top: `${moreMenuCoords.top}px`,
+                          right: `${moreMenuCoords.right}px`,
+                          maxHeight: `calc(100vh - ${moreMenuCoords.top + 24}px)`
+                        }}
+                        className="fixed w-84 sm:w-88 flex flex-col bg-[#02081d] border border-cyan-500/40 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.95)] z-[99999] backdrop-blur-2xl ring-1 ring-cyan-500/30 animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
                       >
-                        <div className="px-3 py-1.5 text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider border-b border-blue-900/60 flex items-center justify-between">
+                        {/* Header Fijo No Scrollable */}
+                        <div className="px-4 py-2.5 text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider border-b border-blue-900/60 flex items-center justify-between bg-[#040d28] shrink-0">
                           <span>{language === 'EN' ? 'Clinical Navigation' : 'Módulos Clínicos LIS / HIS'}</span>
-                          <span className="text-[9px] text-slate-500">AbregoTech</span>
+                          <span className="text-[9px] text-slate-500">Suite Completa</span>
                         </div>
 
+                        {/* Lista Scrollable Interna con Padding Suave */}
+                        <div className="overflow-y-auto p-2.5 space-y-1.5 flex-1">
+                          {/* 0. ⭐ Estadísticas & Censo LIS (Exportar PDF) - DESTACADO */}
+                          <button
+                            onClick={() => { setActiveTab('productivity'); setIsMoreModulesOpen(false); }}
+                            className="w-full text-left px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-amber-500/15 via-teal-500/10 to-transparent hover:from-amber-500/25 hover:to-teal-500/20 text-white border border-amber-500/40 hover:border-amber-400 flex items-center gap-2.5 transition cursor-pointer shadow-md group"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                              <BarChart3 className="w-4 h-4 text-amber-300" />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-black text-amber-300 text-xs">Estadísticas & Censo LIS</span>
+                                <span className="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40 font-black">
+                                  📄 PDF
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-300 truncate">
+                                Áreas, Citas (No-Show), Jubilados & Provincias
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 1. Urgencias & Triage */}
                         <button
                           onClick={() => { setActiveTab('his_triage'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1076,6 +1159,7 @@ export default function App() {
                           </div>
                         </button>
 
+                        {/* 2. Banco de Sangre */}
                         <button
                           onClick={() => { setActiveTab('bloodbank'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1089,6 +1173,7 @@ export default function App() {
                           </div>
                         </button>
 
+                        {/* 3. Censo de Camas */}
                         <button
                           onClick={() => { setActiveTab('his_beds'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1102,6 +1187,7 @@ export default function App() {
                           </div>
                         </button>
 
+                        {/* 4. Historia Clínica EHR */}
                         <button
                           onClick={() => { setActiveTab('his_ehr'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1115,6 +1201,7 @@ export default function App() {
                           </div>
                         </button>
 
+                        {/* 5. Turnos & Citas */}
                         <button
                           onClick={() => { setActiveTab('shifts'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1128,6 +1215,7 @@ export default function App() {
                           </div>
                         </button>
 
+                        {/* 6. Control de Calidad QC */}
                         <button
                           onClick={() => { setActiveTab('qc'); setIsMoreModulesOpen(false); }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
@@ -1140,22 +1228,143 @@ export default function App() {
                             <span className="text-[10px] text-slate-400 truncate">Reglas Westgard & Levey-Jennings</span>
                           </div>
                         </button>
+
+                        {/* 7. Vigilancia Epidemiológica MINSA */}
+                        <button
+                          onClick={() => { setActiveTab('minsa'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                            <Microscope className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">Vigilancia MINSA (EPI-1)</span>
+                            <span className="text-[10px] text-slate-400 truncate">Notificación obligatoria & FHIR</span>
+                          </div>
+                        </button>
+
+                        {/* 8. Delta Check & Alertas Críticas */}
+                        <button
+                          onClick={() => { setActiveTab('delta'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                            <ShieldAlert className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">Delta Check & Pánicos</span>
+                            <span className="text-[10px] text-slate-400 truncate">Alertas críticas y Read-Back</span>
+                          </div>
+                        </button>
+
+                        {/* 9. Bóveda Auditoría Ley 81 */}
+                        <button
+                          onClick={() => { setActiveTab('audit'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center shrink-0">
+                            <ShieldCheck className="w-4 h-4 text-teal-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">Bóveda Auditoría Ley 81</span>
+                            <span className="text-[10px] text-slate-400 truncate">Trazabilidad inmutable & ANTAI</span>
+                          </div>
+                        </button>
+
+                        {/* 10. Inventario de Reactivos */}
+                        <button
+                          onClick={() => { setActiveTab('inventory'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center shrink-0">
+                            <FlaskConical className="w-4 h-4 text-sky-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">Inventario de Reactivos</span>
+                            <span className="text-[10px] text-slate-400 truncate">Lotes, caducidad & costo/prueba</span>
+                          </div>
+                        </button>
+
+                        {/* 11. Motor WhatsApp & Multicanal */}
+                        <button
+                          onClick={() => { setActiveTab('whatsapp'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                            <MessageSquare className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">WhatsApp & Resultados</span>
+                            <span className="text-[10px] text-slate-400 truncate">Despacho automático de informes</span>
+                          </div>
+                        </button>
+
+                        {/* 12. Acreditación ISO 15189 */}
+                        <button
+                          onClick={() => { setActiveTab('accreditation'); setIsMoreModulesOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-slate-800/80 text-slate-200 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                            <Lock className="w-4 h-4 text-cyan-400" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-white">Acreditación ISO 15189</span>
+                            <span className="text-[10px] text-slate-400 truncate">Estándar CNC & Auditoría de Calidad</span>
+                          </div>
+                        </button>
+                        </div>
                       </div>
                     </>,
                     document.body
                   )}
                 </div>
 
-                {/* Sede Operativa Activa */}
+                {/* Indicador Inteligente de Red Híbrida (LAN Local vs Supabase Nube vs Offline) */}
+                <div
+                  className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 border shadow-xs transition-all cursor-default ${
+                    networkState.activeMode === 'LOCAL_LAN'
+                      ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+                      : networkState.activeMode === 'CLOUD_SUPABASE'
+                      ? 'bg-sky-950/70 border-sky-500/40 text-sky-300'
+                      : 'bg-amber-950/70 border-amber-500/40 text-amber-300'
+                  }`}
+                  title={`${networkState.statusLabel}: ${networkState.statusDescription}`}
+                >
+                  {networkState.activeMode === 'LOCAL_LAN' ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                      <span className="font-mono text-[11px] font-black">LAN Local</span>
+                      {networkState.latencyMs !== null && (
+                        <span className="font-mono text-[10px] text-emerald-400/80 hidden sm:inline">{networkState.latencyMs}ms</span>
+                      )}
+                    </>
+                  ) : networkState.activeMode === 'CLOUD_SUPABASE' ? (
+                    <>
+                      <Cloud className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span className="font-mono text-[11px] font-black">Nube</span>
+                      {networkState.latencyMs !== null && (
+                        <span className="font-mono text-[10px] text-sky-400/80 hidden sm:inline">{networkState.latencyMs}ms</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="font-mono text-[11px] font-black">Offline</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Sede Operativa Activa: fija en el extremo derecho, legible y sin corte */}
                 <button
                   type="button"
                   onClick={() => setIsBranchModalOpen(true)}
                   title={language === 'EN' ? "Switch Operating Branch" : "Cambiar Sede Operativa"}
-                  className="text-slate-200 hover:text-white font-bold bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 px-3 py-1.5 rounded-xl text-xs sm:text-[13px] shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+                  className="text-slate-200 hover:text-white font-bold bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 px-2.5 xl:px-3.5 py-1.5 rounded-xl text-xs xl:text-[12.5px] 2xl:text-[13px] shrink-0 flex items-center gap-1.5 xl:gap-2 transition-all cursor-pointer shadow-sm group whitespace-nowrap"
                 >
                   <Building2 className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
                   <span>{getBranchName(currentBranch?.name, language)}</span>
                 </button>
+                </div>
               </div>
 
             </div>
@@ -1272,7 +1481,7 @@ export default function App() {
               <div className="space-y-6">
                 {/* 🌟 Suite Dashboard Mode Switcher Bar (Adaptive Responsive Layout) */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-900/90 p-2 sm:p-2.5 rounded-2xl border border-slate-800 shadow-xl">
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 max-w-full pb-0.5 pr-3 sm:pr-4">
                     {canAccessSystem('LIS') && (
                     <button
                       onClick={() => handleDashboardSubModeChange('LIS')}
@@ -1283,7 +1492,7 @@ export default function App() {
                       }`}
                     >
                       <Microscope className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'LIS' ? 'text-slate-950' : 'text-cyan-400'}`} />
-                      <span className="hidden sm:inline">{language === 'EN' ? 'LIS Dashboard (Laboratory)' : 'Dashboard LIS (Laboratorio)'}</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'LIS (Laboratory)' : 'LIS (Laboratorio)'}</span>
                       <span className="sm:hidden font-mono font-black">🔬 LIS</span>
                     </button>
                     )}
@@ -1298,7 +1507,7 @@ export default function App() {
                       }`}
                     >
                       <Building2 className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'HIS' ? 'text-white' : 'text-indigo-400'}`} />
-                      <span className="hidden sm:inline">{language === 'EN' ? 'HIS Dashboard (Hospital)' : 'Dashboard HIS (Hospital)'}</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'HIS (Hospital)' : 'HIS (Hospital)'}</span>
                       <span className="sm:hidden font-mono font-black">🏥 HIS</span>
                     </button>
                     )}
@@ -1313,10 +1522,21 @@ export default function App() {
                       }`}
                     >
                       <Droplets className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'BLOODBANK' ? 'text-white' : 'text-rose-400'}`} />
-                      <span className="hidden sm:inline">{language === 'EN' ? 'Blood Bank Dashboard' : 'Dashboard Banco de Sangre'}</span>
+                      <span className="hidden sm:inline">{language === 'EN' ? 'Blood Bank' : 'Banco de Sangre'}</span>
                       <span className="sm:hidden font-mono font-black">{language === 'EN' ? '🩸 Blood Bank' : '🩸 Banco Sangre'}</span>
                     </button>
                     )}
+
+                    {/* Acceso Rápido a Estadísticas, Censo LIS y Exportación PDF */}
+                    <button
+                      onClick={() => setActiveTab('productivity')}
+                      className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer shrink-0 bg-gradient-to-r from-amber-500/20 to-teal-500/20 hover:from-amber-500/30 hover:to-teal-500/30 text-amber-200 border border-amber-500/40 shadow-sm"
+                      title="Ver Estadísticas, Citas No-Show, Jubilados Ley 6, Provincias y Exportar en PDF"
+                    >
+                      <BarChart3 className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      <span className="hidden sm:inline">{language === 'EN' ? 'Statistics (PDF)' : 'Estadísticas LIS (PDF)'}</span>
+                      <span className="sm:hidden font-mono font-black">{language === 'EN' ? 'Stats PDF' : 'Estadísticas'}</span>
+                    </button>
 
                     {(currentRole === 'abregotech_admin' || currentRole === 'owner') && (
                       <button
@@ -1328,10 +1548,13 @@ export default function App() {
                         }`}
                       >
                         <Settings className={`w-3.5 h-3.5 shrink-0 ${dashboardSubMode === 'CONFIG' ? 'text-slate-950' : 'text-amber-400'}`} />
-                        <span className="hidden sm:inline">{language === 'EN' ? 'General System Configuration' : 'Configuración General del Sistema'}</span>
-                        <span className="sm:hidden font-mono font-black">⚙️ Config</span>
+                        <span className="hidden sm:inline">{language === 'EN' ? 'Configuration' : 'Configuración'}</span>
+                        <span className="sm:hidden font-mono font-black">Config</span>
                       </button>
                     )}
+
+                    {/* Separador final de resguardo para garantizar margen visible completo */}
+                    <div className="w-3 sm:w-4 shrink-0" aria-hidden="true" />
                   </div>
 
                   <span className="text-[11px] font-mono text-slate-400 hidden xl:inline px-2">
@@ -1349,7 +1572,7 @@ export default function App() {
                   <BloodBankModule />
                 ) : dashboardSubMode === 'CONFIG' ? (
                   <SuperAdminDashboard
-                    tenants={tenants}
+                    tenants={safeTenants}
                     analyzers={MOCK_ANALYZERS}
                     logs={middlewareLogs}
                     onProvisionTenant={handleProvisionTenant}
@@ -1598,7 +1821,7 @@ export default function App() {
             {activeTab === 'accreditation' && <Iso15189AccreditationPortal tenant={currentTenant} branch={currentBranch} />}
             {activeTab === 'superadmin' && (
               <SuperAdminDashboard
-                tenants={tenants}
+                tenants={safeTenants}
                 analyzers={MOCK_ANALYZERS}
                 logs={middlewareLogs}
                 onProvisionTenant={handleProvisionTenant}
@@ -1620,16 +1843,21 @@ export default function App() {
       )}
 
       {/* PDF Modal Preview */}
-      {previewOrderId && (
-        <PdfReportPreview
-          order={orders.find(o => o.id === previewOrderId) || orders[0]}
-          patient={patients.find(p => p.id === (orders.find(o => o.id === previewOrderId)?.patientId)) || patients[0]}
-          results={results.filter(r => r.orderId === previewOrderId)}
-          tenant={currentTenant}
-          branch={currentBranch}
-          onClose={() => setPreviewOrderId(null)}
-        />
-      )}
+      {previewOrderId && (() => {
+        const targetOrder = orders.find(o => o.id === previewOrderId || o.orderNumber === previewOrderId) || orders[0];
+        const targetPatient = patients.find(p => p.id === targetOrder?.patientId || (targetOrder?.patientNationalId && p.nationalId === targetOrder.patientNationalId)) || patients[0];
+        const targetResults = results.filter(r => r.orderId === targetOrder?.id || r.orderId === previewOrderId);
+        return (
+          <PdfReportPreview
+            order={targetOrder}
+            patient={targetPatient}
+            results={targetResults}
+            tenant={currentTenant}
+            branch={currentBranch}
+            onClose={() => setPreviewOrderId(null)}
+          />
+        );
+      })()}
 
       <BranchSelectionModal
         isOpen={isBranchModalOpen}

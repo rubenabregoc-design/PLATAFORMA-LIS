@@ -18,26 +18,35 @@
     color: #f8fafc;
     min-height: 100dvh;
   }
+
+  ::selection {
+    background-color: rgba(20, 184, 166, 0.35);
+    color: #ffffff;
+  }
 }
 
 @layer utilities {
   /* Sleek, visible custom scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 rgba(15, 23, 42, 0.6);
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     display: block !important;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 23, 42, 0.7);
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #475569;
     border-radius: 9999px;
-    border: 1px solid rgba(15, 23, 42, 0.4);
+    border: 2px solid rgba(15, 23, 42, 0.8);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: #0d9488;
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -119,7 +128,7 @@
 @media print {
   @page {
     size: letter portrait;
-    margin: 0 !important;
+    margin: 8mm 8mm 8mm 8mm !important;
   }
 
   /* Perfil para rollos térmicos de punto de venta (POS) y etiquetas */
@@ -193,6 +202,7 @@
   body:has(> #printable-bedside-transfusion-modal) #root,
   body:has(> #printable-po-modal) #root,
   body:has(> #printable-pii-modal) #root,
+  body:has(> #printable-label-modal-container) #root,
   body:has(> #printable-isbt-modal) #root {
     display: none !important;
     visibility: hidden !important;
@@ -220,6 +230,7 @@
   #printable-bedside-transfusion-modal,
   #printable-po-modal,
   #printable-pii-modal,
+  #printable-label-modal-container,
   #printable-isbt-modal {
     position: static !important;
     display: block !important;
@@ -241,11 +252,32 @@
     z-index: auto !important;
   }
 
+  /* 🏷️ Optimización instantánea de etiquetas de flebotomía (<0.1s render) */
+  #printable-label-modal-container {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  #printable-label-modal-container .specimen-label-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    background: #ffffff !important;
+    width: 100% !important;
+  }
+  #printable-label-modal-container .specimen-label-item {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   /* 3. Desanidación de tarjetas contenedoras internas del modal */
   .printable-modal-overlay > div,
+  .printable-modal-overlay > div > div,
   [data-printable-portal="true"] > div,
+  [data-printable-portal="true"] > div > div,
   #medical-print-modal-container > div,
   #report-modal-container > div,
+  #report-modal-container > div > div,
   #invoice-print-modal-container > div,
   #insurance-claim-modal-container > div,
   #discharge-modal-container > div,
@@ -300,7 +332,7 @@
   #printable-isbt-label {
     position: static !important;
     display: block !important;
-    padding: 5mm 8mm !important;
+    padding: 0 !important;
     margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -326,6 +358,9 @@
   .avoid-break,
   .avoid-page-break,
   .print-avoid-break,
+  .break-inside-avoid,
+  .clinical-section-block,
+  .analyzer-graphics-block,
   tr,
   th,
   td,
@@ -338,6 +373,29 @@
   .soap-section {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+  }
+
+  .break-after-avoid {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .clinical-section-block {
+    margin-top: 3.5mm !important;
+  }
+
+  /* Pie de página oficial y legal de cierre del documento */
+  .report-page-footer,
+  .official-print-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    width: 100% !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+    padding-top: 2mm !important;
+    margin-top: 3mm !important;
+    border-top: 1px solid #cbd5e1 !important;
+    display: block !important;
   }
 
   /* Fuerza contraste y definición de colores para sellos, bordes y badges */

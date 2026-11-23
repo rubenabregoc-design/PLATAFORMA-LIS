@@ -8,6 +8,7 @@ import {
   QrCode, Search, Check, Info, ChevronRight, Award
 } from 'lucide-react';
 import { parseRefRangeText } from '../../utils/referenceRangeEvaluator';
+import { formatOrderNumber } from '../../utils/orderUtils';
 
 interface SecurePatientPortalGatewayProps {
   patients: Patient[];
@@ -448,7 +449,7 @@ export const SecurePatientPortalGateway: React.FC<SecurePatientPortalGatewayProp
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2.5">
                               <span className="font-mono font-black text-sm text-teal-300 bg-teal-500/10 border border-teal-500/30 px-3 py-1 rounded-xl">
-                                N° {order.orderNumber}
+                                N° {formatOrderNumber(order.orderNumber)}
                               </span>
 
                               {isCompleted ? (

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import { useHisStore } from '../store/useHisStore';
 import {
-  Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu, ShoppingBag
+  Star, Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu, ShoppingBag, Network
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
@@ -42,7 +42,7 @@ export const NAVIGATION_TABS = [
   { id: 'patient_results', label: 'Expedientes & Muestras', icon: FileText, category: 'lis', desc: 'Historial completo de muestras y órdenes del paciente.' },
   { id: 'test_catalog', label: 'Catálogo LIS & Pruebas', icon: BookOpen, category: 'lis', desc: 'Definición de pruebas, perfiles, valores de referencia y tubos.' },
   { id: 'qc', label: 'Control Calidad QC', icon: SlidersHorizontal, category: 'lis', desc: 'Gráficas Levey-Jennings y reglas de Westgard.' },
-  { id: 'middleware', label: 'Middleware ASTM', icon: Sparkles, category: 'lis', desc: 'Consola de comunicación bidireccional ASTM E1381/E1394.' },
+  { id: 'middleware', label: 'Middleware ASTM', icon: Cpu, category: 'lis', desc: 'Consola de comunicación bidireccional ASTM E1381/E1394.' },
   { id: 'homologation', label: 'Analizadores Clínicos', icon: SlidersHorizontal, category: 'lis', desc: 'Mapeo de códigos de analitos de equipos al catálogo.' },
   { id: 'drivers', label: 'Controladores ASTM / HL7', icon: Cpu, category: 'lis', desc: 'Controladores de red TCP/IP y RS232 para equipos de lab.' },
   { id: 'phlebotomy', label: 'Flebotomía GPS', icon: Truck, category: 'lis', desc: 'Ruteo y toma de muestras a domicilio en tiempo real.' },
@@ -57,7 +57,7 @@ export const NAVIGATION_TABS = [
   { id: 'lis_referrals', label: 'Remisión & Derivación de Muestras', icon: Truck, category: 'lis', desc: 'Remisión, valijas térmicas y derivación a Laboratorios de Referencia Externa y Ruteo.', example: 'Ej: Remisiones / Gorgas' },
 
   // 🏥 HIS (Suite Hospitalaria)
-  { id: 'his_command', label: 'Centro de Mando Hospitalario', icon: Building2, category: 'his', desc: 'Centro de mando operativo, ocupación y alertas.' },
+  { id: 'his_command', label: 'Mando Hospitalario', icon: Building2, category: 'his', desc: 'Centro de mando operativo, ocupación y alertas.' },
   { id: 'his_triage', label: 'Urgencias & Triage', icon: Activity, category: 'his', desc: 'Clasificación Triage Manchester / ESI en urgencias.' },
   { id: 'his_beds', label: 'Censo & Mapa de Camas (ADT)', icon: Building2, category: 'his', desc: 'Gestión visual de camas hospitalarias, traslados e ingresos.' },
   { id: 'his_ehr', label: 'Historia Clínica EHR', icon: FileText, category: 'his', desc: 'Expediente clínico electrónico unificado.' },
@@ -107,7 +107,7 @@ export const NAVIGATION_TABS = [
   { id: 'ha_dr', label: 'Alta Disponibilidad & Contingencia (HA/DR)', icon: Server, category: 'bi', desc: 'Clúster activo-pasivo y réplica de contingencia.' },
   { id: 'accreditation', label: 'Acreditación ISO 15189', icon: Award, category: 'bi', desc: 'Gestión documental y evidencias de auditoría ISO.' },
   { id: 'schema', label: 'Base de Datos & Esquemas', icon: Database, category: 'bi', desc: 'Visor de modelos E-R y diccionario de datos PostgreSQL.' },
-  { id: 'superadmin', label: 'Consola Súper-Admin', icon: Shield, category: 'bi', desc: 'Control maestro de clientes, sedes, catálogo LIS, valores de referencia, HIS y banco de sangre.', example: 'Ej: Superadmin / AbregoTech' },
+  { id: 'superadmin', label: 'Consola Admin', icon: Shield, category: 'bi', desc: 'Control maestro de clientes, sedes, catálogo LIS, valores de referencia, HIS y banco de sangre.', example: 'Ej: Admin / AbregoTech' },
 ];
 
 const ALL_MODULE_TABS = NAVIGATION_TABS.map(t => t.id);
@@ -152,6 +152,47 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
   ]
 };
 
+// 🎯 Top 6 Módulos Estratégicos Más Importantes por Rol (Acceso Rápido Header)
+export const TOP_6_MODULES_BY_ROLE: Record<Role, string[]> = {
+  abregotech_admin: ['dashboard', 'reception', 'validation', 'middleware', 'productivity', 'superadmin'],
+  owner: ['dashboard', 'reception', 'validation', 'middleware', 'productivity', 'superadmin'],
+  lab_chief: ['dashboard', 'validation', 'qc', 'middleware', 'productivity', 'inventory'],
+  tech_med: ['tm_workbench', 'validation', 'qc', 'middleware', 'bloodbank', 'lis_alerts_center'],
+  lab_tech: ['reception', 'patient_results', 'phlebotomy', 'label_studio', 'inventory', 'shifts'],
+  receptionist: ['reception', 'billing', 'patient_results', 'whatsapp', 'shifts', 'blood_donors'],
+  ext_doctor: ['dashboard', 'patient_results', 'his_ehr', 'his_cpoe', 'batch_reporting', 'blood_evolution'],
+  patient: ['patient_results', 'dashboard']
+};
+
+export const getQuickAccessTabShortLabel = (tabId: string, fullLabel: string, lang: 'ES' | 'EN'): string => {
+  const shortLabels: Record<string, { ES: string; EN: string }> = {
+    dashboard: { ES: 'Dashboard', EN: 'Dashboard' },
+    reception: { ES: 'Admisión', EN: 'Admission' },
+    validation: { ES: 'Validación', EN: 'Validation' },
+    middleware: { ES: 'Middleware', EN: 'Middleware' },
+    productivity: { ES: 'Estadísticas', EN: 'Analytics' },
+    his_command: { ES: 'Mando HIS', EN: 'HIS Command' },
+    superadmin: { ES: 'Admin', EN: 'Admin' },
+    qc: { ES: 'Calidad QC', EN: 'QC Quality' },
+    inventory: { ES: 'Inventario', EN: 'Inventory' },
+    tm_workbench: { ES: 'Bancada TM', EN: 'TM Bench' },
+    bloodbank: { ES: 'Banco Sangre', EN: 'Blood Bank' },
+    lis_alerts_center: { ES: 'Alertas LIS', EN: 'LIS Alerts' },
+    patient_results: { ES: 'Órdenes', EN: 'Orders' },
+    phlebotomy: { ES: 'Flebotomía', EN: 'Phlebotomy' },
+    label_studio: { ES: 'Etiquetas', EN: 'Labels' },
+    shifts: { ES: 'Turnos', EN: 'Shifts' },
+    billing: { ES: 'Admisión POS', EN: 'POS Admission' },
+    whatsapp: { ES: 'WhatsApp', EN: 'WhatsApp' },
+    blood_donors: { ES: 'Donantes', EN: 'Donors' },
+    his_ehr: { ES: 'EHR Clínico', EN: 'EHR Record' },
+    his_cpoe: { ES: 'CPOE Médico', EN: 'CPOE Orders' },
+    batch_reporting: { ES: 'Reportes Masivos', EN: 'Batch Reports' },
+    blood_evolution: { ES: 'Transfusiones', EN: 'Transfusions' }
+  };
+  return shortLabels[tabId]?.[lang] || fullLabel;
+};
+
 export const Header: React.FC<HeaderProps> = ({
   onOpenBranchModal,
   onLockSession,
@@ -161,6 +202,30 @@ export const Header: React.FC<HeaderProps> = ({
   const [isMoreSuitesDropdownOpen, setIsMoreSuitesDropdownOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isServerHealthModalOpen, setIsServerHealthModalOpen] = useState<boolean>(false);
+
+  // 🌟 Persistent Favorite Modules System
+  const [favoriteTabIds, setFavoriteTabIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('lis_favorite_tabs');
+      return saved ? JSON.parse(saved) : ['dashboard', 'reception', 'validation', 'middleware', 'homologation'];
+    } catch {
+      return ['dashboard', 'reception', 'validation', 'middleware', 'homologation'];
+    }
+  });
+
+  const toggleFavoriteTab = (e: React.MouseEvent, tabId: string) => {
+    e.stopPropagation();
+    setFavoriteTabIds(prev => {
+      const next = prev.includes(tabId) ? prev.filter(id => id !== tabId) : [...prev, tabId];
+      try {
+        localStorage.setItem('lis_favorite_tabs', JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent('lis_favorite_tabs_updated', { detail: next }));
+      } catch {}
+      return next;
+    });
+  };
+
+  const { licenseEvaluation, isReadOnly } = useLicencias();
 
   const {
     currentRole,
@@ -211,6 +276,63 @@ export const Header: React.FC<HeaderProps> = ({
 
   const greeting = getTimeBasedGreeting(language);
 
+  const CATEGORY_CONFIG: Record<string, {
+    name: string;
+    nameEn: string;
+    desc: string;
+    descEn: string;
+    icon: any;
+    colorBorder: string;
+    badgeBg: string;
+    badgeText: string;
+    glow: string;
+  }> = {
+    lis: {
+      name: 'Suite Laboratorio Clínico (LIS)',
+      nameEn: 'Clinical Laboratory Suite (LIS)',
+      desc: 'Bancadas técnicas, analizadores, validación médica, HIL y control de calidad ISO 15189',
+      descEn: 'Technical workbenches, analyzers, clinical validation, HIL and ISO 15189 quality control',
+      icon: Microscope,
+      colorBorder: 'border-cyan-500/40',
+      badgeBg: 'bg-cyan-500/15',
+      badgeText: 'text-cyan-300',
+      glow: 'from-cyan-500/10 to-transparent'
+    },
+    his: {
+      name: 'Suite Hospitalización & Atención Médica (HIS)',
+      nameEn: 'Hospital Care & EHR Suite (HIS)',
+      desc: 'Centro de mando, urgencias triage, censo de camas ADT, historia clínica EHR y quirófanos',
+      descEn: 'Command center, emergency triage, ADT bed census, EHR electronic record and operating rooms',
+      icon: Building2,
+      colorBorder: 'border-indigo-500/40',
+      badgeBg: 'bg-indigo-500/15',
+      badgeText: 'text-indigo-300',
+      glow: 'from-indigo-500/10 to-transparent'
+    },
+    bloodbank: {
+      name: 'Suite Banco de Sangre & Medicina Transfusional',
+      nameEn: 'Blood Bank & Transfusion Medicine Suite',
+      desc: 'Donantes, serología NAT, fraccionamiento celular, cadena de frío y pie de cama ISBT 128',
+      descEn: 'Donors, NAT serology, cell fractionation, cold chain and bedside ISBT 128 verification',
+      icon: Droplets,
+      colorBorder: 'border-rose-500/40',
+      badgeBg: 'bg-rose-500/15',
+      badgeText: 'text-rose-300',
+      glow: 'from-rose-500/10 to-transparent'
+    },
+    bi: {
+      name: 'Suite Gestión Administrativa, Facturación & Calidad (BI)',
+      nameEn: 'Management, Billing & Business Intelligence (BI)',
+      desc: 'Caja POS, facturación electrónica DGI, kardex FEFO de reactivos y tableros ejecutivos',
+      descEn: 'POS cashier, DGI electronic billing, FEFO reagent kardex and executive dashboards',
+      icon: BrainCircuit,
+      colorBorder: 'border-amber-500/40',
+      badgeBg: 'bg-amber-500/15',
+      badgeText: 'text-amber-300',
+      glow: 'from-amber-500/10 to-transparent'
+    }
+  };
+
   const DOMAIN_CATEGORIES = [
     {
       id: 'lis',
@@ -259,7 +381,7 @@ export const Header: React.FC<HeaderProps> = ({
     const matchesCategory =
       !activeCategoryMenu ||
       activeCategoryMenu === 'all' ||
-      tab.category === activeCategoryMenu ||
+      (activeCategoryMenu === 'favorites' ? favoriteTabIds.includes(tab.id) : tab.category === activeCategoryMenu) ||
       (tab.id === 'dashboard' && activeCategoryMenu === 'lis');
 
     const matchesSearch =
@@ -270,6 +392,26 @@ export const Header: React.FC<HeaderProps> = ({
 
     return matchesCategory && matchesSearch;
   });
+
+  // Group filtered modules by suite for clear visual separation
+  const groupedModules = useMemo(() => {
+    const groups: { categoryId: string; config: any; tabs: typeof visibleTabs }[] = [];
+    const categoriesToRender = (activeCategoryMenu && activeCategoryMenu !== 'all' && activeCategoryMenu !== 'favorites')
+      ? [activeCategoryMenu]
+      : ['lis', 'his', 'bloodbank', 'bi'];
+
+    for (const catId of categoriesToRender) {
+      const tabsInCat = filteredModules.filter(t => t.category === catId || (catId === 'lis' && t.id === 'dashboard'));
+      if (tabsInCat.length > 0) {
+        groups.push({
+          categoryId: catId,
+          config: CATEGORY_CONFIG[catId] || CATEGORY_CONFIG.lis,
+          tabs: tabsInCat
+        });
+      }
+    }
+    return groups;
+  }, [filteredModules, activeCategoryMenu, visibleTabs]);
 
   const isMenuOpen = activeCategoryMenu !== null;
 
@@ -599,6 +741,23 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => {
                 setSearchQuery('');
+                setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'favorites' ? null : 'favorites');
+              }}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                isMenuOpen && activeCategoryMenu === 'favorites'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-xs'
+                  : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800/50'
+              }`}
+              title={language === 'EN' ? "Starred & Favorite Modules" : "Módulos Favoritos y Más Usados"}
+            >
+              <Star className="w-3.5 h-3.5 shrink-0 text-amber-400 fill-amber-400" />
+              <span>{language === 'EN' ? 'Favorites' : 'Favoritos'}</span>
+              <span className="text-[9px] font-mono text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30 font-bold">{favoriteTabIds.length}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSearchQuery('');
                 setActiveCategoryMenu(isMenuOpen && activeCategoryMenu === 'all' ? null : 'all');
               }}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
@@ -820,6 +979,21 @@ export const Header: React.FC<HeaderProps> = ({
                 {language === 'EN' ? `All (${visibleTabs.length})` : `Todos (${visibleTabs.length})`}
               </button>
 
+              <button
+                onClick={() => setActiveCategoryMenu('favorites')}
+                className={`px-3 py-1 rounded-lg text-[10.5px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer flex items-center space-x-1.5 ${
+                  activeCategoryMenu === 'favorites'
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30'
+                    : 'bg-slate-900 text-amber-300 hover:text-amber-200 border border-amber-500/30'
+                }`}
+              >
+                <Star className={`w-3 h-3 ${activeCategoryMenu === 'favorites' ? 'fill-slate-950 text-slate-950' : 'fill-amber-400 text-amber-400'}`} />
+                <span>{language === 'EN' ? 'Favorites' : 'Favoritos'}</span>
+                <span className={`text-[9.5px] font-mono px-1 rounded-full ${activeCategoryMenu === 'favorites' ? 'bg-slate-950/20 text-slate-950' : 'bg-amber-500/20 text-amber-300 font-bold'}`}>
+                  {favoriteTabIds.length}
+                </span>
+              </button>
+
               {DOMAIN_CATEGORIES.map((cat) => {
                 const CatIcon = cat.icon;
                 const isSelected = activeCategoryMenu === cat.id;
@@ -843,10 +1017,10 @@ export const Header: React.FC<HeaderProps> = ({
               })}
             </div>
 
-            {/* Responsive Module Grid (High density, cards never cut off) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 overflow-y-auto max-h-[calc(100vh-210px)] sm:max-h-[60vh] p-1.5 pb-6 custom-scrollbar pr-2">
-              {filteredModules.length === 0 ? (
-                <div className="col-span-full py-12 text-center space-y-2">
+            {/* Suite-Separated Responsive Module Grid */}
+            <div className="overflow-y-auto max-h-[calc(100vh-210px)] sm:max-h-[62vh] space-y-5 p-1.5 pb-8 custom-scrollbar pr-2">
+              {groupedModules.length === 0 ? (
+                <div className="py-12 text-center space-y-2 bg-slate-950/50 rounded-2xl border border-slate-800">
                   <Search className="w-8 h-8 text-slate-600 mx-auto" />
                   <p className="text-xs font-bold text-slate-400">
                     {language === 'EN'
@@ -861,47 +1035,102 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 </div>
               ) : (
-                filteredModules.map((tab) => {
-                  const SubIcon = tab.icon;
-                  const isSubActive = activeTab === tab.id;
-                  const style = getModuleCardStyles(tab.category, isSubActive);
-
+                groupedModules.map((group) => {
+                  const GroupIcon = group.config.icon;
                   return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setActiveCategoryMenu(null);
-                      }}
-                      className={`p-2.5 sm:p-3 rounded-xl border transition-all text-left cursor-pointer group flex flex-col justify-between space-y-1.5 ${style.card}`}
+                    <div
+                      key={group.categoryId}
+                      className={`rounded-2xl border ${group.config.colorBorder} bg-gradient-to-b ${group.config.glow} bg-slate-950/80 p-3.5 sm:p-4 shadow-xl space-y-3 transition-all`}
                     >
-                      <div className="flex items-start space-x-2.5">
-                        <div className={`p-2 rounded-lg shrink-0 ${style.iconBg} group-hover:scale-105 transition-transform`}>
-                          <SubIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <h4 className="text-xs font-extrabold leading-tight truncate">{getTabLabel(tab)}</h4>
-                            {!isSubActive && style.label && (
-                              <span className={`text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-full uppercase shrink-0 ${style.badge}`}>
-                                {style.label}
-                              </span>
-                            )}
+                      {/* Suite Header with Visual Identity */}
+                      <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <div className={`p-2 rounded-xl ${group.config.badgeBg} border ${group.config.colorBorder} ${group.config.badgeText} shrink-0 shadow-sm`}>
+                            <GroupIcon className="w-4 h-4" />
                           </div>
-                          {tab.desc && (
-                            <p className={`text-[9.5px] line-clamp-1 leading-snug font-medium ${isSubActive ? 'text-slate-900 font-bold' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                              {getTabDescription(tab.id, tab.desc, language)}
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-black text-white tracking-wide uppercase flex items-center gap-2 truncate">
+                              <span>{language === 'EN' ? group.config.nameEn : group.config.name}</span>
+                              <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full ${group.config.badgeBg} ${group.config.badgeText} font-bold border ${group.config.colorBorder} shrink-0`}>
+                                {group.tabs.length} {language === 'EN' ? 'modules' : 'módulos'}
+                              </span>
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-medium truncate hidden sm:block">
+                              {language === 'EN' ? group.config.descEn : group.config.desc}
                             </p>
-                          )}
+                          </div>
                         </div>
                       </div>
 
-                      {tab.example && (
-                        <span className={`text-[8.5px] font-mono font-bold tracking-tight truncate px-1.5 py-0.2 rounded self-start ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-950/80 text-amber-300 border border-amber-500/20'}`}>
-                          {getTabExample(tab.id, tab.example, language)}
-                        </span>
-                      )}
-                    </button>
+                      {/* Suite Module Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {group.tabs.map((tab) => {
+                          const SubIcon = tab.icon;
+                          const isSubActive = activeTab === tab.id;
+                          const style = getModuleCardStyles(tab.category, isSubActive);
+
+                          return (
+                            <div
+                              key={tab.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                setActiveTab(tab.id);
+                                setActiveCategoryMenu(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  setActiveTab(tab.id);
+                                  setActiveCategoryMenu(null);
+                                }
+                              }}
+                              className={`p-2.5 sm:p-3 rounded-xl border transition-all text-left cursor-pointer group flex flex-col justify-between space-y-1.5 select-none ${style.card}`}
+                            >
+                              <div className="flex items-start space-x-2.5">
+                                <div className={`p-2 rounded-lg shrink-0 ${style.iconBg} group-hover:scale-105 transition-transform`}>
+                                  <SubIcon className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                                    <h4 className="text-xs font-extrabold leading-tight truncate">{getTabLabel(tab)}</h4>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {!isSubActive && style.label && (
+                                        <span className={`text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-full uppercase ${style.badge}`}>
+                                          {style.label}
+                                        </span>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => toggleFavoriteTab(e, tab.id)}
+                                        className="p-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                                        title={favoriteTabIds.includes(tab.id) ? (language === 'EN' ? 'Remove from favorites' : 'Quitar de favoritos') : (language === 'EN' ? 'Add to favorites' : 'Fijar en favoritos')}
+                                      >
+                                        <Star className={`w-3.5 h-3.5 transition-transform hover:scale-125 ${
+                                          favoriteTabIds.includes(tab.id)
+                                            ? 'fill-amber-400 text-amber-400'
+                                            : 'text-slate-500 hover:text-amber-400'
+                                        }`} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {tab.desc && (
+                                    <p className={`text-[9.5px] line-clamp-1 leading-snug font-medium ${isSubActive ? 'text-slate-900 font-bold' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                      {getTabDescription(tab.id, tab.desc, language)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {tab.example && (
+                                <span className={`text-[8.5px] font-mono font-bold tracking-tight truncate px-1.5 py-0.2 rounded self-start ${isSubActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-950/80 text-amber-300 border border-amber-500/20'}`}>
+                                  {getTabExample(tab.id, tab.example, language)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })
               )}

@@ -81,8 +81,19 @@ PORTS.forEach(({ port, name, portalParam }) => {
           <div style="font-family: system-ui, sans-serif; background: #020617; color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
             <div style="max-width: 500px; background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; padding: 30px; text-align: center;">
               <h2 style="color: #22d3ee; margin-top: 0;">${name} (Puerto ${port})</h2>
-              <p style="color: #94a3b8; font-size: 14px;">Conectando con el servidor LIS principal...</p>
-              <script>setTimeout(() => window.location.reload(), 1500);</script>
+              <p style="color: #94a3b8; font-size: 14px;">El servidor LIS principal está iniciando o procesando solicitudes.</p>
+              <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #06b6d4; color: #020617; font-weight: bold; border: none; border-radius: 10px; cursor: pointer;">
+                Reintentar Conexión
+              </button>
+              <script>
+                const attempts = parseInt(sessionStorage.getItem('proxy_retry_count') || '0', 10);
+                if (attempts < 3) {
+                  sessionStorage.setItem('proxy_retry_count', String(attempts + 1));
+                  setTimeout(() => window.location.reload(), 3000);
+                } else {
+                  sessionStorage.removeItem('proxy_retry_count');
+                }
+              </script>
             </div>
           </div>
         `);

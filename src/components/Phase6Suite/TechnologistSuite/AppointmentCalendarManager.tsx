@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { SupabaseService } from '../../../services/SupabaseService';
 import { notifyToast } from '../../../utils/toastNotification';
+import { useLisStore } from '../../../store/useLisStore';
 
 export interface AppointmentRecord {
   id: string;
@@ -52,6 +53,20 @@ export interface AppointmentRecord {
   assigned_phlebotomist?: string;
   created_at?: string;
 }
+
+export const formatAppointmentTime12 = (dateInput: Date | string) => {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return {
+    time: `${hours}:${minutes}`,
+    ampm,
+    full: `${hours}:${minutes} ${ampm}`
+  };
+};
 
 // Seed appointments for Panama
 const INITIAL_APPOINTMENTS: AppointmentRecord[] = [
@@ -199,10 +214,22 @@ const AppointmentCalendarManager: React.FC = () => {
 
   useEffect(() => {
     fetchAppointments();
+    // Sincronización automática periódica en segundo plano
+    const autoSyncInterval = setInterval(() => {
+      fetchAppointments(true);
+    }, 12000);
+
+    const handleWindowFocus = () => fetchAppointments(true);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      clearInterval(autoSyncInterval);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
 
-  const fetchAppointments = async () => {
-    setLoading(true);
+  const fetchAppointments = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await SupabaseService.appointments.getAppointments();
       if (data && data.length > 0) {
@@ -228,13 +255,13 @@ const AppointmentCalendarManager: React.FC = () => {
         setAppointments(mapped);
       } else {
         // Use realistic initial appointments
-        setAppointments(INITIAL_APPOINTMENTS);
+        setAppointments(prev => (prev && prev.length > 0 ? prev : INITIAL_APPOINTMENTS));
       }
     } catch (error) {
       console.warn('[AppointmentCalendarManager] Using local offline appointments:', error);
-      setAppointments(INITIAL_APPOINTMENTS);
+      setAppointments(prev => (prev && prev.length > 0 ? prev : INITIAL_APPOINTMENTS));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -314,10 +341,59 @@ const AppointmentCalendarManager: React.FC = () => {
     );
 
     const app = appointments.find(a => a.id === appId);
-    notifyToast(
-      `✓ Paciente ${app?.patient_name_manual} admitido con éxito. Se ha generado la pre-orden en Admisión / Flebotomía.`,
-      'success'
-    );
+    if (app) {
+      // 1. Generar número de orden correlativo y código de barras de tubo
+      const orderYear = new Date().getFullYear();
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const generatedOrderNumber = `${orderYear}-${randomSuffix}`;
+      const tubeBarcode = `BC-${randomSuffix}`;
+
+      // 2. Crear especímenes biológicos requeridos según el estudio
+      const specimens = [
+        {
+          id: `sp-${Date.now()}-1`,
+          orderId: `ord-${Date.now()}`,
+          type: 'EDTA_BLOOD' as const,
+          tubeColor: 'PURPLE' as const,
+          barcode: tubeBarcode,
+          status: 'COLLECTED' as const,
+          collectedAt: new Date().toISOString()
+        }
+      ];
+
+      // 3. Crear la Orden de Laboratorio Real en el sistema LIS
+      const newOrder: any = {
+        id: `ord-${Date.now()}`,
+        tenantId: 'lab-san-jose',
+        branchId: app.branch_id || 'br-central',
+        orderNumber: generatedOrderNumber,
+        patientId: `pat-${app.patient_national_id.replace(/\W/g, '')}`,
+        patientName: app.patient_name_manual,
+        patientNationalId: app.patient_national_id,
+        patientGender: 'M',
+        patientAge: 38,
+        priority: 'ROUTINE',
+        status: 'RECEIVED',
+        createdAt: new Date().toISOString(),
+        paymentStatus: 'PAID',
+        specimens,
+        testIds: ['hemograma-completo', 'glucosa-suero']
+      };
+
+      try {
+        useLisStore.getState().addOrder(newOrder);
+      } catch (e) {
+        console.warn('[AppointmentCalendarManager] Error adding real order to store:', e);
+      }
+
+      // 4. Notificar a toda la plataforma instantáneamente (0ms) para que aparezca en Flebotomía y Validación
+      window.dispatchEvent(new CustomEvent('lis-order-created', { detail: newOrder }));
+
+      notifyToast(
+        `✓ ¡Paciente ${app.patient_name_manual} admitido! Se generó la Orden Real #${generatedOrderNumber} con tubo ${tubeBarcode} para toma de muestra.`,
+        'success'
+      );
+    }
   };
 
   const handleCancelAppointment = async (appId: string) => {
@@ -343,7 +419,7 @@ const AppointmentCalendarManager: React.FC = () => {
       month: 'long',
       day: 'numeric'
     });
-    const formattedTime = new Date(app.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formattedTime = formatAppointmentTime12(app.scheduled_at).full;
     const cleanPhone = app.patient_phone.replace(/\D/g, '');
 
     const message = encodeURIComponent(
@@ -452,20 +528,18 @@ const AppointmentCalendarManager: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-teal-950/60 border border-teal-500/30 text-teal-300 text-xs font-bold shadow-inner">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400"></span>
+              <span className="tracking-wide">Sincronizado en tiempo real</span>
+            </div>
             <button
-              onClick={fetchAppointments}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 border border-slate-600 transition-all"
-            >
-              <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
-              Actualizar
-            </button>
-            <button
+              type="button"
               onClick={() => setIsNewModalOpen(true)}
-              className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-slate-950 px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg shadow-teal-500/25 active:scale-95"
+              className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 px-6 h-12 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-teal-500/25 active:scale-95 cursor-pointer shrink-0"
             >
-              <Plus size={18} />
-              NUEVA CITA
+              <Plus size={18} className="stroke-[3]" />
+              <span>Nueva Cita</span>
             </button>
           </div>
         </div>
@@ -476,14 +550,14 @@ const AppointmentCalendarManager: React.FC = () => {
         {/* Left Column: Interactive Mini Calendar & Metrics */}
         <div className="lg:col-span-1 space-y-6">
           {/* Mini Calendar Widget */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl text-white">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest flex items-center gap-2">
+              <h3 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2">
                 <CalendarCheck size={16} className="text-teal-600" />
                 Calendario Operativo
               </h3>
               <div className="flex gap-1 text-slate-400">
-                <span className="text-xs font-bold text-slate-600">
+                <span className="text-xs font-bold text-slate-400 font-mono">
                   {new Date().toLocaleDateString('es-PA', { month: 'short', year: 'numeric' }).toUpperCase()}
                 </span>
               </div>
@@ -514,21 +588,21 @@ const AppointmentCalendarManager: React.FC = () => {
                       isSelected
                         ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30'
                         : isToday
-                        ? 'bg-teal-50 text-teal-700 font-black border border-teal-200'
-                        : 'hover:bg-slate-100 text-slate-700'
+                        ? 'bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40'
+                        : 'hover:bg-slate-800 text-slate-300'
                     }`}
                   >
                     <span>{dayNum}</span>
                     {/* Small appointment indicator dot */}
                     {[1, 3, 5, 8, 12, 15, 21, 24, 28].includes(dayNum) && (
-                      <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-teal-500'} -mt-0.5`}></span>
+                      <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-slate-950' : 'bg-teal-400'} -mt-0.5`}></span>
                     )}
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-medium">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-teal-500"></span> Día con citas
               </span>
@@ -537,7 +611,7 @@ const AppointmentCalendarManager: React.FC = () => {
                   setSelectedDay(new Date().getDate());
                   setTimeFilter('TODAY');
                 }}
-                className="text-teal-600 hover:text-teal-700 font-bold hover:underline"
+                className="text-teal-400 hover:text-teal-300 font-bold hover:underline cursor-pointer"
               >
                 Ir a Hoy
               </button>
@@ -545,15 +619,15 @@ const AppointmentCalendarManager: React.FC = () => {
           </div>
 
           {/* KPI Summary Card */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest flex items-center justify-between">
+          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4 text-white">
+            <h3 className="font-black text-white text-xs uppercase tracking-widest flex items-center justify-between">
               <span>Resumen Operativo</span>
               <Activity size={16} className="text-teal-600" />
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 rounded-2xl border border-blue-100">
-                <div className="flex items-center gap-2 text-blue-700 mb-1">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-2 text-cyan-400 mb-1">
                   <Home size={16} />
                   <span className="text-[11px] font-bold">Domicilios</span>
                 </div>
@@ -561,8 +635,8 @@ const AppointmentCalendarManager: React.FC = () => {
                 <p className="text-[10px] text-blue-600 font-medium mt-1">Con cadena de frío</p>
               </div>
 
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 p-4 rounded-2xl border border-teal-100">
-                <div className="flex items-center gap-2 text-teal-700 mb-1">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-2 text-teal-400 mb-1">
                   <BriefcaseMedical size={16} />
                   <span className="text-[11px] font-bold">En Laboratorio</span>
                 </div>
@@ -571,7 +645,7 @@ const AppointmentCalendarManager: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-600 font-medium">Citas Hoy:</span>
                 <span className="font-black text-slate-900">{todayCount}</span>
@@ -604,9 +678,9 @@ const AppointmentCalendarManager: React.FC = () => {
         {/* Right Column: Appointments List & Filters */}
         <div className="lg:col-span-3 space-y-4">
           {/* Controls Bar */}
-          <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-slate-900 p-4 rounded-[2rem] border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Time Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto">
               {(
                 [
                   { id: 'TODAY', label: 'Hoy' },
@@ -620,8 +694,8 @@ const AppointmentCalendarManager: React.FC = () => {
                   onClick={() => setTimeFilter(t.id)}
                   className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                     timeFilter === t.id
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-teal-500 text-slate-950 font-black shadow-md shadow-teal-500/20'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {t.label}
@@ -634,7 +708,7 @@ const AppointmentCalendarManager: React.FC = () => {
               <select
                 value={typeFilter}
                 onChange={e => setTypeFilter(e.target.value as any)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-bold text-white focus:outline-none focus:border-teal-500 cursor-pointer"
               >
                 <option value="ALL">Todos los servicios</option>
                 <option value="HOME_COLLECTION">Solo Domicilios 🏠</option>
@@ -649,7 +723,7 @@ const AppointmentCalendarManager: React.FC = () => {
                   placeholder="Buscar paciente, cédula o prueba..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium w-64 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-medium text-white placeholder-slate-500 w-64 focus:outline-none focus:border-teal-500"
                 />
                 {searchQuery && (
                   <button
@@ -672,26 +746,31 @@ const AppointmentCalendarManager: React.FC = () => {
               return (
                 <div
                   key={app.id}
-                  className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:border-teal-400 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group"
+                  className="bg-slate-900 border border-slate-800 hover:border-teal-500/50 p-6 rounded-[2rem] shadow-xl hover:shadow-teal-950/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group"
                 >
                   {/* Left Column: Time & Patient info */}
                   <div className="flex items-start md:items-center gap-5">
                     {/* Time Badge */}
-                    <div className="text-center shrink-0 w-20 bg-slate-50 p-3 rounded-2xl border border-slate-100 group-hover:bg-teal-50 group-hover:border-teal-200 transition-colors">
-                      <p className="text-xl font-black text-slate-900 leading-none">
-                        {appDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      <p className="text-[10px] font-black text-teal-700 uppercase mt-1">
+                    <div className="text-center shrink-0 w-24 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 group-hover:border-teal-500/40 transition-colors flex flex-col items-center justify-center shadow-inner">
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-lg font-black text-white leading-none tracking-tight">
+                          {formatAppointmentTime12(appDate).time}
+                        </span>
+                        <span className="text-[10px] font-black text-amber-400 uppercase leading-none">
+                          {formatAppointmentTime12(appDate).ampm}
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-black text-teal-400 uppercase mt-1.5 tracking-wider">
                         {isToday ? 'Hoy' : appDate.toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
                       </p>
                     </div>
 
-                    <div className="h-12 w-px bg-slate-100 hidden md:block"></div>
+                    <div className="h-12 w-px bg-slate-800 hidden md:block"></div>
 
                     {/* Patient & Tests Details */}
                     <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-black text-slate-900 text-base">
+                        <h4 className="font-black text-white text-base">
                           {app.patient_name_manual}
                         </h4>
                         <span className="text-xs font-bold text-slate-400">
@@ -701,7 +780,7 @@ const AppointmentCalendarManager: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
-                        <span className="flex items-center gap-1.5 text-slate-700">
+                        <span className="flex items-center gap-1.5 text-slate-300">
                           {app.service_type === 'HOME_COLLECTION' ? (
                             <Home size={14} className="text-blue-600" />
                           ) : (
@@ -712,10 +791,10 @@ const AppointmentCalendarManager: React.FC = () => {
                             : app.service_type === 'SPECIAL_CURVE'
                             ? 'Curva Especial'
                             : 'En Laboratorio'}{' '}
-                          • <span className="font-medium text-slate-500">{app.branch_name}</span>
+                          • <span className="font-medium text-slate-400">{app.branch_name}</span>
                         </span>
 
-                        <span className="flex items-center gap-1.5 text-slate-600">
+                        <span className="flex items-center gap-1.5 text-slate-400 font-mono">
                           <Phone size={13} className="text-slate-400" />
                           {app.patient_phone}
                         </span>
@@ -726,7 +805,7 @@ const AppointmentCalendarManager: React.FC = () => {
                         {app.tests_requested.map((test, idx) => (
                           <span
                             key={idx}
-                            className="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-slate-200"
+                            className="bg-slate-950 text-cyan-300 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-slate-800"
                           >
                             {test}
                           </span>
@@ -735,7 +814,7 @@ const AppointmentCalendarManager: React.FC = () => {
 
                       {/* Address / Preparation Notes */}
                       {app.address && app.service_type === 'HOME_COLLECTION' && (
-                        <p className="text-[11px] text-blue-800 font-medium flex items-center gap-1.5 pt-0.5">
+                        <p className="text-[11px] text-cyan-300 font-medium flex items-center gap-1.5 pt-0.5">
                           <MapPin size={12} className="text-blue-500 shrink-0" />
                           <span>{app.address}</span>
                           {app.address_reference && (
@@ -745,7 +824,7 @@ const AppointmentCalendarManager: React.FC = () => {
                       )}
 
                       {app.fasting_instructions && (
-                        <p className="text-[11px] text-amber-700 font-medium flex items-center gap-1.5">
+                        <p className="text-[11px] text-amber-300 font-medium flex items-center gap-1.5">
                           <AlertCircle size={12} className="text-amber-500 shrink-0" />
                           <span>{app.fasting_instructions}</span>
                         </p>
@@ -759,7 +838,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     <button
                       onClick={() => handleSendWhatsAppReminder(app)}
                       title="Enviar recordatorio con instrucciones por WhatsApp"
-                      className="p-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-all flex items-center gap-1 text-xs font-bold active:scale-95"
+                      className="p-2.5 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 rounded-xl border border-emerald-500/30 transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer"
                     >
                       <Send size={15} />
                       <span className="hidden sm:inline">WhatsApp</span>
@@ -769,7 +848,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     <button
                       onClick={() => setSelectedAppointmentForDetails(app)}
                       title="Ver detalles completos de la cita"
-                      className="p-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-all"
+                      className="p-2.5 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 rounded-xl border border-slate-700 transition-all cursor-pointer"
                     >
                       <FileText size={16} />
                     </button>
@@ -779,7 +858,7 @@ const AppointmentCalendarManager: React.FC = () => {
                       <button
                         onClick={() => handleCancelAppointment(app.id)}
                         title="Cancelar Cita"
-                        className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-all"
+                        className="p-2.5 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 rounded-xl border border-rose-500/30 transition-all cursor-pointer"
                       >
                         <XCircle size={16} />
                       </button>
@@ -789,13 +868,13 @@ const AppointmentCalendarManager: React.FC = () => {
                     {app.status !== 'COMPLETED' ? (
                       <button
                         onClick={() => handleAdmitArrival(app.id)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-teal-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
+                        className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-slate-950 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-teal-500/20 active:scale-95 cursor-pointer"
                       >
-                        <CheckCircle2 size={16} className="text-teal-400" />
+                        <CheckCircle2 size={16} className="text-slate-950" />
                         ADMITIR LLEGADA
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl text-xs font-black border border-emerald-200">
+                      <div className="flex items-center gap-1.5 text-emerald-300 bg-emerald-500/15 px-3 py-2 rounded-xl text-xs font-black border border-emerald-500/30">
                         <Check size={14} />
                         LLEGADA CONFIRMADA
                       </div>
@@ -807,12 +886,12 @@ const AppointmentCalendarManager: React.FC = () => {
 
             {/* Empty State */}
             {filteredAppointments.length === 0 && (
-              <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-300 p-8 space-y-4">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300">
+              <div className="py-20 text-center bg-slate-900 rounded-[3rem] border border-dashed border-slate-800 p-8 space-y-4">
+                <div className="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center mx-auto text-slate-600">
                   <CalendarIcon size={32} />
                 </div>
                 <div>
-                  <h4 className="text-slate-800 font-black text-base">No hay citas programadas para este filtro</h4>
+                  <h4 className="text-white font-black text-base">No hay citas programadas para este filtro</h4>
                   <p className="text-slate-400 text-xs font-medium max-w-sm mx-auto mt-1">
                     Pruebe ajustando los filtros de fecha o búsqueda, o presione "Nueva Cita" para agendar un paciente.
                   </p>
@@ -833,20 +912,20 @@ const AppointmentCalendarManager: React.FC = () => {
       {/* Modal: NUEVA CITA */}
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] max-w-2xl w-full p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+          <div className="bg-slate-900 text-white rounded-[2.5rem] max-w-2xl w-full p-8 shadow-2xl border border-slate-800 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-teal-100 text-teal-800 rounded-2xl">
+                <div className="p-3 bg-teal-500/15 text-teal-400 border border-teal-500/30 rounded-2xl">
                   <CalendarCheck size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">Agendar Nueva Cita Médica</h3>
+                  <h3 className="text-xl font-black text-white">Agendar Nueva Cita Médica</h3>
                   <p className="text-xs text-slate-500 font-medium">Toma en laboratorio o visita a domicilio en Panamá</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsNewModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100"
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -890,7 +969,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     placeholder="Ej: Lic. Carlos Mendoza"
                     value={formData.patient_name_manual}
                     onChange={e => setFormData({ ...formData, patient_name_manual: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -901,7 +980,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     placeholder="Ej: 8-745-1982 ó PE-12-890"
                     value={formData.patient_national_id}
                     onChange={e => setFormData({ ...formData, patient_national_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -916,7 +995,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     placeholder="+507 6000-0000"
                     value={formData.patient_phone}
                     onChange={e => setFormData({ ...formData, patient_phone: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -926,7 +1005,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     placeholder="paciente@ejemplo.com"
                     value={formData.patient_email}
                     onChange={e => setFormData({ ...formData, patient_email: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -940,7 +1019,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     required
                     value={formData.date}
                     onChange={e => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -950,7 +1029,7 @@ const AppointmentCalendarManager: React.FC = () => {
                     required
                     value={formData.time}
                     onChange={e => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -958,7 +1037,7 @@ const AppointmentCalendarManager: React.FC = () => {
                   <select
                     value={formData.branch_id}
                     onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold focus:border-teal-500 focus:outline-none cursor-pointer"
                   >
                     <option value="br-central">Sede Central Calle 50</option>
                     <option value="br-cde">Sucursal Costa del Este</option>
@@ -969,31 +1048,31 @@ const AppointmentCalendarManager: React.FC = () => {
 
               {/* Domicile details if home collection */}
               {formData.service_type === 'HOME_COLLECTION' && (
-                <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-2 text-blue-800 font-black text-xs">
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-cyan-400 font-black text-xs">
                     <Home size={16} />
                     <span>Datos de Ubicación para Flebotomista Domiciliario</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] uppercase text-blue-700 font-bold mb-1">Dirección Exacta *</label>
+                      <label className="block text-[10px] uppercase text-slate-400 font-bold mb-1">Dirección Exacta *</label>
                       <input
                         type="text"
                         required
                         placeholder="Ej: Costa del Este, PH Titanium Tower, Apto 14-B"
                         value={formData.address}
                         onChange={e => setFormData({ ...formData, address: e.target.value })}
-                        className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 text-white rounded-xl text-xs focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase text-blue-700 font-bold mb-1">Punto de Referencia / Garita</label>
+                      <label className="block text-[10px] uppercase text-slate-400 font-bold mb-1">Punto de Referencia / Garita</label>
                       <input
                         type="text"
                         placeholder="Ej: Frente al parque Felipe Motta, avisar garita"
                         value={formData.address_reference}
                         onChange={e => setFormData({ ...formData, address_reference: e.target.value })}
-                        className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 text-white rounded-xl text-xs focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1011,7 +1090,7 @@ const AppointmentCalendarManager: React.FC = () => {
                   placeholder="Ej: Hemograma, Perfil Lipídico, Glucosa, TSH"
                   value={formData.tests}
                   onChange={e => setFormData({ ...formData, tests: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                 />
               </div>
 
@@ -1025,7 +1104,7 @@ const AppointmentCalendarManager: React.FC = () => {
                   placeholder="Ej: Ayuno estricto de 10 a 12 horas. Solo ingesta de agua."
                   value={formData.fasting_instructions}
                   onChange={e => setFormData({ ...formData, fasting_instructions: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                 />
               </div>
 
@@ -1037,16 +1116,16 @@ const AppointmentCalendarManager: React.FC = () => {
                   placeholder="Ej: Paciente de difícil acceso venoso, requiere flebotomista con mariposa..."
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-teal-500 focus:outline-none"
                 ></textarea>
               </div>
 
               {/* Modal Actions */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                  className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-bold hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1066,7 +1145,7 @@ const AppointmentCalendarManager: React.FC = () => {
       {/* Modal: DETALLES DE CITA */}
       {selectedAppointmentForDetails && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl border border-slate-200 space-y-6">
+          <div className="bg-slate-900 text-white rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl border border-slate-800 space-y-6">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-teal-100 text-teal-800 rounded-2xl">
@@ -1088,19 +1167,19 @@ const AppointmentCalendarManager: React.FC = () => {
             <div className="space-y-4 text-xs font-bold text-slate-700">
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                 <p className="text-slate-400 text-[10px] uppercase tracking-wider">Paciente</p>
-                <p className="text-base text-slate-900 font-black">{selectedAppointmentForDetails.patient_name_manual}</p>
+                <p className="text-base text-white font-black">{selectedAppointmentForDetails.patient_name_manual}</p>
                 <p className="text-slate-600">Cédula: {selectedAppointmentForDetails.patient_national_id}</p>
                 <p className="text-slate-600">Teléfono: {selectedAppointmentForDetails.patient_phone}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
                   <p className="text-slate-400 text-[10px] uppercase">Modalidad</p>
                   <p className="text-slate-800 font-black mt-1">
                     {selectedAppointmentForDetails.service_type === 'HOME_COLLECTION' ? '🏠 Domicilio' : '🏥 En Laboratorio'}
                   </p>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
                   <p className="text-slate-400 text-[10px] uppercase">Sede Asignada</p>
                   <p className="text-slate-800 font-black mt-1">{selectedAppointmentForDetails.branch_name}</p>
                 </div>
@@ -1110,7 +1189,7 @@ const AppointmentCalendarManager: React.FC = () => {
                 <p className="text-slate-400 text-[10px] uppercase mb-1">Pruebas a Realizar</p>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedAppointmentForDetails.tests_requested.map((t, i) => (
-                    <span key={i} className="bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-lg text-xs">
+                    <span key={i} className="bg-teal-500/15 text-teal-300 border border-teal-500/30 px-2.5 py-1 rounded-lg text-xs font-bold">
                       {t}
                     </span>
                   ))}
@@ -1118,21 +1197,21 @@ const AppointmentCalendarManager: React.FC = () => {
               </div>
 
               {selectedAppointmentForDetails.fasting_instructions && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300">
                   <p className="text-[10px] uppercase font-black text-amber-600 mb-0.5">Indicaciones de Preparación</p>
                   <p className="text-xs font-medium">{selectedAppointmentForDetails.fasting_instructions}</p>
                 </div>
               )}
 
               {selectedAppointmentForDetails.notes && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700">
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300">
                   <p className="text-[10px] uppercase font-black text-slate-400 mb-0.5">Notas Clínicas</p>
                   <p className="text-xs font-medium">{selectedAppointmentForDetails.notes}</p>
                 </div>
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => {
                   handleSendWhatsAppReminder(selectedAppointmentForDetails);
@@ -1145,7 +1224,7 @@ const AppointmentCalendarManager: React.FC = () => {
               </button>
               <button
                 onClick={() => setSelectedAppointmentForDetails(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 text-xs"
+                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 font-bold hover:bg-slate-800 text-xs transition cursor-pointer"
               >
                 Cerrar
               </button>

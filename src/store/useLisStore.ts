@@ -61,6 +61,7 @@ interface LisState {
   addPatient: (patient: Patient) => void;
   updatePatient: (patientId: string, updatedData: Partial<Patient>) => void;
   addOrder: (order: Order) => void;
+  updateOrder: (orderId: string, updatedData: Partial<Order>) => void;
   addResults: (newResults: TestResult[]) => void;
   updateResult: (resultId: string, newValue: string, resultData?: TestResult) => void;
   updateInterpretation: (resultId: string, interpretation: string) => void;
@@ -515,17 +516,18 @@ export const useLisStore = create<LisState>()(
             p.id === patientId ? { ...p, ...updatedData } : p
           );
 
-          // Si cambió la cédula o el nombre, actualizar en cascada las órdenes asociadas
+          // Si cambió la cédula o el nombre o teléfono, actualizar en cascada las órdenes asociadas
           let updatedOrders = state.orders;
-          if (updatedData.nationalId || (updatedData.firstName && updatedData.lastName)) {
+          if (updatedData.nationalId || updatedData.firstName || updatedData.lastName || updatedData.phone) {
             updatedOrders = state.orders.map((o) => {
               if (o.patientId === patientId) {
+                const pat = updatedPatients.find(p => p.id === patientId);
+                const fullName = pat ? `${pat.firstName} ${pat.lastName}`.trim() : o.patientName;
                 return {
                   ...o,
                   patientNationalId: updatedData.nationalId || o.patientNationalId,
-                  patientName: (updatedData.firstName && updatedData.lastName)
-                    ? `${updatedData.lastName}, ${updatedData.firstName}`
-                    : o.patientName
+                  patientName: fullName || o.patientName,
+                  patientPhone: updatedData.phone || o.patientPhone
                 };
               }
               return o;
@@ -536,6 +538,13 @@ export const useLisStore = create<LisState>()(
         });
 
         notifyToast('✓ Cédula y datos del paciente corregidos exitosamente en el sistema.', 'success', 3500);
+      },
+
+      updateOrder: (orderId, updatedData) => {
+        set((state) => ({
+          orders: state.orders.map((o) => (o.id === orderId ? { ...o, ...updatedData } : o))
+        }));
+        notifyToast('✓ Orden médica actualizada correctamente.', 'success', 3000);
       },
 
       addPatient: (patient) => {

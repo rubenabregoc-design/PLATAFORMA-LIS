@@ -11,12 +11,93 @@ import {
   PencilLine, Cpu, Mic, Calculator, MessageSquare, TrendingUp,
   Smartphone, Trash2, RotateCcw, Beaker, CheckCircle2, Printer,
   Barcode, Plus, PhoneCall, Sliders, ShieldAlert, Activity, Fingerprint,
-  ArrowRight, ChevronRight, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
+  ArrowRight, ChevronRight, ChevronDown, ChevronUp, Minimize2, Maximize2, BrainCircuit, Terminal, Wrench, ArrowUp, ArrowDown,
   Microscope, AlertTriangle, Check, Lock, ShieldCheck,
   FlaskConical, MessageSquareText, Undo2,
-  Filter, Clock, Info, LayoutGrid, FileText, Droplets, Sparkles, HeartPulse, Calendar
+  Filter, Clock, Info, LayoutGrid, FileText, Droplets, Sparkles, HeartPulse, Calendar,
+  Building2, Truck, MapPin, Stethoscope
 } from 'lucide-react';
 import { notifyToast } from '../../utils/toastNotification';
+import { useLisStore } from '../../store/useLisStore';
+
+// Localized helpers for multi-language (ES / EN) support in technical validation
+const getLocalizedAreaName = (area: { id: string; name: string }, isEn: boolean) => {
+  if (!isEn) return area.name;
+  const enNames: Record<string, string> = {
+    HEMATOLOGIA: 'CLINICAL HEMATOLOGY',
+    COAGULACION: 'COAGULATION & HEMOSTASIS',
+    QUIMICA: 'CLINICAL CHEMISTRY & ENZYMES',
+    ELECTROLITOS: 'ELECTROLYTES & BLOOD GAS',
+    GASOMETRIA_STAT: 'CARDIAC MARKERS & STAT TESTS',
+    ENDOCRINOLOGIA: 'ENDOCRINOLOGY & HORMONES',
+    MARCADORES_TUMORALES: 'TUMOR MARKERS & ONCOLOGY',
+    URINALISIS: 'URINALYSIS & BODY FLUIDS',
+    COPROLOGIA: 'PARASITOLOGY & STOOL',
+    INMUNOLOGIA: 'IMMUNOLOGY & SEROLOGY',
+    SEROLOGIA: 'IMMUNOLOGY & SEROLOGY',
+    MICROBIOLOGIA: 'MICROBIOLOGY & CULTURES',
+    BANCO_SANGRE: 'IMMUNOHEMATOLOGY & BLOOD BANK',
+    BIOLOGIA_MOLECULAR: 'MOLECULAR BIOLOGY & PCR',
+    GENERAL: 'GENERAL LABORATORY'
+  };
+  return enNames[area.id] || area.name;
+};
+
+const getLocalizedParameterName = (name: string, isEn: boolean) => {
+  if (!isEn || !name) return name;
+  const upper = name.toUpperCase().trim();
+  const translations: Record<string, string> = {
+    'LEUCOCITOS TOTALES (WBC)': 'WHITE BLOOD CELLS (WBC)',
+    'HEMOGLOBINA (HGB)': 'HEMOGLOBIN (HGB)',
+    'PLAQUETAS TOTALES (PLT)': 'TOTAL PLATELETS (PLT)',
+    'HEMATOCRITO (HCT)': 'HEMATOCRIT (HCT)',
+    'GLUCOSA BASAL': 'FASTING GLUCOSE',
+    'GLUCOSA': 'GLUCOSE',
+    'CREATININA SÉRICA': 'SERUM CREATININE',
+    'CREATININA': 'CREATININE',
+    'NITRÓGENO DE UREA (BUN)': 'BLOOD UREA NITROGEN (BUN)',
+    'COLESTEROL TOTAL': 'TOTAL CHOLESTEROL',
+    'TRIGLICÉRIDOS': 'TRIGLYCERIDES',
+    'COLESTEROL HDL': 'HDL CHOLESTEROL',
+    'COLESTEROL LDL': 'LDL CHOLESTEROL',
+    'ÁCIDO ÚRICO': 'URIC ACID',
+    'SODIO (NA+)': 'SODIUM (NA+)',
+    'POTASIO (K+)': 'POTASSIUM (K+)',
+    'CLORO (CL-)': 'CHLORIDE (CL-)',
+    'CALCIO TOTAL': 'TOTAL CALCIUM',
+    'TGP / ALANINA AMINOTRANSFERASA (ALT)': 'ALT / ALANINE AMINOTRANSFERASE',
+    'TGO / ASPARTATO AMINOTRANSFERASA (AST)': 'AST / ASPARTATE AMINOTRANSFERASE',
+    'HORMONA ESTIMULANTE DE TIROIDES (TSH 3RA GEN)': 'THYROID STIMULATING HORMONE (TSH 3RD GEN)',
+    'TIROXINA LIBRE (T4 LIBRE)': 'FREE THYROXINE (FREE T4)',
+    'TIEMPO DE PROTROMBINA (TP/PT)': 'PROTHROMBIN TIME (PT)',
+    'TIEMPO DE TROMBOPLASTINA PARCIAL (TTP/APTT)': 'PARTIAL THROMBOPLASTIN TIME (aPTT)',
+    'FIBRINÓGENO': 'FIBRINOGEN',
+    'DÍMERO D': 'D-DIMER',
+    'FOSFATASA ALCALINA': 'ALKALINE PHOSPHATASE',
+    'BILIRRUBINA TOTAL': 'TOTAL BILIRUBIN',
+    'BILIRRUBINA DIRECTA': 'DIRECT BILIRUBIN',
+    'PROTEÍNAS TOTALES': 'TOTAL PROTEINS',
+    'ALBÚMINA': 'ALBUMIN'
+  };
+  return translations[upper] || name;
+};
+
+const getLocalizedTestName = (name: string, isEn: boolean) => {
+  if (!isEn || !name) return name;
+  const upper = name.toUpperCase().trim();
+  const translations: Record<string, string> = {
+    'HEMOGRAMA COMPLETO': 'Complete Blood Count (CBC)',
+    'PERFIL LIPÍDICO': 'Lipid Panel',
+    'QUÍMICA GENERAL': 'Basic Chemistry Panel',
+    'ELECTROLITOS SÉRICOS': 'Serum Electrolytes',
+    'PRUEBAS DE COAGULACIÓN': 'Coagulation Profile',
+    'PERFIL TIROIDEO': 'Thyroid Panel',
+    'PERFIL HEPÁTICO': 'Hepatic Function Panel',
+    'URIANÁLISIS COMPLETO': 'Complete Urinalysis',
+    'COPROLÓGICO GENERAL': 'Stool Examination'
+  };
+  return translations[upper] || name;
+};
 
 interface ResultEntryWorkspaceProps {
   order: Order; patient: Patient; results: TestResult[]; analyzers: Analyzer[];
@@ -37,6 +118,8 @@ const ResultValueInput: React.FC<{
   canEdit: boolean;
   onSave: (resultId: string, val: string, result: TestResult) => void;
 }> = ({ result, isValidated, canEdit, onSave }) => {
+  const language = useLisStore((state) => state.language);
+  const isEn = language === 'EN';
   const [val, setVal] = useState(result.value || '');
 
   useEffect(() => {
@@ -62,7 +145,7 @@ const ResultValueInput: React.FC<{
   if (isValidated || !canEdit) {
     return (
       <span className={`inline-block px-3.5 py-0.5 rounded-full font-mono font-bold text-xs shadow-sm ${pillClass}`}>
-        {result.value || (isValidated ? 'VALIDADO' : '—')}
+        {result.value || (isValidated ? (isEn ? 'VALIDATED' : 'VALIDADO') : '—')}
       </span>
     );
   }
@@ -125,7 +208,7 @@ const getClinicalAreaStyles = (areaId: string) => {
       glow: 'shadow-[inset_4px_0_14px_rgba(16,185,129,0.3)]',
       btnBg: 'bg-emerald-950/70 hover:bg-emerald-900/80 border-emerald-500/50 text-emerald-200',
       pillBg: 'bg-emerald-950/90 text-emerald-300 border-emerald-700/60',
-      icon: Sparkles,
+      icon: ShieldCheck,
     };
   }
 
@@ -203,15 +286,73 @@ const getClinicalAreaStyles = (areaId: string) => {
   };
 };
 
+// 🛡️ Regla Clínica ISO 15189: Un analito sin resultado ingresado NUNCA puede ser validado ni liberado.
+export const hasResultValue = (r: TestResult | undefined | null): boolean => {
+  if (!r) return false;
+  if (r.value === undefined || r.value === null) return false;
+  const trimmed = String(r.value).trim();
+  return trimmed !== '' && trimmed !== '-' && trimmed.toLowerCase() !== 'sin valor' && trimmed.toLowerCase() !== 'pendiente';
+};
+
+export const isResultValidatable = (r: TestResult | undefined | null): boolean => {
+  if (!r) return false;
+  const isAlreadyValidated = r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO';
+  if (isAlreadyValidated) return false;
+  return hasResultValue(r);
+};
+
+export interface RejectionReasonTemplate {
+  id: string;
+  label: string;
+  text: string;
+  isCustom?: boolean;
+}
+
+export const DEFAULT_REJECTION_REASONS: RejectionReasonTemplate[] = [
+  { id: 'def-1', label: '🩸 Hemólisis Severa (HIL 3+)', text: 'MUESTRA RECHAZADA: Hemólisis severa presente en suero/plasma (HIL 3+). Altera interferencias espectrofotométricas y analitos sensibles (K+, enzimas). Se requiere nueva muestra para garantizar resultados confiables.' },
+  { id: 'def-2', label: '🧫 Muestra Coagulada', text: 'MUESTRA RECHAZADA: Presencia de microcoágulos de fibrina en tubo con anticoagulante. Se requiere nueva muestra para conteo hematológico y coagulación confiables.' },
+  { id: 'def-3', label: '🧪 Volumen Insuficiente', text: 'MUESTRA RECHAZADA: Volumen de muestra menor al mínimo requerido para procesar todos los ensayos automatizados. Se solicita re-toma prioritaria de muestra.' },
+  { id: 'def-4', label: '❌ Tubo Inadecuado', text: 'MUESTRA RECHAZADA: Muestra recolectada en tubo con anticoagulante incorrecto para las pruebas ordenadas. Requiere nueva muestra en el contenedor apropiado.' },
+  { id: 'def-5', label: '🏷️ Error de Rotulación', text: 'MUESTRA RECHAZADA: Discrepancia en rotulación preanalítica. Por protocolo estricto de seguridad del paciente (ISO 15189), se requiere nueva toma verificada.' },
+  { id: 'def-6', label: '❄️ Cadena de Frío', text: 'MUESTRA RECHAZADA: Interrupción de temperatura de transporte requerida. Se solicita nueva muestra para garantizar estabilidad biológica.' }
+];
+
+// 🔬 Resolución Inteligente del Estudio del Catálogo LIS para Pruebas Manuales y de Middleware
+const resolveCatalogTest = (res: TestResult) => {
+  if (res.testId && res.testId !== 'test-auto' && res.testId !== 'test-hl7') {
+    const direct = MOCK_TEST_CATALOG.find(t => t.id === res.testId);
+    if (direct) return direct;
+  }
+  const codeUpper = (res.parameterCode || '').toUpperCase();
+  const nameUpper = (res.parameterName || '').toUpperCase();
+  return MOCK_TEST_CATALOG.find(t =>
+    t.code === res.parameterCode ||
+    t.parameters?.some(p => 
+      p.astmParamCode?.toUpperCase() === codeUpper ||
+      p.id === res.parameterId ||
+      p.name.toUpperCase() === nameUpper
+    ) ||
+    t.name.toUpperCase().includes(nameUpper.replace('ANALITO ', '')) ||
+    (codeUpper === 'PH' && t.id === 'test-gasometria') ||
+    (codeUpper === 'GLU' && t.id === 'test-glucosa') ||
+    (codeUpper === 'WBC' && t.id === 'test-hemograma') ||
+    (codeUpper === 'PT' && t.id === 'test-pt') ||
+    (codeUpper === 'TRI' && t.id === 'test-lipidico')
+  );
+};
+
 export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   order: initialOrder, patient: initialPatient, results, analyzers = MOCK_ANALYZERS, currentUser,
   onUpdateResultValue, onUpdateInterpretation, onUpdateResultStatus, onOpenPdf,
   onConsultInterBranch, onUpdateOrderTests, onUpdateOrderNotes, allOrders = [], allPatients = []
 }) => {
+  const language = useLisStore((state) => state.language);
+  const isEn = language === 'EN';
   const [activeOrderId, setActiveOrderId] = useState<string>(initialOrder?.id || allOrders[0]?.id || '');
   const currentOrder = (allOrders.length > 0 ? allOrders.find(o => o.id === activeOrderId) : undefined) || initialOrder || allOrders[0];
   const currentPatient = (allPatients.length > 0 ? allPatients.find(p => p.id === currentOrder?.patientId) : undefined) || initialPatient || allPatients[0];
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'validated'>('all');
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -375,6 +516,56 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
   const [selectedCommentResultId, setSelectedCommentResultId] = useState<string>('');
   const [analyteCommentDraft, setAnalyteCommentDraft] = useState<string>('');
   const [orderGeneralComment, setOrderGeneralComment] = useState<string>('');
+  const [commentAnalyteSearch, setCommentAnalyteSearch] = useState<string>('');
+
+  // 🛡️ Plantillas de Motivos de Rechazo Preanalítico (ISO 15189) con persistencia personalizada
+  const [rejectionReasonsList, setRejectionReasonsList] = useState<RejectionReasonTemplate[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lis_custom_rejection_reasons');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return DEFAULT_REJECTION_REASONS;
+  });
+
+  const [isAddingCustomRejection, setIsAddingCustomRejection] = useState(false);
+  const [newRejectionLabel, setNewRejectionLabel] = useState('');
+  const [newRejectionText, setNewRejectionText] = useState('');
+
+  const handleSaveCustomRejection = () => {
+    if (!newRejectionLabel.trim() || !newRejectionText.trim()) {
+      notifyToast.error('Por favor complete el nombre del botón y el texto explicativo del motivo.');
+      return;
+    }
+    const newItem: RejectionReasonTemplate = {
+      id: `custom-rej-${Date.now()}`,
+      label: newRejectionLabel.trim(),
+      text: newRejectionText.trim(),
+      isCustom: true
+    };
+    const updated = [...rejectionReasonsList, newItem];
+    setRejectionReasonsList(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_custom_rejection_reasons', JSON.stringify(updated));
+    }
+    setNewRejectionLabel('');
+    setNewRejectionText('');
+    setIsAddingCustomRejection(false);
+    notifyToast.success('Nuevo motivo de rechazo guardado exitosamente.');
+  };
+
+  const handleDeleteCustomRejection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = rejectionReasonsList.filter(r => r.id !== id);
+    setRejectionReasonsList(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lis_custom_rejection_reasons', JSON.stringify(updated));
+    }
+    notifyToast.info('Motivo de rechazo personalizado eliminado.');
+  };
 
   const [tempValue, setTempValue] = useState<string>('');
   const [tempNote, setTempNote] = useState<string>('');
@@ -481,7 +672,25 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         list = generated;
       }
     }
-    return list;
+
+    // Deduplicate repeated analytes: collapse identical test + parameter pairs into 1 unique row
+    const uniqueMap = new Map<string, TestResult>();
+    list.forEach((item) => {
+      const key = `${item.testId || 't'}-${item.parameterId || item.parameterName || item.id}`;
+      const existing = uniqueMap.get(key);
+      if (!existing) {
+        uniqueMap.set(key, item);
+      } else {
+        // If one has an actual value or is validated, keep that one
+        const existingHasVal = existing.value && existing.value.trim() !== '';
+        const itemHasVal = item.value && item.value.trim() !== '';
+        if (!existingHasVal && itemHasVal) {
+          uniqueMap.set(key, item);
+        }
+      }
+    });
+
+    return Array.from(uniqueMap.values());
   }, [currentOrder, results]);
 
   const patientResults = useMemo(() => {
@@ -536,13 +745,55 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
     }).length;
   }, [selectedResults, results]);
 
-  const unvalidatedCount = useMemo(() => {
-    return patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO').length;
+  // Analitos pendientes que SÍ tienen resultado cargado y están listos para ser validados técnicamente
+  const validatableCount = useMemo(() => {
+    return patientResults.filter(r => isResultValidatable(r)).length;
   }, [patientResults]);
 
-  const toReleaseCount = useMemo(() => {
-    return patientResults.filter(r => (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') && r.status !== 'LIBERADO').length;
+  // Analitos que aún no tienen ningún resultado cargado (verdaderamente pendientes de laboratorio)
+  const missingValueCount = useMemo(() => {
+    return patientResults.filter(r => {
+      const isDone = (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO' || r.status === 'LIBERADO') && hasResultValue(r);
+      return !isDone && !hasResultValue(r);
+    }).length;
   }, [patientResults]);
+
+  // Analitos seleccionados en casillas que son aptos para validar (tienen resultado)
+  const selectedValidatableCount = useMemo(() => {
+    return selectedResults.filter(id => {
+      const res = results.find(r => r.id === id);
+      return isResultValidatable(res);
+    }).length;
+  }, [selectedResults, results]);
+
+  // Analitos seleccionados en casillas que NO tienen resultado aún
+  const selectedMissingValueCount = useMemo(() => {
+    return selectedResults.filter(id => {
+      const res = results.find(r => r.id === id);
+      return res && !hasResultValue(res) && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
+    }).length;
+  }, [selectedResults, results]);
+
+  // Mantener compatibilidad con unvalidatedCount (analitos pendientes con resultado listos para validar)
+  const unvalidatedCount = validatableCount;
+
+  const toReleaseCount = useMemo(() => {
+    return patientResults.filter(r =>
+      hasResultValue(r) &&
+      (r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO') &&
+      r.status !== 'LIBERADO'
+    ).length;
+  }, [patientResults]);
+
+  const filteredCommentResults = useMemo(() => {
+    if (!commentAnalyteSearch.trim()) return patientResults;
+    const q = commentAnalyteSearch.toLowerCase().trim();
+    return patientResults.filter(r =>
+      r.parameterName.toLowerCase().includes(q) ||
+      r.parameterCode.toLowerCase().includes(q) ||
+      (r.testName && r.testName.toLowerCase().includes(q))
+    );
+  }, [patientResults, commentAnalyteSearch]);
 
   const getFlagStyle = (flag?: string) => {
     if (flag?.includes('CRITICO')) return 'bg-rose-500/25 border-2 border-rose-500 text-rose-200 font-black text-sm px-3.5 py-1 rounded-xl shadow-lg shadow-rose-500/30 animate-pulse';
@@ -599,8 +850,21 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
         ? 'Femenino'
         : '—');
 
-  const serviceOriginDisplay = currentOrder?.serviceOrigin || (currentOrder ? 'Consulta Externa' : '—');
-  const doctorDisplay = currentOrder?.doctorName ? `Dr(a). ${currentOrder.doctorName}` : (currentOrder ? 'Sin Médico Referente' : '—');
+  const cleanServiceOrigin = useMemo(() => {
+    const raw = currentOrder?.serviceOrigin || (currentOrder ? 'Consulta Externa' : '—');
+    return raw.replace(/^[\p{Emoji}\u200d\s]+/u, '').trim() || 'Laboratorio Central';
+  }, [currentOrder?.serviceOrigin, currentOrder]);
+
+  const cleanDoctorDisplay = useMemo(() => {
+    if (!currentOrder?.doctorName) return currentOrder ? 'Sin Médico Referente' : '—';
+    const raw = currentOrder.doctorName.replace(/^[\p{Emoji}\u200d\s]+/u, '').trim();
+    // Eliminar prefijos redundantes como Dr., Dra., Dr(a). para evitar "Dr(a). Dr."
+    const nameWithoutPrefix = raw.replace(/^(Dr\.|Dra\.|Dr\(a\)\.?|Doctor|Doctora)\s+/i, '').trim();
+    return `Dr(a). ${nameWithoutPrefix}`;
+  }, [currentOrder?.doctorName, currentOrder]);
+
+  const serviceOriginDisplay = cleanServiceOrigin;
+  const doctorDisplay = cleanDoctorDisplay;
 
   const specimensDisplay = currentOrder?.specimens && currentOrder.specimens.length > 0
     ? currentOrder.specimens.map(s => `${s.type || 'Muestra'} (${s.barcode || 'S/C'})`).join(' + ')
@@ -608,8 +872,25 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   const filteredOrders = useMemo(() => {
     return allOrders.filter(o => {
-      const matchesSearch = o.patientName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
-                          o.orderNumber.toLowerCase().includes(orderSearchQuery.toLowerCase());
+      const q = orderSearchQuery.toLowerCase().trim();
+      const cleanQ = q.replace(/[-]/g, '');
+      const cleanNatId = (o.patientNationalId || '').toLowerCase().replace(/[-]/g, '');
+
+      // Coincidencia amplia: Número de orden, Paciente, Cédula o Códigos de barra de tubos
+      const matchesBarcode = (o.specimens || []).some(s => 
+        (s.barcode && s.barcode.toLowerCase().includes(q)) ||
+        (s.barcode && q.includes(s.barcode.toLowerCase()))
+      );
+
+      // Compatibilidad si escriben sufijo o prefijo (ej: "BAR-0001", "0001", "90001")
+      const matchesSuffix = q.startsWith('bar-') && o.orderNumber.endsWith(q.replace('bar-', ''));
+
+      const matchesSearch = !q ||
+                          o.patientName.toLowerCase().includes(q) ||
+                          o.orderNumber.toLowerCase().includes(q) ||
+                          (cleanNatId && cleanQ.length >= 3 && cleanNatId.includes(cleanQ)) ||
+                          matchesBarcode ||
+                          matchesSuffix;
 
       const orderResults = results.filter(r => r.orderId === o.id);
       const isPending = orderResults.some(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
@@ -640,23 +921,24 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-full max-h-full flex-1 min-h-0 bg-[#020617] overflow-hidden border border-slate-800/80 shadow-2xl relative w-full">
-      {/* Sidebar: Órdenes (Diseño Adaptativo clamp 260px - 330px, Colapsable a 60px) */}
-      <div className={`${isSidebarCollapsed ? "w-full lg:w-[60px]" : "w-full lg:w-[clamp(260px,20vw,330px)]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
+      {/* Sidebar: Órdenes (Diseño Adaptativo clamp 260px - 330px, Colapsable elegante a 74px) */}
+      <div className={`${isSidebarCollapsed ? "w-full lg:w-[74px]" : "w-full lg:w-[clamp(270px,20vw,330px)]"} bg-[#030a21] border-b lg:border-b-0 lg:border-r border-blue-950/80 flex flex-col transition-all duration-300 relative shrink-0 h-full overflow-hidden`}>
         <div className={`${isSidebarCollapsed ? "p-1.5" : "p-2.5 sm:p-3"} flex flex-col h-full space-y-2 overflow-hidden`}>
           {/* Header Bandeja de Órdenes */}
           {isSidebarCollapsed ? (
-            <div className="flex flex-col items-center gap-1.5 pb-1 border-b border-blue-950/60 pt-0.5 shrink-0">
+            <div className="flex flex-col items-center gap-1.5 pb-2 border-b border-blue-950/60 pt-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(false)}
-                title="Expandir bandeja de órdenes"
-                className="w-8 h-8 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/40 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md"
+                title={isEn ? "Expand full order tray (View patients and filters)" : "Expandir bandeja de órdenes completa (Ver pacientes y filtros)"}
+                className="w-12 h-10 bg-gradient-to-tr from-cyan-500/20 to-blue-500/30 hover:from-cyan-500 hover:to-blue-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/50 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/10 group"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 group-hover:scale-125 transition-transform" />
+                <span className="text-[7.5px] font-black uppercase tracking-tight text-cyan-200 group-hover:text-slate-950">{isEn ? 'OPEN' : 'ABRIR'}</span>
               </button>
               <span
-                title={`${pendingCount || filteredOrders.length} órdenes en bandeja`}
-                className="w-5 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[9px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)] cursor-default"
+                title={isEn ? `${pendingCount || filteredOrders.length} orders in tray` : `${pendingCount || filteredOrders.length} órdenes en bandeja`}
+                className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[9px] font-black shadow-[0_0_8px_rgba(244,63,94,0.6)] cursor-default"
               >
                 {pendingCount || filteredOrders.length}
               </span>
@@ -666,7 +948,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <FlaskConical className="w-5 h-5 text-cyan-400 shrink-0 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                 <h3 className="text-xs font-black text-white tracking-wider uppercase truncate">
-                  Bandeja de Órdenes
+                  {isEn ? 'Orders Tray' : 'Bandeja de Órdenes'}
                 </h3>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -676,10 +958,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSidebarCollapsed(true)}
-                  title="Colapsar bandeja"
-                  className="w-6 h-6 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/40 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0"
+                  title={isEn ? "Collapse sidebar" : "Colapsar bandeja lateral"}
+                  className="px-2 py-0.5 bg-slate-900/90 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-slate-800 hover:border-cyan-400/40 rounded-lg flex items-center gap-1 transition-all cursor-pointer text-[10px] font-bold shrink-0"
                 >
                   <ChevronRight className="w-3.5 h-3.5 transition-transform duration-300 rotate-180" />
+                  <span className="hidden xl:inline">{isEn ? 'Collapse' : 'Colapsar'}</span>
                 </button>
               </div>
             </div>
@@ -692,14 +975,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                 <Search className="absolute left-3 w-3.5 h-3.5 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Buscar paciente u orden..."
+                  placeholder={isEn ? "Search patient, order or barcode..." : "Buscar paciente u orden..."}
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
                   className="w-full bg-[#071333] border border-blue-900/60 rounded-xl py-1.5 pl-8 pr-8 text-[11px] text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none transition-all"
                 />
                 <button
                   type="button"
-                  title="Filtrar órdenes"
+                  title={isEn ? "Filter orders" : "Filtrar órdenes"}
                   className="absolute right-2.5 text-slate-400 hover:text-cyan-300 transition-colors"
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -716,10 +999,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
                   }`}
-                  title="Mostrar únicamente órdenes ingresadas en la fecha de hoy"
+                  title={isEn ? "Show only orders entered today" : "Mostrar únicamente órdenes ingresadas en la fecha de hoy"}
                 >
                   <Calendar className="w-3 h-3 text-cyan-400" />
-                  <span>Solo Hoy ({todayOrdersCount})</span>
+                  <span>{isEn ? `Today (${todayOrdersCount})` : `Solo Hoy (${todayOrdersCount})`}</span>
                 </button>
                 <button
                   type="button"
@@ -729,9 +1012,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
                   }`}
-                  title="Mostrar órdenes de todas las fechas acumuladas"
+                  title={isEn ? "Show orders from all dates" : "Mostrar órdenes de todas las fechas acumuladas"}
                 >
-                  <span>Todas ({allOrders.length})</span>
+                  <span>{isEn ? `All (${allOrders.length})` : `Todas (${allOrders.length})`}</span>
                 </button>
               </div>
 
@@ -748,7 +1031,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                         : "text-slate-400 hover:text-white hover:bg-slate-900/60"
                     }`}
                   >
-                    {status === "all" ? "Todo" : status === "pending" ? "Pend." : "Val."}
+                    {status === "all" ? (isEn ? "All" : "Todo") : status === "pending" ? (isEn ? "Pend." : "Pend.") : (isEn ? "Val." : "Val.")}
                   </button>
                 ))}
               </div>
@@ -756,7 +1039,9 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           )}
 
           {/* Orders Scroll Container */}
-          <div className="overflow-y-auto space-y-2.5 flex-1 custom-scrollbar min-h-0 overflow-x-hidden pt-1.5 pb-2 px-1">
+          <div className={`overflow-y-auto space-y-2.5 flex-1 min-h-0 overflow-x-hidden pt-1.5 pb-2 px-1 ${
+            isSidebarCollapsed ? "no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" : "custom-scrollbar"
+          }`}>
             {filteredOrders.map(o => {
               const orderResults = results.filter(r => r.orderId === o.id);
               const uniqueParams = Array.from(new Set(orderResults.map(r => r.parameterId)));
@@ -782,14 +1067,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     type="button"
                     onClick={() => setActiveOrderId(o.id)}
                     title={`${o.orderNumber || o.id} - ${o.patientName} (${validatedCount}/${uniqueParams.length} Validados)`}
-                    className={`w-11 h-14 mx-auto rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200 cursor-pointer relative shrink-0 group ${
+                    className={`w-12 h-14 mx-auto rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200 cursor-pointer relative shrink-0 group ${
                       isActive
                         ? (isStat || hasCritical
-                            ? "bg-rose-950/90 border-2 border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.6)] text-white ring-2 ring-rose-500/50"
-                            : "bg-cyan-950/90 border-2 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.5)] text-white ring-2 ring-cyan-400/50")
+                            ? "bg-rose-950/90 border-2 border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.6)] text-white ring-2 ring-rose-500/50 scale-105"
+                            : "bg-cyan-950/90 border-2 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.5)] text-white ring-2 ring-cyan-400/50 scale-105")
                         : (isStat || hasCritical
-                            ? "bg-[#0c1430] border border-rose-900/60 hover:border-rose-500 text-rose-300"
-                            : "bg-[#07112b] border border-blue-950 hover:border-cyan-500/50 text-slate-300")
+                            ? "bg-[#0c1430] border border-rose-900/60 hover:border-rose-500 text-rose-300 hover:scale-102"
+                            : "bg-[#07112b] border border-blue-950 hover:border-cyan-500/50 text-slate-300 hover:scale-102")
                     }`}
                   >
                     {/* Indicador de estado */}
@@ -856,7 +1141,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   </div>
 
                   {/* Middle row: Patient Name */}
-                  <div className="text-xs font-black uppercase text-white truncate leading-snug" title={o.patientName}>
+                  <div className="text-xs font-black uppercase text-white line-clamp-2 leading-snug" title={o.patientName}>
                     {o.patientName}
                   </div>
 
@@ -890,7 +1175,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         {/* Patient Clinical Header & Segmented Filters (Diseño Exacto del Mock) */}
         <div className="p-2 sm:p-2.5 shrink-0">
-          <div className="bg-[#061130] border border-blue-900/60 rounded-2xl p-2.5 shadow-lg flex flex-col gap-2">
+          <div className="bg-[#061130] border border-blue-900/60 rounded-2xl p-2.5 shadow-lg flex flex-col gap-2 transition-all duration-300">
             {/* Fila 1: Datos Principales del Paciente */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -903,7 +1188,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   </span>
                   {currentOrder && (currentOrder.priority === 'STAT' || currentOrder.priority === 'URGENTE') && (
                     <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1 shadow-md shadow-rose-600/30">
-                      ▲ STAT
+                      ▲ {isEn ? 'URGENCY' : 'URGENCIA'}
                     </span>
                   )}
                   <span className="text-blue-500/40">|</span>
@@ -911,83 +1196,158 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                     <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
                     {patientNationalId}
                   </span>
-                  <span className="text-blue-500/40">|</span>
+                  <span className="text-blue-500/40">•</span>
                   <span className="text-slate-300 text-xs font-mono">
-                    Orden: <strong className="text-white">{orderNumberDisplay}</strong>
+                    {isEn ? 'Order:' : 'Orden:'} <strong className="text-white">{orderNumberDisplay}</strong>
                   </span>
-                  <span className="text-blue-500/40">|</span>
-                  <span className="text-slate-300 text-xs flex items-center gap-1">
-                    👤 {patientAgeDisplay} • {patientGenderDisplay}
+                  <span className="text-blue-500/40">•</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-950/60 border border-blue-900/50 text-slate-200 text-xs">
+                    <UserCircle className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>{patientAgeDisplay} • {patientGenderDisplay}</span>
                   </span>
                 </div>
               </div>
+
+              {/* Controles de Minimizar / Abrir Encabezado */}
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {isHeaderCollapsed && (
+                  <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-500/30 px-2 py-0.5 rounded-md hidden sm:inline-flex items-center gap-1">
+                    <Filter className="w-2.5 h-2.5 text-cyan-400" />
+                    {analyteFilter === 'ALL' ? (isEn ? `All (${analyteCounts.all})` : `Todos (${analyteCounts.all})`) :
+                     analyteFilter === 'PENDING' ? (isEn ? `Pending (${analyteCounts.pending})` : `Pendientes (${analyteCounts.pending})`) :
+                     analyteFilter === 'CRITICAL' ? (isEn ? `Critical (${analyteCounts.critical})` : `Críticos (${analyteCounts.critical})`) :
+                     analyteFilter === 'VALIDATED' ? (isEn ? `Validated (${analyteCounts.validated})` : `Validados (${analyteCounts.validated})`) :
+                     `Middleware (${analyteCounts.middleware})`}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+                  title={isHeaderCollapsed 
+                    ? (isEn ? "Open patient details & filters" : "Abrir datos y filtros del paciente") 
+                    : (isEn ? "Minimize patient header to maximize workspace" : "Minimizar encabezado para maximizar espacio de trabajo")}
+                  className="px-2.5 py-1 rounded-lg bg-blue-950/90 hover:bg-cyan-500/20 text-cyan-300 border border-blue-900/70 hover:border-cyan-400/50 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+                >
+                  {isHeaderCollapsed ? (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-y-0.5 transition-transform" />
+                      <span>{isEn ? 'Open' : 'Abrir'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5 text-cyan-400 group-hover:-translate-y-0.5 transition-transform" />
+                      <span>{isEn ? 'Minimize' : 'Minimizar'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* Fila 2: Ubicación / Servicio y Médico */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-              <span className="flex items-center gap-1 text-slate-300">
-                📍 {serviceOriginDisplay || 'Laboratorio Central'}
-              </span>
-              <span className="text-blue-500/40">|</span>
-              <span className="flex items-center gap-1 text-slate-300">
-                👤 {doctorDisplay || 'Dr. Martinez'}
-              </span>
-            </div>
+            {!isHeaderCollapsed && (
+              <>
+                {/* Fila 2: Demográficos de Sede, Ubicación / Servicio y Médico */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {/* Demográfico de Sede */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold shadow-xs">
+                    <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>
+                      {currentOrder?.branchName || (currentOrder?.branchId === 'branch-david' ? (isEn ? 'Chiriquí Branch (David)' : 'Sede Chiriquí (David)') : (isEn ? 'Vía España Branch' : 'Sede Vía España'))}
+                      <span className="text-cyan-400 font-black"> [{currentOrder?.branchCode || (currentOrder?.branchId === 'branch-david' ? 'CH-02' : 'VE-01')}]</span>
+                      <span className="text-slate-400 font-medium"> • {currentOrder?.branchRegion || (currentOrder?.branchId === 'branch-david' ? 'Chiriquí' : 'Panamá Centro')}</span>
+                    </span>
+                  </span>
 
-            {/* Fila 3: Filtros de Estado de Analitos (Pills en Una Sola Fila) */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-blue-950">
-              <button
-                type="button"
-                onClick={() => setAnalyteFilter('ALL')}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
-                  analyteFilter === 'ALL'
-                    ? 'bg-cyan-500/25 border-2 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                    : 'bg-slate-900/70 border border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Todos ({analyteCounts.all})</span>
-              </button>
+                  {currentOrder?.isInterBranchReferral && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/70 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold shadow-xs">
+                      <Truck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>{isEn ? 'Referral:' : 'Remisión:'} {currentOrder.originBranchName || (isEn ? 'Origin Branch' : 'Sede Origen')} ➔ {currentOrder.processingBranchName || 'Hub Central'}</span>
+                    </span>
+                  )}
 
-              <button
-                type="button"
-                onClick={() => setAnalyteFilter('PENDING')}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
-                  analyteFilter === 'PENDING'
-                    ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
-                    : 'bg-blue-950/40 border border-blue-900/60 text-blue-300/80 hover:text-blue-200'
-                }`}
-              >
-                <Timer className="w-3.5 h-3.5" />
-                <span>Pendientes ({analyteCounts.pending})</span>
-              </button>
+                  {/* Origen de Solicitud / Servicio Hospitalario */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800/90 text-slate-200 text-[11px] shadow-xs hover:border-slate-700 transition-colors">
+                    <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <span className="text-slate-400 font-semibold text-[10.5px] uppercase tracking-wider">{isEn ? 'Origin:' : 'Origen:'}</span>
+                    <span className="font-bold text-slate-100">{serviceOriginDisplay || (isEn ? 'Central Laboratory' : 'Laboratorio Central')}</span>
+                  </span>
 
-              <button
-                type="button"
-                onClick={() => setAnalyteFilter('CRITICAL')}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
-                  analyteFilter === 'CRITICAL'
-                    ? 'bg-rose-500/30 border-2 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
-                    : 'bg-rose-950/40 border border-rose-900/60 text-rose-300 hover:text-rose-100'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                <span>Críticos ({analyteCounts.critical})</span>
-              </button>
+                  {/* Médico Solicitante */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800/90 text-slate-200 text-[11px] shadow-xs hover:border-slate-700 transition-colors">
+                    <Stethoscope className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span className="text-slate-400 font-semibold text-[10.5px] uppercase tracking-wider">{isEn ? 'Physician:' : 'Médico:'}</span>
+                    <span className="font-bold text-cyan-300">{doctorDisplay || (isEn ? 'No Referring Physician' : 'Sin Médico Referente')}</span>
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setAnalyteFilter('VALIDATED')}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
-                  analyteFilter === 'VALIDATED'
-                    ? 'bg-emerald-500/25 border-2 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                    : 'bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 hover:text-emerald-100'
-                }`}
-              >
-                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Validados ({analyteCounts.validated})</span>
-              </button>
-            </div>
+                {/* Fila 3: Filtros de Estado de Analitos (Pills en Una Sola Fila) */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-blue-950">
+                  <button
+                    type="button"
+                    onClick={() => setAnalyteFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                      analyteFilter === 'ALL'
+                        ? 'bg-cyan-500/25 border-2 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                        : 'bg-slate-900/70 border border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{isEn ? `All (${analyteCounts.all})` : `Todos (${analyteCounts.all})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAnalyteFilter('PENDING')}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                      analyteFilter === 'PENDING'
+                        ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
+                        : 'bg-blue-950/40 border border-blue-900/60 text-blue-300/80 hover:text-blue-200'
+                    }`}
+                  >
+                    <Timer className="w-3.5 h-3.5" />
+                    <span>{isEn ? `Pending (${analyteCounts.pending})` : `Pendientes (${analyteCounts.pending})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAnalyteFilter('CRITICAL')}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                      analyteFilter === 'CRITICAL'
+                        ? 'bg-rose-500/30 border-2 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
+                        : 'bg-rose-950/40 border border-rose-900/60 text-rose-300 hover:text-rose-100'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                    <span>{isEn ? `Critical (${analyteCounts.critical})` : `Críticos (${analyteCounts.critical})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAnalyteFilter('VALIDATED')}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                      analyteFilter === 'VALIDATED'
+                        ? 'bg-emerald-500/25 border-2 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                        : 'bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 hover:text-emerald-100'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{isEn ? `Validated (${analyteCounts.validated})` : `Validados (${analyteCounts.validated})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAnalyteFilter('MIDDLEWARE')}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                      analyteFilter === 'MIDDLEWARE'
+                        ? 'bg-purple-500/25 border-2 border-purple-400 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                        : 'bg-purple-950/40 border border-purple-900/60 text-purple-300 hover:text-purple-100'
+                    }`}
+                  >
+                    <Cpu className="w-3.5 h-3.5" />
+                    <span>Middleware ({analyteCounts.middleware})</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -998,8 +1358,8 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
              <div className="p-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center space-x-2 text-amber-200 text-xs shadow-sm">
                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                <div className="text-[10px]">
-                 <strong className="text-white mr-1.5 font-bold">🔒 Modo lectura:</strong>
-                 <span>Esta orden pertenece a otro Tecnólogo Médico. Solo su dueño o la Jefatura pueden modificarla.</span>
+                 <strong className="text-white mr-1.5 font-bold">{isEn ? 'Read-only mode:' : 'Modo lectura:'}</strong>
+                 <span>{isEn ? 'This order belongs to another Medical Technologist. Only its owner or management can modify it.' : 'Esta orden pertenece a otro Tecnólogo Médico. Solo su dueño o la Jefatura pueden modificarla.'}</span>
                </div>
              </div>
            )}
@@ -1011,16 +1371,18 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   <div className="flex items-center justify-between px-2 pt-1 border-b border-slate-800 pb-2">
                     <span className="font-mono font-black text-xs uppercase tracking-wider text-teal-400 flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
-                      {area.name}
+                      {getLocalizedAreaName(area, isEn)}
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-300 font-bold">
-                      {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
+                      {areaResults.length} {isEn ? (areaResults.length === 1 ? 'analyte' : 'analytes') : (areaResults.length === 1 ? 'analito' : 'analitos')}
                     </span>
                   </div>
                   {areaResults.map((res, index) => {
                  const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
                  const isHigh = res.flag === 'ALTO';
                  const isCritical = res.flag?.includes('CRITICO');
+                  const catalogTest = resolveCatalogTest(res);
+                  const testCode = catalogTest?.code || (res.testId && res.testId !== 'test-auto' && res.testId !== 'test-hl7' ? res.testId.replace('test-', '').slice(0, 4) : (res.parameterCode || '8003'));
 
                  return (
                     <div
@@ -1052,16 +1414,19 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                              >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                              </button>
-                             <span className="font-black text-white text-xs uppercase">{res.parameterName}</span>
+                             <span className="px-1.5 py-0.5 rounded bg-blue-950/90 border border-cyan-500/50 text-cyan-300 font-mono font-black text-[10px] shrink-0 shadow-xs">
+                                 #{testCode}
+                              </span>
+                              <span className="font-black text-white text-xs uppercase">{res.parameterName}</span>
                           </div>
 
                           {isValidated ? (
                             <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-black uppercase rounded-full">
-                              VALIDADO
+                              {isEn ? 'VALIDATED' : 'VALIDADO'}
                             </span>
                           ) : (
                             <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-black uppercase rounded-full">
-                              PENDIENTE
+                              {isEn ? 'PENDING' : 'PENDIENTE'}
                             </span>
                           )}
                        </div>
@@ -1069,14 +1434,14 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                        {/* Mobile Value Display */}
                        <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                           <div>
-                             <span className="text-[9px] text-slate-500 font-bold uppercase block">Resultado</span>
+                             <span className="text-[9px] text-slate-500 font-bold uppercase block">{isEn ? 'Result' : 'Resultado'}</span>
                              <span className={`text-lg font-black font-mono ${isCritical ? 'text-rose-400 animate-pulse' : isHigh ? 'text-amber-300' : 'text-emerald-400'}`}>
                                 {res.value} <span className="text-xs text-slate-400 font-normal">{res.unit}</span>
                              </span>
                           </div>
 
                           <div className="text-right">
-                             <span className="text-[9px] text-slate-500 font-bold uppercase block">Valor Referencia</span>
+                             <span className="text-[9px] text-slate-500 font-bold uppercase block">{isEn ? 'Reference Range' : 'Valor Referencia'}</span>
                              <span className="text-xs text-slate-300 font-mono italic">{res.refRangeText}</span>
                           </div>
                        </div>
@@ -1085,7 +1450,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                        {(isHigh || isCritical) && (
                           <div className={`p-2.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 ${isCritical ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' : 'bg-amber-500/20 border-amber-500/40 text-amber-300'}`}>
                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                             <span>{isCritical ? '🚨 VALOR CRÍTICO DE PÁNICO — Notificación obligatoria.' : `⚠️ ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el valor máximo.`}</span>
+                             <span>{isCritical ? (isEn ? 'CRITICAL PANIC VALUE — Mandatory notification (ISO 15189).' : 'VALOR CRÍTICO DE PÁNICO — Notificación obligatoria (ISO 15189).') : (isEn ? `RANGE ALERT: ${getLocalizedParameterName(res.parameterName, isEn)} (${res.value} ${res.unit}) exceeds maximum limit.` : `ALERTA DE RANGO: ${res.parameterName} (${res.value} ${res.unit}) excede el valor máximo.`)}</span>
                           </div>
                        )}
                     </div>
@@ -1117,19 +1482,19 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       <th className="py-1.5 px-2.5 text-left">
                         <div className="inline-flex items-center gap-2 text-cyan-300 border-b-2 border-cyan-400 pb-1 font-bold text-[11px] tracking-wider">
                           <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>ANALITO / EXAMEN</span>
+                          <span>{isEn ? 'ANALYTE / TEST' : 'ANALITO / EXAMEN'}</span>
                         </div>
                       </th>
                       <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">
                         <div className="leading-tight">
-                          <div>RESULTADO</div>
-                          <div>CLÍNICO</div>
+                          <div>{isEn ? 'CLINICAL' : 'RESULTADO'}</div>
+                          <div>{isEn ? 'RESULT' : 'CLÍNICO'}</div>
                         </div>
                       </th>
-                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">UNIDAD</th>
-                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">INTERVALO DE REFERENCIA</th>
-                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">ORIGEN / EQUIPO</th>
-                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">ESTADO</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">{isEn ? 'UNIT' : 'UNIDAD'}</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">{isEn ? 'REFERENCE RANGE' : 'INTERVALO DE REFERENCIA'}</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">{isEn ? 'SOURCE / INSTRUMENT' : 'ORIGEN / EQUIPO'}</th>
+                      <th className="py-1.5 px-2.5 text-center font-bold text-[11px] tracking-wider text-slate-300">{isEn ? 'STATUS' : 'ESTADO'}</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-blue-950/60">
@@ -1173,26 +1538,26 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                       <AreaIcon className="w-3.5 h-3.5" />
                                     </div>
                                     <span className={`font-black text-xs sm:text-[13px] uppercase tracking-wider ${areaStyle.titleColor}`}>
-                                      {area.name}
+                                      {getLocalizedAreaName(area, isEn)}
                                     </span>
                                   </div>
                                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold border ${areaStyle.pillBg}`}>
-                                    {areaResults.length} {areaResults.length === 1 ? 'analito' : 'analitos'}
+                                    {areaResults.length} {isEn ? (areaResults.length === 1 ? 'analyte' : 'analytes') : (areaResults.length === 1 ? 'analito' : 'analitos')}
                                   </span>
                                   <span className="text-[11px] text-cyan-400/80 flex items-center gap-1 font-mono">
-                                    <Info className="w-3 h-3 text-cyan-400" /> Analitos: {areaResults.length}
+                                    <Info className="w-3 h-3 text-cyan-400" /> {isEn ? 'Analytes:' : 'Analitos:'} {areaResults.length}
                                   </span>
                                   {hasCriticalInArea && (
                                     <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-[10px] font-black text-rose-300 flex items-center gap-1 animate-pulse">
                                       <AlertTriangle className="w-3 h-3 text-rose-400" />
-                                      <span>ALERTA CRÍTICA</span>
+                                      <span>{isEn ? 'CRITICAL ALERT' : 'ALERTA CRÍTICA'}</span>
                                     </span>
                                   )}
                                 </div>
 
                                 <div className="flex items-center gap-2.5">
                                   <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-[#052923] border border-emerald-500/40 text-emerald-300">
-                                    {areaResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length}/{areaResults.length} Validados
+                                    {areaResults.filter(r => r.status === 'VALIDADO_TEC' || r.status === 'VALIDADO_MED' || r.status === 'VALIDADO').length}/{areaResults.length} {isEn ? 'Validated' : 'Validados'}
                                   </span>
                                   <button
                                     type="button"
@@ -1208,7 +1573,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                     className={`px-3 py-1 rounded-lg border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer shadow-sm ${areaStyle.btnBg}`}
                                   >
                                     <LayoutGrid className="w-3.5 h-3.5" />
-                                    <span>{allAreaSelected ? 'DESELECCIONAR ÁREA' : 'SELECCIONAR ÁREA'}</span>
+                                    <span>{isEn ? (allAreaSelected ? 'DESELECT AREA' : 'SELECT AREA') : (allAreaSelected ? 'DESELECCIONAR ÁREA' : 'SELECCIONAR ÁREA')}</span>
                                   </button>
                                 </div>
                               </div>
@@ -1217,11 +1582,13 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
                           {/* Analitos de esta Área */}
                           {areaResults.map((res, index) => {
-                            const isValidated = res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO';
+                            const isValidated = (res.status === 'VALIDADO_TEC' || res.status === 'VALIDADO_MED' || res.status === 'VALIDADO') && hasResultValue(res);
                             const isNoteExpanded = expandingNotesId === res.id;
                             const isHigh = res.flag === 'ALTO';
                             const isLow = res.flag === 'BAJO';
                             const isCritical = res.flag?.includes('CRITICO') || res.flag === 'PANICO';
+                            const catalogTest = resolveCatalogTest(res);
+                            const testCode = catalogTest?.code || (res.testId && res.testId !== 'test-auto' && res.testId !== 'test-hl7' ? res.testId.replace('test-', '').slice(0, 4) : (res.parameterCode || '8003'));
 
                             return (
                               <React.Fragment key={`frag-${res.id}-${index}`}>
@@ -1251,13 +1618,27 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                     </button>
                                   </td>
                                   <td className="py-1.5 px-2.5 text-left">
-                                    <div className="font-bold text-xs uppercase text-white tracking-wide">
-                                      {res.parameterName}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-1.5 py-0.5 rounded bg-blue-950/90 border border-cyan-500/50 text-cyan-300 font-mono font-black text-[10px] tracking-wider shrink-0 shadow-xs">
+                                        #{testCode}
+                                      </span>
+                                      <span className="font-bold text-xs uppercase text-white tracking-wide">
+                                        {getLocalizedParameterName(res.parameterName, isEn)}
+                                      </span>
                                     </div>
-                                    <div className="text-[11px] font-mono text-cyan-400 mt-0.5 flex items-center gap-1.5">
-                                      <span>{res.parameterCode || res.parameterName.slice(0, 4)}</span>
+                                    <div className="text-[11px] font-mono text-cyan-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      {catalogTest && (
+                                        <>
+                                          <span className="text-slate-300 font-semibold">{getLocalizedTestName(catalogTest.name.split('(')[0].trim(), isEn)}</span>
+                                          <span className="text-slate-600">•</span>
+                                        </>
+                                      )}
+                                      <span className="text-cyan-300 font-medium">{res.parameterCode || res.parameterName.slice(0, 4)}</span>
                                       <span className="text-slate-600">•</span>
-                                      <span>{res.analyzerName || 'ASTM E1394'}</span>
+                                      <span className="inline-flex items-center gap-1 text-slate-300 bg-slate-900/90 px-1.5 py-0.5 rounded border border-slate-800 text-[10px]" title={isEn ? "Laboratory analyzer / instrument that processed the sample" : "Equipo / Analizador de laboratorio que procesó la muestra"}>
+                                        <Cpu className="w-3 h-3 text-cyan-400 shrink-0" />
+                                        <span>{isEn ? 'Instrument:' : 'Equipo:'} {res.analyzerName || (isEn ? 'Manual Entry / ACE' : 'Ingreso Manual / ACE')}</span>
+                                      </span>
                                     </div>
                                   </td>
                                   <td className="py-1.5 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1272,7 +1653,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                     {res.unit || '—'}
                                   </td>
                                   <td className="py-1.5 px-2.5 text-center">
-                                    <div className="font-mono text-xs text-slate-200 font-medium">{res.refRangeText || 'Normal'}</div>
+                                    <div className="font-mono text-xs text-slate-200 font-medium">{res.refRangeText || (isEn ? 'Normal' : 'Normal')}</div>
                                     {/* Visual Range Gauge Slider Bar */}
                                     <div className="w-24 h-1.5 bg-[#071333] border border-blue-900/60 rounded-full mx-auto mt-1 relative overflow-hidden">
                                       <div className="absolute inset-y-0 bg-emerald-500/30" style={{ left: '20%', width: '60%' }} />
@@ -1293,23 +1674,23 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                     </div>
                                   </td>
                                   <td className="py-1.5 px-2.5 text-center text-slate-400 text-xs font-medium">
-                                    {res.analyzerName || 'Manual TM'}
+                                    {res.analyzerName || (isEn ? 'Manual Tech' : 'Manual TM')}
                                   </td>
                                   <td className="py-1.5 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                                    {isValidated ? (
+                                    {isValidated && hasResultValue(res) ? (
                                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#052923] border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                        <span>VALIDADO</span>
+                                        <span>{isEn ? 'VALIDATED' : 'VALIDADO'}</span>
                                       </span>
-                                    ) : res.status === 'LIBERADO' ? (
+                                    ) : res.status === 'LIBERADO' && hasResultValue(res) ? (
                                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#072445] border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                                        <span>LIBERADO</span>
+                                        <span>{isEn ? 'RELEASED' : 'LIBERADO'}</span>
                                       </span>
                                     ) : (
-                                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#2e1d05] border border-amber-500/40 text-amber-300 text-xs font-bold rounded-full">
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#2e1d05] border border-amber-500/40 text-amber-300 text-xs font-bold rounded-full" title={!hasResultValue(res) ? (isEn ? 'Pending: Result entry required' : 'Pendiente: Requiere ingresar resultado') : (isEn ? 'Pending validation' : 'Pendiente de validación')}>
                                         <Timer className="w-3.5 h-3.5 text-amber-400" />
-                                        <span>PENDIENTE</span>
+                                        <span>{isEn ? 'PENDING' : 'PENDIENTE'}</span>
                                       </span>
                                     )}
                                   </td>
@@ -1324,10 +1705,10 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                                     <td colSpan={6} className="py-2 px-2 text-left">
                                       <div className="text-xs font-bold">
                                         <span className="text-rose-400 uppercase font-black tracking-tight">
-                                          {res.flag?.includes('CRITICO') ? 'ALERTA CRÍTICA: ' : 'ALERTA DE RANGO: '}
+                                          {res.flag?.includes('CRITICO') ? (isEn ? 'CRITICAL ALERT: ' : 'ALERTA CRÍTICA: ') : (isEn ? 'RANGE ALERT: ' : 'ALERTA DE RANGO: ')}
                                         </span>
                                         <span className="text-rose-200 font-medium">
-                                          {res.parameterName} ({res.value} {res.unit}) {res.flag?.includes('CRITICO') ? 'requiere notificación inmediata.' : `excede el límite de referencia (${res.refRangeText}).`}
+                                          {getLocalizedParameterName(res.parameterName, isEn)} ({res.value} {res.unit}) {res.flag?.includes('CRITICO') ? (isEn ? 'requires immediate notification.' : 'requiere notificación inmediata.') : (isEn ? `exceeds reference range (${res.refRangeText}).` : `excede el límite de referencia (${res.refRangeText}).`)}
                                         </span>
                                       </div>
                                     </td>
@@ -1379,11 +1760,11 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => setShowAlertsCenterModal(true)}
-            title="Identificar resultados críticos y alertas (ISO 15189)"
+            title={isEn ? "Identify critical results and alerts (ISO 15189)" : "Identificar resultados críticos y alertas (ISO 15189)"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-rose-500/80 bg-rose-950/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span className="whitespace-nowrap">Alertas</span>
+            <span className="whitespace-nowrap">{isEn ? 'Alerts' : 'Alertas'}</span>
             {criticalResultsCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">
                 {criticalResultsCount}
@@ -1395,44 +1776,44 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => setShowClinicalCalcModal(true)}
-            title="Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"
+            title={isEn ? "Access clinical calculation tools (eGFR, LDL, HOMA-IR, De Ritis)" : "Acceder a herramientas de cálculo clínico (eGFR, LDL, HOMA-IR, De Ritis)"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-amber-500/80 bg-amber-950/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)] cursor-pointer"
           >
             <Calculator className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="whitespace-nowrap">Cálculos</span>
+            <span className="whitespace-nowrap">{isEn ? 'Calculations' : 'Cálculos'}</span>
           </button>
 
           {/* 3. Telemetría (Turquesa) */}
           <button
             type="button"
             onClick={() => setShowTelemetryModal(true)}
-            title="Consultar información de monitoreo y telemetría de analizadores"
+            title={isEn ? "View analyzer telemetry and monitoring status" : "Consultar información de monitoreo y telemetría de analizadores"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer"
           >
             <TrendingUp className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-            <span className="whitespace-nowrap">Telemetría</span>
+            <span className="whitespace-nowrap">{isEn ? 'Telemetry' : 'Telemetría'}</span>
           </button>
 
           {/* 4. Trazabilidad (Azul grisáceo) */}
           <button
             type="button"
             onClick={() => setShowAuditLog(true)}
-            title="Consultar el historial y bitácora de auditoría ISO 15189"
+            title={isEn ? "Consult ISO 15189 audit trail and event logs" : "Consultar el historial y bitácora de auditoría ISO 15189"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-slate-600/80 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="whitespace-nowrap">Auditoría</span>
+            <span className="whitespace-nowrap">{isEn ? 'Audit Trail' : 'Auditoría'}</span>
           </button>
 
           {/* 5. Informe Carta (Cian) */}
           <button
             type="button"
             onClick={() => currentOrder?.id && onOpenPdf(currentOrder.id)}
-            title="Generar o imprimir informes clínicos oficiales en tamaño Carta"
+            title={isEn ? "Generate or print official Letter-size clinical reports" : "Generar o imprimir informes clínicos oficiales en tamaño Carta"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-cyan-500/80 bg-cyan-950/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="whitespace-nowrap">Reporte</span>
+            <span className="whitespace-nowrap">{isEn ? 'Report' : 'Reporte'}</span>
           </button>
 
           {/* 6. Desvalidar (Morado) */}
@@ -1447,56 +1828,121 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   setSelectedResults(validatedInOrder.map(r => r.id));
                   handleInitiateUnvalidate();
                 } else {
-                  notifyToast.info('No hay analitos validados en esta orden para desvalidar.');
+                  notifyToast.info(isEn ? 'No validated analytes found in this order to unvalidate.' : 'No hay analitos validados en esta orden para desvalidar.');
                 }
               }
             }}
-            title="Revertir la validación de analitos con justificación obligatoria (ISO 15189)"
+            title={isEn ? "Revert validation of analytes with mandatory justification (ISO 15189)" : "Revertir la validación de analitos con justificación obligatoria (ISO 15189)"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-purple-500/80 bg-purple-950/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(168,85,247,0.2)] cursor-pointer"
           >
             <Undo2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             <span className="whitespace-nowrap">
-              Desvalidar {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
+              {isEn ? 'Unvalidate' : 'Desvalidar'} {selectedValidatedCount > 0 ? `(${selectedValidatedCount})` : ''}
             </span>
           </button>
 
-          {/* 7. Validar Analitos (Azul con feedback reactivo) */}
+          {/* 7. Validar Analitos (Unificado Inteligente: Solo analitos con resultado) */}
           <button
             type="button"
-            disabled={!canModifyThisOrder}
+            disabled={!canModifyThisOrder || (selectedResults.length > 0 ? selectedValidatableCount === 0 : validatableCount === 0)}
             onClick={() => {
-              if (selectedUnvalidatedCount === 0) {
-                notifyToast.info('Seleccione uno o más analitos pendientes en las casillas para validar, o use "Validar Todo".');
+              if (!canModifyThisOrder) return;
+
+              // Caso A: Hay casillas seleccionadas
+              if (selectedResults.length > 0) {
+                if (selectedMissingValueCount > 0 && selectedValidatableCount === 0) {
+                  notifyToast.warning(isEn ? 'ISO 15189: Cannot validate pending analytes without a result.' : 'Norma ISO 15189: No se pueden validar analitos en estado pendiente sin resultado ingresado.');
+                  return;
+                }
+
+                const toValidate = selectedResults.filter(id => {
+                  const res = results.find(r => r.id === id);
+                  return isResultValidatable(res);
+                });
+
+                if (toValidate.length === 0) {
+                  notifyToast.info(isEn ? 'No selected analytes with results ready to validate.' : 'No hay analitos seleccionados con resultado listos para validar.');
+                  return;
+                }
+
+                toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+                const validatedNames = toValidate.map(id => results.find(r => r.id === id)?.parameterName || id);
+                addAuditEntry({
+                  orderId: currentOrder?.id || '',
+                  type: 'VALIDACION',
+                  title: isEn ? 'Technical Validation of Analytes' : 'Validación Técnica de Analitos',
+                  userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                  detail: `Validación técnica aprobada bajo ISO 15189 (${toValidate.length} analitos con resultado: ${validatedNames.join(', ')}).`,
+                  analytes: validatedNames
+                });
+                setSelectedResults([]);
+
+                if (selectedMissingValueCount > 0) {
+                  notifyToast.success(isEn ? `Validated ${toValidate.length} analytes with results. (${selectedMissingValueCount} skipped as pending without results).` : `Validados ${toValidate.length} analitos con resultado. (${selectedMissingValueCount} omitidos por estar pendientes sin resultado).`);
+                } else {
+                  notifyToast.success(isEn ? `${toValidate.length} analyte(s) successfully validated.` : `${toValidate.length} analito(s) validado(s) con éxito.`);
+                }
                 return;
               }
-              const toValidate = selectedResults.filter(id => {
-                const res = results.find(r => r.id === id);
-                return res && res.status !== 'VALIDADO_TEC' && res.status !== 'VALIDADO_MED' && res.status !== 'VALIDADO' && res.status !== 'LIBERADO';
-              });
-              if (toValidate.length === 0) return;
-              toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
-              const validatedNames = toValidate.map(id => results.find(r => r.id === id)?.parameterName || id);
+
+              // Caso B: No hay casillas seleccionadas -> Validar todos los pendientes QUE TENGAN RESULTADO
+              if (validatableCount === 0) {
+                if (missingValueCount > 0) {
+                  notifyToast.warning(isEn ? `Cannot validate: ${missingValueCount} analyte(s) remain pending without a result.` : `No es posible validar: ${missingValueCount} analito(s) continúan en estado pendiente sin resultado ingresado.`);
+                } else {
+                  notifyToast.info(isEn ? 'All analytes for this order are already validated.' : 'Todos los analitos de esta orden ya están validados.');
+                }
+                return;
+              }
+
+              const unvalidatedWithValues = patientResults.filter(r => isResultValidatable(r));
+              if (unvalidatedWithValues.length === 0) return;
+
+              unvalidatedWithValues.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
+              const approvedNames = unvalidatedWithValues.map(r => r.parameterName);
+
               addAuditEntry({
                 orderId: currentOrder?.id || '',
                 type: 'VALIDACION',
-                title: 'Validación Técnica de Analitos',
+                title: isEn ? 'Technical Validation of Analytes with Results' : 'Validación Técnica de Analitos con Resultado',
                 userName: currentUser?.name || 'Ing. Rubén Ábrego',
-                detail: `Validación técnica aprobada bajo ISO 15189 (${toValidate.length} analitos: ${validatedNames.join(', ')}).`,
-                analytes: validatedNames
+                detail: `Validación técnica de analitos con resultado cargado (${unvalidatedWithValues.length} analitos: ${approvedNames.join(', ')}).`,
+                analytes: approvedNames
               });
               setSelectedResults([]);
-              notifyToast.success(`${toValidate.length} analitos validados con éxito.`);
+
+              if (missingValueCount > 0) {
+                notifyToast.success(isEn ? `Validated ${unvalidatedWithValues.length} analytes with results. (${missingValueCount} remain pending without results).` : `Validados ${unvalidatedWithValues.length} analitos con resultado. (${missingValueCount} permanecen pendientes por falta de resultado).`);
+              } else {
+                notifyToast.success(isEn ? `All analytes (${unvalidatedWithValues.length}) have been validated.` : `Todos los analitos (${unvalidatedWithValues.length}) han sido validados.`);
+              }
             }}
-            title={selectedUnvalidatedCount > 0 ? "Validar los analitos seleccionados" : "Seleccione casillas de analitos pendientes para validar"}
+            title={
+              selectedResults.length > 0
+                ? selectedValidatableCount > 0
+                  ? (isEn ? `Validate the ${selectedValidatableCount} selected analytes with results` : `Validar los ${selectedValidatableCount} analitos seleccionados con resultado`)
+                  : (isEn ? 'Selected analytes do not have a result entered' : 'Los analitos seleccionados no tienen resultado ingresado')
+                : validatableCount > 0
+                ? (isEn ? `Validate all analytes with results (${validatableCount}) in this order` : `Validar todos los analitos con resultado (${validatableCount}) de la orden`)
+                : missingValueCount > 0
+                ? (isEn ? 'Cannot validate: pending analytes without results' : 'No se puede validar: analitos pendientes sin resultado')
+                : (isEn ? 'All analytes are already validated' : 'Todos los analitos ya están validados')
+            }
             className={`shrink-0 h-8 sm:h-8.5 px-2.5 sm:px-3 rounded-xl border text-[10px] sm:text-[11px] flex items-center gap-1.5 font-bold transition-all ${
-              selectedUnvalidatedCount > 0 && canModifyThisOrder
+              (selectedResults.length > 0 ? selectedValidatableCount > 0 : validatableCount > 0) && canModifyThisOrder
                 ? 'border-blue-400/80 bg-blue-950/50 text-blue-200 hover:bg-blue-900/60 hover:border-blue-300 shadow-[0_0_14px_rgba(59,130,246,0.35)] cursor-pointer'
-                : 'border-slate-700/60 bg-slate-900/50 text-slate-400 hover:text-slate-200 hover:border-slate-600 cursor-pointer'
+                : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
             }`}
           >
-            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${selectedUnvalidatedCount > 0 ? 'text-blue-400' : 'text-slate-400'}`} />
+            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${(selectedResults.length > 0 ? selectedValidatableCount > 0 : validatableCount > 0) && canModifyThisOrder ? 'text-blue-400' : 'text-slate-600'}`} />
             <span className="whitespace-nowrap">
-              Validar {selectedUnvalidatedCount > 0 ? `(${selectedUnvalidatedCount})` : 'Analitos'}
+              {selectedResults.length > 0
+                ? (isEn ? `Validate Selected (${selectedValidatableCount})` : `Validar Selección (${selectedValidatableCount})`)
+                : validatableCount > 0
+                ? (isEn ? `Validate All (${validatableCount})` : `Validar Todo (${validatableCount})`)
+                : missingValueCount > 0
+                ? (isEn ? 'No Results' : 'Sin Resultados')
+                : (isEn ? 'Validated' : 'Validados')}
             </span>
           </button>
 
@@ -1515,42 +1961,88 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               setOrderGeneralComment(currentOrder?.notes || '');
               setShowCommentsModal(true);
             }}
-            title="Agregar observaciones e informes a resultados individuales o a la orden"
+            title={isEn ? "Add observations and comments to individual results or to the order" : "Agregar observaciones e informes a resultados individuales o a la orden"}
             className="shrink-0 h-8 sm:h-8.5 px-2 sm:px-2.5 rounded-xl border border-teal-500/80 bg-teal-950/30 text-teal-300 hover:bg-teal-500/20 hover:border-teal-400 transition-all flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(20,184,166,0.2)] cursor-pointer"
           >
             <MessageSquareText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-            <span className="whitespace-nowrap">Comentarios</span>
+            <span className="whitespace-nowrap">{isEn ? 'Comments' : 'Comentarios'}</span>
           </button>
 
-          {/* 9. Validar Todo (Verde) */}
+          {/* 9. Validar y Siguiente Orden (Val. y Sig.) */}
           <button
             type="button"
-            disabled={!canModifyThisOrder || unvalidatedCount === 0}
+            disabled={!canModifyThisOrder || (validatableCount === 0 && allOrders.length <= 1)}
             onClick={() => {
-              const unvalidated = patientResults.filter(r => r.status !== 'VALIDADO_TEC' && r.status !== 'VALIDADO_MED' && r.status !== 'VALIDADO' && r.status !== 'LIBERADO');
-              if (unvalidated.length === 0) return;
-              unvalidated.forEach(r => onUpdateResultStatus(r.id, 'VALIDADO_TEC'));
-              const approvedNames = unvalidated.map(r => r.parameterName);
-              addAuditEntry({
-                orderId: currentOrder?.id || '',
-                type: 'VALIDACION',
-                title: 'Aprobación Técnica Total de la Orden',
-                userName: currentUser?.name || 'Ing. Rubén Ábrego',
-                detail: `Validación técnica completa de todos los analitos pendientes (${unvalidated.length} analitos: ${approvedNames.join(', ')}).`,
-                analytes: approvedNames
+              // 1. Validar analitos pendientes QUE TENGAN RESULTADO si los hay
+              if (canModifyThisOrder && validatableCount > 0) {
+                const toValidate = selectedResults.length > 0
+                  ? selectedResults.filter(id => {
+                      const res = results.find(r => r.id === id);
+                      return isResultValidatable(res);
+                    })
+                  : patientResults.filter(r => isResultValidatable(r)).map(r => r.id);
+
+                if (toValidate.length > 0) {
+                  toValidate.forEach(id => onUpdateResultStatus(id, 'VALIDADO_TEC'));
+                  const validatedNames = toValidate.map(id => results.find(r => r.id === id)?.parameterName || id);
+                  addAuditEntry({
+                    orderId: currentOrder?.id || '',
+                    type: 'VALIDACION',
+                    title: isEn ? 'Technical Validation and Auto Advance' : 'Validación Técnica y Avance Automático',
+                    userName: currentUser?.name || 'Ing. Rubén Ábrego',
+                    detail: `Validación de ${toValidate.length} analitos con resultado (${validatedNames.join(', ')}). Avanzando a la siguiente orden.`,
+                    analytes: validatedNames
+                  });
+                }
+                setSelectedResults([]);
+              } else if (selectedResults.length > 0 && selectedMissingValueCount > 0 && selectedValidatableCount === 0) {
+                notifyToast.warning(isEn ? 'ISO 15189: Cannot validate pending analytes without results.' : 'Norma ISO 15189: No se pueden validar analitos pendientes sin resultado.');
+                return;
+              }
+
+              // 2. Buscar la siguiente orden en la lista
+              const orderList = allOrders.length > 0 ? allOrders : [currentOrder].filter(Boolean) as Order[];
+              const currentIndex = orderList.findIndex(o => o.id === currentOrder?.id);
+
+              // Priorizar órdenes que tengan analitos pendientes de validar con resultado
+              const pendingOrders = orderList.filter(o =>
+                o.id !== currentOrder?.id &&
+                results.filter(r => r.orderId === o.id).some(r => isResultValidatable(r))
+              );
+
+              let nextOrder = pendingOrders.find(o => {
+                const idx = orderList.findIndex(item => item.id === o.id);
+                return idx > currentIndex;
               });
-              setSelectedResults([]);
-              notifyToast.success(`Todos los analitos (${unvalidated.length}) han sido validados.`);
+
+              if (!nextOrder && pendingOrders.length > 0) {
+                nextOrder = pendingOrders[0];
+              }
+
+              if (!nextOrder && orderList.length > 1) {
+                const nextIdx = (currentIndex + 1) % orderList.length;
+                nextOrder = orderList[nextIdx];
+              }
+
+              if (nextOrder && nextOrder.id !== currentOrder?.id) {
+                setActiveOrderId(nextOrder.id);
+                notifyToast.success(isEn ? `Advancing to order #${nextOrder.orderNumber}` : `Avanzando a orden #${nextOrder.orderNumber}`);
+              } else {
+                notifyToast.success(isEn ? 'No more pending orders in the list.' : 'No hay más órdenes pendientes en la lista.');
+              }
             }}
-            title="Validar todos los analitos correspondientes de la orden"
+            title={isEn ? "Validate analytes with results and automatically advance to next order" : "Validar analitos con resultado y avanzar automáticamente a la siguiente orden"}
             className={`shrink-0 h-8 sm:h-8.5 px-2.5 sm:px-3 rounded-xl border text-[10px] sm:text-[11px] flex items-center gap-1.5 font-bold transition-all ${
-              unvalidatedCount > 0 && canModifyThisOrder
+              validatableCount > 0 && canModifyThisOrder
                 ? 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer'
+                : allOrders.length > 1
+                ? 'border-slate-700/60 bg-slate-900/50 text-slate-300 hover:text-white hover:border-slate-600 cursor-pointer'
                 : 'border-slate-800 bg-slate-900/40 text-slate-500 cursor-not-allowed'
             }`}
           >
-            <Check className={`w-3.5 h-3.5 shrink-0 stroke-[2.5] ${unvalidatedCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
-            <span className="whitespace-nowrap">Aprobar</span>
+            <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" />
+            <span className="whitespace-nowrap">{isEn ? 'Val. & Next' : 'Val. y Sig.'}</span>
+            <ArrowRight className="w-3 h-3 text-emerald-400 shrink-0" />
           </button>
 
           {/* 10. Liberar (Azul-cian con Glow) */}
@@ -1565,15 +2057,15 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
               addAuditEntry({
                 orderId: currentOrder?.id || '',
                 type: 'LIBERACION',
-                title: 'Liberación Oficial de Resultados',
+                title: isEn ? 'Official Release of Results' : 'Liberación Oficial de Resultados',
                 userName: currentUser?.name || 'Ing. Rubén Ábrego',
                 detail: `Firma digital y liberación formal de ${toRelease.length} analitos (${releasedNames.join(', ')}). Disponibles para reporte a médicos y pacientes.`,
                 analytes: releasedNames
               });
               setSelectedResults([]);
-              notifyToast.success(`Se han liberado formalmente ${toRelease.length} analitos.`);
+              notifyToast.success(isEn ? `Formally released ${toRelease.length} analytes.` : `Se han liberado formalmente ${toRelease.length} analitos.`);
             }}
-            title="Liberar formalmente resultados para entrega a médicos y pacientes"
+            title={isEn ? "Formally release results for delivery to physicians and patients" : "Liberar formalmente resultados para entrega a médicos y pacientes"}
             className={`shrink-0 h-8 sm:h-8.5 px-3 rounded-xl flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black tracking-wide uppercase transition-all ${
               toReleaseCount > 0 && canReleaseThisOrder
                 ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_18px_rgba(6,182,212,0.7)] hover:brightness-110 hover:shadow-[0_0_24px_rgba(6,182,212,0.9)] cursor-pointer'
@@ -1581,7 +2073,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-            <span className="whitespace-nowrap">Liberar ({toReleaseCount})</span>
+            <span className="whitespace-nowrap">{isEn ? `Release (${toReleaseCount})` : `Liberar (${toReleaseCount})`}</span>
           </button>
 
         </div>
@@ -1999,14 +2491,25 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                          </button>
                        ) : (
                          <button
+                           disabled={!hasResultValue(res)}
                            onClick={() => {
+                              if (!hasResultValue(res)) {
+                                notifyToast.warning('Norma ISO 15189: No es posible validar técnicamente un analito sin valor de resultado.');
+                                return;
+                              }
                               onUpdateResultStatus(res.id, 'VALIDADO_TEC');
                               setActiveTraceabilityId(null);
                            }}
-                           className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-[1.5rem] flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-500/20"
+                           className={`w-full py-4 text-slate-950 font-black rounded-[1.5rem] flex items-center justify-center gap-3 transition-all ${
+                             hasResultValue(res)
+                               ? 'bg-emerald-500 hover:bg-emerald-400 shadow-xl shadow-emerald-500/20 cursor-pointer'
+                               : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
+                           }`}
                          >
                             <CheckCircle2 className="w-5 h-5" />
-                            <span className="uppercase tracking-widest text-xs">Aprobar Técnica</span>
+                            <span className="uppercase tracking-widest text-xs">
+                              {hasResultValue(res) ? 'Aprobar Técnica' : 'Pendiente: Sin Resultado'}
+                            </span>
                          </button>
                        )}
                     </div>
@@ -2127,45 +2630,107 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
 
         {/* Modals for Pulled GitHub Suites */}
         {showAlertsCenterModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
-             <div className="bg-slate-900 border border-rose-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
-                <button onClick={() => setShowAlertsCenterModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
-                <ResultsAlertsCenter
-                  order={currentOrder}
-                  patient={currentPatient}
-                  results={patientResults}
-                  currentUser={currentUser}
-                  onUpdateInterpretation={onUpdateInterpretation}
-                  onUpdateResultStatus={onUpdateResultStatus}
-                />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-3 sm:p-5">
+             <div className="bg-slate-900 border border-rose-500/40 rounded-3xl p-5 sm:p-7 max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+                {/* Header Superior Limpio con Botón de Salir no superpuesto */}
+                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800/80 shrink-0">
+                   <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center">
+                         <ShieldAlert className="w-4 h-4" />
+                      </div>
+                      <div>
+                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Centro de Alertas Críticas & Delta-Checks</h3>
+                         <p className="text-[10px] text-slate-400 font-mono">Auditoría ISO 15189 • Orden #{currentOrder?.orderNumber || 'N/A'}</p>
+                      </div>
+                   </div>
+                   <button
+                      onClick={() => setShowAlertsCenterModal(false)}
+                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700/60 hover:border-rose-400 flex items-center gap-1.5 shadow-lg cursor-pointer"
+                      title="Cerrar ventana"
+                   >
+                      <X className="w-4 h-4" />
+                      <span>Cerrar</span>
+                   </button>
+                </div>
+
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex-1">
+                   <ResultsAlertsCenter
+                     order={currentOrder}
+                     patient={currentPatient}
+                     results={patientResults}
+                     currentUser={currentUser}
+                     onUpdateInterpretation={onUpdateInterpretation}
+                     onUpdateResultStatus={onUpdateResultStatus}
+                   />
+                </div>
              </div>
           </div>
         )}
 
         {showClinicalCalcModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
-             <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
-                <button onClick={() => setShowClinicalCalcModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
-                <ResultsClinicalCalculator
-                  order={currentOrder}
-                  patient={currentPatient}
-                  results={patientResults}
-                  onUpdateResultValue={onUpdateResultValue}
-                />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-3 sm:p-5">
+             <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-5 sm:p-7 max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800/80 shrink-0">
+                   <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-400 flex items-center justify-center">
+                         <Sliders className="w-4 h-4" />
+                      </div>
+                      <div>
+                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Calculadoras Clínicas Automatizadas</h3>
+                         <p className="text-[10px] text-slate-400 font-mono">Índices Fisiológicos • Orden #{currentOrder?.orderNumber || 'N/A'}</p>
+                      </div>
+                   </div>
+                   <button
+                      onClick={() => setShowClinicalCalcModal(false)}
+                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-teal-500 text-slate-300 hover:text-slate-950 rounded-xl text-xs font-bold transition-all border border-slate-700/60 hover:border-teal-400 flex items-center gap-1.5 shadow-lg cursor-pointer"
+                      title="Cerrar ventana"
+                   >
+                      <X className="w-4 h-4" />
+                      <span>Cerrar</span>
+                   </button>
+                </div>
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex-1">
+                   <ResultsClinicalCalculator
+                     order={currentOrder}
+                     patient={currentPatient}
+                     results={patientResults}
+                     onUpdateResultValue={onUpdateResultValue}
+                   />
+                </div>
              </div>
           </div>
         )}
 
         {showTelemetryModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
-             <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
-                <button onClick={() => setShowTelemetryModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full cursor-pointer"><X className="w-5 h-5" /></button>
-                <ResultsTelemetryDashboard
-                  order={currentOrder}
-                  patient={currentPatient}
-                  results={patientResults}
-                  analyzers={analyzers}
-                />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-3 sm:p-5">
+             <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800/80 shrink-0">
+                   <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center">
+                         <Activity className="w-4 h-4" />
+                      </div>
+                      <div>
+                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Telemetría de Analizadores & Curvas QC</h3>
+                         <p className="text-[10px] text-slate-400 font-mono">Conexión HL7 / ASTM • Orden #{currentOrder?.orderNumber || 'N/A'}</p>
+                      </div>
+                   </div>
+                   <button
+                      onClick={() => setShowTelemetryModal(false)}
+                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-cyan-500 text-slate-300 hover:text-slate-950 rounded-xl text-xs font-bold transition-all border border-slate-700/60 hover:border-cyan-400 flex items-center gap-1.5 shadow-lg cursor-pointer"
+                      title="Cerrar ventana"
+                   >
+                      <X className="w-4 h-4" />
+                      <span>Cerrar</span>
+                   </button>
+                </div>
+                <div className="overflow-y-auto custom-scrollbar pr-1 flex-1">
+                   <ResultsTelemetryDashboard
+                     order={currentOrder}
+                     patient={currentPatient}
+                     results={patientResults}
+                     analyzers={analyzers}
+                   />
+                </div>
              </div>
           </div>
         )}
@@ -2234,9 +2799,53 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                   /* TAB A: Comentarios de analitos */
                   <div className="space-y-4">
                     <div className="bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-teal-500/30 space-y-3">
-                      <label className="text-xs font-black text-cyan-300 uppercase tracking-wider block">
-                        1. Seleccionar Analito / Examen:
-                      </label>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-xs font-black text-cyan-300 uppercase tracking-wider block">
+                          1. Seleccionar Analito / Examen:
+                        </label>
+                        {patientResults.length > 0 && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {filteredCommentResults.length} de {patientResults.length} prueba{patientResults.length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Buscador de prueba / analito en comentarios */}
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-cyan-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={commentAnalyteSearch}
+                          onChange={(e) => {
+                            const q = e.target.value;
+                            setCommentAnalyteSearch(q);
+                            if (q.trim()) {
+                              const matches = patientResults.filter(r =>
+                                r.parameterName.toLowerCase().includes(q.toLowerCase()) ||
+                                r.parameterCode.toLowerCase().includes(q.toLowerCase()) ||
+                                (r.testName && r.testName.toLowerCase().includes(q.toLowerCase()))
+                              );
+                              if (matches.length > 0 && !matches.some(m => m.id === selectedCommentResultId)) {
+                                setSelectedCommentResultId(matches[0].id);
+                                setAnalyteCommentDraft(matches[0].interpretation || '');
+                              }
+                            }
+                          }}
+                          placeholder="Buscar prueba por nombre o código (ej. Glucosa, TP, Hemoglobina...)"
+                          className="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                        />
+                        {commentAnalyteSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setCommentAnalyteSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                            title="Limpiar búsqueda"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
                       <select
                         value={selectedCommentResultId}
                         onChange={(e) => {
@@ -2245,13 +2854,19 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           const res = patientResults.find(r => r.id === id);
                           setAnalyteCommentDraft(res?.interpretation || '');
                         }}
-                        className="w-full bg-slate-900 border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none"
+                        className="w-full bg-slate-900 border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none cursor-pointer"
                       >
-                        {patientResults.map(r => (
-                          <option key={r.id} value={r.id}>
-                            {r.parameterName} ({r.parameterCode}) — {r.value ? `${r.value} ${r.unit}` : 'Sin valor'} [{r.status}]
+                        {filteredCommentResults.length > 0 ? (
+                          filteredCommentResults.map(r => (
+                            <option key={r.id} value={r.id} className="bg-slate-950 text-white">
+                              {r.parameterName} ({r.parameterCode}) — {hasResultValue(r) ? `${r.value} ${r.unit}` : 'Sin valor'} [{!hasResultValue(r) ? 'PENDIENTE' : r.status}]
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled className="bg-slate-950 text-slate-400">
+                            No se encontraron pruebas que coincidan con "{commentAnalyteSearch}"
                           </option>
-                        ))}
+                        )}
                       </select>
 
                       {/* Card de analito activo */}
@@ -2362,7 +2977,7 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                           'Muestra tomada en estricto ayuno de 12 horas',
                           'Muestra recibida desde urgencias con transporte en cadena de frío',
                           'Paciente bajo tratamiento anticoagulante informado',
-                          'Resultados emitidos y despachados con prioridad STAT',
+                          'Resultados emitidos y despachados con prioridad URGENCIA',
                           'Muestra con volumen límite; se priorizaron analitos críticos',
                           'Informe preliminar validado por el Tecnólogo Médico'
                         ].map(tag => (
@@ -2380,16 +2995,134 @@ export const ResultEntryWorkspace: React.FC<ResultEntryWorkspaceProps> = ({
                       </div>
                     </div>
 
+                    {/* Criterios Preanalíticos de Rechazo de Muestra (ISO 15189 §7.3.4) */}
+                    <div className="space-y-3 p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/30">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">⚠️</span>
+                          <div>
+                            <span className="text-[11px] font-black text-rose-300 uppercase tracking-wider block">
+                              Criterios de Rechazo Preanalítico (ISO 15189 §7.3.4):
+                            </span>
+                            <span className="text-[10px] text-rose-400 font-mono">Sale impreso en reporte del paciente</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingCustomRejection(!isAddingCustomRejection)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-400/40 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                        >
+                          {isAddingCustomRejection ? (
+                            <>
+                              <X className="w-3.5 h-3.5" /> Cancelar
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5" /> Crear Motivo Propio
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Formulario para crear motivo personalizado */}
+                      {isAddingCustomRejection && (
+                        <div className="p-3 rounded-xl bg-slate-900/90 border border-rose-500/40 space-y-2.5 shadow-lg">
+                          <div className="text-[11px] font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Plus className="w-3.5 h-3.5 text-rose-400" />
+                            Nuevo Motivo de Rechazo Personalizado
+                          </div>
+                          <div>
+                            <label className="text-[10.5px] font-medium text-slate-300 block mb-1">
+                              Nombre corto / Botón (ej: 🔬 Lipemia Severa 4+):
+                            </label>
+                            <input
+                              type="text"
+                              value={newRejectionLabel}
+                              onChange={(e) => setNewRejectionLabel(e.target.value)}
+                              placeholder="Ej: 🔬 Muestra Lipémica Severa"
+                              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10.5px] font-medium text-slate-300 block mb-1">
+                              Texto explicativo oficial para el reporte del paciente:
+                            </label>
+                            <textarea
+                              value={newRejectionText}
+                              onChange={(e) => setNewRejectionText(e.target.value)}
+                              placeholder="Ej: MUESTRA RECHAZADA: Muestra altamente lipémica (quilomicrones elevados) que interfiere en lecturas ópticas. Se solicita re-toma con 12h de ayuno estricto."
+                              rows={3}
+                              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans resize-none"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingCustomRejection(false);
+                                setNewRejectionLabel('');
+                                setNewRejectionText('');
+                              }}
+                              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveCustomRejection}
+                              className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-rose-900/50"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Guardar Motivo
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[10.5px] text-slate-400 leading-snug">
+                        Toque cualquier motivo para auto-completar el reporte oficial al paciente y solicitar re-toma:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {rejectionReasonsList.map(rej => (
+                          <div
+                            key={rej.id}
+                            className="group relative inline-flex items-center"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOrderGeneralComment(prev => prev ? `${prev}\n\n${rej.text}` : rej.text);
+                              }}
+                              className={`pl-2.5 ${rej.isCustom ? 'pr-7' : 'pr-2.5'} py-1 rounded-lg bg-rose-900/30 hover:bg-rose-900/60 text-rose-200 border border-rose-500/40 text-[10.5px] font-bold transition cursor-pointer text-left`}
+                              title={rej.text}
+                            >
+                              + {rej.label}
+                            </button>
+                            {rej.isCustom && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteCustomRejection(rej.id, e)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-rose-950/80 hover:bg-rose-700 text-rose-300 hover:text-white flex items-center justify-center text-[11px] font-bold opacity-75 hover:opacity-100 transition cursor-pointer"
+                                title="Eliminar este motivo personalizado"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Textarea para Orden */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-black text-slate-300 uppercase tracking-wider block">
-                        Observación general de la orden:
+                        Observación general de la orden (Reporte al Paciente y Médico):
                       </label>
                       <textarea
                         rows={4}
                         value={orderGeneralComment}
                         onChange={(e) => setOrderGeneralComment(e.target.value)}
-                        placeholder="Escriba aquí las observaciones generales aplicables a toda la orden clínica o informe de muestra..."
+                        placeholder="Escriba aquí las observaciones generales aplicables a toda la orden clínica o motivo de rechazo de muestra..."
                         className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-2xl p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none transition leading-relaxed"
                       />
                     </div>

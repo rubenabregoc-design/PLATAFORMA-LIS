@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Analyzer, MiddlewareMessageLog, TestResult, Order } from '../types';
+import { MOCK_TEST_CATALOG } from '../data/mockData';
 import {
   Cpu, Wifi, Radio, Send, Terminal, CheckCircle2, AlertCircle, RefreshCw,
   FileText, ArrowRightLeft, Activity, Settings, X, Plug, Server, Cable,
@@ -109,9 +110,11 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
   const [configModalAnalyzer, setConfigModalAnalyzer] = useState<Analyzer | null>(null);
   const [testIpAddress, setTestIpAddress] = useState('192.168.10.45');
   const [testTcpPort, setTestTcpPort] = useState('5100');
-  const [testComPort, setTestComPort] = useState('COM1 (/dev/ttyUSB0)');
+  const [testComPort, setTestComPort] = useState('COM1');
   const [isTestingSocket, setIsTestingSocket] = useState(false);
-  const [socketTestResult, setSocketTestResult] = useState<string | null>(null);
+  const [isTransmittingSample, setIsTransmittingSample] = useState(false);
+  const [socketTestResult, setSocketTestResult] = useState<{ message: string; success: boolean } | null>(null);
+  const [realAnalyzerStatuses, setRealAnalyzerStatuses] = useState<Record<string, { status: string; port: number; connectedSocket: boolean }>>({});
 
   const [activeSession, setActiveSession] = useState<AnalyzerSession | null>(() => {
     return createSession(analyzers[0]?.id || 'an-default', analyzers[0]?.name || 'Sysmex XN-1000');
@@ -124,6 +127,10 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [activeSession?.events]);
+
+  const handleClearTerminal = () => {
+    setActiveSession((prev) => (prev ? { ...prev, events: [] } : null));
+  };
 
   const emitEvent = (type: CommEvent['type'], dir: CommEvent['direction'], msg: string, raw?: string) => {
     const selectedAn = analyzers.find((a) => a.id === selectedAnalyzerId) || analyzers[0];
@@ -144,12 +151,46 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
       ws.onopen = () => {
         setBridgeConnected(true);
         emitEvent('SYSTEM', 'INTERNAL', `[BRIDGE TCP/IP] Conectado exitosamente al Servidor Puente en ${bridgeUrl}`);
+        try {
+          ws?.send(JSON.stringify({ type: 'get_status' }));
+        } catch (_) {}
       };
 
       ws.onmessage = (event) => {
         try {
           const packet = JSON.parse(event.data);
-          if (packet.type === 'RAW_FRAME' || packet.rawMessage) {
+          if (packet.type === 'bridge_status' && packet.data?.analyzers) {
+            const map: Record<string, { status: string; port: number; connectedSocket: boolean }> = {};
+            packet.data.analyzers.forEach((a: any) => {
+              map[a.id] = { status: a.status, port: a.port, connectedSocket: !!a.connectedSocket };
+            });
+            setRealAnalyzerStatuses(map);
+          } else if (packet.type === 'test_tcp_connection_result') {
+            setIsTestingSocket(false);
+            setSocketTestResult({
+              message: packet.data.message,
+              success: packet.data.success
+            });
+            emitEvent('SYSTEM', 'INTERNAL', packet.data.message);
+          } else if (packet.type === 'result_parsed') {
+            const res = packet.data.result;
+            emitEvent('DATA', 'IN', `[TCP REAL] Resultado recibido: ${packet.data.patientName || 'Paciente'} (${packet.data.barcode})`, JSON.stringify(res));
+            if (onNewResultSimulated) {
+              onNewResultSimulated({
+                id: `bridge-${Date.now()}`,
+                tenantId: 'lab-san-jose',
+                analyzerId: packet.data.analyzerId,
+                analyzerName: packet.data.analyzerName,
+                protocol: packet.data.protocol,
+                direction: 'INBOUND',
+                rawPayload: JSON.stringify(res),
+                timestamp: new Date().toISOString(),
+                status: 'SUCCESS'
+              }, res);
+            }
+          } else if (packet.type === 'frame_received') {
+            emitEvent('DATA', 'IN', `[TRAMA TCP] ${packet.data.analyzerName} (${packet.data.frameType || 'FRAME'})`, packet.data.rawPayload || '');
+          } else if (packet.type === 'RAW_FRAME' || packet.rawMessage) {
             handleProcessIncomingPayload(
               packet.rawMessage || event.data,
               packet.analyzerName || 'Analizador de Red',
@@ -157,7 +198,6 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
             );
           }
         } catch {
-          // Plain text frame
           handleProcessIncomingPayload(event.data, 'Analizador de Red', 'ASTM_E1381');
         }
       };
@@ -239,30 +279,47 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
     setConfigModalAnalyzer(an);
     setTestIpAddress(an.ipAddress || '192.168.10.45');
     setTestTcpPort(String(an.port || 5100));
-    setTestComPort(an.comPort || 'COM1 (/dev/ttyUSB0)');
+    setTestComPort(an.comPort || 'COM1');
     setSocketTestResult(null);
   };
 
   const handleTestSocketConnection = () => {
+    const isTcp = configModalAnalyzer?.connectionType === 'TCP_IP';
+    if (!isTcp) {
+      handleConnectWebSerial();
+      return;
+    }
+
     setIsTestingSocket(true);
     setSocketTestResult(null);
 
-    setTimeout(() => {
-      setIsTestingSocket(false);
-      const isTcp = configModalAnalyzer?.connectionType === 'TCP_IP';
-      const detailMsg = isTcp
-        ? `✓ SOCKET TCP CONECTADO (IP ${testIpAddress}:${testTcpPort}) — Latencia 1.2 ms. Handshake ASTM ENQ/ACK verificado con éxito.`
-        : `✓ PUERTO SERIE RS-232 OK (${testComPort} Baud: 9600-8-N-1) — Control de flujo de hardware verificado.`;
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'test_tcp_connection',
+        host: testIpAddress,
+        port: testTcpPort
+      }));
+    } else {
+      setTimeout(() => {
+        setIsTestingSocket(false);
+        const errMsg = `❌ El Servidor Puente (server/middleware-bridge.js) no está enlazado en ws://localhost:8765. Inicie el servicio para probar la conexión física.`;
+        setSocketTestResult({ message: errMsg, success: false });
+        emitEvent('SYSTEM', 'INTERNAL', errMsg);
+      }, 500);
+    }
+  };
 
-      setSocketTestResult(detailMsg);
-      emitEvent('SYSTEM', 'INTERNAL', detailMsg);
-
-      window.dispatchEvent(
-        new CustomEvent('lis-global-toast', {
-          detail: { message: detailMsg, type: 'success', duration: 4000 }
-        })
-      );
-    }, 800);
+  const handleTransmitRealSample = () => {
+    setIsTransmittingSample(true);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'run_sample_transmission',
+        analyzerId: configModalAnalyzer?.id
+      }));
+      setTimeout(() => setIsTransmittingSample(false), 1200);
+    } else {
+      setIsTransmittingSample(false);
+    }
   };
 
   // Real Frame Parsing & Automatic Ingestion into LIS
@@ -284,12 +341,27 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
           flag: first.flag === 'HH' ? 'CRITICO_ALTO' : first.flag === 'LL' ? 'CRITICO_BAJO' : first.flag === 'H' ? 'ALTO' : first.flag === 'L' ? 'BAJO' : 'NORMAL'
         };
 
+        const codeUpper = (first.code || '').toUpperCase();
+        let matchedTest = MOCK_TEST_CATALOG.find(t => 
+          t.parameters?.some(p => p.astmParamCode?.toUpperCase() === codeUpper) ||
+          t.astmMappingCode?.toUpperCase() === codeUpper
+        );
+        if (!matchedTest) {
+          if (codeUpper === 'PH' || codeUpper.includes('GAS')) matchedTest = MOCK_TEST_CATALOG.find(t => t.id === 'test-gasometria');
+          else if (codeUpper === 'GLU') matchedTest = MOCK_TEST_CATALOG.find(t => t.id === 'test-glucosa');
+          else if (codeUpper === 'WBC' || codeUpper === 'HGB') matchedTest = MOCK_TEST_CATALOG.find(t => t.id === 'test-hemograma');
+          else if (codeUpper === 'PT') matchedTest = MOCK_TEST_CATALOG.find(t => t.id === 'test-pt');
+          else if (codeUpper === 'TRI') matchedTest = MOCK_TEST_CATALOG.find(t => t.id === 'test-lipidico');
+        }
+
+        const matchedParam = matchedTest?.parameters?.find(p => p.astmParamCode?.toUpperCase() === codeUpper || p.id.toUpperCase().includes(codeUpper));
+
         newResult = {
           orderId: orders[0]?.id || 'ord-1001',
-          testId: 'test-auto',
-          parameterId: `param-${first.code.toLowerCase()}`,
+          testId: matchedTest?.id || 'test-gasometria',
+          parameterId: matchedParam?.id || `param-${first.code.toLowerCase()}`,
           parameterCode: first.code,
-          parameterName: `Analito ${first.code}`,
+          parameterName: matchedParam?.name || (codeUpper === 'PH' ? 'pH Arterial' : `Analito ${first.code}`),
           unit: first.unit,
           value: String(first.value),
           numericValue: parseFloat(first.value) || undefined,
@@ -470,46 +542,54 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 text-slate-100 animate-in fade-in duration-300">
 
       {/* Header Banner */}
-      <div className="bg-slate-900/95 border border-cyan-500/30 p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center space-x-2 text-cyan-400 text-xs font-black uppercase tracking-wider mb-2">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/30 p-6 sm:p-7 rounded-3xl shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-center space-x-2 text-cyan-400 text-[11px] font-black uppercase tracking-wider">
             <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
             <span>Motor de Integración ASTM E1381 / E1394 & HL7 v2.x (ACE v2.5)</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">
             Consola de Middleware & Ingestión Automática de Analizadores
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl font-medium leading-relaxed">
+          <p className="text-slate-400 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl">
             Captura continua y desatendida a nivel de socket TCP/IP y puerto serial RS-232, parseo inmediato de analitos e ingestión directa al LIS sin intervención manual.
           </p>
         </div>
 
         {/* Live Network & Hardware Status */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="bg-slate-950 p-4 rounded-2xl border border-cyan-500/30 text-xs space-y-1.5 shrink-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+          <div className="bg-slate-950/90 px-4 py-3 rounded-2xl border border-cyan-500/40 text-xs space-y-1 shrink-0 shadow-lg shadow-cyan-950/30">
             <div className="text-white font-bold flex items-center space-x-2">
               <span className={`w-2.5 h-2.5 rounded-full ${bridgeConnected ? 'bg-emerald-400 animate-pulse shadow-md shadow-emerald-400/50' : 'bg-emerald-400'}`}></span>
-              <span>
-                Puente TCP: <strong className="text-emerald-400">{bridgeConnected ? 'ACTIVO (ws://localhost:8765)' : 'EN LÍNEA (Puertos 5100-5106)'}</strong>
+              <span className="whitespace-nowrap">
+                Puente TCP: <strong className="text-emerald-400 font-mono">{bridgeConnected ? 'ACTIVO (ws://localhost:8765)' : 'EN LÍNEA (:5101-:5109)'}</strong>
               </span>
             </div>
-            <div className="text-slate-400 text-xs font-mono">ASTM E1381 • Handshake ENQ/ACK Automático</div>
+            <div className="text-slate-400 text-[11px] font-mono whitespace-nowrap">
+              ASTM E1381 • Handshake ENQ/ACK Automático
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleConnectWebSerial}
-            className={`p-4 rounded-2xl border text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${
+            className={`px-4 py-3 rounded-2xl border text-xs font-bold transition flex items-center gap-3 cursor-pointer shrink-0 whitespace-nowrap shadow-lg active:scale-95 ${
               serialConnected
                 ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                : 'bg-slate-950 border-slate-800 hover:border-cyan-400 text-slate-300 hover:text-white'
+                : 'bg-slate-950/90 border-slate-800 hover:border-cyan-400 text-slate-200 hover:text-white'
             }`}
             title="Conectar cable RS-232 del analizador directamente al navegador"
           >
-            <Cable className={`w-4 h-4 ${serialConnected ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <Cable className={`w-4 h-4 ${serialConnected ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            </div>
             <div className="text-left">
-              <div className="font-black">{serialConnected ? 'Serial RS-232 OK' : 'Conectar RS-232'}</div>
-              <div className="text-[10px] text-slate-400 font-mono">{serialConnected ? serialPortName : 'Web Serial API'}</div>
+              <div className="font-black text-xs text-white leading-tight">
+                {serialConnected ? 'Serial RS-232 OK' : 'Conectar RS-232'}
+              </div>
+              <div className="text-[10px] text-cyan-400/80 font-mono leading-tight mt-0.5">
+                {serialConnected ? serialPortName : 'Web Serial API'}
+              </div>
             </div>
           </button>
         </div>
@@ -519,7 +599,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {analyzers.map((an) => {
           const isSelected = selectedAnalyzerId === an.id;
-          const isOnline = an.status === 'ONLINE' || (an.status as any) === 'En línea';
+          const realStatus = realAnalyzerStatuses[an.id];
 
           return (
             <div
@@ -536,15 +616,25 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                   <span>{an.name}</span>
                   <Settings className="w-3.5 h-3.5 text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </span>
-                <span
-                  className={`text-xs font-mono font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                    isOnline
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                      : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                  }`}
-                >
-                  {an.status}
-                </span>
+                {bridgeConnected ? (
+                  realStatus?.connectedSocket ? (
+                    <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse">
+                      CONECTADO
+                    </span>
+                  ) : realStatus?.status === 'LISTENING' ? (
+                    <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                      ESCUCHANDO TCP :{realStatus.port}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border bg-slate-800 text-slate-400 border-slate-700">
+                      STANDBY
+                    </span>
+                  )
+                ) : (
+                  <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border bg-amber-500/20 text-amber-300 border-amber-500/40">
+                    MODO DEMO
+                  </span>
+                )}
               </div>
 
               <div className="text-xs space-y-1.5 font-mono text-slate-300 relative z-10">
@@ -554,7 +644,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                 <div>
                   Enlace:{' '}
                   <strong className="text-white">
-                    {an.connectionType === 'TCP_IP' ? `${an.ipAddress || '192.168.10.45'}:${an.port || 5100}` : an.comPort || 'COM1 (/dev/ttyUSB0)'}
+                    {an.connectionType === 'TCP_IP' ? `${an.ipAddress || '192.168.10.45'}:${an.port || 5100}` : an.comPort || 'COM1'}
                   </strong>
                 </div>
                 <div className="pt-1 flex items-center justify-between">
@@ -814,7 +904,17 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                 <Terminal className="w-4 h-4" />
                 <span>TERMINAL DE TRÁFICO BIDIRECCIONAL EN TIEMPO REAL</span>
               </div>
-              <span className="text-xs text-slate-400 font-mono">Autoscroll Activo</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 font-mono hidden sm:inline">Autoscroll Activo</span>
+                <button
+                  type="button"
+                  onClick={handleClearTerminal}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-mono border border-slate-700 transition cursor-pointer"
+                  title="Borrar todas las tramas de la pantalla"
+                >
+                  Limpiar Terminal
+                </button>
+              </div>
             </div>
 
             <div ref={terminalRef} className="p-5 font-mono text-xs space-y-2 max-h-[380px] overflow-y-auto">
@@ -948,20 +1048,59 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
               )}
 
               {socketTestResult && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-mono leading-relaxed">
-                  {socketTestResult}
+                <div className={`p-3.5 rounded-xl text-xs font-mono leading-relaxed border ${
+                  socketTestResult.success
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                }`}>
+                  {socketTestResult.message}
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleTestSocketConnection}
-                disabled={isTestingSocket}
-                className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2"
-              >
-                {isTestingSocket ? <RefreshCw className="w-4 h-4 animate-spin text-slate-950" /> : <Plug className="w-4 h-4 text-slate-950" />}
-                <span>{isTestingSocket ? 'Probando Conexión de Hardware...' : 'Probar Socket Físico'}</span>
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleTestSocketConnection}
+                  disabled={isTestingSocket}
+                  className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2 shadow active:scale-95"
+                >
+                  {isTestingSocket ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                  ) : configModalAnalyzer?.connectionType === 'TCP_IP' ? (
+                    <Plug className="w-4 h-4 text-slate-950" />
+                  ) : (
+                    <Cable className="w-4 h-4 text-slate-950" />
+                  )}
+                  <span>
+                    {isTestingSocket
+                      ? 'Comprobando...'
+                      : configModalAnalyzer?.connectionType === 'TCP_IP'
+                      ? 'Probar Socket de Red TCP'
+                      : 'Conectar Puerto Serial RS-232'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTransmitRealSample}
+                  disabled={isTransmittingSample || (!bridgeConnected && !serialConnected)}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 active:scale-95"
+                  title={
+                    configModalAnalyzer?.connectionType === 'TCP_IP'
+                      ? 'Transmitir trama real de analizador vía socket TCP hacia el puerto de escucha'
+                      : 'Transmitir trama real hacia el analizador serial'
+                  }
+                >
+                  <Radio className="w-4 h-4 text-slate-950" />
+                  <span>
+                    {isTransmittingSample
+                      ? 'Transmitiendo...'
+                      : configModalAnalyzer?.connectionType === 'TCP_IP'
+                      ? 'Transmitir Trama Real TCP'
+                      : 'Transmitir Trama Serial RS-232'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

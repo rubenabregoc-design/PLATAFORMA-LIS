@@ -73,6 +73,8 @@ function parseHl7Message(messageText) {
     obx: [],
     nte: [],
     orc: null,
+    qpd: null,
+    qrd: null,
     raw: messageText,
     messageType: '',
     messageControlId: '',
@@ -89,6 +91,8 @@ function parseHl7Message(messageText) {
       case 'MSH':
         parsed.msh = parseMshSegment(fields);
         parsed.messageType = parsed.msh.messageType;
+        parsed.messageCode = parsed.msh.messageCode;
+        parsed.triggerEvent = parsed.msh.triggerEvent;
         parsed.messageControlId = parsed.msh.messageControlId;
         parsed.sendingApplication = parsed.msh.sendingApplication;
         parsed.sendingFacility = parsed.msh.sendingFacility;
@@ -107,6 +111,12 @@ function parseHl7Message(messageText) {
         break;
       case 'ORC':
         parsed.orc = parseOrcSegment(fields);
+        break;
+      case 'QPD':
+        parsed.qpd = parseQpdSegment(fields);
+        break;
+      case 'QRD':
+        parsed.qrd = parseQrdSegment(fields);
         break;
     }
   }
@@ -260,6 +270,92 @@ function parseOrcSegment(fields) {
 }
 
 /**
+ * QPD — Query Parameter Definition Segment (HL7 v2.5)
+ */
+function parseQpdSegment(fields) {
+  const queryName = fields[1] || '';
+  const queryTag = fields[2] || '';
+  const rawBarcodeParam = fields[3] || '';
+  const barcodeComponents = parseComponents(rawBarcodeParam);
+  const sampleBarcode = barcodeComponents[0] || rawBarcodeParam;
+
+  return {
+    segmentType: 'QPD',
+    queryName,
+    queryTag,
+    sampleBarcode,
+    rawParameter: rawBarcodeParam
+  };
+}
+
+/**
+ * QRD — Query Definition Segment (HL7 v2.3 / v2.4)
+ */
+function parseQrdSegment(fields) {
+  const queryId = fields[4] || '';
+  const rawTarget = fields[8] || fields[9] || '';
+  const targetComponents = parseComponents(rawTarget);
+  const sampleBarcode = targetComponents[0] || rawTarget;
+
+  return {
+    segmentType: 'QRD',
+    queryId,
+    sampleBarcode,
+    rawTarget
+  };
+}
+
+/**
+ * Generates an HL7 Order Response (RSP^K11 / DSR^Q03) for analyzer Host Query.
+ */
+function generateHl7OrderResponse(parsedMsg, patient, order, tests = []) {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+  const msgControlId = `RSP-${Date.now()}`;
+  
+  const msh = parsedMsg.msh || {};
+  const origCtrlId = msh.messageControlId || 'QUERY';
+  const queryTag = parsedMsg.qpd?.queryTag || parsedMsg.qrd?.queryId || 'Q1';
+
+  const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim() || 'Desconocido';
+  const patientId = patient?.id || patient?.document_number || '1';
+  const dob = (patient?.dob || '').replace(/-/g, '');
+  const gender = (patient?.gender || 'U').charAt(0).toUpperCase();
+
+  const barcode = order?.barcode || order?.order_number || '';
+  const orderNumber = order?.order_number || barcode || '1';
+
+  const testCodesFormatted = tests.length > 0
+    ? tests.map((t, idx) => `${typeof t === 'string' ? t : (t.code || t.name)}`).join('~')
+    : 'ALL';
+
+  let rsp = '';
+  // MSH
+  rsp += `MSH|^~\\&|LIS_CORE|ABREGOTECH|${msh.sendingApplication || 'ANALYZER'}|${msh.sendingFacility || 'LAB'}|${timestamp}||RSP^K11|${msgControlId}|P|2.5\r`;
+  // MSA
+  rsp += `MSA|AA|${origCtrlId}|Consulta de orden exitosa\r`;
+  // QAK
+  rsp += `QAK|${queryTag}|OK\r`;
+  // QPD echo back
+  if (parsedMsg.qpd) {
+    rsp += `QPD|${parsedMsg.qpd.queryName}|${queryTag}|${barcode}\r`;
+  }
+  // PID
+  rsp += `PID|1||${patientId}||${patientName}||${dob}|${gender}\r`;
+  // ORC
+  rsp += `ORC|NW|${orderNumber}|||IP||||${timestamp}\r`;
+  // OBR
+  rsp += `OBR|1|${orderNumber}|${barcode}|${testCodesFormatted}^Bateria Solicitada|||${timestamp}\r`;
+
+  return rsp;
+}
+
+function generateMllpOrderResponse(parsedMsg, patient, order, tests = []) {
+  const rsp = generateHl7OrderResponse(parsedMsg, patient, order, tests);
+  return wrapInMllp(rsp);
+}
+
+/**
  * Generates an HL7 ACK message for a received message.
  * @param {object} parsedMsg - The parsed HL7 message
  * @param {string} ackCode - AA (accept), AE (error), AR (reject)
@@ -299,6 +395,10 @@ export {
   parseObxSegment,
   parseNteSegment,
   parseOrcSegment,
+  parseQpdSegment,
+  parseQrdSegment,
   generateAck,
-  generateMllpAck
+  generateMllpAck,
+  generateHl7OrderResponse,
+  generateMllpOrderResponse
 };
