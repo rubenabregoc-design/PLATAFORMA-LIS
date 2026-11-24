@@ -5,12 +5,68 @@ import {
   Minimize2, Image as ImageIcon, Tag, Volume2, VolumeX, Sparkles,
   FileText, Check, RefreshCw, UserCheck, Lock,
   PlusCircle, Bot, Copy, Download, Trash2, Stethoscope, ChevronRight,
-  Sparkle
+  Sparkle, Reply, CheckCircle2, Clock, Calendar
 } from 'lucide-react';
 import { useLisStore } from '../store/useLisStore';
 import { Tenant, Branch } from '../types';
 import { MOCK_TENANTS } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+
+// Helper para normalizar cualquier hora a formato 12 horas (AM/PM)
+export const formatTime12h = (timeOrDate?: string | Date): string => {
+  if (!timeOrDate) {
+    return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  if (timeOrDate instanceof Date) {
+    return timeOrDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  const cleanStr = String(timeOrDate).trim();
+  if (/\b(am|pm)\b/i.test(cleanStr)) {
+    return cleanStr;
+  }
+  const match24 = cleanStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (match24) {
+    let hours = parseInt(match24[1], 10);
+    const minutes = match24[2];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
+  }
+  const parsed = new Date(cleanStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  return cleanStr;
+};
+
+// Helper para formatear fecha completa y hora en formato 12 horas (AM/PM)
+export const formatMessageDateTime = (dateStr?: string, timeStr?: string, createdAt?: string): { date: string; time: string; full: string } => {
+  const now = new Date();
+  let msgDate: Date = now;
+  if (createdAt) {
+    const parsed = new Date(createdAt);
+    if (!isNaN(parsed.getTime())) msgDate = parsed;
+  }
+
+  const formattedTime = formatTime12h(timeStr || (createdAt ? msgDate : undefined));
+
+  let formattedDate = dateStr;
+  if (!formattedDate) {
+    const isToday = msgDate.toDateString() === now.toDateString();
+    if (isToday) {
+      formattedDate = 'Hoy';
+    } else {
+      formattedDate = msgDate.toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+
+  return {
+    date: formattedDate,
+    time: formattedTime,
+    full: `${formattedDate} • ${formattedTime}`
+  };
+};
 
 export interface ChatMessage {
   id: string;
@@ -20,7 +76,9 @@ export interface ChatMessage {
   senderRole: string;
   senderBranch: string;
   senderAvatar?: string;
-  timestamp: string;
+  timestamp: string; // Formato 12 horas ej. "11:12 PM"
+  date?: string; // Formato fecha legible ej. "23 nov 2026" o "Hoy"
+  createdAt?: string; // ISO string para ordenación exacta
   content: string;
   channelId: string;
   isAi?: boolean;
@@ -31,6 +89,27 @@ export interface ChatMessage {
     testName: string;
     value?: string;
     status?: 'HEMOLIZADA' | 'DUDOSA' | 'CRITICA' | 'VALIDADA';
+  };
+  // Trazabilidad de Respuesta vinculada a una consulta previa
+  replyTo?: {
+    id: string;
+    senderName: string;
+    senderRole: string;
+    questionText: string;
+    questionDate: string;
+    questionTime: string;
+    sampleBarcode?: string;
+  };
+  // Decisión clínica registrada (para consultas preanalíticas / valores críticos)
+  resolution?: {
+    decision: 'NUEVA_TOMA' | 'NOTA_TECNICA' | 'REPETIR_DUPLICADO' | 'DILUCION' | 'LIBERAR';
+    decisionLabel: string;
+    resolvedBy: string;
+    resolvedRole: string;
+    resolvedBranch: string;
+    resolvedDate: string;
+    resolvedTime: string;
+    note?: string;
   };
   attachmentUrl?: string;
   attachmentName?: string;
@@ -367,6 +446,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
   const [attachedSample, setAttachedSample] = useState<SecureInternalMessagingWidgetProps['activeSampleContext'] | null>(activeSampleContext || null);
   const [attachedFile, setAttachedFile] = useState<{ name: string; url: string; type?: string; size?: string } | null>(null);
   const [copiedBarcode, setCopiedBarcode] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
   // Estado de conexión e interacción en tiempo real
   const [isTypingOther, setIsTypingOther] = useState<string | null>(null);
@@ -386,6 +466,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       if (!detail || !detail.content) return;
 
       const targetChannel = detail.channelId || 'ch-hemolizadas';
+      const sysNow = new Date();
       const newMsg: ChatMessage = {
         id: `msg-sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         tenantId: activeTenant.id,
@@ -393,7 +474,9 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
         senderName: detail.senderName || currentUser?.name || 'Coordinación de Calidad LIS',
         senderRole: detail.senderRole || 'Gestión & Calidad ISO 15189',
         senderBranch: detail.senderBranch || storeBranch?.name || 'Sede Principal',
-        timestamp: new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: formatTime12h(sysNow),
+        date: sysNow.toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' }),
+        createdAt: sysNow.toISOString(),
         content: detail.content,
         channelId: targetChannel,
         isEncrypted: true,
@@ -797,11 +880,15 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
     );
 
     const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = formatTime12h(now);
+    const dateStr = now.toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' });
+    const createdAt = now.toISOString();
 
     const senderName = currentUser?.name || 'Lic. Rubén Ábrego';
     const senderRole = currentUser?.role ? currentUser.role.toUpperCase() : 'TECNÓLOGO MÉDICO';
     const senderBranch = storeBranch?.name || activeBranches[0]?.name || 'Sede Central';
+
+    const originDateTime = replyingTo ? formatMessageDateTime(replyingTo.date, replyingTo.timestamp, replyingTo.createdAt) : null;
 
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -811,9 +898,20 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       senderRole,
       senderBranch,
       timestamp: timeStr,
+      date: dateStr,
+      createdAt,
       content: finalContent,
       channelId: activeChannelId,
       sampleContext: attachedSample || undefined,
+      replyTo: replyingTo && originDateTime ? {
+        id: replyingTo.id,
+        senderName: replyingTo.senderName,
+        senderRole: replyingTo.senderRole,
+        questionText: replyingTo.content,
+        questionDate: originDateTime.date,
+        questionTime: originDateTime.time,
+        sampleBarcode: replyingTo.sampleContext?.barcode
+      } : undefined,
       attachmentName: attachedFile?.name,
       attachmentUrl: attachedFile?.url,
       isEncrypted: true,
@@ -824,6 +922,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
     setMessageInput('');
     setAttachedFile(null);
     setAttachedSample(null);
+    setReplyingTo(null);
     if (unreadCount > 0) setUnreadCount(0);
 
     if (isSoundEnabled) {
@@ -854,6 +953,7 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
       setIsTypingOther('AbregoTech Copilot IA');
       setTimeout(() => {
         setIsTypingOther(null);
+        const aiNow = new Date();
         const aiReply: ChatMessage = {
           id: `msg-ai-${Date.now()}`,
           tenantId: activeTenant.id,
@@ -861,7 +961,9 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
           senderName: 'AbregoTech Copilot IA',
           senderRole: 'Motor Clínico LIS (Datos en Vivo)',
           senderBranch: `${activeTenant.name} • Base de Datos Central`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: formatTime12h(aiNow),
+          date: aiNow.toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' }),
+          createdAt: aiNow.toISOString(),
           content: generateClinicalOrderResponse(finalContent, attachedSample),
           channelId: 'ch-copilot',
           isAi: true,
@@ -872,6 +974,79 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
         if (isSoundEnabled) playClinicalAudioChime('receive');
       }, 400);
     }
+  };
+
+  const handleStartReply = (msg: ChatMessage) => {
+    setReplyingTo(msg);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleQuickResolve = (targetMsg: ChatMessage, decisionType: 'NUEVA_TOMA' | 'NOTA_TECNICA' | 'REPETIR_DUPLICADO') => {
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeFormatted = formatTime12h(now);
+
+    const decisionLabel =
+      decisionType === 'NUEVA_TOMA'
+        ? 'Solicitar Nueva Toma (Rechazo Preanalítico - Muestra Hemolizada)'
+        : decisionType === 'NOTA_TECNICA'
+        ? 'Procesar con Nota Técnica NT-HIL-02 (Interferencia advertida)'
+        : 'Repetir por Duplicado & Confirmar Valor Crítico';
+
+    const resolutionData = {
+      decision: decisionType,
+      decisionLabel,
+      resolvedBy: currentUser?.name || 'Lic. Rubén Ábrego',
+      resolvedRole: currentUser?.role ? currentUser.role.toUpperCase() : 'COORDINADOR DE CALIDAD',
+      resolvedBranch: storeBranch?.name || activeBranches[0]?.name || 'Sede Central',
+      resolvedDate: dateFormatted,
+      resolvedTime: timeFormatted,
+      note: 'Resolución técnica registrada bajo trazabilidad ISO 15189 §7.3.'
+    };
+
+    // 1. Actualizar el mensaje original con la resolución registrada
+    setMessages(prev => prev.map(m => m.id === targetMsg.id ? { ...m, resolution: resolutionData } : m));
+
+    // 2. Generar mensaje de respuesta formal vinculado en el canal
+    const originDateTime = formatMessageDateTime(targetMsg.date, targetMsg.timestamp, targetMsg.createdAt);
+    const responseMsg: ChatMessage = {
+      id: `msg-res-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      tenantId: activeTenant.id,
+      senderId: currentUser?.id || 'usr-current',
+      senderName: currentUser?.name || 'Lic. Rubén Ábrego',
+      senderRole: currentUser?.role ? currentUser.role.toUpperCase() : 'COORDINADOR DE CALIDAD',
+      senderBranch: storeBranch?.name || activeBranches[0]?.name || 'Sede Central',
+      timestamp: timeFormatted,
+      date: dateFormatted,
+      createdAt: now.toISOString(),
+      content: `✅ DECISIÓN TÉCNICA REGISTRADA:\n${decisionLabel}.\n\nSe registra resolución en bitácora para la muestra #${targetMsg.sampleContext?.barcode || 'N/A'}${targetMsg.sampleContext?.patientName ? ` (${targetMsg.sampleContext.patientName})` : ''}.`,
+      channelId: targetMsg.channelId,
+      replyTo: {
+        id: targetMsg.id,
+        senderName: targetMsg.senderName,
+        senderRole: targetMsg.senderRole,
+        questionText: targetMsg.content,
+        questionDate: originDateTime.date,
+        questionTime: originDateTime.time,
+        sampleBarcode: targetMsg.sampleContext?.barcode
+      },
+      isEncrypted: true,
+      status: 'DELIVERED'
+    };
+
+    setMessages(prev => [...prev, responseMsg]);
+    if (isSoundEnabled) playClinicalAudioChime('send');
+
+    // Notificar en tiempo real a otras pestañas
+    try {
+      if (typeof window !== 'undefined' && window.BroadcastChannel) {
+        const bc = new BroadcastChannel(`lis_intercom_${activeTenant.id}`);
+        bc.postMessage({ type: 'RESOLVE_MESSAGE', originalId: targetMsg.id, resolution: resolutionData, responseMsg });
+        bc.close();
+      }
+    } catch {}
   };
 
   const handleAttachPreset = (text: string, sampleStatus?: 'HEMOLIZADA' | 'DUDOSA' | 'CRITICA' | 'VALIDADA') => {
@@ -1372,14 +1547,24 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                         )}
                         <span className="text-cyan-400">({msg.senderRole})</span>
                         <span className="truncate max-w-[150px]">• {msg.senderBranch}</span>
-                        <span className="shrink-0">• {msg.timestamp}</span>
+                        <span className="shrink-0 text-slate-300 font-bold">• {formatMessageDateTime(msg.date, msg.timestamp, msg.createdAt).full}</span>
+
+                        {/* Botón de responder rápido */}
+                        <button
+                          type="button"
+                          onClick={() => handleStartReply(msg)}
+                          className="text-slate-500 hover:text-cyan-400 p-0.5 ml-1 transition cursor-pointer"
+                          title="Responder a este mensaje"
+                        >
+                          <Reply className="w-3 h-3" />
+                        </button>
 
                         {/* Botón de eliminación */}
                         {isMe && (
                           <button
                             type="button"
                             onClick={() => handleDeleteMessage(msg.id)}
-                            className="text-slate-600 hover:text-rose-400 p-0.5 ml-1 transition cursor-pointer"
+                            className="text-slate-600 hover:text-rose-400 p-0.5 ml-0.5 transition cursor-pointer"
                             title="Eliminar mensaje"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1399,6 +1584,24 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                             : 'bg-slate-950 text-slate-200 border-slate-800 rounded-tl-none'
                         }`}
                       >
+                        {/* CITA DE MENSAJE O PREGUNTA ORIGINAL VINCULADA */}
+                        {msg.replyTo && (
+                          <div className={`p-2 rounded-xl text-[10px] font-mono space-y-1 border-l-2 ${
+                            isMe
+                              ? 'bg-black/25 border-cyan-300 text-cyan-100'
+                              : 'bg-black/40 border-cyan-400 text-slate-300'
+                          }`}>
+                            <div className="flex items-center space-x-1.5 text-cyan-300 font-bold">
+                              <Reply className="w-3 h-3 text-cyan-400 shrink-0" />
+                              <span className="truncate">En respuesta a: {msg.replyTo.senderName} ({msg.replyTo.senderRole})</span>
+                              <span className="text-slate-400 text-[9px] shrink-0">• {msg.replyTo.questionDate} • {msg.replyTo.questionTime}</span>
+                            </div>
+                            <p className="line-clamp-2 text-slate-200/90 italic pl-4 font-sans">
+                              "{msg.replyTo.questionText}"
+                            </p>
+                          </div>
+                        )}
+
                         {/* TARJETA DE MUESTRA CLÍNICA ADJUNTA */}
                         {msg.sampleContext && (
                           <div className={`p-2.5 rounded-xl border text-[11px] font-mono space-y-1 ${
@@ -1445,6 +1648,54 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
 
                         {/* CONTENIDO DEL MENSAJE */}
                         <p className="leading-relaxed font-sans text-xs whitespace-pre-wrap">{msg.content}</p>
+
+                        {/* BADGE DE RESOLUCIÓN CLÍNICA TRAZABLE */}
+                        {msg.resolution && (
+                          <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-[11px] font-mono text-emerald-200 space-y-1 my-1">
+                            <div className="flex items-center space-x-1.5 font-bold text-emerald-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>Resolución Clínica Aprobada</span>
+                            </div>
+                            <div className="text-[11px] font-bold text-white font-sans">
+                              {msg.resolution.decisionLabel}
+                            </div>
+                            <div className="text-[9px] text-emerald-400/90 flex flex-wrap items-center justify-between gap-1 border-t border-emerald-500/20 pt-1">
+                              <span>Por: {msg.resolution.resolvedBy} ({msg.resolution.resolvedRole})</span>
+                              <span>{msg.resolution.resolvedDate} • {msg.resolution.resolvedTime}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ACCIONES CLÍNICAS RÁPIDAS Y RESOLUCIÓN DIRECTA */}
+                        {!msg.resolution && (msg.sampleContext || msg.content.includes('?') || msg.content.includes('¿')) && (
+                          <div className="pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickResolve(msg, 'NUEVA_TOMA')}
+                              className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-[10px] font-mono transition flex items-center space-x-1 cursor-pointer"
+                              title="Indicar que se rechaza la muestra y se solicita nueva punción"
+                            >
+                              <span>🔄 Solicitar Nueva Toma</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickResolve(msg, 'NOTA_TECNICA')}
+                              className="px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-500/40 text-purple-200 text-[10px] font-mono transition flex items-center space-x-1 cursor-pointer"
+                              title="Autorizar procesamiento con nota técnica NT-HIL-02"
+                            >
+                              <span>📋 Nota Técnica NT-HIL-02</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStartReply(msg)}
+                              className="px-2.5 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 text-[10px] font-mono transition flex items-center space-x-1 cursor-pointer"
+                              title="Escribir respuesta vinculada a esta consulta"
+                            >
+                              <Reply className="w-3 h-3 text-cyan-400" />
+                              <span>Responder</span>
+                            </button>
+                          </div>
+                        )}
 
                         {/* ARCHIVO O IMAGEN ADJUNTA REAL */}
                         {msg.attachmentUrl && (
@@ -1563,6 +1814,27 @@ export const SecureInternalMessagingWidget: React.FC<SecureInternalMessagingWidg
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* BANNER DE RESPUESTA EN CURSO */}
+            {replyingTo && (
+              <div className="px-4 py-2 bg-slate-900/95 border-t border-cyan-500/40 flex items-center justify-between text-xs font-mono text-cyan-300">
+                <div className="flex items-center space-x-2 truncate">
+                  <Reply className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="truncate">
+                    Respondiendo a <strong>{replyingTo.senderName}</strong>: <span className="italic text-slate-300 opacity-80">"{replyingTo.content.slice(0, 45)}..."</span>
+                    <span className="text-[10px] text-slate-400 ml-1">({formatMessageDateTime(replyingTo.date, replyingTo.timestamp, replyingTo.createdAt).full})</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="p-1 hover:text-white text-slate-400 cursor-pointer"
+                  title="Cancelar respuesta"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 

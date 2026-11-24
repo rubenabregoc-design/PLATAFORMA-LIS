@@ -650,7 +650,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
               <div className="flex items-center justify-between mb-3 relative z-10">
                 <span className="font-black text-sm text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1.5">
                   <span>{an.name}</span>
-                  <Settings className="w-3.5 h-3.5 text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Settings className="w-3.5 h-3.5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity" title="Configurar analizador o pausar conexión" />
                 </span>
                 {bridgeConnected ? (
                   realStatus?.connectedSocket ? (
