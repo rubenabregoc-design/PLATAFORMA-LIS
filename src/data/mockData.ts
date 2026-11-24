@@ -7,6 +7,12 @@ export const MOCK_TENANTS: Tenant[] = [
     ruc: '1556983-1-82001',
     dv: '42',
     plan: 'Pro',
+    modules: {
+      laboratory_lis: true,
+      medical_consultation: true,
+      radiology_ris: true,
+      pharmacy_pos: true
+    },
     branches: [
       {
         id: 'branch-via-espana',

@@ -34,6 +34,7 @@ import { PatientResultsPortal } from './components/PatientResultsPortal';
 import { AstmDriverStudio } from './components/AstmDriverStudio';
 import { BillingPOS } from './components/BillingPOS';
 import { AnalyzerHomologation } from './components/AnalyzerHomologation';
+import { UnifiedAdmissionWorkspace } from './components/UnifiedAdmissionWorkspace';
 import { DeltaPanicAlerts } from './components/Phase3Suite/DeltaPanicAlerts';
 import { MinsaEpidemiology } from './components/Phase3Suite/MinsaEpidemiology';
 import { ReagentInventoryModule } from './components/Phase3Suite/ReagentInventoryModule';
@@ -1641,6 +1642,18 @@ export default function App() {
                 results={results}
                 onCreateOrder={handleCreateOrder}
                 onOpenPdf={(ordId) => setPreviewOrderId(ordId)}
+              />
+            )}
+
+            {activeTab === 'unified_admission' && (
+              <UnifiedAdmissionWorkspace
+                patients={patients}
+                testCatalog={MOCK_TEST_CATALOG}
+                orders={orders}
+                onCreateOrder={handleCreateOrder}
+                tenant={currentTenant}
+                branch={currentBranch}
+                onNavigateToLis={() => setActiveTab('reception')}
               />
             )}
 

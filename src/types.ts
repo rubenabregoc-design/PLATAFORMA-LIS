@@ -33,6 +33,13 @@ export interface LaboratoryPolicy {
   canTmRelease: boolean;         // Si el TM puede liberar el resultado (o queda reservado al JL)
 }
 
+export interface TenantModules {
+  laboratory_lis: boolean;       // LIS: Admisión, Analizadores, Muestras, Resultados
+  medical_consultation: boolean; // HIS: Medicina General, Pediatría, Ginecología, etc.
+  radiology_ris: boolean;        // RIS/PACS: Rayos X, Ultrasonidos, TAC
+  pharmacy_pos: boolean;         // Farmacia: Recetas, Stock, Dispensación
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -41,6 +48,7 @@ export interface Tenant {
   plan: 'Basic' | 'Pro' | 'Enterprise';
   branches: Branch[];
   policy?: LaboratoryPolicy;
+  modules?: TenantModules;
   openingHour?: number; // Hora de apertura del cliente (0-23), ej. 6 = 06:00 AM
   closingHour?: number; // Hora de cierre del cliente (1-23), ej. 18 = 06:00 PM
 }

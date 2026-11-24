@@ -3,7 +3,7 @@ import { Role, Tenant, Branch, User } from '../types';
 import { useLisStore } from '../store/useLisStore';
 import { useHisStore } from '../store/useHisStore';
 import {
-  Star, Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu, ShoppingBag, Network
+  Star, Activity, Building2, SlidersHorizontal, LogOut, MapPin, Filter, LayoutDashboard, Receipt, Package, Sparkles, Cpu, AlertTriangle, FileCheck2, BrainCircuit, Shield, ShieldCheck, Truck, Globe, Server, Award, Database, Microscope, FileText, ChevronDown, MoreHorizontal, Lock, Calendar, Target, Wrench, MessageSquare, Droplets, Printer, BarChart3, BookOpen, Files, Archive, Mail, RefreshCw, Calculator, Search, X, Grid, QrCode, HeartPulse, Clock, Menu, ShoppingBag, Network, UserPlus
 } from 'lucide-react';
 import { OfflineSyncIndicator } from './OfflineSyncIndicator';
 import { SessionInactivityTracker } from './SessionInactivityTracker';
@@ -36,6 +36,7 @@ export const NAVIGATION_TABS = [
   // 🔬 LIS (Laboratorio Clínico)
   { id: 'dashboard', label: 'Dashboard Principal', icon: LayoutDashboard, category: 'lis', desc: 'Vista ejecutiva y métricas en tiempo real.' },
   { id: 'reception', label: 'Admisión & Recepción', icon: Receipt, category: 'lis', desc: 'Módulo de admisión, registro de pacientes, toma de órdenes y etiquetado.' },
+  { id: 'unified_admission', label: 'Admisión Central / Clínica', icon: UserPlus, category: 'his', desc: 'Ventanilla única de admisión multi-servicio (LIS, HIS, RIS, Farmacia) y admisión individual.' },
   { id: 'validation', label: 'Resultados & Validación', icon: Microscope, category: 'lis', desc: 'Consola de ingreso y firma técnica/médica de analitos.', example: 'Firma electrónica Ley 81' },
   { id: 'tm_workbench', label: 'Estación TM (Bancada)', icon: Activity, category: 'lis', desc: 'Bancada técnica de trabajo para tecnólogos.' },
   { id: 'lis_workstation', label: 'Estación 3D de Validación', icon: Sparkles, category: 'lis', desc: 'Validación tridimensional clínica de muestras.' },
@@ -119,7 +120,7 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 
   // 🔬 Tecnólogo Médico (TM): Acceso total a analítica LIS, Banco de Sangre, Validación y Calidad QC
   tech_med: [
-    'dashboard', 'reception', 'validation', 'tm_workbench', 'lis_workstation', 'patient_results',
+    'dashboard', 'reception', 'unified_admission', 'validation', 'tm_workbench', 'lis_workstation', 'patient_results',
     'test_catalog', 'qc', 'middleware', 'homologation', 'drivers', 'phlebotomy',
     'pathology', 'batch_reporting', 'lis_hil', 'lis_panic', 'lis_alerts_center',
     'lis_calculators', 'lis_telemetry', 'delta', 'lis_referrals',
@@ -132,13 +133,13 @@ export const ALLOWED_TABS_PER_ROLE: Record<Role, string[]> = {
 
   // 🔬 Técnico de Laboratorio / Flebotomista
   lab_tech: [
-    'dashboard', 'reception', 'patient_results', 'phlebotomy', 'lis_hil', 'lis_panic',
+    'dashboard', 'reception', 'unified_admission', 'patient_results', 'phlebotomy', 'lis_hil', 'lis_panic',
     'inventory', 'label_studio', 'routing', 'blood_donors', 'shifts'
   ],
 
   // 💼 Recepcionista / Admisión
   receptionist: [
-    'dashboard', 'reception', 'patient_results', 'billing', 'shifts', 'whatsapp', 'blood_donors'
+    'dashboard', 'reception', 'unified_admission', 'patient_results', 'billing', 'shifts', 'whatsapp', 'blood_donors'
   ],
 
   // 🩺 Médico Referente
