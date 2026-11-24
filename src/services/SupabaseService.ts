@@ -840,24 +840,32 @@ export const BloodBankService = {
     unitId: string,
     markers: {
       hiv: boolean, hbv: boolean, hcv: boolean,
-      syphilis: boolean, chagas: boolean, htlv: boolean
-    }
+      syphilis: boolean, chagas: boolean, htlv: boolean,
+      natPcr?: boolean
+    },
+    technologistNotes?: string
   ): Promise<void> {
     const isReactive = Object.values(markers).some(v => v === true);
-    const { error } = await supabase
-      .from('blood_units')
-      .update({
-        marker_hiv: markers.hiv,
-        marker_hbv: markers.hbv,
-        marker_hcv: markers.hcv,
-        marker_syphilis: markers.syphilis,
-        marker_chagas: markers.chagas,
-        marker_htlv: markers.htlv,
-        serology_status: isReactive ? 'REACTIVE' : 'NEGATIVE',
-        status: isReactive ? 'DISCARDED' : 'AVAILABLE',
-        location_storage: isReactive ? 'BIOHAZARD_PANAMA' : 'STOCK_NACIONAL'
-      })
-      .eq('id', unitId);
+    const updatePayload: Record<string, any> = {
+      marker_hiv: markers.hiv,
+      marker_hbv: markers.hbv,
+      marker_hcv: markers.hcv,
+      marker_syphilis: markers.syphilis,
+      marker_chagas: markers.chagas,
+      marker_htlv: markers.htlv,
+      serology_status: isReactive ? 'REACTIVE' : 'NEGATIVE',
+      status: isReactive ? 'DISCARDED' : 'AVAILABLE',
+      location_storage: isReactive ? 'BIOHAZARD_PANAMA' : 'STOCK_NACIONAL'
+    };
+
+    let query = supabase.from('blood_units').update(updatePayload);
+    if (unitId.includes('-') && unitId.length > 20 && !unitId.startsWith('DIN-') && !unitId.startsWith('PGRE-')) {
+      query = query.eq('id', unitId);
+    } else {
+      query = query.or(`id.eq.${unitId},unit_number.eq.${unitId}`);
+    }
+
+    const { error } = await query;
     if (error) handleError('processUnitSerology', error);
   },
 
