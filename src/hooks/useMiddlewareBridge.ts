@@ -280,8 +280,16 @@ export function useMiddlewareBridge(enabled: boolean = true) {
     sendCommand('delete_analyzer_config', { analyzerId });
   }, [sendCommand]);
 
+  const disconnectAnalyzer = useCallback((analyzerId: string) => {
+    sendCommand('disconnect_analyzer', { analyzerId });
+  }, [sendCommand]);
+
   const installDriverCassette = useCallback((cassette: any) => {
     sendCommand('install_driver_cassette', { cassette });
+  }, [sendCommand]);
+
+  const deleteDriverPlugin = useCallback((driverId: string) => {
+    sendCommand('delete_driver_plugin', { driverId });
   }, [sendCommand]);
 
   const requestDriverCatalog = useCallback(() => {
@@ -339,7 +347,9 @@ export function useMiddlewareBridge(enabled: boolean = true) {
     requestStatus,
     saveAnalyzerConfig,
     deleteAnalyzerConfig,
+    disconnectAnalyzer,
     installDriverCassette,
+    deleteDriverPlugin,
     requestDriverCatalog,
 
     // Clear buffers

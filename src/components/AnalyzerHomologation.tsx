@@ -41,17 +41,35 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingMapping, setEditingMapping] = useState<AnalyzerTestMapping | null>(null);
 
-  const { saveAnalyzerConfig, driverCatalog, installDriverCassette } = useMiddlewareBridge();
+  const { saveAnalyzerConfig, deleteAnalyzerConfig, driverCatalog, installDriverCassette, deleteDriverPlugin } = useMiddlewareBridge();
   const [isAnalyzerModalOpen, setIsAnalyzerModalOpen] = useState<boolean>(false);
   const [editingAnalyzer, setEditingAnalyzer] = useState<Analyzer | null>(null);
 
-  // Cassette Manager State
+  // Plugin / Driver Manager State
   const [isCassetteModalOpen, setIsCassetteModalOpen] = useState<boolean>(false);
   const [uploadedCassetteData, setUploadedCassetteData] = useState<any | null>(null);
   const [cassetteFileName, setCassetteFileName] = useState<string>('');
   const [cassetteInstallSuccess, setCassetteInstallSuccess] = useState<string | null>(null);
   const [cassetteInstallError, setCassetteInstallError] = useState<string | null>(null);
   const [exportAnalyzerId, setExportAnalyzerId] = useState<string>(analyzers[0]?.id || '');
+
+  const handleDeleteAnalyzer = (analyzerId: string, analyzerName: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la configuración del analizador "${analyzerName}" de la red LIS y cerrar sus puertos?`)) {
+      deleteAnalyzerConfig(analyzerId);
+      notifyToast.success(`Analizador "${analyzerName}" eliminado de la red LIS`, 4000);
+      if (selectedAnalyzerId === analyzerId) {
+        const remaining = analyzers.filter(a => a.id !== analyzerId);
+        if (remaining.length > 0) setSelectedAnalyzerId(remaining[0].id);
+      }
+    }
+  };
+
+  const handleDeleteDriver = (driverId: string, driverName: string) => {
+    if (window.confirm(`¿Eliminar el plugin de driver "${driverName}" del sistema?`)) {
+      deleteDriverPlugin(driverId);
+      notifyToast.success(`Plugin de driver "${driverName}" eliminado del catálogo`, 4000);
+    }
+  };
 
   const DEFAULT_DRIVERS = [
     { id: 'roche-cobas', name: 'Roche Cobas (c311, e411, 6000, 8000)', manufacturer: 'Roche Diagnostics', protocol: 'ASTM_E1381', orderStrategy: 'MULTI_O_RECORDS', ackDelayMs: 10, category: 'QUIMICA', isCassette: false },
@@ -147,13 +165,13 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
     if (!uploadedCassetteData) return;
     try {
       installDriverCassette(uploadedCassetteData);
-      setCassetteInstallSuccess(`¡Cassette "${uploadedCassetteData.name}" instalado y activado en el Middleware LIS!`);
+      setCassetteInstallSuccess(`¡Plugin de Driver "${uploadedCassetteData.name}" instalado y activado en el Middleware LIS!`);
       setTimeout(() => {
         setUploadedCassetteData(null);
         setCassetteFileName('');
       }, 2000);
     } catch (err: any) {
-      setCassetteInstallError(`Error instalando cassette: ${err.message}`);
+      setCassetteInstallError(`Error instalando plugin de driver: ${err.message}`);
     }
   };
 
@@ -169,10 +187,10 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
       }
     });
 
-    const cassette = {
+    const driverPackage = {
       packageVersion: '1.0.0',
-      id: `cassette-${target.id}`,
-      name: `${target.name} (Cassette LIS)`,
+      id: `driver-${target.id}`,
+      name: `${target.name} (Plugin Driver LIS)`,
       modelMatch: target.model || target.name,
       manufacturer: target.name.split(' ')[0] || 'AbregoTech',
       category: target.category || 'QUIMICA',
@@ -197,11 +215,11 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
       brand: 'Abrego Tech Solutions'
     };
 
-    const blob = new Blob([JSON.stringify(cassette, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(driverPackage, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${target.name.replace(/[^a-zA-Z0-9]/g, '_')}_v1.0.acedriver`;
+    link.download = `${target.name.replace(/[^a-zA-Z0-9]/g, '_')}_v1.0.driver`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -545,14 +563,14 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
             }}
             className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold rounded-xl text-xs flex items-center gap-2 border border-amber-500/30 transition shadow-lg shadow-amber-500/10 cursor-pointer"
           >
-            <Layers className="w-4 h-4 text-amber-400" /> Cassettes (.acedriver)
+            <Layers className="w-4 h-4 text-amber-400" /> Plugins de Driver (.driver)
           </button>
           <button
             onClick={handleExportCurrentAnalyzerCassette}
             className="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 font-bold rounded-xl text-xs flex items-center gap-2 border border-indigo-500/40 transition cursor-pointer"
-            title={`Exportar cassette para ${selectedAnalyzer.name}`}
+            title={`Exportar paquete de driver para ${selectedAnalyzer.name}`}
           >
-            <Download className="w-4 h-4 text-indigo-400" /> Exportar Cassette
+            <Download className="w-4 h-4 text-indigo-400" /> Exportar Driver
           </button>
           <button
             onClick={handleDownloadBridge}
@@ -584,9 +602,17 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                 <span className="text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-md bg-cyan-950/60 text-cyan-300 border border-cyan-800/60">
                   {an.connectionType === 'TCP_IP' ? `TCP :${an.port || 5100}` : (an.comPort || 'COM1')}
                 </span>
-                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
-                  CONFIGURADO
-                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteAnalyzer(an.id, an.name);
+                  }}
+                  className="p-1 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 rounded-md transition cursor-pointer"
+                  title={`Eliminar analizador ${an.name} de la red LIS`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-500 font-mono">
@@ -1203,7 +1229,7 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
         </div>
       )}
 
-      {/* MODAL GESTOR DE CASSETTES (.acedriver) */}
+      {/* MODAL GESTOR DE PLUGINS Y DRIVERS (.driver) */}
       {isCassetteModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -1213,18 +1239,18 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white uppercase italic tracking-tight">Gestor de Cassettes de Analizador</h3>
-                  <p className="text-[10px] text-slate-400">Instala y exporta paquetes .acedriver con dialectos, retardos y homologación pre-configurada.</p>
+                  <h3 className="text-lg font-black text-white uppercase italic tracking-tight">Gestor de Plugins y Drivers de Analizador</h3>
+                  <p className="text-[10px] text-slate-400">Instala, exporta y elimina paquetes .driver con dialectos ASTM/HL7, retardos y homologación pre-configurada.</p>
                 </div>
               </div>
               <button onClick={() => setIsCassetteModalOpen(false)} className="text-slate-500 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
 
-            {/* SECCIÓN 1: SUBIR Y VALIDAR CASSETTE */}
+            {/* SECCIÓN 1: SUBIR Y VALIDAR PLUGIN DE DRIVER */}
             <div className="p-5 bg-slate-950 border border-slate-800 rounded-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <Upload className="w-4 h-4 text-teal-400" /> Subir Paquete Cassette (.acedriver / .json)
+                  <Upload className="w-4 h-4 text-teal-400" /> Subir Paquete de Driver (.driver / .json)
                 </span>
                 <span className="text-[10px] font-mono text-slate-500">Cero código / Plug & Play</span>
               </div>
@@ -1232,16 +1258,16 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
               <div className="border-2 border-dashed border-slate-800 hover:border-teal-500/50 rounded-2xl p-6 text-center transition cursor-pointer relative bg-slate-900/40">
                 <input
                   type="file"
-                  accept=".acedriver,.json"
+                  accept=".driver,.acedriver,.json"
                   onChange={handleCassetteFileUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
                 <div className="flex flex-col items-center justify-center gap-2">
                   <Package className="w-8 h-8 text-slate-500" />
                   <div className="text-xs text-slate-300 font-bold">
-                    {cassetteFileName ? cassetteFileName : 'Haz clic o arrastra un archivo .acedriver aquí'}
+                    {cassetteFileName ? cassetteFileName : 'Haz clic o arrastra un archivo .driver aquí'}
                   </div>
-                  <p className="text-[10px] text-slate-500">Formato compatible con AbregoTech LIS (Estructura de Drivers JSON)</p>
+                  <p className="text-[10px] text-slate-500">Formato de plugins clínicos compatible con AbregoTech LIS (Drivers JSON / .driver)</p>
                 </div>
               </div>
 
@@ -1294,7 +1320,7 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                     onClick={handleInstallCassette}
                     className="w-full py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs uppercase shadow-lg shadow-teal-500/20 transition cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Check className="w-4 h-4 stroke-[3]" /> Instalar y Activar Cassette
+                    <Check className="w-4 h-4 stroke-[3]" /> Instalar y Activar Driver
                   </button>
                 </div>
               )}
@@ -1304,7 +1330,7 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <Database className="w-4 h-4 text-amber-400" /> Drivers y Cassettes Disponibles ({effectiveDrivers.length})
+                  <Database className="w-4 h-4 text-amber-400" /> Catálogo de Drivers y Plugins ({effectiveDrivers.length})
                 </span>
                 <span className="text-[10px] text-slate-500">Auto-cargados en tiempo de ejecución</span>
               </div>
@@ -1323,29 +1349,42 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${drv.isCassette ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400'}`}>
-                        {drv.isCassette ? 'CASSETTE' : 'BUILT-IN'}
+                        {drv.isCassette ? 'PLUGIN MODULAR' : 'DRIVER BASE'}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleExportDriverTemplate(drv)}
-                        className="px-2 py-1 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm"
-                        title={`Descargar archivo plantilla .acedriver para ${drv.name}`}
-                      >
-                        <Download className="w-3 h-3 text-indigo-400 hover:text-white" />
-                        <span>Exportar</span>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {drv.isCassette && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDriver(drv.id, drv.name)}
+                            className="px-2 py-1 bg-rose-950/50 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-800/40 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm"
+                            title={`Eliminar este plugin de driver (${drv.name})`}
+                          >
+                            <Trash2 className="w-3 h-3 text-rose-400 hover:text-white" />
+                            <span>Eliminar</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleExportDriverTemplate(drv)}
+                          className="px-2 py-1 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm"
+                          title={`Descargar archivo plantilla .driver para ${drv.name}`}
+                        >
+                          <Download className="w-3 h-3 text-indigo-400 hover:text-white" />
+                          <span>Exportar</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* SECCIÓN 3: EXPORTAR CASSETTE DE CUALQUIER ANALIZADOR */}
+            {/* SECCIÓN 3: EXPORTAR DRIVER DE CUALQUIER ANALIZADOR */}
             <div className="p-4 bg-indigo-950/20 border border-indigo-500/30 rounded-2xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-2">
-                    <Download className="w-4 h-4 text-indigo-400" /> Exportar Analizador Configurado a .acedriver
+                    <Download className="w-4 h-4 text-indigo-400" /> Exportar Analizador Configurado a .driver
                   </div>
                   <p className="text-[10px] text-slate-400 mt-0.5">
                     Elige cualquier analizador de tu laboratorio para generar su paquete con dialectos, puertos y analitos homologados.
@@ -1377,7 +1416,7 @@ export const AnalyzerHomologation: React.FC<AnalyzerHomologationProps> = ({
                   className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-teal-600 hover:from-indigo-500 hover:to-teal-500 text-white font-black rounded-xl text-xs transition shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Exportar .acedriver</span>
+                  <span>Exportar .driver</span>
                 </button>
               </div>
             </div>

@@ -1,9 +1,9 @@
 /**
- * AbregoTech LIS — Modular Analyzer Driver Registry & Cassette Package Engine
+ * AbregoTech LIS — Modular Analyzer Driver Registry & Driver Plugin Engine
  * 
  * Manages instrument-specific protocol dialects, timing profiles,
  * inbound parsing rules, outbound order formatting strategies,
- * and hot-pluggable Driver Cassettes (.acedriver / .json).
+ * and hot-pluggable Driver Plugins (.driver / .acedriver / .json).
  */
 
 import fs from 'fs';
@@ -20,7 +20,7 @@ import { abbottAlinityDriver } from './abbott-alinity.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Directory for user-uploaded Cassettes (.acedriver / .json)
+// Directory for user-installed Driver Plugins (.driver / .acedriver / .json)
 export const CASSETTES_DIR = path.join(__dirname, 'cassettes');
 if (!fs.existsSync(CASSETTES_DIR)) {
   fs.mkdirSync(CASSETTES_DIR, { recursive: true });
@@ -36,7 +36,7 @@ const BUILT_IN_DRIVERS = new Map([
   ['abbott-alinity', abbottAlinityDriver]
 ]);
 
-// Dynamic Cassettes Cache
+// Dynamic Driver Plugins Cache
 const CASSETTES = new Map();
 
 export function loadCassettes() {
@@ -44,7 +44,7 @@ export function loadCassettes() {
     if (!fs.existsSync(CASSETTES_DIR)) return;
     const files = fs.readdirSync(CASSETTES_DIR);
     for (const file of files) {
-      if (file.endsWith('.json') || file.endsWith('.acedriver')) {
+      if (file.endsWith('.json') || file.endsWith('.acedriver') || file.endsWith('.driver')) {
         try {
           const filePath = path.join(CASSETTES_DIR, file);
           const content = fs.readFileSync(filePath, 'utf8');
@@ -57,24 +57,24 @@ export function loadCassettes() {
             filePath
           });
         } catch (e) {
-          console.error(`[CASSETTE] Error cargando cassette ${file}:`, e.message);
+          console.error(`[DRIVER] Error cargando plugin ${file}:`, e.message);
         }
       }
     }
   } catch (err) {
-    console.error(`[CASSETTE] Error leyendo directorio de cassettes:`, err.message);
+    console.error(`[DRIVER] Error leyendo directorio de plugins de driver:`, err.message);
   }
 }
 
-// Initial load of installed cassettes
+// Initial load of installed driver plugins
 loadCassettes();
 
 /**
- * Saves and installs a new Analyzer Driver Cassette (.acedriver)
+ * Saves and installs a new Analyzer Driver Plugin (.driver / .acedriver)
  */
 export function saveDriverCassette(cassetteData) {
   if (!cassetteData || !cassetteData.name) {
-    throw new Error('El cassette debe tener al menos un nombre');
+    throw new Error('El plugin de driver debe tener al menos un nombre');
   }
 
   const cassetteId = (cassetteData.id || cassetteData.cassetteId || cassetteData.name.toLowerCase().replace(/[^a-z0-9]/g, '-')).trim();
@@ -99,11 +99,39 @@ export function saveDriverCassette(cassetteData) {
     isCassette: true
   };
 
-  const targetPath = path.join(CASSETTES_DIR, `${cassetteId}.acedriver`);
+  const targetPath = path.join(CASSETTES_DIR, `${cassetteId}.driver`);
   fs.writeFileSync(targetPath, JSON.stringify(normalized, null, 2), 'utf8');
   CASSETTES.set(cassetteId, { ...normalized, filePath: targetPath });
-  console.log(`[CASSETTE] ✓ Nuevo Cassette de Analizador instalado: ${normalized.name} (${targetPath})`);
+  console.log(`[DRIVER] ✓ Nuevo Plugin de Driver instalado: ${normalized.name} (${targetPath})`);
   return normalized;
+}
+
+/**
+ * Deletes an installed Driver Plugin (.driver / .acedriver / .json)
+ */
+export function deleteDriverCassette(driverId) {
+  if (!driverId) return false;
+  const cassette = CASSETTES.get(driverId);
+  if (cassette?.filePath && fs.existsSync(cassette.filePath)) {
+    try {
+      fs.unlinkSync(cassette.filePath);
+    } catch (e) {
+      console.error(`[DRIVER] Error eliminando archivo ${cassette.filePath}:`, e.message);
+    }
+  }
+  const fallbackPaths = [
+    path.join(CASSETTES_DIR, `${driverId}.driver`),
+    path.join(CASSETTES_DIR, `${driverId}.acedriver`),
+    path.join(CASSETTES_DIR, `${driverId}.json`)
+  ];
+  for (const fp of fallbackPaths) {
+    if (fs.existsSync(fp)) {
+      try { fs.unlinkSync(fp); } catch (_) {}
+    }
+  }
+  CASSETTES.delete(driverId);
+  console.log(`[DRIVER] ✓ Plugin de Driver eliminado: ${driverId}`);
+  return true;
 }
 
 /**

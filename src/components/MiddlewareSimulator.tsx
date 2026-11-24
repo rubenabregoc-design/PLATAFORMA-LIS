@@ -4,7 +4,8 @@ import { MOCK_TEST_CATALOG } from '../data/mockData';
 import {
   Cpu, Wifi, Radio, Send, Terminal, CheckCircle2, AlertCircle, RefreshCw,
   FileText, ArrowRightLeft, Activity, Settings, X, Plug, Server, Cable,
-  Download, QrCode, Zap, Play, Pause, Database, Clock, Sparkles, CheckCheck
+  Download, QrCode, Zap, Play, Pause, Database, Clock, Sparkles, CheckCheck,
+  PowerOff, Trash2
 } from 'lucide-react';
 import { ASTM_CHARS, parseASTMFrame, parseHL7Message, createSession, createCommEvent, AnalyzerSession, CommEvent, toHexDump } from '../services/AnalyzerCommEngine';
 
@@ -34,6 +35,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
   // Web Serial Port State
   const [serialConnected, setSerialConnected] = useState<boolean>(false);
   const [serialPortName, setSerialPortName] = useState<string | null>(null);
+  const serialPortRef = useRef<any>(null);
 
   // Auto-Daemon State (Ingestión 100% Automática)
   const [autoDaemonActive, setAutoDaemonActive] = useState<boolean>(true);
@@ -237,6 +239,7 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
 
     try {
       const port = await (navigator as any).serial.requestPort();
+      serialPortRef.current = port;
       await port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' });
       setSerialConnected(true);
       setSerialPortName('Puerto Serial RS-232 Abierto (9600 8-N-1)');
@@ -319,6 +322,39 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
       setTimeout(() => setIsTransmittingSample(false), 1200);
     } else {
       setIsTransmittingSample(false);
+    }
+  };
+
+  const handleDisconnectCurrentAnalyzer = () => {
+    if (!configModalAnalyzer) return;
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'disconnect_analyzer',
+        analyzerId: configModalAnalyzer.id
+      }));
+    }
+    if (serialPortRef.current) {
+      try {
+        serialPortRef.current.close?.();
+        setSerialConnected(false);
+      } catch (_) {}
+    }
+    setSocketTestResult({
+      message: `🔌 Enlace de "${configModalAnalyzer.name}" desconectado/pausado manualmente.`,
+      success: true
+    });
+  };
+
+  const handleDeleteCurrentAnalyzer = () => {
+    if (!configModalAnalyzer) return;
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la configuración de "${configModalAnalyzer.name}" de la red LIS y cerrar sus puertos?`)) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'delete_analyzer_config',
+          analyzerId: configModalAnalyzer.id
+        }));
+      }
+      setConfigModalAnalyzer(null);
     }
   };
 
@@ -1119,6 +1155,27 @@ export const MiddlewareSimulator: React.FC<MiddlewareSimulatorProps> = ({
                   <span className="text-[10px] text-slate-950/80 font-mono mt-0.5">
                     Trama {configModalAnalyzer?.protocol || 'ASTM'}
                   </span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleDisconnectCurrentAnalyzer}
+                  className="flex-1 py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Cerrar el socket o puerto serial activo de este analizador temporalmente"
+                >
+                  <PowerOff className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Pausar / Desconectar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCurrentAnalyzer}
+                  className="py-2 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Eliminar este analizador de la configuración de red LIS"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Eliminar Equipo</span>
                 </button>
               </div>
             </div>

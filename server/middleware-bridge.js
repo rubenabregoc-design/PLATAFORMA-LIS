@@ -36,7 +36,7 @@ import {
   generateHl7OrderResponse,
   generateMllpOrderResponse
 } from './parsers/hl7-parser.js';
-import { getAnalyzerDriver, listAvailableDrivers, saveDriverCassette } from './drivers/index.js';
+import { getAnalyzerDriver, listAvailableDrivers, saveDriverCassette, deleteDriverCassette } from './drivers/index.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Configuration & Hybrid Sync (Local On-Prem + Cloud Supabase)
@@ -508,6 +508,38 @@ function handleWsCommand(cmd, ws) {
         }));
       }
       break;
+    case 'disconnect_analyzer':
+      if (cmd.analyzerId) {
+        disconnectAnalyzer(cmd.analyzerId);
+        ws.send(JSON.stringify({
+          type: 'analyzer_disconnected',
+          data: { analyzerId: cmd.analyzerId, status: 'SUCCESS' },
+          timestamp: new Date().toISOString()
+        }));
+      }
+      break;
+    case 'delete_driver_plugin':
+    case 'delete_driver_cassette':
+      if (cmd.driverId || cmd.id) {
+        const dId = cmd.driverId || cmd.id;
+        try {
+          deleteDriverCassette(dId);
+          log('DRIVER', `✓ Plugin de Driver eliminado: ${dId}`);
+          broadcast({
+            type: 'driver_catalog',
+            data: listAvailableDrivers(),
+            timestamp: new Date().toISOString()
+          });
+          ws.send(JSON.stringify({
+            type: 'driver_deleted',
+            data: { driverId: dId, status: 'SUCCESS' },
+            timestamp: new Date().toISOString()
+          }));
+        } catch (err) {
+          log('DRIVER', `Error eliminando plugin de driver: ${err.message}`);
+        }
+      }
+      break;
     case 'get_driver_catalog':
       ws.send(JSON.stringify({
         type: 'driver_catalog',
@@ -732,6 +764,20 @@ function removeAnalyzerConfig(analyzerId) {
       tcpServers.delete(analyzerId);
     } catch (_) {}
   }
+  if (activeSerialPorts.has(analyzerId)) {
+    try {
+      activeSerialPorts.get(analyzerId).close();
+      activeSerialPorts.delete(analyzerId);
+    } catch (_) {}
+  }
+  if (analyzerSockets.has(analyzerId)) {
+    try {
+      const s = analyzerSockets.get(analyzerId);
+      if (s.destroy) s.destroy();
+      else if (s.close) s.close();
+      analyzerSockets.delete(analyzerId);
+    } catch (_) {}
+  }
   const idx = ANALYZER_PORTS.findIndex(a => a.id === analyzerId);
   if (idx !== -1) {
     const removed = ANALYZER_PORTS.splice(idx, 1)[0];
@@ -749,9 +795,56 @@ function removeAnalyzerConfig(analyzerId) {
         id: a.id,
         name: a.name,
         port: a.port,
+        comPort: a.comPort,
         protocol: a.protocol,
-        status: tcpServers.get(a.id) ? 'LISTENING' : 'OFFLINE',
-        connectedSocket: analyzerSockets.has(a.id)
+        status: analyzerSockets.has(a.id) || activeSerialPorts.has(a.id) ? 'CONNECTED' : (tcpServers.get(a.id) ? 'LISTENING' : 'OFFLINE'),
+        connectedSocket: analyzerSockets.has(a.id) || activeSerialPorts.has(a.id)
+      })),
+      connectedClients: wsClients.size,
+      uptime: process.uptime()
+    },
+    timestamp: new Date().toISOString()
+  });
+}
+
+function disconnectAnalyzer(analyzerId) {
+  let wasActive = false;
+  if (analyzerSockets.has(analyzerId)) {
+    try {
+      const s = analyzerSockets.get(analyzerId);
+      if (s.destroy) s.destroy();
+      else if (s.close) s.close();
+      analyzerSockets.delete(analyzerId);
+      wasActive = true;
+    } catch (_) {}
+  }
+  if (activeSerialPorts.has(analyzerId)) {
+    try {
+      const p = activeSerialPorts.get(analyzerId);
+      p.close();
+      activeSerialPorts.delete(analyzerId);
+      wasActive = true;
+    } catch (_) {}
+  }
+
+  log('DISCONNECT', `🔌 Analizador ${analyzerId} desconectado/pausado manualmente por el usuario`);
+
+  broadcast({
+    type: 'analyzer_disconnected',
+    data: { analyzerId, reason: 'Desconexión manual solicitada por el usuario' }
+  });
+
+  broadcast({
+    type: 'bridge_status',
+    data: {
+      analyzers: ANALYZER_PORTS.map(a => ({
+        id: a.id,
+        name: a.name,
+        port: a.port,
+        comPort: a.comPort,
+        protocol: a.protocol,
+        status: analyzerSockets.has(a.id) || activeSerialPorts.has(a.id) ? 'CONNECTED' : (tcpServers.get(a.id) ? 'LISTENING' : 'OFFLINE'),
+        connectedSocket: analyzerSockets.has(a.id) || activeSerialPorts.has(a.id)
       })),
       connectedClients: wsClients.size,
       uptime: process.uptime()
