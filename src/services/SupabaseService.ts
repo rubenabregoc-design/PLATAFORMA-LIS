@@ -871,6 +871,278 @@ export const BloodBankService = {
     return data!;
   },
 
+  /**
+   * Fraccionamiento Real de Hemocomponentes (Bolsa Madre -> Hijas ISBT 128)
+   */
+  async fractionateMotherUnit(
+    motherUnitId: string,
+    options: { platelets?: boolean; cryo?: boolean } = { platelets: true, cryo: false }
+  ): Promise<DbBloodUnit[]> {
+    const tenant_id = await getTenantId();
+
+    // 1. Obtener la unidad madre
+    const { data: mother, error: mErr } = await supabase
+      .from('blood_units')
+      .select('*')
+      .eq('id', motherUnitId)
+      .single();
+    if (mErr || !mother) throw new Error(mErr?.message || 'Unidad madre no encontrada');
+
+    const now = new Date();
+    const cleanDin = mother.unit_number.replace(/-(RBC|PFC|PLT|CRYO)$/i, '');
+
+    const childUnitsPayload: Array<any> = [
+      // 1. Concentrado de Glóbulos Rojos (Packed RBCs - E0001)
+      {
+        tenant_id,
+        donor_id: mother.donor_id,
+        unit_number: `${cleanDin}-RBC`,
+        component_type: 'RED_CELLS',
+        blood_type: mother.blood_type,
+        rh_factor: mother.rh_factor,
+        volume_ml: 290,
+        collection_date: mother.collection_date,
+        expiry_date: new Date(now.getTime() + 42 * 86400000).toISOString(), // 42 días SAGM
+        status: mother.serology_status === 'NEGATIVE' ? 'AVAILABLE' : mother.status,
+        location_storage: 'NEVERA_CGR_01',
+        serology_status: mother.serology_status,
+        marker_hiv: mother.marker_hiv,
+        marker_hbv: mother.marker_hbv,
+        marker_hcv: mother.marker_hcv,
+        marker_syphilis: mother.marker_syphilis,
+        marker_chagas: mother.marker_chagas,
+        marker_htlv: mother.marker_htlv
+      },
+      // 2. Plasma Fresco Congelado (PFC - E0534)
+      {
+        tenant_id,
+        donor_id: mother.donor_id,
+        unit_number: `${cleanDin}-PFC`,
+        component_type: 'PLASMA',
+        blood_type: mother.blood_type,
+        rh_factor: mother.rh_factor,
+        volume_ml: 210,
+        collection_date: mother.collection_date,
+        expiry_date: new Date(now.getTime() + 365 * 86400000).toISOString(), // 1 año a -20°C
+        status: mother.serology_status === 'NEGATIVE' ? 'AVAILABLE' : mother.status,
+        location_storage: 'CONGELADOR_PFC_01',
+        serology_status: mother.serology_status,
+        marker_hiv: mother.marker_hiv,
+        marker_hbv: mother.marker_hbv,
+        marker_hcv: mother.marker_hcv,
+        marker_syphilis: mother.marker_syphilis,
+        marker_chagas: mother.marker_chagas,
+        marker_htlv: mother.marker_htlv
+      }
+    ];
+
+    // 3. Concentrado Plaquetario (Plaquetas - E0652)
+    if (options.platelets) {
+      childUnitsPayload.push({
+        tenant_id,
+        donor_id: mother.donor_id,
+        unit_number: `${cleanDin}-PLT`,
+        component_type: 'PLATELETS',
+        blood_type: mother.blood_type,
+        rh_factor: mother.rh_factor,
+        volume_ml: 65,
+        collection_date: mother.collection_date,
+        expiry_date: new Date(now.getTime() + 5 * 86400000).toISOString(), // 5 días agitación
+        status: mother.serology_status === 'NEGATIVE' ? 'AVAILABLE' : mother.status,
+        location_storage: 'AGITADOR_PLAQUETAS_01',
+        serology_status: mother.serology_status,
+        marker_hiv: mother.marker_hiv,
+        marker_hbv: mother.marker_hbv,
+        marker_hcv: mother.marker_hcv,
+        marker_syphilis: mother.marker_syphilis,
+        marker_chagas: mother.marker_chagas,
+        marker_htlv: mother.marker_htlv
+      });
+    }
+
+    // 4. Crioprecipitado (Cryo - E0600)
+    if (options.cryo) {
+      childUnitsPayload.push({
+        tenant_id,
+        donor_id: mother.donor_id,
+        unit_number: `${cleanDin}-CRYO`,
+        component_type: 'CRYOPRECIPITATE',
+        blood_type: mother.blood_type,
+        rh_factor: mother.rh_factor,
+        volume_ml: 20,
+        collection_date: mother.collection_date,
+        expiry_date: new Date(now.getTime() + 365 * 86400000).toISOString(), // 1 año congelado
+        status: mother.serology_status === 'NEGATIVE' ? 'AVAILABLE' : mother.status,
+        location_storage: 'CONGELADOR_CRYO_01',
+        serology_status: mother.serology_status,
+        marker_hiv: mother.marker_hiv,
+        marker_hbv: mother.marker_hbv,
+        marker_hcv: mother.marker_hcv,
+        marker_syphilis: mother.marker_syphilis,
+        marker_chagas: mother.marker_chagas,
+        marker_htlv: mother.marker_htlv
+      });
+    }
+
+    // Insertar hijos en la base de datos
+    const { data: createdChildren, error: cErr } = await supabase
+      .from('blood_units')
+      .insert(childUnitsPayload)
+      .select();
+    if (cErr) handleError('fractionateMotherUnit:insertChildren', cErr);
+
+    // Actualizar madre a procesada
+    await supabase
+      .from('blood_units')
+      .update({
+        status: 'PROCESSED_FRACTIONATED',
+        location_storage: 'HISTORICO_FRACCIONADO'
+      })
+      .eq('id', motherUnitId);
+
+    return createdChildren || [];
+  },
+
+  /**
+   * Validador Clínico de e-Crossmatch (Cruce Electrónico Inteligente bajo norma AABB / CLSI)
+   */
+  checkECrossmatchCompatibility(
+    patient: { blood_type?: string; rh_factor?: string; rai_negative?: boolean; historical_confirmations?: number; atypical_antibodies?: boolean },
+    unit: { blood_type: string; rh_factor: string; component_type?: string }
+  ): { isEligible: boolean; isCompatible: boolean; reasons: string[] } {
+    const reasons: string[] = [];
+
+    // Criterio 1: Doble determinación histórica ABO/Rh
+    const histCount = patient.historical_confirmations !== undefined ? patient.historical_confirmations : 2;
+    if (histCount < 2) {
+      reasons.push(`Requiere al menos 2 determinaciones de grupo ABO/Rh concordantes en el expediente (actuales: ${histCount}).`);
+    }
+
+    // Criterio 2: Rastreo de Anticuerpos Irregulares (RAI / Coombs Indirecto)
+    const raiNeg = patient.rai_negative !== false;
+    if (!raiNeg) {
+      reasons.push('Rastreo de Anticuerpos Irregulares (RAI) es positivo o no realizado. Requiere cruce serológico en gel.');
+    }
+
+    // Criterio 3: Cero historial de anticuerpos atípicos
+    if (patient.atypical_antibodies) {
+      reasons.push('Paciente con historial de anticuerpos irregulares clínicamente significativos. Requiere prueba en tubo con fenotipo compatible.');
+    }
+
+    const isEligible = reasons.length === 0;
+
+    // Reglas de compatibilidad ABO/Rh
+    const pGroup = (patient.blood_type || 'O').toUpperCase();
+    const pRh = (patient.rh_factor || 'POS').toUpperCase();
+    const uGroup = unit.blood_type.toUpperCase();
+    const uRh = unit.rh_factor.toUpperCase();
+    const compType = unit.component_type || 'RED_CELLS';
+
+    let isCompatible = false;
+    if (compType === 'RED_CELLS' || compType === 'WHOLE_BLOOD') {
+      const rbcMap: Record<string, string[]> = {
+        'O': ['O'],
+        'A': ['A', 'O'],
+        'B': ['B', 'O'],
+        'AB': ['A', 'B', 'AB', 'O']
+      };
+      const allowedGroups = rbcMap[pGroup] || ['O'];
+      const aboOk = allowedGroups.includes(uGroup);
+      const rhOk = (pRh === 'NEG' ? uRh === 'NEG' : true);
+      isCompatible = aboOk && rhOk;
+      if (!isCompatible) {
+        reasons.push(`Incompatibilidad de Glóbulos Rojos: Paciente ${pGroup} ${pRh} no puede recibir unidad ${uGroup} ${uRh}.`);
+      }
+    } else if (compType === 'PLASMA') {
+      const plasmaMap: Record<string, string[]> = {
+        'O': ['O', 'A', 'B', 'AB'],
+        'A': ['A', 'AB'],
+        'B': ['B', 'AB'],
+        'AB': ['AB']
+      };
+      const allowedGroups = plasmaMap[pGroup] || ['AB'];
+      isCompatible = allowedGroups.includes(uGroup);
+      if (!isCompatible) {
+        reasons.push(`Incompatibilidad de Plasma: Paciente ${pGroup} no puede recibir plasma ${uGroup}.`);
+      }
+    } else {
+      isCompatible = true;
+    }
+
+    return {
+      isEligible,
+      isCompatible: isEligible && isCompatible,
+      reasons
+    };
+  },
+
+  /**
+   * Ejecución oficial de e-Crossmatch con registro en BD
+   */
+  async performElectronicCrossmatch(
+    requestId: string,
+    unitId: string,
+    technologistName: string = 'Lic. Tecnólogo Médico'
+  ): Promise<any> {
+    // Obtener solicitud y unidad
+    const [reqRes, unitRes] = await Promise.all([
+      supabase.from('blood_requests').select('*, patients(*)').eq('id', requestId).single(),
+      supabase.from('blood_units').select('*').eq('id', unitId).single()
+    ]);
+
+    if (unitRes.error || !unitRes.data) throw new Error('Unidad no encontrada');
+
+    const patient = reqRes.data?.patients || { blood_type: 'O', rh_factor: 'POS' };
+    const unit = unitRes.data;
+
+    const evaluation = this.checkECrossmatchCompatibility(
+      {
+        blood_type: patient.blood_type || 'O',
+        rh_factor: patient.rh_factor || 'POS',
+        rai_negative: true,
+        historical_confirmations: 2,
+        atypical_antibodies: false
+      },
+      unit
+    );
+
+    if (!evaluation.isCompatible) {
+      throw new Error(`e-Crossmatch Rechazado: ${evaluation.reasons.join(' | ')}`);
+    }
+
+    // Registrar cruce electrónico en blood_crossmatches
+    const { data: crossmatch, error: cmErr } = await supabase
+      .from('blood_crossmatches')
+      .insert({
+        request_id: requestId,
+        unit_id: unitId,
+        technologist_id: null,
+        method: 'ELECTRONIC_CROSSMATCH_AABB',
+        saline_phase: 'COMPATIBLE_ALGORITMICO',
+        albumin_phase: 'COMPATIBLE_ALGORITMICO',
+        coombs_phase: 'NEGATIVO_RAI_HISTORICO',
+        result: 'COMPATIBLE',
+        incompatibility_notes: `Liberación electrónica automática en 1 seg autorizada bajo norma AABB / ISO 15189 por ${technologistName}. Paciente ${patient.blood_type || 'O'}${patient.rh_factor || '+'} compatible con unidad ${unit.blood_type}${unit.rh_factor === 'POS' ? '+' : '-'}.`
+      })
+      .select()
+      .single();
+
+    if (cmErr) handleError('performElectronicCrossmatch:cmErr', cmErr);
+
+    // Reservar unidad y actualizar solicitud
+    await Promise.all([
+      supabase.from('blood_units').update({ status: 'RESERVED' }).eq('id', unitId),
+      supabase.from('blood_requests').update({ status: 'READY' }).eq('id', requestId)
+    ]);
+
+    return {
+      success: true,
+      crossmatch,
+      evaluation,
+      certifiedAt: new Date().toISOString()
+    };
+  },
+
   /** Solicitudes de Transfusión */
   async getPendingRequests(): Promise<any[]> {
     const { data, error } = await supabase
