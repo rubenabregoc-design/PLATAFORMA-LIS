@@ -91,8 +91,24 @@ function appendToLocalSpool(filename, record) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Commercial Test Homologation Dictionary & Normalization Engine
+// Commercial & Custom Dynamic Test Homologation Engine
 // ──────────────────────────────────────────────────────────────────────────────
+let dynamicMappings = [];
+
+function loadDynamicMappings() {
+  try {
+    const cachePath = path.resolve(__dirname, 'mappings-cache.json');
+    if (fs.existsSync(cachePath)) {
+      const raw = fs.readFileSync(cachePath, 'utf8');
+      dynamicMappings = JSON.parse(raw);
+      if (!Array.isArray(dynamicMappings)) dynamicMappings = [];
+    }
+  } catch (e) {
+    dynamicMappings = [];
+  }
+}
+loadDynamicMappings();
+
 const CLINICAL_TEST_HOMOLOGATION = {
   // Hematology (Sysmex, Mindray, Pentra, Cell-Dyn, Coulter)
   'WBC': { name: 'Leucocitos', unit: '10^3/uL', refMin: 4.5, refMax: 11.0 },
@@ -149,8 +165,28 @@ const CLINICAL_TEST_HOMOLOGATION = {
   'FT4': { name: 'T4 Libre', unit: 'ng/dL', refMin: 0.8, refMax: 1.8 }
 };
 
-function homologateTest(testCode, rawUnit, rawRefRange) {
+function homologateTest(testCode, rawUnit, rawRefRange, analyzerId) {
   const cleanCode = (testCode || '').trim().toUpperCase();
+
+  // 1. Dynamic hot-reloaded mappings (highest priority, zero-downtime)
+  if (Array.isArray(dynamicMappings) && dynamicMappings.length > 0) {
+    const custom = dynamicMappings.find(m => 
+      (!m.analyzerId || !analyzerId || m.analyzerId === analyzerId) &&
+      m.analyzerCode?.trim().toUpperCase() === cleanCode
+    );
+    if (custom) {
+      return {
+        parameterName: custom.lisTestName || custom.analyzerCode,
+        unit: rawUnit || custom.unit || '',
+        refRange: rawRefRange || (custom.refMin != null && custom.refMax != null ? `${custom.refMin} - ${custom.refMax}` : ''),
+        refMin: custom.refMin != null ? parseFloat(custom.refMin) : null,
+        refMax: custom.refMax != null ? parseFloat(custom.refMax) : null,
+        multiplierFactor: custom.multiplierFactor || 1
+      };
+    }
+  }
+
+  // 2. Standard commercial dictionary
   const match = CLINICAL_TEST_HOMOLOGATION[cleanCode];
   if (match) {
     return {
@@ -158,15 +194,18 @@ function homologateTest(testCode, rawUnit, rawRefRange) {
       unit: rawUnit || match.unit,
       refRange: rawRefRange || `${match.refMin} - ${match.refMax}`,
       refMin: match.refMin,
-      refMax: match.refMax
+      refMax: match.refMax,
+      multiplierFactor: 1
     };
   }
+
   return {
     parameterName: testCode,
     unit: rawUnit || '',
     refRange: rawRefRange || '',
     refMin: null,
-    refMax: null
+    refMax: null,
+    multiplierFactor: 1
   };
 }
 
@@ -479,6 +518,7 @@ function handleWsCommand(cmd, ws) {
     case 'sync_mappings':
       if (Array.isArray(cmd.mappings)) {
         try {
+          dynamicMappings = cmd.mappings;
           const cachePath = path.resolve(__dirname, 'mappings-cache.json');
           fs.writeFileSync(cachePath, JSON.stringify(cmd.mappings, null, 2), 'utf8');
           log('HOMOLOGATION', `✓ Sync Engine: ${cmd.mappings.length} mapeos de analitos sincronizados en caliente en el Middleware`);
@@ -1338,7 +1378,7 @@ async function processAstmData(analyzerConfig, socket, dataBuffer) {
 
     // 3. Process each clinical result with homologation & critical checks
     for (const result of parsed.results) {
-      const homologated = homologateTest(result.testCode, result.unit, result.referenceRange);
+      const homologated = homologateTest(result.testCode, result.unit, result.referenceRange, id);
       const evaluatedFlag = evaluateClinicalFlag(
         result.numericValue,
         homologated.refMin,
@@ -1491,7 +1531,7 @@ async function processHl7Data(analyzerConfig, dataBuffer) {
     }
 
     for (const obx of parsed.obx) {
-      const homologated = homologateTest(obx.testCode || obx.testName, obx.unit, obx.referenceRange);
+      const homologated = homologateTest(obx.testCode || obx.testName, obx.unit, obx.referenceRange, id);
       const evaluatedFlag = evaluateClinicalFlag(
         obx.numericValue,
         homologated.refMin,
