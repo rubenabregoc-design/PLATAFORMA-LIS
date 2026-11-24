@@ -1204,6 +1204,37 @@ export const BloodBankService = {
     if (error) handleError('createEpidemiologicalReport', error);
     return data!;
   },
+
+  /** Registrar Transfusión a Pie de Cama y Actualizar Estado */
+  async completeBedsideTransfusion(params: {
+    unitId: string;
+    unitNumber?: string;
+    requestId?: string;
+    patientId: string;
+    vitals: any[];
+    nurseAdmin: string;
+    nurseAdminLicense: string;
+    nurseWitness: string;
+    nurseWitnessLicense: string;
+    notes?: string;
+  }): Promise<void> {
+    const query = supabase
+      .from('blood_units')
+      .update({ status: 'TRANSFUSED' });
+    
+    if (params.unitId) {
+      await query.eq('id', params.unitId);
+    } else if (params.unitNumber) {
+      await query.eq('unit_number', params.unitNumber);
+    }
+
+    if (params.requestId) {
+      await supabase
+        .from('blood_requests')
+        .update({ status: 'COMPLETED' })
+        .eq('id', params.requestId);
+    }
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

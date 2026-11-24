@@ -25,6 +25,8 @@ import HemovigilanceAnalytics from './TechnologistSuite/HemovigilanceAnalytics';
 import HemovigilanceReportModal from './TechnologistSuite/HemovigilanceReportModal';
 import BloodLogisticsManager from './TechnologistSuite/BloodLogisticsManager';
 import ISBTLabelPrinter from './TechnologistSuite/ISBTLabelPrinter';
+import { DonorDigitalCardModal } from './TechnologistSuite/DonorDigitalCardModal';
+import { OfficialBloodBankFormsPDF, OfficialFormType } from './TechnologistSuite/OfficialBloodBankFormsPDF';
 
 export type BloodBankTab =
   | 'DASHBOARD'
@@ -56,6 +58,10 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
   const [showProcessingModal, setShowProcessingModal] = useState<boolean>(false);
   const [showLabelPrinterModal, setShowLabelPrinterModal] = useState<boolean>(false);
   const [selectedUnitForLabel, setSelectedUnitForLabel] = useState<any>(null);
+  const [showDigitalCardModal, setShowDigitalCardModal] = useState<boolean>(false);
+  const [selectedDonorForCard, setSelectedDonorForCard] = useState<any>(null);
+  const [showOfficialFormsModal, setShowOfficialFormsModal] = useState<boolean>(false);
+  const [activeOfficialForm, setActiveOfficialForm] = useState<OfficialFormType>('F-TRANS-02');
 
   // Estados de datos reales
   const [units, setUnits] = useState<any[]>([]);
@@ -166,6 +172,17 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
           </button>
 
           <button
+            onClick={() => {
+              setActiveOfficialForm('F-TRANS-02');
+              setShowOfficialFormsModal(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 border border-rose-500/40 text-rose-300 hover:text-white hover:bg-slate-800 font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer shadow"
+          >
+            <FileText className="w-4 h-4 text-rose-400" />
+            <span>Formatos MINSA (PDF)</span>
+          </button>
+
+          <button
             onClick={() => setShowProcessingModal(true)}
             className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-indigo-300 hover:text-white hover:bg-slate-800 font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer"
           >
@@ -247,13 +264,37 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
                   Control de elegibilidad, exclusiones transitorias y definitivas bajo normativa MINSA.
                 </p>
               </div>
-              <button
-                onClick={() => setShowDonorModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Registrar Donante</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedDonorForCard(null);
+                    setShowDigitalCardModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:text-white hover:bg-slate-800 font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer shadow"
+                >
+                  <QrCode className="w-4 h-4 text-cyan-400" />
+                  <span>Carnet Digital QR</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveOfficialForm('F-DON-01');
+                    setShowOfficialFormsModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-rose-400" />
+                  <span>F-DON-01 Consentimiento</span>
+                </button>
+
+                <button
+                  onClick={() => setShowDonorModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Registrar Donante</span>
+                </button>
+              </div>
             </div>
             <DonorDeferralDashboard />
           </div>
@@ -444,6 +485,27 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
         <ISBTLabelPrinter
           unit={selectedUnitForLabel || units[0]}
           onClose={() => setShowLabelPrinterModal(false)}
+        />
+      )}
+
+      {showDigitalCardModal && (
+        <DonorDigitalCardModal
+          donor={selectedDonorForCard || (donors.length > 0 ? {
+            id: donors[0].id,
+            bloodType: donors[0].blood_type,
+            rhFactor: donors[0].rh_factor,
+            eligibilityStatus: donors[0].eligibility_status,
+            lastDonationDate: donors[0].last_donation_date,
+            deferralReason: donors[0].deferral_reason
+          } : undefined)}
+          onClose={() => setShowDigitalCardModal(false)}
+        />
+      )}
+
+      {showOfficialFormsModal && (
+        <OfficialBloodBankFormsPDF
+          initialForm={activeOfficialForm}
+          onClose={() => setShowOfficialFormsModal(false)}
         />
       )}
     </div>
