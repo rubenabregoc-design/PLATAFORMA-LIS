@@ -53,6 +53,7 @@ import { HomePhlebotomyRouting } from './components/Phase6Suite/HomePhlebotomyRo
 import { AnatomicalPathologyModule } from './components/Phase6Suite/AnatomicalPathologyModule';
 import { WhatsAppNotificationEngine } from './components/Phase6Suite/WhatsAppNotificationEngine';
 import { BloodBankModule } from './components/Phase6Suite/BloodBankModule';
+import { BloodBankMasterWorkspace } from './components/Phase6Suite/BloodBankMasterWorkspace';
 import { LabelPrinterStudio } from './components/Phase6Suite/LabelPrinterStudio';
 import { LabProductivityDashboard } from './components/Phase6Suite/LabProductivityDashboard';
 import { TechnologistWorkbench } from './components/Phase6Suite/TechnologistWorkbench';
@@ -1570,7 +1571,7 @@ export default function App() {
                 {dashboardSubMode === 'HIS' ? (
                   <HospitalCommandCenter onNavigateTab={(tab) => setActiveTab(tab)} />
                 ) : dashboardSubMode === 'BLOODBANK' ? (
-                  <BloodBankModule />
+                  <BloodBankMasterWorkspace />
                 ) : dashboardSubMode === 'CONFIG' ? (
                   <SuperAdminDashboard
                     tenants={safeTenants}
@@ -1702,20 +1703,20 @@ export default function App() {
             {activeTab === 'his_console' && <HISIntegrationConsole />}
             {activeTab === 'punch_clock' && <StaffPunchClock />}
 
-            {/* Blood Bank Sub-Modules */}
-            {activeTab === 'bloodbank' && <BloodBankCenter />}
-            {activeTab === 'blood_evolution' && <TransfusionEvolutionManager />}
-            {activeTab === 'blood_donors' && <DonorScreeningForm onClose={() => setActiveTab('bloodbank')} onComplete={() => setActiveTab('bloodbank')} />}
-            {activeTab === 'blood_deferral' && <DonorDeferralDashboard />}
-            {activeTab === 'blood_apheresis' && <ApheresisDonationModule />}
-            {activeTab === 'blood_drives' && <ExtramuralBloodDriveManager />}
-            {activeTab === 'blood_fractionation' && <UnitProcessingWorkspace onClose={() => setActiveTab('bloodbank')} onRefresh={() => {}} />}
-            {activeTab === 'blood_cold_chain' && <ColdChainMonitor />}
-            {activeTab === 'blood_logistics' && <BloodLogisticsManager />}
-            {activeTab === 'blood_crossmatch' && <BloodBankModule />}
-            {activeTab === 'blood_serology' && <SerologyNatScreening />}
-            {activeTab === 'blood_bedside' && <SmartBedsideTransfusion />}
-            {activeTab === 'blood_hemovigilance' && <HemovigilanceAnalytics />}
+            {/* Blood Bank Sub-Modules Unificados en Master Workspace */}
+            {activeTab === 'bloodbank' && <BloodBankMasterWorkspace initialTab="DASHBOARD" />}
+            {activeTab === 'blood_evolution' && <BloodBankMasterWorkspace initialTab="EVOLUTION" />}
+            {activeTab === 'blood_donors' && <BloodBankMasterWorkspace initialTab="DONORS" />}
+            {activeTab === 'blood_deferral' && <BloodBankMasterWorkspace initialTab="DONORS" />}
+            {activeTab === 'blood_apheresis' && <BloodBankMasterWorkspace initialTab="COLLECTIONS" />}
+            {activeTab === 'blood_drives' && <BloodBankMasterWorkspace initialTab="COLLECTIONS" />}
+            {activeTab === 'blood_fractionation' && <BloodBankMasterWorkspace initialTab="PROCESSING" />}
+            {activeTab === 'blood_cold_chain' && <BloodBankMasterWorkspace initialTab="INVENTORY" />}
+            {activeTab === 'blood_logistics' && <BloodBankMasterWorkspace initialTab="LOGISTICS" />}
+            {activeTab === 'blood_crossmatch' && <BloodBankMasterWorkspace initialTab="CROSSMATCH" />}
+            {activeTab === 'blood_serology' && <BloodBankMasterWorkspace initialTab="LAB_SEROLOGY" />}
+            {activeTab === 'blood_bedside' && <BloodBankMasterWorkspace initialTab="TRANSFUSION" />}
+            {activeTab === 'blood_hemovigilance' && <BloodBankMasterWorkspace initialTab="HEMOVIGILANCE" />}
             {activeTab === 'blood_waste' && <BiohazardWasteManager />}
             {activeTab === 'blood_chemical_waste' && <ChemicalWasteManager />}
             {activeTab === 'blood_manifest' && <DisposalManifestPDF onClose={() => setActiveTab('blood_waste')} />}

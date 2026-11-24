@@ -776,7 +776,39 @@ export const BloodBankService = {
       .eq('status', 'AVAILABLE')
       .order('expiry_date', { ascending: true });
     if (error) handleError('getAvailableUnits', error);
-    return data!;
+    return data || [];
+  },
+
+  /** Inventario: Obtiene todas las unidades en cuarentena para tamizaje y fraccionamiento */
+  async getQuarantineUnits(): Promise<DbBloodUnit[]> {
+    const { data, error } = await supabase
+      .from('blood_units')
+      .select('*')
+      .eq('status', 'QUARANTINE')
+      .order('collection_date', { ascending: false });
+    if (error) handleError('getQuarantineUnits', error);
+    return data || [];
+  },
+
+  /** Inventario: Obtiene todas las unidades registradas (con filtro de estado opcional) */
+  async getAllUnits(statusFilter?: string): Promise<DbBloodUnit[]> {
+    let query = supabase.from('blood_units').select('*');
+    if (statusFilter && statusFilter !== 'ALL') {
+      query = query.eq('status', statusFilter);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) handleError('getAllUnits', error);
+    return data || [];
+  },
+
+  /** Donantes: Obtiene la lista de donantes registrados */
+  async getDonors(): Promise<DbBloodDonor[]> {
+    const { data, error } = await supabase
+      .from('blood_donors')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) handleError('getDonors', error);
+    return data || [];
   },
 
   /** Registro de Donante */
