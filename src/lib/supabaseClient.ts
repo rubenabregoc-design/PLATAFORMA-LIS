@@ -28,13 +28,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl !== 'https://placeholder.supabase.co' &&
-  !supabaseUrl.includes('placeholder')
-);
-
 // Hybrid Database Support (PostgreSQL / PostgREST Local + Cloud Supabase)
 export type DatabaseMode = 'LOCAL_FIRST' | 'CLOUD_ONLY' | 'HYBRID' | 'MOCK';
 
@@ -55,8 +48,8 @@ const localUrl = import.meta.env.VITE_SUPABASE_LOCAL_URL || 'http://localhost:80
 const rawLocalKey = import.meta.env.VITE_SUPABASE_LOCAL_ANON_KEY;
 const localKey = (rawLocalKey && rawLocalKey.split('.').length === 3) ? rawLocalKey : LOCAL_POSTGREST_JWT;
 
-const cloudUrl = import.meta.env.VITE_SUPABASE_CLOUD_URL || supabaseUrl || 'https://placeholder.supabase.co';
-const cloudKey = import.meta.env.VITE_SUPABASE_CLOUD_ANON_KEY || supabaseAnonKey || 'placeholder-key';
+const cloudUrl = import.meta.env.VITE_SUPABASE_CLOUD_URL || 'https://placeholder.supabase.co';
+const cloudKey = import.meta.env.VITE_SUPABASE_CLOUD_ANON_KEY || 'placeholder-key';
 
 export const DATABASE_MODE: DatabaseMode = (import.meta.env.VITE_DATABASE_MODE as DatabaseMode) || 'HYBRID';
 export const isLocalConfigured = Boolean(localUrl && !localUrl.includes('placeholder'));
@@ -65,6 +58,8 @@ export const isCloudConfigured = Boolean(
   !cloudUrl.includes('placeholder') &&
   !cloudUrl.includes('vsrhpjhmdkykgqyntstr')
 );
+
+export const isSupabaseConfigured = isCloudConfigured;
 
 /**
  * Interceptor de fetch para arquitectura Híbrida:
@@ -226,8 +221,24 @@ export const supabase = createClient<Database>(
 // 🌐 Enrutamiento inteligente del canal WebSocket Realtime:
 // PostgREST local (:8000) no tiene servidor de websockets (produce error 404).
 // Si Supabase Cloud está configurado, enrutamos el socket a la nube.
-// Si estamos en modo Local-First sin nube, desconectamos Realtime para evitar bucles de reconexión.
-if (isCloudConfigured && cloudUrl && !cloudUrl.includes('placeholder')) {
+// Si estamos en modo Local-First sin nube, desconectamos y protegemos .channel para evitar bucles de reconexión 404.
+if (!isCloudConfigured) {
+  try {
+    supabase.realtime?.disconnect?.();
+    supabaseLocal.realtime?.disconnect?.();
+  } catch {}
+
+  const dummyChannel = {
+    on: () => ({ subscribe: (cb?: any) => { cb?.('SUBSCRIBED'); return { unsubscribe: () => {} }; } }),
+    subscribe: (cb?: any) => { cb?.('SUBSCRIBED'); return { unsubscribe: () => {} }; },
+    send: () => Promise.resolve('ok'),
+    unsubscribe: () => Promise.resolve('ok'),
+    presence: { track: () => Promise.resolve('ok'), untrack: () => Promise.resolve('ok') }
+  };
+
+  (supabase as any).channel = () => dummyChannel;
+  (supabaseLocal as any).channel = () => dummyChannel;
+} else if (cloudUrl && !cloudUrl.includes('placeholder')) {
   try {
     const cloudWsUrl = cloudUrl.replace('https://', 'wss://').replace('http://', 'ws://') + '/realtime/v1/websocket';
     const socket = (supabase.realtime as any)?.socketAdapter?.socket;
@@ -237,12 +248,6 @@ if (isCloudConfigured && cloudUrl && !cloudUrl.includes('placeholder')) {
     }
   } catch {
     // Silencioso en caso de inicialización diferida
-  }
-} else {
-  try {
-    supabase.realtime?.disconnect?.();
-  } catch {
-    // Silencioso
   }
 }
 
