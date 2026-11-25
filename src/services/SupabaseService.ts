@@ -801,8 +801,18 @@ export const BloodBankService = {
     return data || [];
   },
 
-  /** Donantes: Obtiene la lista de donantes registrados */
-  async getDonors(): Promise<DbBloodDonor[]> {
+  /** Donantes: Obtiene la lista de donantes registrados con datos de paciente si existen */
+  async getDonors(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blood_donors')
+        .select('*, patients(first_name, last_name, national_id, phone, email, date_of_birth, gender)')
+        .order('created_at', { ascending: false });
+      if (!error && data) return data;
+    } catch {
+      // Fallback a select general si no existe la relación foreign key explícita
+    }
+
     const { data, error } = await supabase
       .from('blood_donors')
       .select('*')

@@ -3,7 +3,8 @@ import {
   Droplets, Users, Package, Activity, AlertTriangle, Search, Plus,
   CheckCircle2, Clock, ShieldCheck, FlaskConical, Beaker, Thermometer,
   QrCode, FileText, Send, Lock, Eye, ArrowRight, RefreshCw, Filter,
-  Building2, UserCheck, Flame, ChevronRight, Stethoscope, HeartPulse
+  Building2, UserCheck, Flame, ChevronRight, Stethoscope, HeartPulse,
+  UserX, Calendar, ShieldAlert, X, Award, Sparkles
 } from 'lucide-react';
 import { useLisStore } from '../../store/useLisStore';
 import { SupabaseService } from '../../services/SupabaseService';
@@ -63,6 +64,13 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
   const [showOfficialFormsModal, setShowOfficialFormsModal] = useState<boolean>(false);
   const [activeOfficialForm, setActiveOfficialForm] = useState<OfficialFormType>('F-TRANS-02');
 
+  // Estados de pestaña DONANTES
+  const [donorSubView, setDonorSubView] = useState<'DIRECTORY' | 'DEFERRALS'>('DIRECTORY');
+  const [donorSearchQuery, setDonorSearchQuery] = useState<string>('');
+  const [donorStatusFilter, setDonorStatusFilter] = useState<'ALL' | 'ELIGIBLE' | 'TEMPORARY_DEFERRAL' | 'PERMANENT_DEFERRAL'>('ALL');
+  const [donorBloodTypeFilter, setDonorBloodTypeFilter] = useState<string>('ALL');
+  const [deferralBlockedDonor, setDeferralBlockedDonor] = useState<any>(null);
+
   // Estados de datos reales
   const [units, setUnits] = useState<any[]>([]);
   const [donors, setDonors] = useState<any[]>([]);
@@ -84,10 +92,10 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
       } else if (isDemoMode) {
         // En Modo Demo comercial, inyectar dataset inicial
         setUnits([
-          { id: 'u-1', unit_number: '=F88232600101', blood_type: 'O', rh_factor: 'POS', component_type: 'RBC', volume_ml: 325, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 21 * 86400000).toISOString() },
-          { id: 'u-2', unit_number: '=F88232600102', blood_type: 'O', rh_factor: 'NEG', component_type: 'RBC', volume_ml: 310, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 28 * 86400000).toISOString() },
-          { id: 'u-3', unit_number: '=F88232600103', blood_type: 'A', rh_factor: 'POS', component_type: 'PLASMA', volume_ml: 250, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 180 * 86400000).toISOString() },
-          { id: 'u-4', unit_number: '=F88232600104', blood_type: 'B', rh_factor: 'POS', component_type: 'PLATELETS', volume_ml: 60, status: 'QUARANTINE', expiry_date: new Date(Date.now() + 5 * 86400000).toISOString() },
+          { id: 'u-1', unit_number: '=F88232600101', donor_id: 'DON-PA-2026-8841', blood_type: 'O', rh_factor: 'POS', component_type: 'RBC', volume_ml: 325, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 21 * 86400000).toISOString() },
+          { id: 'u-2', unit_number: '=F88232600102', donor_id: 'DON-PA-2026-8843', blood_type: 'O', rh_factor: 'NEG', component_type: 'RBC', volume_ml: 310, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 28 * 86400000).toISOString() },
+          { id: 'u-3', unit_number: '=F88232600103', donor_id: 'DON-PA-2026-8841', blood_type: 'A', rh_factor: 'POS', component_type: 'PLASMA', volume_ml: 250, status: 'AVAILABLE', expiry_date: new Date(Date.now() + 180 * 86400000).toISOString() },
+          { id: 'u-4', unit_number: '=F88232600104', donor_id: 'DON-PA-2026-8845', blood_type: 'B', rh_factor: 'POS', component_type: 'PLATELETS', volume_ml: 60, status: 'QUARANTINE', expiry_date: new Date(Date.now() + 5 * 86400000).toISOString() },
         ]);
       } else {
         setUnits([]);
@@ -96,9 +104,100 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
       if (donorsData && donorsData.length > 0) {
         setDonors(donorsData);
       } else if (isDemoMode) {
+        // En Modo Demo comercial, dataset sintético de donantes con datos clínicos MINSA
         setDonors([
-          { id: 'don-1', blood_type: 'O', rh_factor: 'POS', eligibility_status: 'ELIGIBLE', last_donation_date: '2026-05-10' },
-          { id: 'don-2', blood_type: 'A', rh_factor: 'POS', eligibility_status: 'TEMPORARY_DEFERRAL', deferral_reason: 'Tatuaje realizado hace < 6 meses' }
+          {
+            id: 'DON-PA-2026-8841',
+            blood_type: 'O',
+            rh_factor: 'POS',
+            phenotype: 'C+ c+ E- e+ K- (Kell Neg)',
+            eligibility_status: 'ELIGIBLE',
+            last_donation_date: '2026-05-10',
+            total_donations: 6,
+            created_at: '2026-01-15T08:00:00Z',
+            patients: {
+              first_name: 'Roberto Carlos',
+              last_name: 'Mendoza Samudio',
+              national_id: '8-765-4321',
+              gender: 'M',
+              phone: '+507 6234-5678',
+              email: 'roberto.mendoza@email.pa'
+            }
+          },
+          {
+            id: 'DON-PA-2026-8842',
+            blood_type: 'A',
+            rh_factor: 'POS',
+            phenotype: 'D+ C+ c- E- e+ K-',
+            eligibility_status: 'TEMPORARY_DEFERRAL',
+            deferral_reason: 'Tatuaje / Piercing realizado hace < 6 meses (Resolución Técnica MINSA)',
+            last_donation_date: '2025-11-20',
+            total_donations: 2,
+            created_at: '2026-02-10T10:30:00Z',
+            patients: {
+              first_name: 'Ana Patricia',
+              last_name: 'Gómez Vergara',
+              national_id: '4-789-1234',
+              gender: 'F',
+              phone: '+507 6890-1122',
+              email: 'ana.gomez@email.pa'
+            }
+          },
+          {
+            id: 'DON-PA-2026-8843',
+            blood_type: 'O',
+            rh_factor: 'NEG',
+            phenotype: 'D- C- c+ E- e+ K- (Donante Universal O-)',
+            eligibility_status: 'ELIGIBLE',
+            last_donation_date: '2026-04-18',
+            total_donations: 11,
+            created_at: '2026-03-05T09:15:00Z',
+            patients: {
+              first_name: 'Demetrio',
+              last_name: 'Santander Batista',
+              national_id: '9-712-456',
+              gender: 'M',
+              phone: '+507 6555-8901',
+              email: 'demetrio.santander@email.pa'
+            }
+          },
+          {
+            id: 'DON-PA-2026-8844',
+            blood_type: 'B',
+            rh_factor: 'POS',
+            phenotype: 'D+ C- c+ E+ e+ K-',
+            eligibility_status: 'PERMANENT_DEFERRAL',
+            deferral_reason: 'Confirmación reactiva de anticuerpos Anti-HCV por técnica de Quimioluminiscencia',
+            last_donation_date: '2025-08-14',
+            total_donations: 1,
+            created_at: '2025-08-14T11:00:00Z',
+            patients: {
+              first_name: 'Carlos Alberto',
+              last_name: 'Castillo Pineda',
+              national_id: '8-802-998',
+              gender: 'M',
+              phone: '+507 6123-9900',
+              email: 'carlos.castillo@email.pa'
+            }
+          },
+          {
+            id: 'DON-PA-2026-8845',
+            blood_type: 'AB',
+            rh_factor: 'POS',
+            phenotype: 'D+ C+ c+ E+ e+ K-',
+            eligibility_status: 'ELIGIBLE',
+            last_donation_date: '2026-03-01',
+            total_donations: 4,
+            created_at: '2026-02-28T14:20:00Z',
+            patients: {
+              first_name: 'Yaritza Elena',
+              last_name: 'Navarro Morales',
+              national_id: '3-740-1982',
+              gender: 'F',
+              phone: '+507 6444-2311',
+              email: 'yaritza.navarro@email.pa'
+            }
+          }
         ]);
       } else {
         setDonors([]);
@@ -127,6 +226,63 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
   const availableCount = units.filter(u => u.status === 'AVAILABLE').length;
   const quarantineCount = units.filter(u => u.status === 'QUARANTINE').length;
   const reservedCount = units.filter(u => u.status === 'RESERVED').length;
+
+  // Métricas y filtrado de Donantes
+  const totalDonorsCount = donors.length;
+  const eligibleDonorsCount = donors.filter(d => d.eligibility_status === 'ELIGIBLE').length;
+  const tempDeferralCount = donors.filter(d => d.eligibility_status === 'TEMPORARY_DEFERRAL').length;
+  const permDeferralCount = donors.filter(d => d.eligibility_status === 'PERMANENT_DEFERRAL').length;
+
+  const filteredDonors = donors.filter(donor => {
+    if (donorSearchQuery.trim()) {
+      const q = donorSearchQuery.toLowerCase().trim();
+      const firstName = donor.patients?.first_name?.toLowerCase() || '';
+      const lastName = donor.patients?.last_name?.toLowerCase() || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      const nationalId = (donor.patients?.national_id || donor.national_id || '').toLowerCase();
+      const donorId = (donor.id || '').toLowerCase();
+      if (!fullName.includes(q) && !nationalId.includes(q) && !donorId.includes(q)) {
+        return false;
+      }
+    }
+
+    if (donorStatusFilter !== 'ALL' && donor.eligibility_status !== donorStatusFilter) {
+      return false;
+    }
+
+    if (donorBloodTypeFilter !== 'ALL') {
+      const combined = `${donor.blood_type || ''}_${donor.rh_factor || ''}`.toUpperCase();
+      if (combined !== donorBloodTypeFilter) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const getDonationIntervalInfo = (lastDonationDate: string | null) => {
+    if (!lastDonationDate) {
+      return { days: null, canDonate: true, message: 'Sin donación previa (Apto)' };
+    }
+    const last = new Date(lastDonationDate).getTime();
+    if (isNaN(last)) return { days: null, canDonate: true, message: 'Fecha no registrada' };
+    const diffDays = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
+    const minDays = 56; // 8 semanas estándar MINSA para sangre total
+    if (diffDays >= minDays) {
+      return {
+        days: diffDays,
+        canDonate: true,
+        message: `Intervalo cumplido (${diffDays}d)`
+      };
+    } else {
+      const remaining = minDays - diffDays;
+      return {
+        days: diffDays,
+        canDonate: false,
+        message: `Faltan ${remaining}d (${diffDays}d transcurridos)`
+      };
+    }
+  };
 
   return (
     <div className="bg-[#020617] min-h-screen text-slate-100 p-4 sm:p-6 space-y-6">
@@ -254,17 +410,17 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
         {/* TAB 2: DONANTES & ADMISIÓN */}
         {activeTab === 'DONORS' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-4">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                   <Users className="w-5 h-5 text-rose-400" />
-                  <span>Registro Clínico de Donantes y Diferimientos</span>
+                  <span>Padrón Clínico de Donantes y Admisión Rápida</span>
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Control de elegibilidad, exclusiones transitorias y definitivas bajo normativa MINSA.
+                  Control de elegibilidad, exclusiones transitorias y definitivas bajo normativa MINSA / CSS Panamá.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 <button
                   onClick={() => {
                     setSelectedDonorForCard(null);
@@ -289,14 +445,423 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
 
                 <button
                   onClick={() => setShowDonorModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer shadow-lg shadow-rose-600/30"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Registrar Donante</span>
                 </button>
               </div>
             </div>
-            <DonorDeferralDashboard />
+
+            {/* SUB-VIEW SWITCHER: DIRECTORIO VS ANÁLISIS DE DIFERIMIENTOS */}
+            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+              <button
+                onClick={() => setDonorSubView('DIRECTORY')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
+                  donorSubView === 'DIRECTORY'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Directorio y Admisión Rápida</span>
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-white">
+                  {totalDonorsCount}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setDonorSubView('DEFERRALS')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
+                  donorSubView === 'DEFERRALS'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800'
+                }`}
+              >
+                <UserX className="w-4 h-4" />
+                <span>Análisis de Diferimientos (Gráficos MINSA)</span>
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono">
+                  {tempDeferralCount + permDeferralCount} Casos
+                </span>
+              </button>
+            </div>
+
+            {donorSubView === 'DIRECTORY' ? (
+              <div className="space-y-6">
+                {/* 4 KPI METRICS CARDS */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
+                    <div className="flex items-center justify-between text-slate-400 text-xs mb-1 font-semibold">
+                      <span>Total en Padrón</span>
+                      <Users className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div className="text-2xl font-black text-white">{totalDonorsCount}</div>
+                    <p className="text-[10px] text-slate-500 mt-1">Donantes registrados en base de datos</p>
+                  </div>
+
+                  <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4">
+                    <div className="flex items-center justify-between text-emerald-400 text-xs mb-1 font-semibold">
+                      <span>Aptos / Elegibles</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="text-2xl font-black text-emerald-300">{eligibleDonorsCount}</div>
+                    <p className="text-[10px] text-emerald-400/70 mt-1">Habilitados para colecta o aféresis</p>
+                  </div>
+
+                  <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-4">
+                    <div className="flex items-center justify-between text-amber-400 text-xs mb-1 font-semibold">
+                      <span>Diferimiento Temporal</span>
+                      <Clock className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div className="text-2xl font-black text-amber-300">{tempDeferralCount}</div>
+                    <p className="text-[10px] text-amber-400/70 mt-1">Período de ventana o condición transitoria</p>
+                  </div>
+
+                  <div className="bg-rose-950/20 border border-rose-500/30 rounded-2xl p-4">
+                    <div className="flex items-center justify-between text-rose-400 text-xs mb-1 font-semibold">
+                      <span>Diferimiento Permanente</span>
+                      <ShieldAlert className="w-4 h-4 text-rose-400" />
+                    </div>
+                    <div className="text-2xl font-black text-rose-300">{permDeferralCount}</div>
+                    <p className="text-[10px] text-rose-400/70 mt-1">Exclusión definitiva bajo norma de bioseguridad</p>
+                  </div>
+                </div>
+
+                {/* FILTROS Y BÚSQUEDA INTERACTIVA */}
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por cédula (CIP), nombre completo o código DIN..."
+                      value={donorSearchQuery}
+                      onChange={(e) => setDonorSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                    />
+                    {donorSearchQuery && (
+                      <button
+                        onClick={() => setDonorSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full md:w-auto">
+                    <select
+                      value={donorStatusFilter}
+                      onChange={(e) => setDonorStatusFilter(e.target.value as any)}
+                      className="px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="ALL">Todos los Estados</option>
+                      <option value="ELIGIBLE">Aptos / Elegibles</option>
+                      <option value="TEMPORARY_DEFERRAL">Diferimiento Temporal</option>
+                      <option value="PERMANENT_DEFERRAL">Diferimiento Permanente</option>
+                    </select>
+
+                    <select
+                      value={donorBloodTypeFilter}
+                      onChange={(e) => setDonorBloodTypeFilter(e.target.value)}
+                      className="px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="ALL">Todos los Grupos</option>
+                      <option value="O_POS">O Positivo (O+)</option>
+                      <option value="O_NEG">O Negativo (O- Universal)</option>
+                      <option value="A_POS">A Positivo (A+)</option>
+                      <option value="A_NEG">A Negativo (A-)</option>
+                      <option value="B_POS">B Positivo (B+)</option>
+                      <option value="B_NEG">B Negativo (B-)</option>
+                      <option value="AB_POS">AB Positivo (AB+)</option>
+                      <option value="AB_NEG">AB Negativo (AB-)</option>
+                    </select>
+
+                    {(donorSearchQuery || donorStatusFilter !== 'ALL' || donorBloodTypeFilter !== 'ALL') && (
+                      <button
+                        onClick={() => {
+                          setDonorSearchQuery('');
+                          setDonorStatusFilter('ALL');
+                          setDonorBloodTypeFilter('ALL');
+                        }}
+                        className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold whitespace-nowrap transition cursor-pointer"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* TABLA DE DONANTES */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-3 px-4">Donante & Cédula (CIP)</th>
+                        <th className="py-3 px-4">Grupo ABO/Rh & Fenotipo</th>
+                        <th className="py-3 px-4">Elegibilidad MINSA</th>
+                        <th className="py-3 px-4">Última Donación & Intervalo</th>
+                        <th className="py-3 px-4">Historial</th>
+                        <th className="py-3 px-4 text-right">Acciones Clínicas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {filteredDonors.map((donor) => {
+                        const firstName = donor.patients?.first_name || '';
+                        const lastName = donor.patients?.last_name || '';
+                        const fullName = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : (donor.full_name || `Donante #${donor.id.slice(0, 8)}`);
+                        const nationalId = donor.patients?.national_id || donor.national_id || 'Sin Cédula';
+                        const initials = `${firstName.charAt(0) || 'D'}${lastName.charAt(0) || 'N'}`.toUpperCase();
+                        const intervalInfo = getDonationIntervalInfo(donor.last_donation_date);
+                        const totalDonations = donor.total_donations || (units.filter(u => u.donor_id === donor.id).length || 1);
+
+                        // Blood styling
+                        const isONeg = donor.blood_type === 'O' && donor.rh_factor === 'NEG';
+                        const isOPos = donor.blood_type === 'O' && donor.rh_factor === 'POS';
+                        const isABPos = donor.blood_type === 'AB' && donor.rh_factor === 'POS';
+
+                        return (
+                          <tr key={donor.id} className="hover:bg-slate-800/40 transition">
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-800 to-rose-950/60 border border-slate-700 flex items-center justify-center font-black text-rose-400 text-xs shrink-0">
+                                  {initials}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-white text-sm flex items-center space-x-1.5">
+                                    <span>{fullName}</span>
+                                    {donor.patients?.gender && (
+                                      <span className="text-[10px] text-slate-500 font-normal">
+                                        ({donor.patients.gender === 'M' ? 'Masc.' : 'Fem.'})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-2 mt-0.5 text-[11px] text-slate-400">
+                                    <span className="font-mono text-cyan-400 font-semibold">{nationalId}</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span className="font-mono text-slate-500 text-[10px]">{donor.id.slice(0, 14)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className={`px-2 py-0.5 rounded-lg font-black text-xs font-mono ${
+                                    isONeg
+                                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-sm shadow-rose-500/20'
+                                      : isOPos
+                                      ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                                      : isABPos
+                                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                  }`}>
+                                    {donor.blood_type || 'O'} {donor.rh_factor === 'POS' ? '+' : '-'}
+                                  </span>
+                                  {isONeg && (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold">
+                                      Universal
+                                    </span>
+                                  )}
+                                  {isABPos && (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
+                                      Receptor Univ.
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {donor.phenotype || 'D+ C+ c+ E- e+ K-'}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              {donor.eligibility_status === 'ELIGIBLE' && (
+                                <div className="space-y-0.5">
+                                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                    <span>APTO / ELEGIBLE</span>
+                                  </span>
+                                  <div className="text-[10px] text-slate-500">Conforme norma MINSA</div>
+                                </div>
+                              )}
+                              {donor.eligibility_status === 'TEMPORARY_DEFERRAL' && (
+                                <div className="space-y-0.5 max-w-xs">
+                                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold text-[10px]">
+                                    <Clock className="w-3 h-3 text-amber-400" />
+                                    <span>DIFERIDO TEMPORAL</span>
+                                  </span>
+                                  <p className="text-[10px] text-amber-300/80 leading-tight">
+                                    {donor.deferral_reason || 'Período de ventana en curso'}
+                                  </p>
+                                </div>
+                              )}
+                              {donor.eligibility_status === 'PERMANENT_DEFERRAL' && (
+                                <div className="space-y-0.5 max-w-xs">
+                                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 font-bold text-[10px]">
+                                    <ShieldAlert className="w-3 h-3 text-rose-400" />
+                                    <span>DIFERIDO PERMANENTE</span>
+                                  </span>
+                                  <p className="text-[10px] text-rose-300/80 leading-tight">
+                                    {donor.deferral_reason || 'Criterio de exclusión definitiva'}
+                                  </p>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1">
+                                <div className="text-xs font-mono font-bold text-slate-300">
+                                  {donor.last_donation_date ? new Date(donor.last_donation_date).toLocaleDateString('es-PA') : 'Ninguna registrada'}
+                                </div>
+                                <div className={`text-[10px] font-medium ${
+                                  intervalInfo.canDonate ? 'text-emerald-400' : 'text-amber-400'
+                                }`}>
+                                  {intervalInfo.message}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5">
+                                <div className="font-bold text-white text-xs">
+                                  {totalDonations} {totalDonations === 1 ? 'donación' : 'donaciones'}
+                                </div>
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  totalDonations >= 5
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    : totalDonations >= 2
+                                    ? 'bg-slate-700 text-slate-200'
+                                    : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                  {totalDonations >= 5 ? '⭐ Donante Frecuente' : totalDonations >= 2 ? 'Donante Recurrente' : 'Primera Donación'}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end space-x-1.5">
+                                <button
+                                  onClick={() => {
+                                    setSelectedDonorForCard({
+                                      id: donor.id,
+                                      fullName: fullName,
+                                      nationalId: nationalId,
+                                      bloodType: donor.blood_type || 'O',
+                                      rhFactor: donor.rh_factor || 'POS',
+                                      phenotype: donor.phenotype || 'D+ C+ c+ E- e+ K-',
+                                      gender: (donor.patients?.gender as any) || 'M',
+                                      eligibilityStatus: donor.eligibility_status,
+                                      deferralReason: donor.deferral_reason,
+                                      lastDonationDate: donor.last_donation_date,
+                                      totalDonations: totalDonations,
+                                      institution: 'Banco de Sangre LIS • MINSA Panamá'
+                                    });
+                                    setShowDigitalCardModal(true);
+                                  }}
+                                  title="Ver Carnet Digital QR"
+                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400 transition cursor-pointer"
+                                >
+                                  <QrCode className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setActiveOfficialForm('F-DON-01');
+                                    setShowOfficialFormsModal(true);
+                                  }}
+                                  title="F-DON-01 Consentimiento Informado"
+                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
+                                >
+                                  <FileText className="w-4 h-4 text-rose-400" />
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    if (donor.eligibility_status !== 'ELIGIBLE') {
+                                      setDeferralBlockedDonor({
+                                        donor,
+                                        fullName,
+                                        nationalId
+                                      });
+                                    } else {
+                                      setShowDonorModal(true);
+                                    }
+                                  }}
+                                  title={donor.eligibility_status === 'ELIGIBLE' ? 'Iniciar Nueva Extracción' : 'Bloqueado por Diferimiento'}
+                                  className={`px-2.5 py-1.5 rounded-lg font-bold text-xs transition flex items-center space-x-1 cursor-pointer ${
+                                    donor.eligibility_status === 'ELIGIBLE'
+                                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
+                                      : 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-rose-950/40 hover:text-rose-300'
+                                  }`}
+                                >
+                                  <Droplets className="w-3.5 h-3.5" />
+                                  <span>{donor.eligibility_status === 'ELIGIBLE' ? 'Extraer' : 'Bloqueado'}</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {filteredDonors.length === 0 && donors.length > 0 && (
+                    <div className="p-8 text-center space-y-3">
+                      <Search className="w-8 h-8 text-slate-600 mx-auto" />
+                      <p className="text-sm font-semibold text-slate-400">
+                        No se encontraron donantes que coincidan con los criterios de búsqueda.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setDonorSearchQuery('');
+                          setDonorStatusFilter('ALL');
+                          setDonorBloodTypeFilter('ALL');
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-800 text-xs text-rose-400 font-bold hover:bg-slate-700 transition cursor-pointer"
+                      >
+                        Restablecer Filtros
+                      </button>
+                    </div>
+                  )}
+
+                  {donors.length === 0 && !isLoading && (
+                    <div className="p-10 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-base font-bold text-white">No hay donantes registrados en la base de datos</h4>
+                        <p className="text-xs text-slate-400 max-w-md mx-auto">
+                          Inicie el registro del primer donante con el cuestionario MINSA o active el Modo Demostración para cargar casos sintéticos de prueba.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 pt-2">
+                        <button
+                          onClick={() => setShowDonorModal(true)}
+                          className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center space-x-1.5 cursor-pointer shadow-lg shadow-rose-600/30"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Registrar Primer Donante</span>
+                        </button>
+                        {!isDemoMode && (
+                          <button
+                            onClick={() => setDemoMode(true)}
+                            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs transition cursor-pointer"
+                          >
+                            Activar Modo Demo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <DonorDeferralDashboard />
+              </div>
+            )}
           </div>
         )}
 
@@ -507,6 +1072,74 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
           initialForm={activeOfficialForm}
           onClose={() => setShowOfficialFormsModal(false)}
         />
+      )}
+
+      {/* MODAL DE ADVERTENCIA: DONANTE BLOQUEADO POR DIFERIMIENTO */}
+      {deferralBlockedDonor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800">
+              <div className="p-3 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-white">Interlock Clínico Transfusional</h3>
+                <span className="text-[10px] font-mono text-rose-400 font-bold uppercase tracking-wider">
+                  Bloqueo de Extracción por Diferimiento Activo
+                </span>
+              </div>
+              <button
+                onClick={() => setDeferralBlockedDonor(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div className="text-xs text-slate-400">Donante Seleccionado:</div>
+                <div className="font-bold text-white text-sm">{deferralBlockedDonor.fullName}</div>
+                <div className="text-xs font-mono text-cyan-400">CIP: {deferralBlockedDonor.nationalId}</div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border ${
+                deferralBlockedDonor.donor.eligibility_status === 'PERMANENT_DEFERRAL'
+                  ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                  : 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+              } space-y-2`}>
+                <div className="flex items-center space-x-2 text-xs font-bold">
+                  {deferralBlockedDonor.donor.eligibility_status === 'PERMANENT_DEFERRAL' ? (
+                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400" />
+                  )}
+                  <span>
+                    {deferralBlockedDonor.donor.eligibility_status === 'PERMANENT_DEFERRAL'
+                      ? 'Diferimiento Permanente (Exclusión Definitiva)'
+                      : 'Diferimiento Temporal (Período de Ventana Activo)'}
+                  </span>
+                </div>
+                <p className="text-xs font-medium leading-relaxed">
+                  <strong>Motivo Registrado:</strong>{' '}
+                  {deferralBlockedDonor.donor.deferral_reason || 'Condición clínica incompatible con donación.'}
+                </p>
+                <p className="text-[11px] opacity-80">
+                  Conforme a los Manuales Técnicos del Banco de Sangre (MINSA / CSS Panamá), no está permitido realizar flebotomías ni aféresis a donantes con exclusión vigente para proteger la salud del receptor y del donante.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setDeferralBlockedDonor(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Entendido / Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
