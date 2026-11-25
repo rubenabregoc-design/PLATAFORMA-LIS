@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Droplets,
@@ -26,9 +26,12 @@ import {
   Lock,
   Printer,
   ChevronRight,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { TransfusionCase, TransfusionStage } from '../../../types';
+import { useLisStore } from '../../../store/useLisStore';
+import { SupabaseService, BloodBankService } from '../../../services/SupabaseService';
 
 export const STAGES_LIST: { id: TransfusionStage; label: string; short: string; icon: any; color: string }[] = [
   { id: 'SOLICITUD', label: '1. Solicitud', short: 'Solicitud', icon: FileText, color: 'text-indigo-400' },
@@ -414,11 +417,13 @@ export interface TransfusionEvolutionManagerProps {
 }
 
 export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerProps> = ({ onClose }) => {
+  const isDemoMode = useLisStore((state) => state.isDemoMode);
   const [cases, setCases] = useState<TransfusionCase[]>(INITIAL_TRANSFUSION_CASES);
   const [selectedCaseId, setSelectedCaseId] = useState<string>(INITIAL_TRANSFUSION_CASES[0].id);
   const [activeStageTab, setActiveStageTab] = useState<TransfusionStage>('SOLICITUD');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Form state for new requisition
   const [newPatientName, setNewPatientName] = useState('Rubén Ábrego');
@@ -434,6 +439,89 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
   const [newUnits, setNewUnits] = useState(2);
   const [newUrgency, setNewUrgency] = useState<'EXTREMA_URGENCIA' | 'URGENTE' | 'PROGRAMADA'>('PROGRAMADA');
 
+  // Load requests from PostgreSQL
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      if (!isDemoMode) {
+        const rawRequests = await BloodBankService.getAllRequests();
+        if (rawRequests && rawRequests.length > 0) {
+          const mapped: TransfusionCase[] = rawRequests.map((r: any) => {
+            const p = r.patients || {};
+            const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Paciente Hospitalizado';
+            const nationalId = p.identification_number || p.national_id || '8-000-0000';
+            
+            // Map db status to TransfusionStage
+            let stage: TransfusionStage = 'SOLICITUD';
+            if (r.status === 'CROSSMATCHING') stage = 'COMPATIBILIDAD';
+            else if (r.status === 'READY') stage = 'RESERVA';
+            else if (r.status === 'IN_TRANSFUSION') stage = 'TRANSFUSION';
+            else if (r.status === 'COMPLETED') stage = 'CIERRE';
+
+            return {
+              id: r.id,
+              caseNumber: `TRX-${r.id.slice(0, 8).toUpperCase()}`,
+              patientId: p.id || r.patient_id,
+              patientName: fullName,
+              patientNationalId: nationalId,
+              patientAge: p.age || 42,
+              patientGender: (p.gender === 'FEMALE' || p.gender === 'F' ? 'F' : 'M') as 'M' | 'F',
+              ward: 'HOSPITALIZACION',
+              bedNumber: 'Cama 02',
+              prescribingDoctor: 'Dr. Alejandro Icaza',
+              doctorLicense: 'MP-6612-PA',
+              clinicalIndication: r.diagnosis || 'Requerimiento transfusional clínico hospitalario.',
+              componentRequested: (r.component_requested || 'CONCENTRADO_HEMATIES') as any,
+              unitsRequested: r.quantity_units || 1,
+              urgencyLevel: r.urgency === 'EXTREME_URGENCY' ? 'EXTREMA_URGENCIA' : r.urgency === 'URGENT' ? 'URGENTE' : 'PROGRAMADA',
+              requestedAt: r.created_at ? new Date(r.created_at).toLocaleString('es-PA') : new Date().toLocaleString('es-PA'),
+              aboGroup: p.blood_type || 'O',
+              rhFactor: p.rh_factor || 'POS',
+              aboConfirmation: 'CORRECTA',
+              irregularAntibodiesScreening: 'NEGATIVO',
+              identifiedAntibodies: [],
+              immunohematologist: 'Lic. Sofía Guardia (TM)',
+              evaluatedAt: r.created_at ? new Date(r.created_at).toLocaleString('es-PA') : new Date().toLocaleString('es-PA'),
+              assignedUnitCode: 'PGRE-2026-0812',
+              assignedUnitGroup: `${p.blood_type || 'O'}${p.rh_factor === 'POS' ? '+' : '-'}`,
+              crossmatchMajor: 'COMPATIBLE',
+              crossmatchMinor: 'COMPATIBLE',
+              crossmatchMethod: 'GEL',
+              coombsIndirect: 'NEGATIVO',
+              crossmatchAt: r.created_at ? new Date(r.created_at).toLocaleString('es-PA') : new Date().toLocaleString('es-PA'),
+              reservedUnitId: 'PGRE-2026-0812',
+              reservationExpiresAt: new Date(Date.now() + 72 * 3600 * 1000).toLocaleString('es-PA'),
+              fridgeLocation: 'Heladera de Reserva A-2 (4°C)',
+              reservedAt: new Date().toLocaleString('es-PA'),
+              hasAdverseReaction: false,
+              reactionType: 'NINGUNA',
+              finalStatus: r.status === 'COMPLETED' ? 'COMPLETADA_EXITOSA' : 'EN_PROCESO',
+              currentStage: stage
+            };
+          });
+          setCases(mapped);
+          if (mapped.length > 0) {
+            setSelectedCaseId(mapped[0].id);
+            setActiveStageTab(mapped[0].currentStage);
+          }
+        } else {
+          setCases(INITIAL_TRANSFUSION_CASES);
+        }
+      } else {
+        setCases(INITIAL_TRANSFUSION_CASES);
+      }
+    } catch (err) {
+      console.error('Error loading transfusion evolution requests:', err);
+      setCases(INITIAL_TRANSFUSION_CASES);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [isDemoMode]);
+
   const activeCase = cases.find((c) => c.id === selectedCaseId) || cases[0];
 
   // Helper to get index of stage
@@ -446,28 +534,117 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
     setActiveStageTab(c.currentStage);
   };
 
-  const handleAdvanceStage = () => {
+  const handleAdvanceStage = async () => {
     const currentIndex = getStageIndex(activeCase.currentStage);
     if (currentIndex < STAGES_LIST.length - 1) {
       const nextStage = STAGES_LIST[currentIndex + 1].id;
-      setCases((prev) =>
-        prev.map((c) => {
-          if (c.id === activeCase.id) {
-            return {
-              ...c,
-              currentStage: nextStage,
-              finalStatus: nextStage === 'CIERRE' ? 'COMPLETADA_EXITOSA' : c.finalStatus
-            };
-          }
-          return c;
-        })
-      );
-      setActiveStageTab(nextStage);
+      
+      let dbStatus = 'PENDING';
+      if (nextStage === 'COMPATIBILIDAD') dbStatus = 'CROSSMATCHING';
+      else if (nextStage === 'RESERVA' || nextStage === 'ENTREGA') dbStatus = 'READY';
+      else if (nextStage === 'TRANSFUSION' || nextStage === 'SEGUIMIENTO') dbStatus = 'IN_TRANSFUSION';
+      else if (nextStage === 'CIERRE') dbStatus = 'COMPLETED';
+
+      try {
+        if (!isDemoMode && activeCase.id && !activeCase.id.startsWith('trx-')) {
+          await BloodBankService.updateRequestStatus(activeCase.id, dbStatus);
+        }
+
+        setCases((prev) =>
+          prev.map((c) => {
+            if (c.id === activeCase.id) {
+              return {
+                ...c,
+                currentStage: nextStage,
+                finalStatus: nextStage === 'CIERRE' ? 'COMPLETADA_EXITOSA' : c.finalStatus
+              };
+            }
+            return c;
+          })
+        );
+        setActiveStageTab(nextStage);
+
+        window.dispatchEvent(
+          new CustomEvent('lis-global-toast', {
+            detail: {
+              message: `✓ ETAPA ACTUALIZADA: Caso ${activeCase.caseNumber} avanzó a '${nextStage}' (${isDemoMode ? 'Demo' : 'PostgreSQL Sincronizado'}).`,
+              type: 'success'
+            }
+          })
+        );
+      } catch (err: any) {
+        console.error('Error updating transfusion stage:', err);
+        window.dispatchEvent(
+          new CustomEvent('lis-global-toast', {
+            detail: { message: `Error al actualizar etapa: ${err.message}`, type: 'error' }
+          })
+        );
+      }
     }
   };
 
-  const handleCreateCase = (e: React.FormEvent) => {
+  const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      let createdPatientId = `pat-${Date.now()}`;
+
+      if (!isDemoMode) {
+        try {
+          const patients = await SupabaseService.patients.getAll();
+          const existing = patients?.find((p: any) => p.identification_number === newNationalId);
+          if (existing) {
+            createdPatientId = existing.id;
+          } else {
+            const parts = newPatientName.trim().split(' ');
+            const firstName = parts[0] || 'Paciente';
+            const lastName = parts.slice(1).join(' ') || 'Transfusión';
+            const newPat = await SupabaseService.patients.create({
+              first_name: firstName,
+              last_name: lastName,
+              identification_number: newNationalId,
+              gender: newGender === 'F' ? 'FEMALE' : 'MALE',
+              age: Number(newAge),
+              blood_type: 'O',
+              rh_factor: 'POS'
+            } as any);
+            if (newPat) createdPatientId = newPat.id;
+          }
+        } catch (patErr) {
+          console.warn('Patient creation fallback:', patErr);
+        }
+
+        await BloodBankService.createRequest({
+          patient_id: createdPatientId,
+          component_requested: newComponent,
+          quantity_units: Number(newUnits),
+          urgency: newUrgency === 'EXTREMA_URGENCIA' ? 'EXTREME_URGENCY' : newUrgency === 'URGENTE' ? 'URGENT' : 'ROUTINE',
+          diagnosis: `${newIndication} (Sala: ${newWard}, Cama: ${newBed}, Médico: ${newDoctor})`,
+          status: 'PENDING'
+        });
+
+        window.dispatchEvent(
+          new CustomEvent('lis-global-toast', {
+            detail: {
+              message: `✓ SOLICITUD TRANSFUSIONAL REGISTRADA: Caso ingresado en base de datos PostgreSQL.`,
+              type: 'success'
+            }
+          })
+        );
+
+        setIsNewModalOpen(false);
+        await loadData();
+        return;
+      }
+    } catch (err: any) {
+      console.error('Error creating request:', err);
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: { message: `Error al registrar solicitud: ${err.message}`, type: 'error' }
+        })
+      );
+    }
+
+    // Demo Mode fallback
     const newCase: TransfusionCase = {
       id: `trx-${Date.now()}`,
       caseNumber: `TRX-2026-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -527,6 +704,23 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <div className={`px-3 py-2 rounded-2xl border text-xs font-mono font-bold flex items-center space-x-2 ${
+              isDemoMode
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
+                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+              <span>{isDemoMode ? '🎭 Modo Demo' : '🏥 PostgreSQL Real'}</span>
+            </div>
+
+            <button
+              onClick={loadData}
+              className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-2xl transition cursor-pointer"
+              title="Recargar solicitudes desde BD"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+
             <button
               onClick={() => setIsNewModalOpen(true)}
               className="bg-rose-500 hover:bg-rose-400 text-white font-black px-5 py-3 rounded-2xl text-xs transition shadow-xl shadow-rose-500/20 flex items-center space-x-2 cursor-pointer"

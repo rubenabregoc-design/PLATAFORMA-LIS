@@ -1151,7 +1151,7 @@ export const BloodBankService = {
     };
   },
 
-  /** Solicitudes de Transfusión */
+  /** Solicitudes de Transfusión (Pendientes) */
   async getPendingRequests(): Promise<any[]> {
     const { data, error } = await supabase
       .from('blood_requests')
@@ -1160,6 +1160,45 @@ export const BloodBankService = {
       .order('created_at', { ascending: true });
     if (error) handleError('getPendingRequests', error);
     return data!;
+  },
+
+  /** Todas las Solicitudes de Transfusión (Trazabilidad Vena a Vena) */
+  async getAllRequests(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('blood_requests')
+      .select('*, patients(*)')
+      .order('created_at', { ascending: false });
+    if (error) handleError('getAllRequests', error);
+    return data || [];
+  },
+
+  /** Crear Solicitud de Transfusión */
+  async createRequest(req: {
+    patient_id: string;
+    order_id?: string | null;
+    component_requested: string;
+    quantity_units: number;
+    urgency: 'ROUTINE' | 'URGENT' | 'EXTREME_URGENCY';
+    diagnosis?: string | null;
+    transfusion_history?: boolean;
+    status?: string;
+  }): Promise<any> {
+    const { data, error } = await supabase
+      .from('blood_requests')
+      .insert({
+        patient_id: req.patient_id,
+        order_id: req.order_id || null,
+        component_requested: req.component_requested,
+        quantity_units: req.quantity_units,
+        urgency: req.urgency,
+        diagnosis: req.diagnosis || null,
+        transfusion_history: req.transfusion_history || false,
+        status: req.status || 'PENDING'
+      })
+      .select('*, patients(*)')
+      .single();
+    if (error) handleError('createRequest', error);
+    return data;
   },
 
   /** Actualizar estado de solicitud */
