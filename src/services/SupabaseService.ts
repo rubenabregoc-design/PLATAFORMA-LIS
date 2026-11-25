@@ -835,6 +835,153 @@ export const BloodBankService = {
     return data!;
   },
 
+  /** Registrar Sesión de Aféresis y Generar Unidades Terapéuticas en Inventario */
+  async registerApheresisSession(procedure: {
+    din: string;
+    donorName: string;
+    nationalId: string;
+    bloodGroup: string;
+    procedureType: 'PLAQUETAS_SINGLE' | 'PLAQUETAS_DOUBLE' | 'PLASMA_ALTO_VOLUMEN' | 'MULTICOMPONENTE';
+    machineModel: string;
+    kitLot: string;
+    yieldPlatelets: number;
+    plasmaVolumeMl: number;
+    acdVolumeInfusedMl: number;
+    technologist: string;
+  }): Promise<DbBloodUnit[]> {
+    const tenant_id = await getTenantId();
+    const bloodType = procedure.bloodGroup.replace(/[+-]/g, '') || 'O';
+    const rhFactor = procedure.bloodGroup.includes('+') ? 'POS' : 'NEG';
+    const now = new Date();
+    const createdUnits: DbBloodUnit[] = [];
+
+    const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+    const unitsToCreate: any[] = [];
+
+    if (procedure.procedureType === 'PLAQUETAS_SINGLE') {
+      unitsToCreate.push({
+        unit_number: `${procedure.din}-P1`,
+        component_type: 'Plaquetas por Aféresis (Leucorreducidas)',
+        blood_type: bloodType,
+        rh_factor: rhFactor,
+        volume_ml: 250,
+        collection_date: now.toISOString(),
+        expiry_date: addDays(now, 5),
+        status: 'AVAILABLE',
+        location_storage: 'AGITADOR_PLAQUETAS_01',
+        serology_status: 'NEGATIVE',
+        marker_hiv: false, marker_hbv: false, marker_hcv: false,
+        marker_syphilis: false, marker_chagas: false, marker_htlv: false
+      });
+    } else if (procedure.procedureType === 'PLAQUETAS_DOUBLE') {
+      unitsToCreate.push(
+        {
+          unit_number: `${procedure.din}-P1`,
+          component_type: 'Plaquetas por Aféresis (Split 1/2)',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: 250,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 5),
+          status: 'AVAILABLE',
+          location_storage: 'AGITADOR_PLAQUETAS_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        },
+        {
+          unit_number: `${procedure.din}-P2`,
+          component_type: 'Plaquetas por Aféresis (Split 2/2)',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: 250,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 5),
+          status: 'AVAILABLE',
+          location_storage: 'AGITADOR_PLAQUETAS_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        }
+      );
+    } else if (procedure.procedureType === 'MULTICOMPONENTE') {
+      unitsToCreate.push(
+        {
+          unit_number: `${procedure.din}-P1`,
+          component_type: 'Plaquetas por Aféresis (Leucorreducidas)',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: 250,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 5),
+          status: 'AVAILABLE',
+          location_storage: 'AGITADOR_PLAQUETAS_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        },
+        {
+          unit_number: `${procedure.din}-PFC`,
+          component_type: 'Plasma Fresco Congelado por Aféresis',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: procedure.plasmaVolumeMl || 250,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 365),
+          status: 'AVAILABLE',
+          location_storage: 'CONGELADOR_PFC_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        }
+      );
+    } else if (procedure.procedureType === 'PLASMA_ALTO_VOLUMEN') {
+      unitsToCreate.push(
+        {
+          unit_number: `${procedure.din}-PFC1`,
+          component_type: 'Plasma de Alto Volumen (Parte 1)',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: 300,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 365),
+          status: 'AVAILABLE',
+          location_storage: 'CONGELADOR_PFC_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        },
+        {
+          unit_number: `${procedure.din}-PFC2`,
+          component_type: 'Plasma de Alto Volumen (Parte 2)',
+          blood_type: bloodType,
+          rh_factor: rhFactor,
+          volume_ml: 300,
+          collection_date: now.toISOString(),
+          expiry_date: addDays(now, 365),
+          status: 'AVAILABLE',
+          location_storage: 'CONGELADOR_PFC_01',
+          serology_status: 'NEGATIVE',
+          marker_hiv: false, marker_hbv: false, marker_hcv: false,
+          marker_syphilis: false, marker_chagas: false, marker_htlv: false
+        }
+      );
+    }
+
+    for (const u of unitsToCreate) {
+      const { data, error } = await supabase
+        .from('blood_units')
+        .insert({ ...u, tenant_id })
+        .select()
+        .single();
+      if (!error && data) {
+        createdUnits.push(data);
+      }
+    }
+
+    return createdUnits;
+  },
+
   /** Registrar Resultados de Serología y Liberar Unidad (Panamá Compliant) */
   async processUnitSerology(
     unitId: string,

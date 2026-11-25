@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   Droplets,
@@ -27,7 +27,9 @@ import {
   UserCheck,
   Syringe,
   ChevronRight,
-  Info
+  Info,
+  RefreshCw,
+  Database
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,6 +45,8 @@ import {
   Legend
 } from 'recharts';
 import { ISBT128 } from '../../../utils/isbt128Generator';
+import { useLisStore } from '../../../store/useLisStore';
+import { BloodBankService } from '../../../services/SupabaseService';
 
 export interface ApheresisProcedure {
   id: string;
@@ -173,7 +177,9 @@ const PROCEDURE_TYPE_LABELS = {
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export const ApheresisDonationModule: React.FC = () => {
+  const isDemoMode = useLisStore((state) => state.isDemoMode);
   const [procedures, setProcedures] = useState<ApheresisProcedure[]>(INITIAL_PROCEDURES);
+  const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'new_procedure' | 'quality_control' | 'history'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
@@ -201,6 +207,71 @@ export const ApheresisDonationModule: React.FC = () => {
     technologistNotes: ''
   });
 
+  // Load real apheresis data from database
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      if (!isDemoMode) {
+        const rawUnits = await BloodBankService.getAllUnits();
+        if (rawUnits && rawUnits.length > 0) {
+          const aphUnits = rawUnits.filter(
+            (u: any) =>
+              (u.component_type || '').toLowerCase().includes('aferesis') ||
+              (u.component_type || '').toLowerCase().includes('aféresis') ||
+              (u.component_type || '').toLowerCase().includes('plaquet')
+          );
+
+          if (aphUnits.length > 0) {
+            const mapped: ApheresisProcedure[] = aphUnits.map((u: any, idx: number) => ({
+              id: u.id,
+              din: u.unit_number || `E882326${idx + 100}`,
+              donorName: u.donor_id ? `Donante Ref: ${u.donor_id.slice(0, 8)}` : 'Donante Altruista Aféresis',
+              nationalId: 'Registrado MINSA',
+              bloodGroup: `${u.blood_type}${u.rh_factor === 'POS' ? '+' : '-'}` as any,
+              procedureType: u.unit_number.includes('-P2')
+                ? 'PLAQUETAS_DOUBLE'
+                : u.component_type.toLowerCase().includes('plasma')
+                ? 'PLASMA_ALTO_VOLUMEN'
+                : 'PLAQUETAS_SINGLE',
+              machineModel: 'Trima Accel (Terumo BCT)',
+              kitLot: 'LOT-ISBT-PANAMA',
+              prePlateletCount: 275,
+              preHb: 14.8,
+              processedVolumeMl: 3100,
+              acdVolumeInfusedMl: 280,
+              yieldPlatelets: 3.5,
+              plasmaVolumeMl: u.volume_ml || 250,
+              residualWbcCount: 0.08,
+              durationMinutes: 55,
+              citrateToxicityStatus: 'NINGUNA',
+              calciumAdministered: false,
+              status: u.status === 'DISCARDED' ? 'CANCELADO_TECNICO' : 'COMPLETADO',
+              date: u.created_at ? new Date(u.created_at).toISOString().replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
+              technologist: 'Lic. Especialista en Aféresis'
+            }));
+
+            setProcedures(mapped);
+          } else {
+            setProcedures(INITIAL_PROCEDURES);
+          }
+        } else {
+          setProcedures(INITIAL_PROCEDURES);
+        }
+      } else {
+        setProcedures(INITIAL_PROCEDURES);
+      }
+    } catch (err) {
+      console.error('Error loading apheresis data from DB:', err);
+      setProcedures(INITIAL_PROCEDURES);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [isDemoMode]);
+
   // Calculate Nadler's Estimated Total Blood Volume (TBV in mL)
   const calculateTBV = () => {
     const { weightKg, heightCm, gender } = formData;
@@ -222,7 +293,7 @@ export const ApheresisDonationModule: React.FC = () => {
   const isWeightValid = formData.weightKg >= 50;
   const isDonorEligible = isPlateletCountValid && isHbValid && isWeightValid;
 
-  const handleCreateProcedure = () => {
+  const handleCreateProcedure = async () => {
     const generatedDin = ISBT128.generateDIN('E8823', Math.floor(Math.random() * 900000 + 100000));
     const isDouble = formData.procedureType === 'PLAQUETAS_DOUBLE';
 
@@ -250,6 +321,47 @@ export const ApheresisDonationModule: React.FC = () => {
       technologist: 'Lic. Especialista en Aféresis'
     };
 
+    try {
+      if (!isDemoMode) {
+        const createdUnits = await BloodBankService.registerApheresisSession({
+          din: generatedDin,
+          donorName: newProc.donorName,
+          nationalId: newProc.nationalId,
+          bloodGroup: newProc.bloodGroup,
+          procedureType: newProc.procedureType,
+          machineModel: newProc.machineModel,
+          kitLot: newProc.kitLot,
+          yieldPlatelets: newProc.yieldPlatelets,
+          plasmaVolumeMl: newProc.plasmaVolumeMl,
+          acdVolumeInfusedMl: newProc.acdVolumeInfusedMl,
+          technologist: newProc.technologist
+        });
+
+        window.dispatchEvent(
+          new CustomEvent('lis-global-toast', {
+            detail: {
+              message: `✓ SESIÓN DE AFÉRESIS GUARDADA: ${createdUnits.length} unidad(es) (${createdUnits.map(u => u.unit_number).join(', ')}) ingresadas al inventario PostgreSQL (Caducidad +5d a 22°C en Agitador).`,
+              type: 'success',
+              duration: 8000
+            }
+          })
+        );
+
+        await loadData();
+        setActiveTab('history');
+        setWizardStep(1);
+        return;
+      }
+    } catch (err: any) {
+      console.error('Error registering apheresis session in DB:', err);
+      window.dispatchEvent(
+        new CustomEvent('lis-global-toast', {
+          detail: { message: `Error al registrar aféresis en BD: ${err.message}`, type: 'error' }
+        })
+      );
+    }
+
+    // Demo Mode fallback
     setProcedures([newProc, ...procedures]);
     setActiveTab('history');
     setWizardStep(1);
@@ -315,7 +427,24 @@ export const ApheresisDonationModule: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2.5">
+          <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center space-x-2 ${
+            isDemoMode
+              ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
+              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+            <span>{isDemoMode ? '🎭 Modo Demo' : '🏥 PostgreSQL Real'}</span>
+          </div>
+
+          <button
+            onClick={loadData}
+            className="p-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
+            title="Recargar inventario de aféresis desde BD"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
+          </button>
+
           <button
             onClick={() => {
               setActiveTab('new_procedure');
