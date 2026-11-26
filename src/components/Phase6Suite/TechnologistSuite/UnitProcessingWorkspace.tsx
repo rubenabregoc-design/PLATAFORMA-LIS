@@ -182,10 +182,6 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                 <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
                   Área de Procesamiento, Tamizaje & Fraccionamiento
                 </h2>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  PostgreSQL Conectado
-                </span>
               </div>
               <p className="text-slate-400 text-xs mt-0.5">
                 Liberación Serológica de Unidades en Cuarentena • Derivación ISBT 128 (CGR, PFC, CP, CRIO) • ISO 15189 §7.3

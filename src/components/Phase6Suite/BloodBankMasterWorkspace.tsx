@@ -314,17 +314,8 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
           </div>
         </div>
 
-        {/* INDICADOR DE MODO REAL VS DEMO & BOTONES DE ACCIÓN RÁPIDA */}
+        {/* BOTONES DE ACCIÓN RÁPIDA */}
         <div className="flex items-center flex-wrap gap-2.5">
-          <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center space-x-2 ${
-            isDemoMode
-              ? 'bg-amber-500/10 text-amber-300 border-amber-500/40 animate-pulse'
-              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span>{isDemoMode ? '🎭 Modo Demostración' : '🏥 Modo Producción Real (PostgreSQL)'}</span>
-          </div>
-
           <button
             onClick={() => setShowDonorModal(true)}
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-xs hover:from-rose-500 hover:to-red-500 transition shadow-lg shadow-rose-600/20 flex items-center space-x-1.5 cursor-pointer"
@@ -350,14 +341,6 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
           >
             <FlaskConical className="w-4 h-4 text-indigo-400" />
             <span>Procesar Cuarentena ({quarantineCount})</span>
-          </button>
-
-          <button
-            onClick={loadWorkspaceData}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
-            title="Recargar datos de base de datos"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
           </button>
         </div>
       </div>

@@ -441,23 +441,6 @@ export const ApheresisDonationModule: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center flex-wrap gap-2.5">
-          <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center space-x-2 ${
-            isDemoMode
-              ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
-              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span>{isDemoMode ? '🎭 Modo Demo' : '🏥 PostgreSQL Real'}</span>
-          </div>
-
-          <button
-            onClick={loadData}
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
-            title="Recargar inventario de aféresis desde BD"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
-          </button>
-
           <button
             onClick={() => {
               setFormData(initialBlankForm);

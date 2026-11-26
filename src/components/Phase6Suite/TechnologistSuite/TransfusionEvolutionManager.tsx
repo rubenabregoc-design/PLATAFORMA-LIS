@@ -710,23 +710,6 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className={`px-3 py-2 rounded-2xl border text-xs font-mono font-bold flex items-center space-x-2 ${
-              isDemoMode
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
-                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${isDemoMode ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-              <span>{isDemoMode ? '🎭 Modo Demo' : '🏥 PostgreSQL Real'}</span>
-            </div>
-
-            <button
-              onClick={loadData}
-              className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-2xl transition cursor-pointer"
-              title="Recargar solicitudes desde BD"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
-            </button>
-
             <button
               onClick={() => setIsNewModalOpen(true)}
               className="bg-rose-500 hover:bg-rose-400 text-white font-black px-5 py-3 rounded-2xl text-xs transition shadow-xl shadow-rose-500/20 flex items-center space-x-2 cursor-pointer"
