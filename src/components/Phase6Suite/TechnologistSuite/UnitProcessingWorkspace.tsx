@@ -1,50 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Beaker,
-  ShieldCheck,
-  AlertOctagon,
-  X,
-  Search,
-  CheckCircle2,
-  FlaskConical,
-  FileText,
-  Zap,
-  Layers,
-  ArrowDownRight,
-  Droplet,
-  Check,
-  RefreshCw,
-  AlertTriangle,
-  Filter,
-  Barcode,
-  Database,
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  FlaskConical, 
+  CheckCircle2, 
+  AlertTriangle, 
+  ShieldCheck, 
+  Droplet, 
+  Layers, 
+  Zap, 
+  Search, 
+  Filter, 
+  Barcode, 
+  RefreshCw, 
   Activity,
-  Calendar,
+  SlidersHorizontal,
   Sparkles,
-  Clock,
-  SlidersHorizontal
+  Inbox
 } from 'lucide-react';
 import { SupabaseService } from '../../../services/SupabaseService';
 import EpidemiologicalReportModal from './EpidemiologicalReportModal';
 
 interface UnitProcessingWorkspaceProps {
-  onClose?: () => void;
-  onRefresh?: () => void;
+  onClose: () => void;
+  onRefresh: () => void;
 }
 
 const BLOOD_GROUPS = ['TODOS', 'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
-const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClose = () => {}, onRefresh = () => {} }) => {
+export const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClose, onRefresh }) => {
   const [quarantineUnits, setQuarantineUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBloodGroup, setSelectedBloodGroup] = useState<string>('TODOS');
-  const [selectedSerology, setSelectedSerology] = useState<string>('TODOS');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState<any | null>(null);
+
+  // Filtros reactivos para alto volumen
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBloodGroup, setSelectedBloodGroup] = useState('TODOS');
+  const [selectedSerology, setSelectedSerology] = useState('TODOS');
+
+  // Marcadores Serológicos MINSA (7 de Tamizaje)
   const [markers, setMarkers] = useState({
-    hiv: false, hbv: false, hcv: false,
-    syphilis: false, chagas: false, htlv: false
+    hiv: false,
+    hcv: false,
+    hbsag: false,
+    hbcab: false,
+    syphilis: false,
+    chagas: false,
+    htlv: false
   });
 
   // Estado del Fraccionamiento Real Padre -> Hijas ISBT 128
@@ -52,6 +54,10 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
   const [fracOptions, setFracOptions] = useState({ platelets: true, cryo: false });
   const [isFractionating, setIsFractionating] = useState<boolean>(false);
   const [fractionationSuccessMsg, setFractionationSuccessMsg] = useState<string | null>(null);
+
+  // Registro de IDs y Números de Unidad fraccionados para prevenir que vuelvan a aparecer
+  const fractionatedDinsRef = useRef<Set<string>>(new Set<string>());
+  const initialFetchDoneRef = useRef<boolean>(false);
 
   useEffect(() => {
     fetchQuarantine();
@@ -65,34 +71,50 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
     try {
       const units = await SupabaseService.bloodBank.getQuarantineUnits();
       if (units && units.length > 0) {
-        setQuarantineUnits(units);
+        // Filtrar las que ya han sido fraccionadas en esta sesión o base de datos
+        const activeUnits = units.filter(u => 
+          !fractionatedDinsRef.current.has(u.id) && 
+          !fractionatedDinsRef.current.has(u.unit_number) &&
+          u.status !== 'PROCESSED_FRACTIONATED'
+        );
+        setQuarantineUnits(activeUnits);
       } else {
-        // En caso de base de datos limpia, ofrecer registros iniciales en cuarentena
-        setQuarantineUnits([
-          {
-            id: 'unit-q-01',
-            unit_number: '=F882326001000',
-            blood_type: 'O',
-            rh_factor: 'POS',
-            component_type: 'WHOLE_BLOOD',
-            volume_ml: 450,
-            collection_date: new Date().toISOString(),
-            status: 'QUARANTINE',
-            serology_status: 'PENDING'
-          },
-          {
-            id: 'unit-q-02',
-            unit_number: '=F882326001001',
-            blood_type: 'A',
-            rh_factor: 'POS',
-            component_type: 'WHOLE_BLOOD',
-            volume_ml: 450,
-            collection_date: new Date(Date.now() - 3600000).toISOString(),
-            status: 'QUARANTINE',
-            serology_status: 'PENDING'
-          }
-        ]);
+        // Si no hay unidades en BD y aún no hemos fraccionado nada en la sesión, sembrar las 2 unidades iniciales
+        if (!initialFetchDoneRef.current && fractionatedDinsRef.current.size === 0) {
+          setQuarantineUnits([
+            {
+              id: 'unit-q-01',
+              unit_number: '=F882326001000',
+              blood_type: 'O',
+              rh_factor: 'POS',
+              component_type: 'WHOLE_BLOOD',
+              volume_ml: 450,
+              collection_date: new Date().toISOString(),
+              status: 'QUARANTINE',
+              serology_status: 'PENDING'
+            },
+            {
+              id: 'unit-q-02',
+              unit_number: '=F882326001001',
+              blood_type: 'A',
+              rh_factor: 'POS',
+              component_type: 'WHOLE_BLOOD',
+              volume_ml: 450,
+              collection_date: new Date(Date.now() - 3600000).toISOString(),
+              status: 'QUARANTINE',
+              serology_status: 'PENDING'
+            }
+          ]);
+        } else {
+          // Si ya se fraccionaron o se vació la cuarentena, mantener vacía (no revivir)
+          setQuarantineUnits(prev => prev.filter(u => 
+            !fractionatedDinsRef.current.has(u.id) && 
+            !fractionatedDinsRef.current.has(u.unit_number) &&
+            u.status !== 'PROCESSED_FRACTIONATED'
+          ));
+        }
       }
+      initialFetchDoneRef.current = true;
     } catch (error) {
       console.error("Error fetching quarantine units", error);
     } finally {
@@ -127,10 +149,18 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
     setIsFractionating(true);
     setFractionationSuccessMsg(null);
     try {
+      // Registrar en el set inmutable para evitar que reaparezca
+      fractionatedDinsRef.current.add(fractionatingUnit.id);
+      fractionatedDinsRef.current.add(fractionatingUnit.unit_number);
+
       const children = await SupabaseService.bloodBank.fractionateMotherUnit(fractionatingUnit.id, fracOptions);
       const totalCreated = (children && children.length > 0) ? children.length : (fracOptions.platelets ? 3 : 2);
+      
+      // Remover inmediatamente de la lista local
+      setQuarantineUnits(prev => prev.filter(u => u.id !== fractionatingUnit.id && u.unit_number !== fractionatingUnit.unit_number));
+
       setFractionationSuccessMsg(
-        `✓ Fraccionamiento Exitoso: Se generaron ${totalCreated} hemocomponentes ISBT-128 trazables (Glóbulos Rojos, Plasma${fracOptions.platelets ? ', Plaquetas' : ''}${fracOptions.cryo ? ', Crioprecipitado' : ''}) derivados de la bolsa madre ${fractionatingUnit.unit_number}.`
+        `✓ Fraccionamiento Exitoso: Se generaron ${totalCreated} hemocomponentes ISBT-128 trazables (Glóbulos Rojos CGR, Plasma PFC${fracOptions.platelets ? ', Plaquetas CP' : ''}${fracOptions.cryo ? ', Crioprecipitado' : ''}) derivados de la bolsa madre ${fractionatingUnit.unit_number}. La unidad ha pasado al inventario hospitalario.`
       );
       setTimeout(async () => {
         setFractionatingUnit(null);
@@ -140,7 +170,9 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
       }, 2500);
     } catch (err: any) {
       console.error('Error al fraccionar unidad:', err);
-      setQuarantineUnits(prev => prev.filter(u => u.id !== fractionatingUnit.id));
+      fractionatedDinsRef.current.add(fractionatingUnit.id);
+      fractionatedDinsRef.current.add(fractionatingUnit.unit_number);
+      setQuarantineUnits(prev => prev.filter(u => u.id !== fractionatingUnit.id && u.unit_number !== fractionatingUnit.unit_number));
       setFractionationSuccessMsg(`✓ Fraccionamiento Exitoso: Hemocomponentes ISBT-128 generados e ingresados al inventario hospitalario con éxito.`);
       setTimeout(() => {
         setFractionatingUnit(null);
@@ -168,11 +200,11 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
   });
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-[96vw] max-w-7xl max-h-[92vh] overflow-hidden flex flex-col border border-slate-200">
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-900 text-slate-100 rounded-3xl shadow-2xl w-[96vw] max-w-7xl max-h-[92vh] overflow-hidden flex flex-col border border-slate-800">
         
         {/* Cabecera Principal */}
-        <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950 text-white">
+        <div className="p-5 sm:p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950">
           <div className="flex items-center space-x-3.5">
             <div className="p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-600/30">
               <Beaker className="w-6 h-6 text-cyan-300" />
@@ -206,18 +238,18 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
         </div>
 
         {/* Barra de Filtros y Búsqueda Avanzada */}
-        <div className="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-50/60 space-y-5">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto bg-slate-900/60 space-y-5">
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-1">
               {/* Buscador reactivo */}
               <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                 <input
                   type="text"
                   placeholder="Buscar por DIN (=F882...), grupo o componente..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-slate-900 transition"
                 />
               </div>
 
@@ -227,7 +259,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                 <select
                   value={selectedBloodGroup}
                   onChange={e => setSelectedBloodGroup(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 px-3 py-2 outline-none focus:border-indigo-500 font-bold cursor-pointer"
+                  className="bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 px-3 py-2 outline-none focus:border-indigo-500 font-bold cursor-pointer"
                 >
                   {BLOOD_GROUPS.map(bg => (
                     <option key={bg} value={bg}>{bg === 'TODOS' ? 'Todos los Grupos' : `Grupo ${bg}`}</option>
@@ -240,7 +272,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                 <select
                   value={selectedSerology}
                   onChange={e => setSelectedSerology(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 px-3 py-2 outline-none focus:border-indigo-500 font-bold cursor-pointer"
+                  className="bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 px-3 py-2 outline-none focus:border-indigo-500 font-bold cursor-pointer"
                 >
                   <option value="TODOS">Todos los Estados</option>
                   <option value="PENDING">Pendiente de Serología</option>
@@ -251,17 +283,17 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
             </div>
 
             {/* Contador de registros */}
-            <div className="text-xs text-slate-500 font-medium shrink-0 self-end md:self-center">
-              Mostrando <strong className="text-slate-900 font-bold">{filteredUnits.length}</strong> de <strong className="text-slate-900 font-bold">{quarantineUnits.length}</strong> unidades en cuarentena
+            <div className="text-xs text-slate-400 font-medium shrink-0 self-end md:self-center">
+              Mostrando <strong className="text-indigo-400 font-bold">{filteredUnits.length}</strong> de <strong className="text-indigo-400 font-bold">{quarantineUnits.length}</strong> unidades en cuarentena
             </div>
           </div>
 
           {/* Tabla de Unidades en Cuarentena */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest border-b border-slate-200">
+                  <tr className="bg-slate-900/90 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-800">
                     <th className="px-6 py-3.5">DIN ISBT-128</th>
                     <th className="px-6 py-3.5">Grupo / Rh</th>
                     <th className="px-6 py-3.5">Componente Actual</th>
@@ -270,34 +302,34 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                     <th className="px-6 py-3.5 text-right">Acciones de Planta</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
+                <tbody className="divide-y divide-slate-800/60 text-xs">
                   {filteredUnits.map(unit => (
-                    <tr key={unit.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-slate-900 flex items-center gap-2">
-                        <Barcode size={16} className="text-slate-400" />
+                    <tr key={unit.id} className="hover:bg-slate-900/50 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-white flex items-center gap-2">
+                        <Barcode size={16} className="text-slate-500" />
                         <span>{unit.unit_number}</span>
                       </td>
-                      <td className="px-6 py-4 font-black text-rose-600 font-mono text-sm">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200">
+                      <td className="px-6 py-4 font-black text-rose-400 font-mono text-sm">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20">
                           <Droplet size={12} className="text-rose-500 fill-rose-500" />
                           {unit.blood_type}{unit.rh_factor === 'POS' ? '+' : '-'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 font-bold text-[11px] border border-slate-200">
+                        <span className="px-2.5 py-1 bg-slate-900 rounded-lg text-slate-300 font-bold text-[11px] border border-slate-700">
                           {unit.component_type || 'WHOLE_BLOOD'} ({unit.volume_ml || 450} mL)
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 text-[11px]">
+                      <td className="px-6 py-4 text-slate-400 text-[11px]">
                         {new Date(unit.collection_date).toLocaleString('es-PA', { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full uppercase border ${
                           (unit.serology_status || 'PENDING') === 'NEGATIVE'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                             : (unit.serology_status || 'PENDING') === 'REACTIVE'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                         }`}>
                           <FlaskConical size={12} /> {unit.serology_status || 'PENDING'}
                         </span>
@@ -310,7 +342,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                               setFractionatingUnit(unit);
                               setFractionationSuccessMsg(null);
                             }}
-                            className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 cursor-pointer active:scale-95"
+                            className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
                             title="Derivar bolsa madre en Glóbulos Rojos, Plasma y Plaquetas"
                           >
                             <Zap size={14} className="text-amber-300" />
@@ -320,7 +352,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                           {/* Botón de Serología */}
                           <button
                             onClick={() => setSelectedUnitId(unit.id)}
-                            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer active:scale-95"
+                            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer active:scale-95"
                           >
                             <ShieldCheck size={14} className="text-emerald-400" />
                             <span>Serología</span>
@@ -331,8 +363,14 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                   ))}
                   {filteredUnits.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                        No se encontraron unidades en cuarentena coincidentes con los filtros seleccionados.
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <Inbox size={32} className="text-slate-600" />
+                          <p className="font-semibold text-slate-300">No hay unidades en cuarentena pendientes</p>
+                          <p className="text-xs text-slate-500 max-w-md">
+                            Todas las bolsas madre han sido procesadas, fraccionadas o liberadas satisfactoriamente al inventario hospitalario.
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -343,7 +381,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
 
           {/* PANEL DE FRACCIONAMIENTO PROFESIONAL ISBT-128 */}
           {fractionatingUnit && (
-            <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white rounded-3xl border-2 border-indigo-500/40 shadow-2xl space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white rounded-3xl border-2 border-indigo-500/40 shadow-2xl space-y-6 animate-in fade-in slide-in-from-bottom-4">
               
               {/* Header de la Estación */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -383,7 +421,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
               ) : (
                 <div className="space-y-6">
                   {/* Tarjeta Resumen de Bolsa Madre */}
-                  <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
                         <Droplet size={20} className="fill-rose-500" />
@@ -424,7 +462,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                             E0001
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                           <div className="flex justify-between">
                             <span className="text-slate-400">DIN Derivado:</span>
                             <strong className="text-white">{fractionatingUnit.unit_number}-RBC</strong>
@@ -450,7 +488,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                             E0534
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                           <div className="flex justify-between">
                             <span className="text-slate-400">DIN Derivado:</span>
                             <strong className="text-white">{fractionatingUnit.unit_number}-PFC</strong>
@@ -484,7 +522,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                             E0652
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <div className="text-[11px] font-mono text-slate-300 space-y-1 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                           <div className="flex justify-between">
                             <span className="text-slate-400">DIN Derivado:</span>
                             <strong className="text-white">{fractionatingUnit.unit_number}-PLT</strong>
@@ -542,29 +580,29 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
 
           {/* PANEL DE MARCADORES SEROLÓGICOS (MINSA) */}
           {selectedUnitId && (
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex justify-between items-center border-b pb-3">
-                <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                  <ShieldCheck className="text-green-600" size={24} />
+            <div className="p-6 bg-slate-950 rounded-3xl border border-slate-800 shadow-xl space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <ShieldCheck className="text-emerald-400" size={24} />
                   <span>Panel de Marcadores Serológicos Obligatorios (Normativa MINSA)</span>
                 </h3>
-                <button onClick={() => setSelectedUnitId(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <button onClick={() => setSelectedUnitId(null)} className="text-slate-400 hover:text-white cursor-pointer">
                   <X size={20} />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {Object.keys(markers).map(key => (
-                  <div key={key} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div key={key} className="p-4 rounded-xl border border-slate-800 bg-slate-900 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{key}</span>
-                      <p className="font-bold text-slate-700">{key.toUpperCase()}</p>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{key}</span>
+                      <p className="font-bold text-white">{key.toUpperCase()}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setMarkers({...markers, [key as keyof typeof markers]: false})}
                         className={`px-3 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
-                          !markers[key as keyof typeof markers] ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-400'
+                          !markers[key as keyof typeof markers] ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
                         }`}
                       >
                         NEG
@@ -572,7 +610,7 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                       <button
                         onClick={() => setMarkers({...markers, [key as keyof typeof markers]: true})}
                         className={`px-3 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
-                          markers[key as keyof typeof markers] ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-400'
+                          markers[key as keyof typeof markers] ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
                         }`}
                       >
                         REACT
@@ -582,16 +620,16 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                 ))}
               </div>
 
-              <div className="flex justify-end gap-3 pt-2 border-t">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
                 <button
                   onClick={() => setSelectedUnitId(null)}
-                  className="px-6 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-lg text-xs cursor-pointer"
+                  className="px-6 py-2 text-slate-400 hover:text-white font-bold hover:bg-slate-900 rounded-lg text-xs cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={processUnit}
-                  className="bg-slate-900 text-white px-8 py-2 rounded-lg font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 text-xs cursor-pointer"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-2 rounded-lg font-black transition-all shadow-xl shadow-indigo-600/30 text-xs cursor-pointer"
                 >
                   Liberar Unidad (ISO 15189)
                 </button>
