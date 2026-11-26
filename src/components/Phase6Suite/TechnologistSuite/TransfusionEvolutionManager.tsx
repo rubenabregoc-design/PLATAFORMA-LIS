@@ -32,6 +32,7 @@ import {
 import { TransfusionCase, TransfusionStage } from '../../../types';
 import { useLisStore } from '../../../store/useLisStore';
 import { SupabaseService, BloodBankService } from '../../../services/SupabaseService';
+import { OfficialBloodBankFormsPDF } from './OfficialBloodBankFormsPDF';
 
 export const STAGES_LIST: { id: TransfusionStage; label: string; short: string; icon: any; color: string }[] = [
   { id: 'SOLICITUD', label: '1. Solicitud', short: 'Solicitud', icon: FileText, color: 'text-indigo-400' },
@@ -426,18 +427,19 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
   const [loading, setLoading] = useState<boolean>(true);
 
   // Form state for new requisition
-  const [newPatientName, setNewPatientName] = useState('Rubén Ábrego');
-  const [newNationalId, setNewNationalId] = useState('8-892-1209');
-  const [newAge, setNewAge] = useState(38);
+  const [newPatientName, setNewPatientName] = useState('');
+  const [newNationalId, setNewNationalId] = useState('');
+  const [newAge, setNewAge] = useState<number | ''>('');
   const [newGender, setNewGender] = useState<'M' | 'F'>('M');
-  const [newWard, setNewWard] = useState('CIRUGIA_GENERAL');
-  const [newBed, setNewBed] = useState('04');
-  const [newDoctor, setNewDoctor] = useState('Dr. Roberto Icaza');
-  const [newDoctorLicense, setNewDoctorLicense] = useState('MED-10492-PA');
-  const [newIndication, setNewIndication] = useState('Anemia preoperatoria para artroplastia total de cadera.');
+  const [newWard, setNewWard] = useState('');
+  const [newBed, setNewBed] = useState('');
+  const [newDoctor, setNewDoctor] = useState('');
+  const [newDoctorLicense, setNewDoctorLicense] = useState('');
+  const [newIndication, setNewIndication] = useState('');
   const [newComponent, setNewComponent] = useState<'CONCENTRADO_HEMATIES' | 'PLASMA_FRESCO' | 'PLAQUETAS' | 'CRIOPRECIPITADO'>('CONCENTRADO_HEMATIES');
-  const [newUnits, setNewUnits] = useState(2);
+  const [newUnits, setNewUnits] = useState(1);
   const [newUrgency, setNewUrgency] = useState<'EXTREMA_URGENCIA' | 'URGENTE' | 'PROGRAMADA'>('PROGRAMADA');
+  const [showBoletaModal, setShowBoletaModal] = useState<boolean>(false);
 
   // Load requests from PostgreSQL
   const loadData = async () => {
@@ -520,6 +522,10 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(() => {
+      loadData();
+    }, 10000);
+    return () => clearInterval(interval);
   }, [isDemoMode]);
 
   const activeCase = cases.find((c) => c.id === selectedCaseId) || cases[0];
@@ -1364,7 +1370,7 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                     <span className="text-slate-300">Firma Digital: <strong>Dra. Carmen Rosas (Jefa Banco de Sangre)</strong></span>
                   </div>
                   <button
-                    onClick={() => alert(`Generando Boleta Oficial de Transfusión ${activeCase.caseNumber} en formato PDF reglamentario MINSA...`)}
+                    onClick={() => setShowBoletaModal(true)}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5 transition cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
@@ -1405,6 +1411,7 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                     type="text"
                     value={newPatientName}
                     onChange={(e) => setNewPatientName(e.target.value)}
+                    placeholder="Ej. Carlos Mendoza"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500"
                     required
                   />
@@ -1416,6 +1423,7 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                     type="text"
                     value={newNationalId}
                     onChange={(e) => setNewNationalId(e.target.value)}
+                    placeholder="Ej. 8-765-4321"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500"
                     required
                   />
@@ -1426,7 +1434,8 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                   <input
                     type="number"
                     value={newAge}
-                    onChange={(e) => setNewAge(Number(e.target.value))}
+                    onChange={(e) => setNewAge(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="Ej. 42"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
                     required
                   />
@@ -1474,6 +1483,7 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                     type="text"
                     value={newDoctor}
                     onChange={(e) => setNewDoctor(e.target.value)}
+                    placeholder="Ej. Dr. Roberto Icaza"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
                     required
                   />
@@ -1485,6 +1495,7 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
                     type="text"
                     value={newDoctorLicense}
                     onChange={(e) => setNewDoctorLicense(e.target.value)}
+                    placeholder="Ej. MED-10492-PA"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
                     required
                   />
@@ -1574,6 +1585,40 @@ export const TransfusionEvolutionManager: React.FC<TransfusionEvolutionManagerPr
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODAL: BOLETA OFICIAL DE TRANSFUSIÓN MINSA (F-TRANS-02) */}
+      {showBoletaModal && activeCase && (
+        <OfficialBloodBankFormsPDF
+          initialForm="F-TRANS-02"
+          contextData={{
+            patient: {
+              fullName: activeCase.patientName,
+              nationalId: activeCase.patientNationalId,
+              age: activeCase.patientAge,
+              gender: activeCase.patientGender,
+              bloodType: activeCase.aboGroup,
+              rhFactor: activeCase.rhFactor,
+              bed: activeCase.bedNumber,
+              ward: activeCase.ward,
+              diagnosis: activeCase.clinicalIndication,
+              physician: activeCase.prescribingDoctor
+            },
+            unit: {
+              unitNumber: activeCase.assignedUnitCode || activeCase.reservedUnitId || 'PGRE-2026-0771',
+              componentType: activeCase.componentRequested,
+              bloodType: activeCase.assignedUnitGroup || `${activeCase.aboGroup}${activeCase.rhFactor === 'POS' ? '+' : '-'}`,
+              expirationDate: activeCase.reservationExpiresAt || '2026-08-30'
+            },
+            crossmatch: {
+              majorResult: activeCase.crossmatchMajor || 'COMPATIBLE',
+              minorResult: activeCase.crossmatchMinor || 'COMPATIBLE',
+              method: activeCase.crossmatchMethod || 'GEL',
+              technologist: activeCase.immunohematologist || 'Lic. Especialista en Inmunohematología'
+            }
+          }}
+          onClose={() => setShowBoletaModal(false)}
+        />
       )}
     </div>
   );

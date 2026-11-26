@@ -36,6 +36,10 @@ const DonorDeferralDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchStats = async () => {
@@ -99,7 +103,10 @@ const DonorDeferralDashboard: React.FC = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                        ))}
                     </Pie>
-                    <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}} />
+                    <Tooltip
+                       contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
+                       formatter={(val: any) => [`${val} ${Number(val) === 1 ? 'Caso' : 'Casos'}`, 'Total Rechazos']}
+                    />
                     <Legend verticalAlign="bottom" height={36}/>
                  </PieChart>
               </ResponsiveContainer>

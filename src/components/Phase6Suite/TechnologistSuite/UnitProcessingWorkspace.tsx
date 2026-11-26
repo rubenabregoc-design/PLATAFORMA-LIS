@@ -15,6 +15,7 @@ interface UnitProcessingWorkspaceProps {
 const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClose = () => {}, onRefresh = () => {} }) => {
   const [quarantineUnits, setQuarantineUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState<any | null>(null);
   const [markers, setMarkers] = useState({
@@ -30,6 +31,10 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
 
   useEffect(() => {
     fetchQuarantine();
+    const interval = setInterval(() => {
+      fetchQuarantine();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchQuarantine = async () => {
@@ -139,7 +144,27 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
         </div>
 
         {/* Tabla de Unidades en Cuarentena */}
-        <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50 space-y-6">
+        <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Filtrar por DIN, grupo o componente..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              />
+            </div>
+            <div className="text-xs text-slate-500 font-medium self-end sm:self-center">
+              Mostrando <span className="font-bold text-slate-800">{quarantineUnits.filter(u =>
+                (u.unit_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                `${u.blood_type}${u.rh_factor === 'POS' ? '+' : '-'}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (u.component_type || '').toLowerCase().includes(searchTerm.toLowerCase())
+              ).length}</span> de <span className="font-bold text-slate-800">{quarantineUnits.length}</span> unidades en cuarentena
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <table className="w-full text-left">
               <thead>
@@ -153,7 +178,13 @@ const UnitProcessingWorkspace: React.FC<UnitProcessingWorkspaceProps> = ({ onClo
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {quarantineUnits.map(unit => (
+                {quarantineUnits
+                  .filter(u =>
+                    (u.unit_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    `${u.blood_type}${u.rh_factor === 'POS' ? '+' : '-'}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (u.component_type || '').toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map(unit => (
                   <tr key={unit.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-mono font-bold text-slate-700">{unit.unit_number}</td>
                     <td className="px-6 py-4 font-black text-red-600">{unit.blood_type}{unit.rh_factor === 'POS' ? '+' : '-'}</td>

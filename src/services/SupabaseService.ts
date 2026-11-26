@@ -2824,6 +2824,25 @@ export const ExtramuralBloodService = {
   async registerDonor(reg: Omit<DbBloodDriveRegistration, 'id' | 'check_in_time'>): Promise<void> {
     const { error } = await supabase.from('blood_drive_registrations').insert(reg);
     if (error) handleError('registerDonor', error);
+  },
+
+  async createEvent(event: {
+    name: string;
+    location_name: string;
+    start_date: string;
+    end_date: string;
+    goal_units: number;
+    collected_units?: number;
+    status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  }): Promise<DbBloodDriveEvent> {
+    const tenant_id = await getTenantId();
+    const { data, error } = await supabase
+      .from('blood_drive_events')
+      .insert({ ...event, tenant_id, collected_units: event.collected_units || 0 })
+      .select()
+      .single();
+    if (error) handleError('createEvent', error);
+    return data!;
   }
 };
 

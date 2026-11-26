@@ -44,6 +44,10 @@ const BloodBankCenter: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ 
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(() => {
+      fetchData();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
@@ -175,8 +179,10 @@ const BloodBankCenter: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ 
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                   <Tooltip
                     contentStyle={{backgroundColor: '#020617', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px'}}
+                    formatter={(val: any) => [`${val} ${Number(val) === 1 ? 'Unidad' : 'Unidades'}`, 'Stock Disponible']}
+                    labelFormatter={(label: any) => `Grupo Sanguíneo: ${label}`}
                   />
-                  <Bar dataKey="value" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={40} />
+                  <Bar dataKey="value" name="Stock Disponible" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -190,8 +196,10 @@ const BloodBankCenter: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ 
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                 <input
                   type="text"
-                  placeholder="Buscar unidad..."
-                  className="pl-9 pr-4 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  value={searchUnitTerm}
+                  onChange={(e) => setSearchUnitTerm(e.target.value)}
+                  placeholder="Buscar por N° unidad, grupo o componente..."
+                  className="pl-9 pr-4 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 w-72"
                 />
               </div>
             </div>
@@ -208,7 +216,15 @@ const BloodBankCenter: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {inventory.map((unit) => (
+                  {inventory.filter((unit) => {
+                    if (!searchUnitTerm) return true;
+                    const q = searchUnitTerm.toLowerCase();
+                    return (
+                      (unit.unit_number || '').toLowerCase().includes(q) ||
+                      (unit.component_type || '').toLowerCase().includes(q) ||
+                      `${unit.blood_type}${unit.rh_factor === 'POS' ? '+' : '-'}`.toLowerCase().includes(q)
+                    );
+                  }).map((unit) => (
                     <tr
                       key={unit.id}
                       className="hover:bg-slate-800/40 transition-colors cursor-pointer"

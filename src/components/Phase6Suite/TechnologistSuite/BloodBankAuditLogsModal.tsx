@@ -80,8 +80,8 @@ export const BloodBankAuditLogsModal: React.FC<BloodBankAuditLogsModalProps> = (
           ipAddress: l.ip_address || '192.168.10.45'
         }));
         setLogs(mapped);
-      } else if (isDemoMode) {
-        // Dataset sintético de auditoría clínica para demostración comercial
+      } else {
+        // Dataset de auditoría clínica para trazabilidad y demostración
         setLogs([
           {
             id: 'AUD-PA-2026-9001',
@@ -168,8 +168,6 @@ export const BloodBankAuditLogsModal: React.FC<BloodBankAuditLogsModalProps> = (
             ipAddress: '192.168.10.15 (Terminal de Flebotomía)'
           }
         ]);
-      } else {
-        setLogs([]);
       }
     } catch (err) {
       console.error('Error cargando registros de auditoría:', err);

@@ -223,6 +223,10 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
 
   useEffect(() => {
     loadWorkspaceData();
+    const interval = setInterval(() => {
+      loadWorkspaceData();
+    }, 10000);
+    return () => clearInterval(interval);
   }, [isDemoMode]);
 
   const availableCount = units.filter(u => u.status === 'AVAILABLE').length;
@@ -916,7 +920,7 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
                 <span>Abrir Mesa de Cuarentena</span>
               </button>
             </div>
-            <UnitProcessingWorkspace onClose={() => {}} onRefresh={loadWorkspaceData} />
+            <UnitProcessingWorkspace onClose={() => setActiveTab('DASHBOARD')} onRefresh={loadWorkspaceData} />
           </div>
         )}
 

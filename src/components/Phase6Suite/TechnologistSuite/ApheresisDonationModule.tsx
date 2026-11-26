@@ -186,26 +186,29 @@ export const ApheresisDonationModule: React.FC = () => {
   const [selectedProcedure, setSelectedProcedure] = useState<ApheresisProcedure | null>(null);
 
   // New Procedure Wizard State
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
-  const [formData, setFormData] = useState({
+  const initialBlankForm = {
     donorName: '',
     nationalId: '',
     bloodGroup: 'O+' as any,
-    prePlateletCount: 260,
-    preHb: 14.2,
-    weightKg: 72,
-    heightCm: 175,
+    prePlateletCount: '' as any,
+    preHb: '' as any,
+    weightKg: '' as any,
+    heightCm: '' as any,
     gender: 'M' as 'M' | 'F',
-    procedureType: 'PLAQUETAS_DOUBLE' as any,
+    procedureType: 'PLAQUETAS_SINGLE' as any,
     machineModel: 'Trima Accel (Terumo BCT)' as any,
-    kitLot: 'LOT-TRM-2026-X',
+    kitLot: '',
     acdRatio: '1:11',
-    targetYield: 6.0,
+    targetYield: 3.5,
     targetPlasmaMl: 200,
     citrateToxicitySymptoms: false,
     calciumAdministered: false,
     technologistNotes: ''
-  });
+  };
+
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
+  const [formData, setFormData] = useState(initialBlankForm);
+  const [availableDonors, setAvailableDonors] = useState<any[]>([]);
 
   // Load real apheresis data from database
   const loadData = async () => {
@@ -270,17 +273,27 @@ export const ApheresisDonationModule: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(() => {
+      if (!isDemoMode) {
+        loadData();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
   }, [isDemoMode]);
 
   // Calculate Nadler's Estimated Total Blood Volume (TBV in mL)
+  const numWeight = Number(formData.weightKg) || 0;
+  const numHeight = Number(formData.heightCm) || 0;
+  const numPlt = Number(formData.prePlateletCount) || 0;
+  const numHb = Number(formData.preHb) || 0;
+
   const calculateTBV = () => {
-    const { weightKg, heightCm, gender } = formData;
-    if (!weightKg || !heightCm) return 4500;
-    const hM = heightCm / 100;
-    if (gender === 'M') {
-      return Math.round((0.3669 * Math.pow(hM, 3) + 0.03219 * weightKg + 0.6041) * 1000);
+    if (!numWeight || !numHeight) return 4500;
+    const hM = numHeight / 100;
+    if (formData.gender === 'M') {
+      return Math.round((0.3669 * Math.pow(hM, 3) + 0.03219 * numWeight + 0.6041) * 1000);
     } else {
-      return Math.round((0.3561 * Math.pow(hM, 3) + 0.03308 * weightKg + 0.1833) * 1000);
+      return Math.round((0.3561 * Math.pow(hM, 3) + 0.03308 * numWeight + 0.1833) * 1000);
     }
   };
 
@@ -288,9 +301,9 @@ export const ApheresisDonationModule: React.FC = () => {
   const maxSafeACDLimit = Math.round(tbvMl * 0.15); // Max 15% safe extracorporeal volume
 
   // Donor Eligibility Verification for Apheresis
-  const isPlateletCountValid = formData.prePlateletCount >= 150;
-  const isHbValid = formData.preHb >= 12.5;
-  const isWeightValid = formData.weightKg >= 50;
+  const isPlateletCountValid = numPlt >= 150;
+  const isHbValid = numHb >= 12.5;
+  const isWeightValid = numWeight >= 50;
   const isDonorEligible = isPlateletCountValid && isHbValid && isWeightValid;
 
   const handleCreateProcedure = async () => {
@@ -447,6 +460,7 @@ export const ApheresisDonationModule: React.FC = () => {
 
           <button
             onClick={() => {
+              setFormData(initialBlankForm);
               setActiveTab('new_procedure');
               setWizardStep(1);
             }}
@@ -690,6 +704,17 @@ export const ApheresisDonationModule: React.FC = () => {
               <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${wizardStep === 4 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}>4</span>
               <span className="text-xs font-bold text-slate-300">Finalización ISBT-128</span>
             </div>
+
+            <button
+              onClick={() => {
+                setActiveTab('overview');
+                setFormData(initialBlankForm);
+              }}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              title="Cerrar formulario"
+            >
+              <X size={18} />
+            </button>
           </div>
 
           {/* STEP 1: DONOR ELIGIBILITY */}
@@ -757,8 +782,9 @@ export const ApheresisDonationModule: React.FC = () => {
                   <label className="block font-medium text-slate-300 mb-1">Peso (kg) [Min 50 kg]</label>
                   <input
                     type="number"
-                    value={formData.weightKg}
-                    onChange={e => setFormData({ ...formData, weightKg: Number(e.target.value) })}
+                    value={formData.weightKg || ''}
+                    onChange={e => setFormData({ ...formData, weightKg: e.target.value === '' ? '' : Number(e.target.value) })}
+                    placeholder="Ej. 70"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-rose-500 outline-none"
                   />
                 </div>
@@ -767,8 +793,9 @@ export const ApheresisDonationModule: React.FC = () => {
                   <label className="block font-medium text-slate-300 mb-1">Estatura (cm)</label>
                   <input
                     type="number"
-                    value={formData.heightCm}
-                    onChange={e => setFormData({ ...formData, heightCm: Number(e.target.value) })}
+                    value={formData.heightCm || ''}
+                    onChange={e => setFormData({ ...formData, heightCm: e.target.value === '' ? '' : Number(e.target.value) })}
+                    placeholder="Ej. 170"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-rose-500 outline-none"
                   />
                 </div>
@@ -777,8 +804,9 @@ export const ApheresisDonationModule: React.FC = () => {
                   <label className="block font-medium text-slate-300 mb-1">Conteo de Plaquetas Pre-Donación (×10³/µL)</label>
                   <input
                     type="number"
-                    value={formData.prePlateletCount}
-                    onChange={e => setFormData({ ...formData, prePlateletCount: Number(e.target.value) })}
+                    value={formData.prePlateletCount || ''}
+                    onChange={e => setFormData({ ...formData, prePlateletCount: e.target.value === '' ? '' : Number(e.target.value) })}
+                    placeholder="Ej. 250"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-rose-500 outline-none font-mono font-bold text-rose-400"
                   />
                 </div>
@@ -788,8 +816,9 @@ export const ApheresisDonationModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.1"
-                    value={formData.preHb}
-                    onChange={e => setFormData({ ...formData, preHb: Number(e.target.value) })}
+                    value={formData.preHb || ''}
+                    onChange={e => setFormData({ ...formData, preHb: e.target.value === '' ? '' : Number(e.target.value) })}
+                    placeholder="Ej. 14.0"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-rose-500 outline-none font-mono font-bold text-blue-400"
                   />
                 </div>
@@ -898,6 +927,7 @@ export const ApheresisDonationModule: React.FC = () => {
                     type="text"
                     value={formData.kitLot}
                     onChange={e => setFormData({ ...formData, kitLot: e.target.value })}
+                    placeholder="Ej. LOT-TRM-2026-X"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-rose-500 outline-none font-mono"
                   />
                 </div>
@@ -1152,7 +1182,8 @@ export const ApheresisDonationModule: React.FC = () => {
 
           {/* TABLE OF PROCEDURES */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <table className="w-full text-left border-collapse text-xs">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800 uppercase tracking-wider text-[10px]">
                   <th className="p-4">DIN ISBT-128</th>
@@ -1206,6 +1237,7 @@ export const ApheresisDonationModule: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
