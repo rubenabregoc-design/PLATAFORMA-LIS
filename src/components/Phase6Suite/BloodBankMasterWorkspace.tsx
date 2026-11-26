@@ -28,6 +28,7 @@ import BloodLogisticsManager from './TechnologistSuite/BloodLogisticsManager';
 import ISBTLabelPrinter from './TechnologistSuite/ISBTLabelPrinter';
 import { DonorDigitalCardModal } from './TechnologistSuite/DonorDigitalCardModal';
 import { OfficialBloodBankFormsPDF, OfficialFormType } from './TechnologistSuite/OfficialBloodBankFormsPDF';
+import { BloodBankAuditLogsModal } from './TechnologistSuite/BloodBankAuditLogsModal';
 
 export type BloodBankTab =
   | 'DASHBOARD'
@@ -63,6 +64,7 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
   const [selectedDonorForCard, setSelectedDonorForCard] = useState<any>(null);
   const [showOfficialFormsModal, setShowOfficialFormsModal] = useState<boolean>(false);
   const [activeOfficialForm, setActiveOfficialForm] = useState<OfficialFormType>('F-TRANS-02');
+  const [showAuditLogsModal, setShowAuditLogsModal] = useState<boolean>(false);
 
   // Estados de pestaña DONANTES
   const [donorSubView, setDonorSubView] = useState<'DIRECTORY' | 'DEFERRALS'>('DIRECTORY');
@@ -403,7 +405,7 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
         {/* TAB 1: CENTRO DE MANDO & KPIS */}
         {activeTab === 'DASHBOARD' && (
           <div className="space-y-6">
-            <BloodBankCenter />
+            <BloodBankCenter onNavigateTab={(tab) => setActiveTab(tab as any)} />
           </div>
         )}
 
@@ -982,16 +984,26 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
         {activeTab === 'AUDIT_QUALITY' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl">
-                  <ShieldCheck className="w-6 h-6" />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Gobernanza de Calidad, Auditoría e Inmutabilidad</h3>
+                    <p className="text-xs text-slate-400">
+                      Cumplimiento estricto de la norma ISO 15189 §7.3, Ley 81 de Protección de Datos y Resolución Técnica MINSA.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Gobernanza de Calidad, Auditoría e Inmutabilidad</h3>
-                  <p className="text-xs text-slate-400">
-                    Cumplimiento de la norma ISO 15189 §7.3, Ley 81 de Protección de Datos y Resolución Técnica MINSA.
-                  </p>
-                </div>
+
+                <button
+                  onClick={() => setShowAuditLogsModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs transition flex items-center space-x-2 shadow-lg shadow-rose-600/30 cursor-pointer shrink-0"
+                >
+                  <History className="w-4 h-4" />
+                  <span>Ver Pistas de Auditoría Completas</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
@@ -1010,7 +1022,7 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
                   <span className="text-xs text-slate-400 font-bold">Registro de Cambios</span>
                   <div className="text-2xl font-black text-white">Inmutable</div>
-                  <span className="text-[10px] text-amber-400 font-mono">Sin sobrescritura silenciosa</span>
+                  <span className="text-[10px] text-amber-400 font-mono">Sin sobrescritura silenciosa (Hash SHA-256)</span>
                 </div>
               </div>
             </div>
@@ -1140,6 +1152,12 @@ export const BloodBankMasterWorkspace: React.FC<BloodBankMasterWorkspaceProps> =
             </div>
           </div>
         </div>
+      )}
+
+      {showAuditLogsModal && (
+        <BloodBankAuditLogsModal
+          onClose={() => setShowAuditLogsModal(false)}
+        />
       )}
     </div>
   );

@@ -23,11 +23,12 @@ import DonorScreeningForm from './DonorScreeningForm';
 import HemovigilanceAnalytics from './HemovigilanceAnalytics';
 import UnitProcessingWorkspace from './UnitProcessingWorkspace';
 import { TransfusionEvolutionManager } from './TransfusionEvolutionManager';
+import { BloodBankAuditLogsModal } from './BloodBankAuditLogsModal';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const COLORS = ['#ef4444', '#f87171', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d', '#fca5a5', '#fee2e2'];
 
-const BloodBankCenter: React.FC = () => {
+const BloodBankCenter: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ onNavigateTab }) => {
   const [inventory, setInventory] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +39,8 @@ const BloodBankCenter: React.FC = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
   const [showTransfusionEvolution, setShowTransfusionEvolution] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [searchUnitTerm, setSearchUnitTerm] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -309,7 +312,10 @@ const BloodBankCenter: React.FC = () => {
                 <span>Reporte inmediato de cualquier incidente transfusional (Hemovigilancia).</span>
               </li>
             </ul>
-            <button className="w-full mt-6 py-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-colors flex items-center justify-center gap-2 cursor-pointer">
+            <button
+              onClick={() => setShowAuditModal(true)}
+              className="w-full mt-6 py-2.5 bg-slate-800/80 hover:bg-slate-800 hover:border-rose-500/50 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            >
               <History size={14} />
               Ver Registro de Auditoría
             </button>
@@ -376,6 +382,13 @@ const BloodBankCenter: React.FC = () => {
             <TransfusionEvolutionManager onClose={() => setShowTransfusionEvolution(false)} />
           </div>
         </div>
+      )}
+
+      {showAuditModal && (
+        <BloodBankAuditLogsModal
+          onClose={() => setShowAuditModal(false)}
+          onNavigateTab={onNavigateTab}
+        />
       )}
     </div>
   );
