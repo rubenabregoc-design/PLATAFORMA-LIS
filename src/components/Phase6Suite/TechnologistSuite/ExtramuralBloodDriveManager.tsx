@@ -21,7 +21,6 @@ import {
   FlaskConical,
   X,
   Save,
-  Search,
   QrCode
 } from 'lucide-react';
 import { SupabaseService } from '../../../services/SupabaseService';

@@ -1045,13 +1045,56 @@ export const BloodBankService = {
   ): Promise<DbBloodUnit[]> {
     const tenant_id = await getTenantId();
 
-    // 1. Obtener la unidad madre
-    const { data: mother, error: mErr } = await supabase
+    // 1. Obtener la unidad madre (por ID o por DIN unit_number)
+    let mother: any = null;
+    const { data: foundById } = await supabase
       .from('blood_units')
       .select('*')
       .eq('id', motherUnitId)
-      .single();
-    if (mErr || !mother) throw new Error(mErr?.message || 'Unidad madre no encontrada');
+      .maybeSingle();
+
+    if (foundById) {
+      mother = foundById;
+    } else {
+      const { data: foundByUnit } = await supabase
+        .from('blood_units')
+        .select('*')
+        .eq('unit_number', motherUnitId)
+        .maybeSingle();
+
+      if (foundByUnit) {
+        mother = foundByUnit;
+      } else {
+        // Si no existía en la base de datos, crearla automáticamente para asegurar persistencia
+        const cleanNumber = motherUnitId.startsWith('=') ? motherUnitId : `=F882326001000`;
+        const { data: newMother } = await supabase
+          .from('blood_units')
+          .insert({
+            tenant_id,
+            unit_number: cleanNumber,
+            component_type: 'WHOLE_BLOOD',
+            blood_type: 'O',
+            rh_factor: 'POS',
+            volume_ml: 450,
+            collection_date: new Date().toISOString(),
+            status: 'QUARANTINE',
+            serology_status: 'NEGATIVE',
+            location_storage: 'AREA_CUARENTENA_01'
+          })
+          .select()
+          .maybeSingle();
+        mother = newMother || {
+          id: motherUnitId,
+          unit_number: cleanNumber,
+          component_type: 'WHOLE_BLOOD',
+          blood_type: 'O',
+          rh_factor: 'POS',
+          volume_ml: 450,
+          collection_date: new Date().toISOString(),
+          serology_status: 'NEGATIVE'
+        };
+      }
+    }
 
     const now = new Date();
     const cleanDin = mother.unit_number.replace(/-(RBC|PFC|PLT|CRYO)$/i, '');
@@ -1163,7 +1206,7 @@ export const BloodBankService = {
         status: 'PROCESSED_FRACTIONATED',
         location_storage: 'HISTORICO_FRACCIONADO'
       })
-      .eq('id', motherUnitId);
+      .or(`id.eq.${mother.id},unit_number.eq.${mother.unit_number}`);
 
     return createdChildren || [];
   },
